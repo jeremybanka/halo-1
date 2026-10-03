@@ -39,6 +39,11 @@ class Mesh:
 
 
 def load(path):return json.loads(Path(path).read_text())
+def provenance_path(path):
+    """Store local inputs relative to the repo and external inputs absolutely."""
+    resolved=Path(path).resolve()
+    try:return str(resolved.relative_to(ROOT))
+    except ValueError:return str(resolved)
 def engine(p):
     a=np.asarray(p,dtype=np.float64)
     return np.stack((a[...,0],a[...,2],-a[...,1]),axis=-1)
@@ -125,6 +130,32 @@ def preview(path,fallback):
         fallback[name]=Mesh(p,colors,team_mask=tm,family='fp' if 'firstperson' in str(path) else 'world',provenance='Exact packer preview positions and vertex RGB')
     return fallback
 
+def packed_models(directory,firstperson=False,report=None):
+    """Previews preserve triangle order even when C uses indexed batches."""
+    path=directory/('firstperson-preview.json' if firstperson else 'model-preview.json')
+    if path.exists():return preview(path,{})
+    report=report or {}
+    packed=directory/('firstperson_data.c' if firstperson else 'models_data.c')
+    if 'static const bg_mesh_batch' in packed.read_text():
+        raise ValueError(f'Indexed models require the expanded triangle preview: {path}')
+    return packed_c(packed,
+        'fp' if firstperson else 'model',256 if firstperson else report.get('position_scale',32),
+        None if firstperson else report.get('model_position_scales'))
+
+def packing_statistics(before_world,after_world,before_fp,after_fp):
+    """Stored-vertex savings are distinct from triangle geometry reductions."""
+    world_vertices=after_world.get('vertices',{})
+    retained={n:v for n,v in world_vertices.items() if not n.endswith('_pickup_lod')}
+    return {'world_vertices_before':before_world.get('model_bytes',0)//16,
+            'world_vertices_after_existing_banks':sum(retained.values()),
+            'world_vertices_after_new_far_banks':sum(v for n,v in world_vertices.items() if n.endswith('_pickup_lod')),
+            'fp_vertices_before':sum((v+1)//2*2 for v in before_fp.get('vertices',{}).values()),
+            'fp_vertices_after':sum(after_fp.get('vertices',{}).values()),
+            'fp_bank_bytes_before':before_fp.get('total_bytes'),
+            'fp_bank_bytes_after':after_fp.get('total_bytes'),
+            'maximum_color_weld_channel_delta':max(after_world.get('color_weld_max_channel_delta',0),after_fp.get('color_weld_tolerance',0)),
+            'model_color_tolerances':{'world':after_world.get('color_weld_tolerances',{}),'first-person':after_fp.get('color_weld_tolerances',{})}}
+
 def animate_spartan(mesh,data,lod=False,scale=32):
     a=data.get('animations_lod' if lod else 'animations',{}).get('idle')
     if a and np.asarray(a['frames'][0]).size==mesh.p.size:
@@ -137,7 +168,7 @@ def tinted(mesh,team,before=False):
     if mesh.team_mask is not None:mask=mesh.team_mask
     else:mask=((np.abs(rgb[...,0]-rgb[...,1])<20)&(np.abs(rgb[...,0]-rgb[...,2])<20)).astype(float)
     rgb*=1-mask[...,None]+mask[...,None]*np.array(team)[None,None,:]/255
-    rgb=np.floor(rgb) if before else np.round(rgb)
+    rgb=np.floor(rgb) if before and mesh.team_mask is None else np.round(rgb)
     return replace(mesh,rgb=rgb)
 
 @lru_cache(maxsize=128)
@@ -212,31 +243,34 @@ def font(size=15):
     return ImageFont.load_default()
 def label(im,text,xy=(8,5),size=14,fill=(21,31,43)):
     ImageDraw.Draw(im).text(xy,text,font=font(size),fill=fill)
-def build_catalog(ref_world,ref_fp,before_world,before_fp,after_world,after_fp,before_data,after_data,before_fpd,after_fpd,after_scale=32,model_scales=None):
+def build_catalog(ref_world,ref_fp,before_world,before_fp,after_world,after_fp,before_data,after_data,before_fpd,after_fpd,after_scale=32,model_scales=None,before_scale=32,before_model_scales=None):
     catalog=[]
     def add(name,title,group,source,old,new):
         if old is None or new is None:raise ValueError('Missing packed model '+name)
         catalog.append((name,title,group,source,old,new))
     for name in GUNS+('frag','plasma_grenade','healthpack','overshield','camouflage'):
         add('world_'+name,'World '+name.replace('_',' '),'World weapons and pickups',source_mesh(ref_world['models'][name]),before_world.get(name),after_world.get(name))
+        if name+'_pickup_lod' in after_world:
+            add('pickup_lod_'+name,'Distant '+name.replace('_',' '),'Distant pickups',source_mesh(ref_world['models'][name]),before_world.get(name),after_world[name+'_pickup_lod'])
     for name in VEHICLES:
         ref=source_mesh(ref_world['models'][name])
         for lod in ('','_lod'):add(name+lod,name.title()+(' far LOD' if lod else ' near LOD'),'Vehicles',ref,before_world.get(name+lod),after_world.get(name+lod))
     sp=ref_world['models']['spartan'];pose=ref_world['animations']['idle']['frames'][0]
     source=source_mesh(sp,posed_vertices(sp,pose,sp['nodes']))
     for lod in ('','_lod'):
-        old=animate_spartan(before_world['spartan'+lod],before_data,bool(lod));new=animate_spartan(after_world['spartan'+lod],after_data,bool(lod),(model_scales or {}).get('spartan'+lod,after_scale))
+        old=animate_spartan(before_world['spartan'+lod],before_data,bool(lod),(before_model_scales or {}).get('spartan'+lod,before_scale));new=animate_spartan(after_world['spartan'+lod],after_data,bool(lod),(model_scales or {}).get('spartan'+lod,after_scale))
         for color,team in TEAMS.items():add('spartan'+lod+'_'+color,'Spartan '+color+(' far LOD' if lod else ''),'Spartan',tinted(source,team),tinted(old,team,True),tinted(new,team))
     hands=ref_fp['hands'];source_hands=None
     for name in GUNS:
         weapon=ref_fp['weapons'][name];states=weapon['clips']['idle']['frames'][0];nodes=weapon['nodes']
         h=source_mesh(hands,posed_vertices(hands,states,nodes),'fp');gun=weapon['gun'];g=source_mesh(gun,posed_vertices(gun,states,nodes),'fp')
-        new_fp=after_fp.get(name)
+        new_fp=after_fp.get(name);old_fp=before_fp.get(name)
+        if old_fp is not None and old_fp.team_mask is not None:old_fp=tinted(old_fp,TEAMS['red'])
         if new_fp is not None and new_fp.team_mask is not None:new_fp=tinted(new_fp,TEAMS['red'])
-        add('fp_'+name,'First person '+name.replace('_',' ')+' with hands','First-person weapons',tinted(concat_mesh(h,g),TEAMS['red']),before_fp.get(name),new_fp)
+        add('fp_'+name,'First person '+name.replace('_',' ')+' with hands','First-person weapons',tinted(concat_mesh(h,g),TEAMS['red']),old_fp,new_fp)
         before_hands=before_fpd['weapons'][name].get('hand_triangle_count',100)
         after_hands=after_fpd['weapons'][name].get('hand_triangle_count',after_fpd.get('hand_triangle_count',100))
-        old_gun=before_fp[name]
+        old_gun=old_fp
         add('fp_gun_'+name,'First person '+name.replace('_',' ')+' gun only','First-person gun geometry',tinted(g,TEAMS['red']),
             replace(old_gun,p=old_gun.p[before_hands:],rgb=old_gun.rgb[before_hands:]),
             replace(new_fp,p=new_fp.p[after_hands:],rgb=new_fp.rgb[after_hands:]))
@@ -244,36 +278,42 @@ def build_catalog(ref_world,ref_fp,before_world,before_fp,after_world,after_fp,b
     old_count=before_fpd['weapons']['ar'].get('hand_triangle_count',100)
     new_count=after_fpd['weapons']['ar'].get('hand_triangle_count',after_fpd.get('hand_triangle_count',100))
     old=before_fp['ar'];new=after_fp['ar']
+    if old.team_mask is not None:old=tinted(old,TEAMS['red'])
     if new.team_mask is not None:new=tinted(new,TEAMS['red'])
     add('hands','First-person hands (AR idle pose)','Hands',source_hands,replace(old,p=old.p[:old_count],rgb=old.rgb[:old_count]),replace(new,p=new.p[:new_count],rgb=new.rgb[:new_count]))
     return catalog
 
 
 def audit(args):
-    output=args.output;output.mkdir(parents=True,exist_ok=True);(output/'images').mkdir(exist_ok=True)
-    before=output/'before';reference=output/'reference';assets=args.assets;generated=args.generated
+    output=args.output.resolve();output.mkdir(parents=True,exist_ok=True);(output/'images').mkdir(exist_ok=True)
+    before=output/'before';reference=output/'reference';assets=args.assets.resolve();generated=args.generated.resolve()
     rw=reference/'extended-raw.json';rf=reference/'firstperson-raw.json'
     if not rw.exists() or not rf.exists():
         if not args.allow_legacy_reference:raise FileNotFoundError('Highest-source reference JSON missing; coordinate extraction or use explicitly labeled --allow-legacy-reference')
         rw=before/'extended-raw.json';rf=before/'firstperson-raw.json'
     refw,reff=load(rw),load(rf)
-    bw=packed_c(before/'models_data.c','model',32);bf=packed_c(before/'firstperson_data.c','fp',256)
+    before_report=load(before/'extended-report.json') if (before/'extended-report.json').exists() else {}
+    bw=packed_models(before,report=before_report);bf=packed_models(before,True)
     report=load(generated/'extended-report.json') if (generated/'extended-report.json').exists() else {}
-    aw=preview(generated/'model-preview.json',packed_c(generated/'models_data.c','model',report.get('position_scale',32),report.get('model_position_scales')));af=preview(generated/'firstperson-preview.json',packed_c(generated/'firstperson_data.c','fp',256))
+    aw=packed_models(generated,report=report);af=packed_models(generated,True)
     bd,ad=load(before/'extended-reduced.json'),load(assets/'extended-reduced.json')
     bfd,afd=load(before/'firstperson-reduced.json'),load(assets/'firstperson-reduced.json')
-    catalog=build_catalog(refw,reff,bw,bf,aw,af,bd,ad,bfd,afd,report.get('position_scale',32),report.get('model_position_scales'))
+    catalog=build_catalog(refw,reff,bw,bf,aw,af,bd,ad,bfd,afd,report.get('position_scale',32),report.get('model_position_scales'),before_report.get('position_scale',32),before_report.get('model_position_scales'))
     if args.only:catalog=[item for item in catalog if any(s in item[0] for s in args.only.split(','))]
     inputs=[rw,rf,before/'models_data.c',before/'firstperson_data.c',generated/'models_data.c',generated/'firstperson_data.c',before/'extended-reduced.json',before/'firstperson-reduced.json',assets/'extended-reduced.json',assets/'firstperson-reduced.json']
-    inputs.extend(p for p in (generated/'model-preview.json',generated/'firstperson-preview.json',generated/'extended-report.json') if p.exists())
-    hashes={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
+    inputs.extend(p for p in (generated/'model-preview.json',generated/'firstperson-preview.json',generated/'extended-report.json',generated/'firstperson-report.json',before/'model-preview.json',before/'firstperson-preview.json',before/'extended-report.json',before/'firstperson-report.json') if p.exists())
+    hashes={provenance_path(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
     texture_inputs=set()
     for _,_,_,mesh,_,_ in catalog:
         texture_inputs.update(p for p in (mesh.textures or [])+(mesh.masks or []) if p and Path(p).exists())
-    texture_hashes={str(Path(p).relative_to(ROOT)):hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in sorted(texture_inputs)}
+    texture_hashes={provenance_path(p):hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in sorted(texture_inputs)}
+    baseline_label='Approved quality' if args.performance else 'Before packed RGB';revision_label='Optimized' if args.performance else 'Revised packed RGB'
     legacy=rw.parent==before;source_label='Lower LOD (provisional)' if legacy else 'Original highest LOD';results=[];overviews={};started=time.monotonic()
     for index,(name,title,group,source,old,new) in enumerate(catalog):
         meshes=(source,old,new)
+        distant=group=='Distant pickups'
+        row_baseline='Approved near model' if distant else baseline_label
+        row_revision='New distant LOD' if distant else revision_label
         width,height=args.size,round(args.size*.82);sheet=Image.new('RGB',(90+3*width,40+len(ANGLES)*(height+28)),tuple(BG));label(sheet,title,(8,8),16)
         metrics=[];hero=None
         for row,(angle,direction) in enumerate(ANGLES):
@@ -281,31 +321,33 @@ def audit(args):
             src,sm=render(source,bounds,direction,width,height);oldim,om=render(old,bounds,direction,width,height);newim,nm=render(new,bounds,direction,width,height)
             metrics.append({'angle':angle,'before':compare(src,oldim,sm,om),'after':compare(src,newim,sm,nm)})
             y=40+row*(height+28);label(sheet,angle,(4,y+8),12)
-            for column,(im,title2) in enumerate(((src,source_label),(oldim,'Before packed RGB'),(newim,'Revised packed RGB'))):
+            for column,(im,title2) in enumerate(((src,source_label),(oldim,row_baseline),(newim,row_revision))):
                 sheet.paste(im,(90+column*width,y+22));label(sheet,title2,(90+column*width+6,y+2),12)
             if row==4:hero=(src,oldim,newim)
         sheet.save(output/'images'/(name+'.png'))
         # Actual 160x120 viewport-size rasterization, displayed with nearest
         # neighbor scaling so no invented detail smooths the demake.
         small=Image.new('RGB',(3*320,34+240),tuple(BG))
-        for column,(mesh,title2) in enumerate(((source,source_label),(old,'Before'),(new,'Revised'))):
+        for column,(mesh,title2) in enumerate(((source,source_label),(old,row_baseline),(new,row_revision))):
             im,_=render(mesh,matching_bounds(meshes,ANGLES[4][1]),ANGLES[4][1],160,120);small.paste(im.resize((320,240),Image.Resampling.NEAREST),(column*320,34));label(small,title2,(column*320+8,8))
         small.save(output/'images'/(name+'-160x120.png'))
         distance=Image.new('RGB',(960,2*274),tuple(BG));distance_metrics=[]
-        for row,pixel_span in enumerate((48,24)):
+        extents=(12,8) if distant else (48,24)
+        for row,pixel_span in enumerate(extents):
             frames=[render(mesh,matching_bounds(meshes,ANGLES[4][1]),ANGLES[4][1],160,120,pixel_span) for mesh in meshes]
             src,sm=frames[0]
             distance_metrics.append({'maximum_projected_extent_pixels':pixel_span,'before':compare(src,frames[1][0],sm,frames[1][1]),'after':compare(src,frames[2][0],sm,frames[2][1])})
-            for column,((im,_),title2) in enumerate(zip(frames,(source_label,'Before','Revised'))):
+            for column,((im,_),title2) in enumerate(zip(frames,(source_label,row_baseline,row_revision))):
                 distance.paste(im.resize((320,240),Image.Resampling.NEAREST),(column*320,row*274+34));label(distance,f'{title2} / {pixel_span}px extent',(column*320+8,row*274+8))
         distance.save(output/'images'/(name+'-distance.png'))
         avg={stage:{key:float(np.mean([m[stage][key] for m in metrics if m[stage][key] is not None])) for key in ('silhouette_iou','overlap_rgb_mae','color_block_mae')} for stage in ('before','after')}
-        result={'id':name,'title':title,'group':group,'triangles':{'source':len(source.p),'before':len(old.p),'after':len(new.p)},'average':avg,'angles':metrics,'distance_readability':distance_metrics,'source_provenance':source.provenance}
+        result={'id':name,'title':title,'group':group,'new_distance_lod':distant,'triangles':{'source':len(source.p),'before':len(old.p),'after':len(new.p)},'average':avg,'angles':metrics,'distance_readability':distance_metrics,'source_provenance':source.provenance}
         results.append(result);overviews.setdefault(group,[]).append((name,title,hero))
         print(f'{index+1}/{len(catalog)} {name}: IoU {avg["before"]["silhouette_iou"]:.3f}->{avg["after"]["silhouette_iou"]:.3f}; color {avg["before"]["color_block_mae"]:.3f}->{avg["after"]["color_block_mae"]:.3f}',flush=True)
     for group,rows in overviews.items():
         width,height=args.size,round(args.size*.82);im=Image.new('RGB',(90+width*3,(height+30)*len(rows)+28),tuple(BG))
-        for col,title in enumerate((source_label,'Before exact packed','Revised exact packed')):label(im,title,(90+col*width+8,4),12)
+        titles=(source_label,'Approved near model','New distant LOD') if group=='Distant pickups' else (source_label,baseline_label,revision_label)
+        for col,title in enumerate(titles):label(im,title,(90+col*width+8,4),12)
         for row,(name,title,hero) in enumerate(rows):
             y=28+row*(height+30);label(im,title,(8,y+4),12)
             for col,frame in enumerate(hero):im.paste(frame,(90+col*width,y+26))
@@ -313,9 +355,11 @@ def audit(args):
     for rel,digest in {**hashes,**texture_hashes}.items():
         if hashlib.sha256((ROOT/rel).read_bytes()).hexdigest()!=digest:
             raise RuntimeError(f'Audit input changed during rendering: {rel}. Regenerate from stable packed assets.')
-    manifest={'reference_is_legacy_low_lod':legacy,'renderer':'orthographic CPU barycentric z-buffer; no backface culling; exact packed vertex RGB; fixed neutral source lighting',
-              'angles':[a for a,_ in ANGLES],'viewport_preview':[160,120],'distance_preview_extent_pixels':[48,24],'color_metric':'Mean absolute RGB deviation on overlapping silhouettes; 8x8 block means. Lower is better; not a perceptual recognition score.',
+    manifest={'comparison_mode':'performance' if args.performance else 'quality','baseline_label':baseline_label,'revision_label':revision_label,'reference_is_legacy_low_lod':legacy,'renderer':'orthographic CPU barycentric z-buffer; no backface culling; exact packed vertex RGB; fixed neutral source lighting',
+              'angles':[a for a,_ in ANGLES],'viewport_preview':[160,120],'distance_preview_extent_pixels':[48,24],'new_pickup_lod_extent_pixels':[12,8],'color_metric':'Mean absolute RGB deviation on overlapping silhouettes; 8x8 block means. Lower is better; not a perceptual recognition score.',
               'texture_inputs':texture_hashes,'inputs':hashes,'revised_is_frozen_baseline':hashlib.sha256((before/'models_data.c').read_bytes()).digest()==hashlib.sha256((generated/'models_data.c').read_bytes()).digest() and hashlib.sha256((before/'firstperson_data.c').read_bytes()).digest()==hashlib.sha256((generated/'firstperson_data.c').read_bytes()).digest(),'results':results,'elapsed_seconds':time.monotonic()-started}
+    if (before/'firstperson-report.json').exists() and (generated/'firstperson-report.json').exists():
+        manifest['packing']=packing_statistics(before_report,report,load(before/'firstperson-report.json'),load(generated/'firstperson-report.json'))
     (output/'metrics.json').write_text(json.dumps(manifest,indent=2)+'\n');write_html(output,manifest)
     print('Report:',output/'index.html',flush=True)
 
@@ -353,12 +397,22 @@ REVIEW_NOTES={
     'healthpack':'The rectangular silhouette is improved, but the small red medical cross is lost in the vertex-color approximation.',
     'overshield':'The orange runtime identification color is intentional and increases error against this dark diffuse-only source proxy; no Xbox active-shield shader is reproduced.',
     'camouflage':'The blue runtime identification color is intentional and increases error against this dark diffuse-only source proxy; no Xbox camouflage shader is reproduced.'}
-def findings(r):
+def findings(r,performance=False):
     b,a=r['average']['before'],r['average']['after'];delta=a['silhouette_iou']-b['silhouette_iou'];cd=b['color_block_mae']-a['color_block_mae']
     shape=f"Mean silhouette IoU {'increased' if delta>=0 else 'decreased'} by {abs(delta):.3f}."
     colors=f"Overlap color-block error {'decreased' if cd>=0 else 'increased'} by {abs(cd):.3f}."
     worst=min(r['angles'],key=lambda x:x['after']['silhouette_iou'])
     cue=next((v for k,v in CUES.items() if k in r['id']),'Inspect the silhouette and large material color regions.')
+    if r.get('new_distance_lod'):
+        old_count=r['triangles']['before'];new_count=r['triangles']['after']
+        return (f'New distant pickup bank: {new_count} triangles versus {old_count} in the approved near model. '
+                'There was no approved distant mesh; the middle column deliberately uses that near model for comparison. '
+                'The 0.03 near-model loss budget does not apply to this new screen-size-specific LOD. '
+                'Inspect the 12-pixel and 8-pixel native extent strips for identity; the large eight-view sheet exposes reduction artifacts. '
+                +colors+' Inspection cues: '+cue)
+    if performance:
+        old_count=r['triangles']['before'];new_count=r['triangles']['after'];saving=1-new_count/max(1,old_count)
+        return f'Packed triangles {old_count} → {new_count} ({saving:+.1%} saving). Source silhouette IoU changed by {delta:+.3f} against the approved quality build; '+('within' if delta>=-.03 else 'outside')+' the 0.03 loss budget. '+colors+f' Lowest optimized source agreement: {worst["angle"]} ({worst["after"]["silhouette_iou"]:.3f}). Inspection cues: '+cue
     note=next((v for k,v in REVIEW_NOTES.items() if k in r['id']), 'The main weapon outline is retained more closely; fine markings, small controls and curved surfaces remain reduced to vertex colors and planar faces.')
     return note+' '+shape+' '+colors+f" Lowest revised silhouette agreement: {worst['angle']} ({worst['after']['silhouette_iou']:.3f}). Inspection cues: "+cue
 
@@ -392,26 +446,215 @@ def runtime_validation_html(output):
     return '\n'.join(parts)
 
 
+def runtime_benchmarks_html(output):
+    """Show saved measurements without interpreting CPU queueing as GPU throughput.
+
+    Source JSON remains the provenance record. Optional gpu_completed phase
+    dictionaries use the same timing fields as the top-level acquisition data.
+    Optional vi_presented phases measure fresh poses at VI selection and judge
+    retrace gaps, rather than applying the legacy 33.33-ms/FPS threshold.
+    """
+    def natural_key(path):
+        name=path.name.removeprefix('runtime-').removesuffix('-results.json')
+        return [(1,int(s)) if s.isdigit() else (0,s) for s in re.split(r'(\d+)',name)]
+    def number(value,digits=1):
+        if isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value):return '—'
+        return f'{value:,.{digits}f}'
+    def href(path):
+        return html.escape(quote(os.path.relpath(path.resolve(),output.resolve()),safe='/'),quote=True)
+    def evidence(path,data,completed=False,vi=False):
+        links=[f'<a href="{href(path)}">JSON</a>']
+        value=data.get('vi_evidence' if vi else 'completion_evidence' if completed else 'evidence')
+        if isinstance(value,str) and value:
+            media=Path(value)
+            if not media.is_absolute():media=output/media
+            if media.is_file():links.append(f'<a href="{href(media)}">Screenshot</a>')
+        return ' · '.join(links)
+    runs=[]
+    for path in sorted(output.glob('runtime-*-results.json'),key=natural_key):
+        data=load(path)
+        if not isinstance(data,dict):raise ValueError(f'{path.name} must contain an object')
+        name=path.name.removeprefix('runtime-').removesuffix('-results.json')
+        anchor='benchmark-'+re.sub(r'[^a-zA-Z0-9_-]','-',name)
+        diagnostic=bool(data.get('diagnostic_only')) or 'gpu-diagnostic' in str(data.get('rom',''))
+        runs.append((path,data,name,anchor,diagnostic))
+    if not runs:return ''
+
+    def table(rows,completed=False):
+        parts=['<div class="table-scroll"><table class="benchmarks"><thead><tr><th>Saved run / evidence</th><th>Phase</th><th>Frames</th><th>FPS</th><th>Mean ms</th><th>p95 ms</th><th>Max ms</th><th>Submitted vertices<br>run avg / peak</th></tr></thead>']
+        for path,data,name,anchor,_ in rows:
+            timings=data.get('gpu_completed',{}) if completed else data
+            if not isinstance(timings,dict):continue
+            phases=[(key,label) for key,label in (('all','All'),('combat','Combat'),('vehicles','Vehicles'))
+                    if isinstance(timings.get(key),dict)]
+            if not phases:continue
+            parts.append('<tbody>')
+            for i,(key,label) in enumerate(phases):
+                stats=timings[key];parts.append('<tr>')
+                if i==0:
+                    parts.append(f'<th rowspan="{len(phases)}"><a href="#{anchor}">{html.escape(name)}</a><br><small>{evidence(path,data,completed)}</small></th>')
+                parts.append(f'<th>{label}</th><td>{number(stats.get("frames"),0)}</td>')
+                for field in ('fps','mean_ms','p95_ms','max_ms'):
+                    value=stats.get(field)
+                    slow=isinstance(value,(int,float)) and not isinstance(value,bool) and (value<30 if field=='fps' else value>1000/30)
+                    parts.append(f'<td class="{"down" if slow else ""}">{number(value)}</td>')
+                if i==0:
+                    vertices=data.get('submitted_vertices',{})
+                    if not isinstance(vertices,dict):vertices={}
+                    parts.append(f'<td rowspan="{len(phases)}">{number(vertices.get("average"),0)} / {number(vertices.get("peak"),0)}</td>')
+                parts.append('</tr>')
+            parts.append('</tbody>')
+        parts.append('</table></div>');return '\n'.join(parts)
+
+    def vi_table(rows):
+        fields=(('fps','FPS',1),('p95_ms','p95 ms',1),('max_ms','Max ms',1),
+                ('max_gap_vi','Max retraces',0),('gap_1_vi','1 retrace',0),
+                ('gap_2_vi','2 retraces',0),('gap_over_2_vi','>2 retraces',0))
+        parts=['<div class="table-scroll"><table class="benchmarks"><thead><tr><th>Saved run / VI evidence</th><th>Phase</th><th>Fresh poses</th>'+''.join(f'<th>{label}</th>' for _,label,_ in fields)+'</tr></thead>']
+        for path,data,name,anchor,_ in rows:
+            timings=data['vi_presented']
+            phases=[(key,label) for key,label in (('all','All'),('combat','Combat'),('vehicles','Vehicles')) if isinstance(timings.get(key),dict)]
+            parts.append('<tbody>')
+            for i,(key,label) in enumerate(phases):
+                stats=timings[key];parts.append('<tr>')
+                if i==0:parts.append(f'<th rowspan="{len(phases)}"><a href="#{anchor}">{html.escape(name)}</a><br><small>{evidence(path,data,vi=True)}</small></th>')
+                poses=stats.get('frames') if stats.get('frames') is not None else stats.get('poses')
+                parts.append(f'<th>{label}</th><td>{number(poses,0)}</td>')
+                for field,_,digits in fields:
+                    value=stats.get(field)
+                    missed=isinstance(value,(int,float)) and not isinstance(value,bool) and ((field=='max_gap_vi' and value>2) or (field=='gap_over_2_vi' and value>0))
+                    parts.append(f'<td class="{"down" if missed else ""}">{number(value,digits)}</td>')
+                parts.append('</tr>')
+            parts.append('</tbody>')
+        parts.append('</table></div>')
+        telemetry=(('buffer_flips','Buffer flips',0,False),('same_pose_flips','Flips repeating the same pose',0,True),
+                   ('missed_deadlines','Missed presentation deadlines',0,True),('skipped_poses','Skipped simulation poses',0,True),
+                   ('dropped_ticks','Catch-up ticks dropped',0,True),
+                   ('sample_to_vi_mean_ms','Input sample to VI: mean ms',1,False),('sample_to_vi_max_ms','Input sample to VI: max ms',1,False),
+                   ('ready_to_vi_mean_ms','Render completion to VI: mean ms',1,False),('ready_to_vi_max_ms','Render completion to VI: max ms',1,False),
+                   ('display_buffers','Display surfaces',0,False),
+                   ('held_queue_peak','Held completed surfaces: whole-run peak',0,False),
+                   ('sdk_ready_peak','SDK-ready surfaces: whole-run peak',0,False),
+                   ('submitted_not_presented_peak','Submitted but not presented: whole-run peak',0,False),
+                   ('heap_free_kib','Live free heap before teardown: KiB',0,False))
+        for path,data,name,anchor,_ in rows:
+            stats=data['vi_presented'].get('all',{})
+            if not isinstance(stats,dict):continue
+            known=[(field,label,digits,warn) for field,label,digits,warn in telemetry if number(stats.get(field))!='—']
+            if not known:continue
+            parts.append(f'<details><summary>{html.escape(name)} — VI presentation telemetry</summary><p>{evidence(path,data,vi=True)}</p><table>')
+            for field,label,digits,warn in known:
+                value=stats[field];parts.append(f'<tr><th>{label}</th><td class="{"down" if warn and value>0 else ""}">{number(value,digits)}</td></tr>')
+            parts.append('</table></details>')
+        return '\n'.join(parts)
+
+    regular=[r for r in runs if not r[4]];diagnostics=[r for r in runs if r[4]]
+    acquisitions=[r for r in regular if any(isinstance(r[1].get(k),dict) for k in ('all','combat','vehicles'))]
+    parts=['<section class="runtime"><h2>Saved runtime benchmarks</h2>',
+           '<p>These runs measure the complete four-player workload in ares. Each JSON preserves its own ROM hash, configuration and measurement provenance; runs may differ in more than one setting. Entries are ordered by run name, not inferred chronology. An average above 30 FPS alone does not establish steady presentation.</p>',
+           '<p>CPU and RDP tables retain the legacy 30 FPS / 33.33 ms threshold and highlight values beyond it. Their over-33.33-ms counters are wall-clock metrics, not missed-retrace counts. For paced NTSC runs, a nominal 30 FPS means one fresh pose every two retraces, with wall-clock duration set by the VI mode; a displayed 29.9 FPS or a small excess over 33.33 ms is not by itself a failure. Use the separately measured VI gaps below to assess presentation.</p>']
+    if acquisitions:
+        parts.extend(['<h3>CPU frame acquisition intervals</h3>',
+                      '<p>Acquisition timing includes CPU work and waits for available frame resources. Deeper command queues can change it independently of completed graphics throughput. These figures do not establish RDP completion or display cadence. Vertex counts are averages and peaks over the whole run, not phase-specific counts; a dash means the value was not recorded.</p>',
+                      table(acquisitions)])
+    completed=[r for r in regular if isinstance(r[1].get('gpu_completed'),dict) and any(isinstance(r[1]['gpu_completed'].get(k),dict) for k in ('all','combat','vehicles'))]
+    if completed:
+        parts.extend(['<h3>RDP completion callback cadence</h3>',
+                      '<p>This separately measured cadence records completed graphics work. Legacy unpaced builds call display_show in that callback; paced builds retain completed buffers until a scheduled retrace. Completion is distinct from CPU acquisition and from VI presentation.</p>',
+                      table(completed,completed=True)])
+    missing=[html.escape(r[2]) for r in acquisitions if r not in completed]
+    if missing:parts.append('<p class="warning">No completion-cadence measurements are recorded for: '+', '.join(missing)+'. Their acquisition FPS must not be presented as completed-frame FPS.</p>')
+    presented=[r for r in regular if isinstance(r[1].get('vi_presented'),dict) and any(isinstance(r[1]['vi_presented'].get(k),dict) for k in ('all','combat','vehicles'))]
+    if presented:
+        vi_only=[html.escape(r[2]) for r in presented if r not in acquisitions and r not in completed]
+        if vi_only:parts.append('<p>VI-only runs intentionally omit CPU acquisition, RDP cadence and geometry counters: '+', '.join(vi_only)+'. Only their recorded presentation measurements appear below.</p>')
+        parts.extend(['<h3>Fresh simulation poses presented at VI</h3>',
+                      '<p>These samples read the VI origin after the display callback selects its surface. They measure fresh simulation poses, separately from RDP completions and buffer flips; a flip containing the same pose is counted as a duplicate, not a fresh frame. This is VI surface-selection timing, not a photon-emission measurement. The NTSC target is two retraces per fresh pose. Gaps beyond two retraces, missed deadlines, and repeated poses are highlighted; truncated FPS and millisecond values do not determine those flags. Missing fields are shown as a dash or omitted from telemetry, never inferred as zero.</p>',
+                      vi_table(presented)])
+    if diagnostics:
+        parts.append('<details><summary>GPU fence diagnostics — separate, noncomparable measurements</summary><p>These diagnostic runs explicitly serialize GPU work. Their FPS is excluded from the production acquisition and completion tables above.</p>')
+        parts.append(table(diagnostics));parts.append('</details>')
+    parts.append('<details><summary>ROM provenance and measurement notes</summary>')
+    fields=(('rom','ROM path'),('sha256','ROM SHA-256'),('baseline_commit','Baseline commit'),
+            ('emulator','Emulator'),('measurement','Measurement'),('model_bank','Model bank'),
+            ('models','Models'),('only_change_from_pass4','Change from pass 4'),
+            ('phase_caveat','Timing caveat'),('warning','Warning'))
+    for path,data,name,anchor,diagnostic in runs:
+        parts.append(f'<section id="{anchor}"><h4>{html.escape(name)}'+(' — diagnostic' if diagnostic else '')+f'</h4><p>{evidence(path,data)}</p><table>')
+        for key,label in fields:
+            if data.get(key) is not None:parts.append(f'<tr><th>{label}</th><td>{html.escape(str(data[key]))}</td></tr>')
+        parts.append('</table>')
+        tail=data.get('gpu_completed',{}).get('tail',[]) if isinstance(data.get('gpu_completed'),dict) else []
+        if isinstance(tail,list) and tail:
+            parts.append('<h5>Slowest completed frames — scene metadata</h5><p>Category counts describe geometry submitted in the completing frame, not GPU time spent in each category. Displayed simulation times are rounded or truncated; any candidate snapshot ticks in the JSON are not uniquely recovered timestamps.</p>')
+            links=[]
+            for value in [data.get('completion_tail_metadata'),*data.get('completion_tail_evidence',[])]:
+                if not isinstance(value,str):continue
+                media=Path(value)
+                if not media.is_absolute():media=output/media
+                if media.is_file():links.append(f'<a href="{href(media)}">{html.escape(media.name)}</a>')
+            if links:parts.append('<p>'+' · '.join(links)+'</p>')
+            parts.append('<div class="table-scroll"><table><tr><th>Rank</th><th>Interval ms</th><th>Scene s</th><th>Vertices</th><th>Triangles</th><th>World / vehicles / bodies / pickups / effects / FP</th><th>Mounted / zoom / dead masks</th></tr>')
+            for entry in tail:
+                if not isinstance(entry,dict):continue
+                categories=entry.get('categories',{})
+                if not isinstance(categories,dict):categories={}
+                counts=' / '.join(number(categories.get(k),0) for k in ('world','vehicles','bodies_held','pickups','effects','firstperson'))
+                masks=' / '.join(number(entry.get(k),0) for k in ('mounted_mask','zoom_mask','dead_mask'))
+                cells=[number(entry.get('rank'),0),number(entry.get('interval_ms')),number(entry.get('sim_time_s')),number(entry.get('vertices'),0),number(entry.get('triangles'),0),counts,masks]
+                parts.append('<tr>'+''.join('<td>'+cell+'</td>' for cell in cells)+'</tr>')
+            parts.append('</table></div>')
+        parts.append('</section>')
+    parts.append('</details></section>');return '\n'.join(parts)
+
+
 def write_html(output,manifest):
+    performance=manifest.get('comparison_mode')=='performance'
     parts=['<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blood Gulch model audit</title>',
            '<style>body{background:#111923;color:#dce6f2;font:15px system-ui;margin:32px auto;max-width:1200px;padding:0 20px}a{color:#84c9ff}p{line-height:1.6}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}td,th{padding:9px;border-bottom:1px solid #314153;text-align:left}img{max-width:100%;height:auto;background:#161d27}summary{cursor:pointer;padding:14px;font-size:17px}details{border:1px solid #314153;margin:16px 0;border-radius:8px;padding:8px}.warning{background:#47341e;padding:14px}.up{color:#93dfb2}.down{color:#ffb09d}nav a{display:inline-block;margin:8px}code{color:#addbff}</style>',
            '<h1>Blood Gulch model comparison</h1><p>Original highest-detail source geometry and diffuse maps, the frozen pre-revision N64 build, and the current packed N64 build. Within each angle, all three models share scale, pose, camera, and background; framing fits the combined projected bounds to 80% of the panel. Packed colors include their original baked lighting; the source uses the same neutral light direction. These are offline model diagnostics, not screenshots of the Xbox renderer or ares.</p>',
-           '<p>Source surfaces use the full diffuse textures when available; native flat color proxies represent complex meter and glass materials. Xbox environment mapping, specular, emissive, and transparency effects are not reconstructed. Original Xbox multipurpose blue masks tint Spartan armor; first-person change-color C uses player-one red for a matching source/revised comparison. The before column keeps its actual old untinted first-person colors. Geometry is rendered from both sides so winding does not hide silhouette defects. The 160×120 strips rasterize at a four-player viewport size and enlarge using nearest neighbor; the fit-to-model camera helps inspect detail and does not imply every model is that large during gameplay. Additional 48-pixel and 24-pixel maximum-extent strips show detail loss when models occupy smaller parts of that viewport; these are screen-size probes, not calibrated in-game distances.</p>']
+           '<p>Source surfaces use the full diffuse textures when available; native flat color proxies represent complex meter and glass materials. Xbox environment mapping, specular, emissive, and transparency effects are not reconstructed. Original Xbox multipurpose blue masks tint Spartan armor; first-person change-color C uses player-one red for a matching source/revised comparison. The before column retains its packed material colors and uses player-one red if that build exported an armor mask; older unmasked first-person builds remain untinted. Geometry is rendered from both sides so winding does not hide silhouette defects. The 160×120 strips rasterize at a four-player viewport size and enlarge using nearest neighbor; the fit-to-model camera helps inspect detail and does not imply every model is that large during gameplay. Additional 48-pixel and 24-pixel maximum-extent strips show detail loss when models occupy smaller parts of that viewport; these are screen-size probes, not calibrated in-game distances.</p>']
+    if performance:
+        parts[2]=parts[2].replace('the frozen pre-revision N64 build, and the current packed N64 build', 'the approved quality N64 build, and the optimized N64 build')
     if manifest.get('revised_is_frozen_baseline'):parts.append('<p class="warning">IN PROGRESS: the revised pack has not been generated. The right column still duplicates the frozen build and is not a completed revision.</p>')
     if manifest['reference_is_legacy_low_lod']:parts.append('<p class="warning">PROVISIONAL: highest-source extraction has not arrived. Source column is explicitly the old low-LOD extraction, not the original highest-detail model.</p>')
     parts.append('<p>Silhouette intersection-over-union (IoU): higher is better. Color block error (including the approximation of baked lighting): mean RGB error on overlapping 8×8 blocks, normalized 0–1; lower is better. Color error excludes angles without silhouette overlap; those missing surfaces are measured by IoU. Neither metric measures player recognition or original shader fidelity. Thin parts and absent pixels require inspection of the silhouettes and the small previews.</p>')
-    comparisons=manifest['results']
-    mean_before=float(np.mean([r['average']['before']['silhouette_iou'] for r in comparisons]));mean_after=float(np.mean([r['average']['after']['silhouette_iou'] for r in comparisons]))
-    color_before=float(np.mean([r['average']['before']['color_block_mae'] for r in comparisons]));color_after=float(np.mean([r['average']['after']['color_block_mae'] for r in comparisons]))
+    distant=[r for r in manifest['results'] if r.get('new_distance_lod')]
+    comparisons=[r for r in manifest['results'] if not r.get('new_distance_lod')]
+    mean=lambda stage,key:float(np.mean([r['average'][stage][key] for r in comparisons])) if comparisons else 0
+    mean_before=mean('before','silhouette_iou');mean_after=mean('after','silhouette_iou')
+    color_before=mean('before','color_block_mae');color_after=mean('after','color_block_mae')
     improved=sum(r['average']['after']['silhouette_iou']>r['average']['before']['silhouette_iou'] for r in comparisons)
     parts.append(f'<p><strong>{improved} of {len(comparisons)} catalog entries improve their eight-view average silhouette IoU.</strong> The equally weighted catalog mean is {mean_before:.3f} before and {mean_after:.3f} revised; mean color-block error is {color_before:.3f} before and {color_after:.3f} revised. This catalog includes separate color/LOD/first-person variants of shared geometry, so this is a diagnostic comparison, not a count of independent assets or a recognition rating.</p>')
-    parts.append(runtime_validation_html(output));parts.append('<nav>')
+    if performance:
+        within=sum(r['average']['after']['silhouette_iou']-r['average']['before']['silhouette_iou']>=-.03 for r in comparisons)
+        banks=[r for r in comparisons if r['group'] not in ('First-person gun geometry','Hands') and (r['group']!='Spartan' or r['id'].endswith('_red'))]
+        old_triangles=sum(r['triangles']['before'] for r in banks);new_triangles=sum(r['triangles']['after'] for r in banks)
+        parts[-1]=f'<p><strong>{within} of {len(comparisons)} comparisons stay within a 0.03 loss of source silhouette IoU against the approved quality baseline.</strong> Mean IoU: {mean_before:.3f} approved → {mean_after:.3f} optimized. Mean color-block error: {color_before:.3f} → {color_after:.3f}. Listed packed model banks use {old_triangles:,} → {new_triangles:,} triangles ({1-new_triangles/max(1,old_triangles):.1%} fewer); this counts each world array once and each complete first-person weapon array once, including its hands. Metrics average the displayed variants and are not a recognition rating or frame-rate measurement.</p>'
+    if not comparisons:parts[-1]='<p>This focused report contains new distant LODs only; it does not recompute the approved-model aggregate.</p>'
+    if distant:
+        far_triangles=sum(r['triangles']['after'] for r in distant)
+        near_triangles=sum(r['triangles']['before'] for r in distant)
+        parts.append(f'<p><strong>{len(distant)} additional distant pickup models use {far_triangles:,} triangles in total.</strong> These are new banks with no pre-existing far baseline. Their comparison column uses the approved near models ({near_triangles:,} triangles), and their native size strips use 12-pixel and 8-pixel maximum extents. These entries are excluded from the {len(comparisons)}-entry aggregate and the near-model 0.03 loss budget above.</p>')
+    packing=manifest.get('packing')
+    if performance and packing:
+        old_vertices=packing['world_vertices_before']+packing['fp_vertices_before']
+        new_vertices=packing['world_vertices_after_existing_banks']+packing['fp_vertices_after']
+        parts.append(f'<p><strong>Stored vertices in the existing world and first-person banks: {old_vertices:,} → {new_vertices:,} ({1-new_vertices/max(1,old_vertices):.1%} fewer).</strong> New distant pickup banks add {packing["world_vertices_after_new_far_banks"]:,} stored vertices. Indexed vertices share identical quantized positions, original materials, exact masks and complete animation trajectories; welding changes each retained RGB channel by at most {packing["maximum_color_weld_channel_delta"]} byte values relative to an immutable source corner. Terrain uses its separate 8/255 color bound with exact texture/UV identities. Index buffers add storage, so vertex reduction alone is not the total memory saving. These vertex counts differ from triangle-corner counts because each shared vertex can serve several triangles.</p>')
+        exceptions=[f'{bank} {name.replace("_"," ")}: {limit}/255'
+                    for bank,models in packing.get('model_color_tolerances',{}).items()
+                    for name,limit in models.items() if limit<packing['maximum_color_weld_channel_delta']]
+        if exceptions:parts.append('<p>Reviewed color-bound exceptions: '+html.escape('; '.join(exceptions))+'. The lower bounds preserve the Ghost wing markings and the first-person rocket housing color. The complete applied map is recorded in the metrics.</p>')
+    parts.append('<style>.table-scroll{overflow-x:auto}.benchmarks td,.benchmarks th{white-space:nowrap}.benchmarks tbody+tbody tr:first-child{border-top:2px solid #61758b}.runtime td{overflow-wrap:anywhere}</style>')
+    parts.append(runtime_validation_html(output));parts.append(runtime_benchmarks_html(output));parts.append('<nav>')
     groups=list(dict.fromkeys(r['group'] for r in manifest['results']))
     for group in groups:parts.append(f"<a href=\"#{group.lower().replace(' ','-')}\">{html.escape(group)}</a>")
     parts.append('</nav><p><a href="metrics.json">Full metrics and input SHA-256 provenance</a></p>')
     for group in groups:
         parts.append(f"<h2 id=\"{group.lower().replace(' ','-')}\">{html.escape(group)}</h2>")
         parts.append('<table><tr><th>Model</th><th>Triangles source / before / revised</th><th>IoU before → revised</th><th>Color error before → revised</th></tr>')
+        if group=='Distant pickups':
+            parts[-1]=parts[-1].replace('source / before / revised','source / approved near / new far').replace('before → revised','approved near → new far')
         rows=[r for r in manifest['results'] if r['group']==group]
         for r in rows:
             b,a=r['average']['before'],r['average']['after'];t=r['triangles'];color='up' if a['silhouette_iou']>=b['silhouette_iou'] else 'down'
@@ -419,15 +662,22 @@ def write_html(output,manifest):
         parts.append('</table>')
         overview='overview-'+group.lower().replace(' ','-')+'.png';parts.append(f'<a href="images/{overview}"><img loading="lazy" src="images/{overview}" alt="{html.escape(group)} source before revised overview"></a>')
         for r in rows:
-            name=r['id'];parts.append(f'<details id="{name}"><summary>{html.escape(r["title"])} — eight matching angles and 160×120 readability</summary><p>Source: {html.escape(r["source_provenance"])}</p><p>{html.escape(findings(r))}</p><a href="images/{name}.png"><img loading="lazy" src="images/{name}.png" alt="Eight angles of {html.escape(r["title"])}"></a><img loading="lazy" src="images/{name}-160x120.png" alt="160 by 120 viewport-size comparison"><img loading="lazy" src="images/{name}-distance.png" alt="48 and 24 pixel extent comparison in a 160 by 120 viewport"></details>')
-    parts.append('</html>');(output/'index.html').write_text('\n'.join(parts))
+            name=r['id'];extent_label='12 and 8' if r.get('new_distance_lod') else '48 and 24'
+            parts.append(f'<details id="{name}"><summary>{html.escape(r["title"])} — eight matching angles and 160×120 readability</summary><p>Source: {html.escape(r["source_provenance"])}</p><p>{html.escape(findings(r,performance))}</p><a href="images/{name}.png"><img loading="lazy" src="images/{name}.png" alt="Eight angles of {html.escape(r["title"])}"></a><img loading="lazy" src="images/{name}-160x120.png" alt="160 by 120 viewport-size comparison"><img loading="lazy" src="images/{name}-distance.png" alt="{extent_label} pixel extent comparison in a 160 by 120 viewport"></details>')
+    parts.append('</html>');document='\n'.join(parts)
+    if performance:
+        document=document.replace('Triangles source / before / revised','Triangles source / approved / optimized').replace('IoU before → revised','IoU approved → optimized').replace('Color error before → revised','Color error approved → optimized')
+    (output/'index.html').write_text(document)
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--output',type=Path,default=ROOT/'build/n64/model-audit')
     parser.add_argument('--assets',type=Path,default=ROOT/'build/n64/assets');parser.add_argument('--generated',type=Path,default=ROOT/'build/n64/generated')
     parser.add_argument('--size',type=int,default=224);parser.add_argument('--only',help='Comma-separated substrings of catalog IDs');parser.add_argument('--allow-legacy-reference',action='store_true')
-    parser.add_argument('--html-only',action='store_true',help='Refresh index.html from existing metrics and optional runtime-validation.json; do not rerender images')
+    parser.add_argument('--performance',action='store_true',help='Compare approved quality baseline against optimized meshes, reporting savings and silhouette loss')
+    parser.add_argument('--html-only',action='store_true',help='Refresh index.html from existing metrics and optional runtime validation/benchmark JSON; do not rerender images')
     args=parser.parse_args()
     if args.html_only:
-        write_html(args.output,load(args.output/'metrics.json'));print('Report:',args.output/'index.html')
+        manifest=load(args.output/'metrics.json')
+        if args.performance:manifest['comparison_mode']='performance'
+        write_html(args.output,manifest);print('Report:',args.output/'index.html')
     else:audit(args)

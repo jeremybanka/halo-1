@@ -5,6 +5,7 @@ import collections
 import json
 import math
 from pathlib import Path
+from pack_terrain import TEXTURE_SIZE, UV_PERIOD, indexed_terrain
 
 ORIGIN = (68., -118., 0.)
 SCALE = 32
@@ -36,9 +37,9 @@ def pack(source, output):
         p=[position(v) for v in tri['p']]
         center=[sum(v[i] for v in p)/3 for i in range(3)]
         groups[(tri['material'],int(center[0]//12),int(center[2]//12))].append((tri,p))
-    vertices,chunks=[],[]
+    vertices,chunks,terrain_indices=[],[],[]
 
-    def append_tri(tri,p,model=None):
+    def append_tri(tri,p,model=None,global_uv=False):
         n=normal(p)
         light=.60+.40*max(0,sum(a*b for a,b in zip(n,[.25,.83,.49])))
         uv=tri['uv']
@@ -46,21 +47,36 @@ def pack(source, output):
         for point,tex in zip(p,uv):
             pos=[round(v*SCALE) for v in point]
             if not all(-32768<=v<=32767 for v in pos):raise ValueError('Packed position overflow')
-            st=[round((tex[i]-offset[i])*32*32) for i in range(2)]
+            st=[round((tex[i]-offset[i])*UV_PERIOD) for i in range(2)]
             if not all(-32768<=v<=32767 for v in st):raise ValueError('Packed UV overflow')
+            if global_uv:
+                absolute=[round(tex[i]*UV_PERIOD) for i in range(2)]
+                # Preserve the old quantizer exactly, modulo whole32x32 repeats.
+                if any(absolute[i]-st[i]!=offset[i]*UV_PERIOD for i in range(2)):
+                    raise ValueError('Terrain UV rounding is not integer-wrap equivalent')
+                st=absolute
             rgb=[round(255*light)]*3
             if model=='spartan' and point[1]>.56 and point[0]>.025:rgb=[238,181,59]
             if model=='rifle':rgb=[round(v*light) for v in [104,112,107]]
             vertices.append((pos,rgb,st))
 
     for key,triangles in sorted(groups.items()):
-        for start in range(0,len(triangles),20):
+        first=len(vertices)
+        for tri,p in triangles:append_tri(tri,p,global_uv=True)
+        expanded=vertices[first:];del vertices[first:]
+        packed=[tuple(v for attribute in corner for v in attribute) for corner in expanded]
+        # Material and spatial-cell boundaries remain unchanged. The helper
+        # preserves triangle order and checks every merged original corner.
+        for batch in indexed_terrain([packed[i:i+3] for i in range(0,len(packed),3)]):
             first=len(vertices)
-            for tri,p in triangles[start:start+20]:append_tri(tri,p)
-            count=len(vertices)-first
-            xyz=[v[0] for v in vertices[first:]]
+            unique=[(list(v[:3]),list(v[3:6]),list(v[6:])) for v in batch['vertices']]
+            local=batch['indices'];vertices.extend(unique);count=len(unique)
+            xyz=[v[0] for v in unique]
             bounds=[min(v[i] for v in xyz) for i in range(3)]+[max(v[i] for v in xyz) for i in range(3)]
-            chunks.append((first,count,key[0],bounds))
+            index_first=len(terrain_indices);terrain_indices.extend(local)
+            while len(terrain_indices)%4:terrain_indices.append(0)
+            if index_first>65535:raise ValueError('Terrain index-offset capacity exceeded')
+            chunks.append((first,count,key[0],bounds,index_first,len(local)))
             if len(vertices)%2:vertices.append(vertices[-1])
     world_vertices=len(vertices)
     model_ranges={}
@@ -78,14 +94,20 @@ def pack(source, output):
         lines.append('{'+f'{xyz(a[0])},0,{xyz(b[0])},0,0x{rgba(a[1]):08x},0x{rgba(b[1]):08x},{xyz(a[2])},{xyz(b[2])}'+'},')
     lines+=['};',f'const unsigned bg_vertex_count={world_vertices}, bg_chunk_count={len(chunks)}, bg_material_count={len(data["materials"])};']
     lines+=['const bg_chunk bg_chunks[]={']
-    for first,count,material,bounds in chunks:lines.append('{'+f'{first},{count},{material},'+'{'+','.join(map(str,bounds))+'}},')
+    for first,count,material,bounds,index_first,index_count in chunks:
+        lines.append('{'+f'{first},{count},{material},'+'{'+','.join(map(str,bounds))+'},'+f'{index_first},{index_count}'+'},')
     lines+=['};']
+    lines.append('int16_t bg_chunk_indices[] __attribute__((aligned(16)))={'+','.join(map(str,terrain_indices))+'};')
     for name,(first,count) in model_ranges.items():
         lines.append(f'T3DVertPacked *bg_{name} = &bg_vertices[{first//2}];')
         lines.append(f'const unsigned bg_{name}_vertices={count};')
     lines.append('uint16_t bg_textures[][32*32] __attribute__((aligned(16)))={')
     for mat in data['materials']:
-        if mat['texture']: pixels=list(Image.open(mat['texture']).convert('RGB').get_flattened_data())
+        if mat['texture']:
+            texture=Image.open(mat['texture']).convert('RGB')
+            if texture.size!=(TEXTURE_SIZE,TEXTURE_SIZE):
+                raise ValueError('Terrain repeat-preserving packing requires32x32 textures')
+            pixels=list(texture.get_flattened_data())
         else:
             color=(135,144,125)
             if 'red' in mat['name']:color=(235,68,54)
@@ -128,6 +150,9 @@ def pack(source, output):
     (output/'collision_data.c').write_text('\n'.join(lines)+'\n')
     report={'source_sha256':data['source_sha256'],'original_triangles':data['original_triangles'],
             'render_triangles':len(collision),'chunks':len(chunks),'world_vertex_bytes':world_vertices*16,
+            'world_unique_vertices':sum(c[1] for c in chunks),'world_corner_count':len(collision)*3,
+            'world_index_bytes':len(terrain_indices)*2,
+            'world_color_max_delta':8,'world_uv_period':UV_PERIOD,'world_max_batch_indices':max(c[5] for c in chunks),
             'textures':len(data['materials']),'texture_bytes':len(data['materials'])*2048,
             'collision_bytes':len(collision)*36+len(indices)*2+GRID*GRID*4,
             'collision_max_cell':max(map(len,cells)),

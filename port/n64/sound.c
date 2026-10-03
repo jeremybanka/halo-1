@@ -8,7 +8,7 @@
 /* Bounded software mixer: eight effects and four vehicle engines. Samples are
  * the supplied Xbox ADPCM decoded offline to signed 8-bit PCM, never synthesized.
  * A split-screen listener belongs to the whole couch; pan by viewport column. */
-typedef struct { const bg_audio_asset *asset; uint32_t frame,fraction,step; int left,right; bool loop; } voice;
+typedef bg_sound_voice voice;
 static voice voices[14];
 static unsigned replacement;
 static int rate;
@@ -86,21 +86,7 @@ void bg_sound_update(void) {
 void bg_sound_pump(void) {
     while(audio_can_write()){
         int16_t*out=audio_write_begin();int count=audio_get_buffer_length();
-        voice*active[14];unsigned active_count=0;
-        for(unsigned c=0;c<14;c++)if(voices[c].asset)active[active_count++]=&voices[c];
-        for(int f=0;f<count;f++){
-            int left=0,right=0;
-            for(unsigned c=0;c<active_count;c++){
-                voice*v=active[c];if(!v->asset)continue;
-                int sample=v->asset->samples[v->frame];
-                left+=sample*v->left;right+=sample*v->right;
-                v->fraction+=v->step;v->frame+=v->fraction>>16;v->fraction&=65535;
-                if(v->frame>=v->asset->count){if(v->loop)v->frame%=v->asset->count;else v->asset=NULL;}
-            }
-            left/=2;right/=2; /* Headroom for four simultaneous weapon reports. */
-            out[f*2]=left>32767?32767:left< -32768?-32768:left;
-            out[f*2+1]=right>32767?32767:right< -32768?-32768:right;
-        }
+        bg_sound_mix(voices,14,out,(unsigned)count);
         audio_write_end();
     }
 }

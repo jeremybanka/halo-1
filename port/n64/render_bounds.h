@@ -1,0 +1,53 @@
+#ifndef BG_RENDER_BOUNDS_H
+#define BG_RENDER_BOUNDS_H
+#include <stdbool.h>
+#include <stdint.h>
+#include <float.h>
+#include <math.h>
+
+/* Source bounds are Y-up Halo units. Runtime transformed bounds are render
+ * units. Keep the conversion explicit so asset precision cannot change size. */
+typedef struct { float min[3],max[3]; } bg_bounds;
+typedef struct { int16_t min[3],max[3]; bool valid; } bg_cull_bounds;
+
+static inline void bg_bounds_union(bg_bounds*out,const bg_bounds*other){
+    for(unsigned a=0;a<3;a++){
+        out->min[a]=fminf(out->min[a],other->min[a]);
+        out->max[a]=fmaxf(out->max[a],other->max[a]);
+    }
+}
+
+/* Tiny3D stores each matrix column in m[column][row]. The center/extent
+ * transform encloses all eight corners, including nonuniform/negative scale. */
+static inline void bg_bounds_transform(bg_bounds*out,const bg_bounds*in,
+        const float m[4][4],float local_scale){
+    float center[3],extent[3];
+    for(unsigned a=0;a<3;a++){
+        center[a]=(in->min[a]+in->max[a])*.5f*local_scale;
+        extent[a]=(in->max[a]-in->min[a])*.5f*fabsf(local_scale);
+    }
+    for(unsigned a=0;a<3;a++){
+        float c=m[3][a],e=0;
+        for(unsigned b=0;b<3;b++){c+=m[b][a]*center[b];e+=fabsf(m[b][a])*extent[b];}
+        out->min[a]=c-e;out->max[a]=c+e;
+    }
+}
+
+static inline void bg_bounds_expand(bg_bounds*out,float radius){
+    for(unsigned a=0;a<3;a++){out->min[a]-=radius;out->max[a]+=radius;}
+}
+
+/* Asset validation proves one render unit exceeds final 16.16 matrix error
+ * for every packed vertex. Outward rounding also protects negative positions;
+ * C casts alone truncate inward on one side of a box. Overflow keeps a model
+ * visible rather than wrapping its signed-short bounds into another place. */
+static inline void bg_bounds_quantize(bg_cull_bounds*out,const bg_bounds*in){
+    out->valid=false;
+    for(unsigned a=0;a<3;a++){
+        float lo=floorf(in->min[a]-1.f),hi=ceilf(in->max[a]+1.f);
+        if(!isfinite(lo)||!isfinite(hi)||lo<INT16_MIN||hi>INT16_MAX||lo>hi)return;
+        out->min[a]=(int16_t)lo;out->max[a]=(int16_t)hi;
+    }
+    out->valid=true;
+}
+#endif

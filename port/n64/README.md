@@ -91,6 +91,12 @@ The default SDK locations are the sibling projects
 `../n64-2048/.build/libdragon` and `../n64-3d-splitscreen/.build/tiny3d`.
 Elsewhere pass `build.py --sdk /path/to/libdragon --tiny3d /path/to/tiny3d`,
 or set `N64_INST` and `TINY3D_DIR`.
+The normal build also needs the matching libdragon source checkout, defaulting
+to the SDK's sibling `libdragon-src`, or supplied with `--libdragon-source`.
+It builds a local CPU command-queue override with two 16 KiB buffers so CPU
+work can overlap queued graphics. The shared SDK is unchanged. Use
+`--rspq-buffer-kib 0` for the slower unmodified-SDK fallback; see
+[RSPQ.md](RSPQ.md) for provenance checks and controlled comparisons.
 
 ```sh
 # Reuse the existing venv and extracted maps when available.
@@ -131,6 +137,21 @@ four human controllers. `--profile` adds N64 timing/memory counters;
 Instrumented ROM names end in `-validation` or `-profile`, preserving the
 uninstrumented cartridge.
 
+`--benchmark` runs the four-player replay for a 75-second measured interval
+after a one-second warmup, with no live diagnostic text. Its result pages
+separate CPU frame acquisition from RDP completion / `display_show` callback
+cadence and list the eight slowest completed frames with their scene metadata.
+An additional page observes VI surface selection and counts fresh simulation
+poses, repeated poses, skipped poses, retrace gaps and input-sample latency.
+`--vi-benchmark` retains only that observer, with CPU/RDP profiling, draw
+counters and live diagnostic text disabled. It is the preferred presentation
+timing check. These emulator results do not establish real N64 hardware speed
+or physical button-to-photon latency.
+`--snapshot-tick N` instead advances exactly N fixed replay ticks before
+drawing, then repeatedly renders the frozen scene/HUD without input, menu or
+FPS text. Snapshot ROMs are pixel-comparison fixtures, not performance tests;
+they cannot combine with demo, showcase, benchmark, profile or validation modes.
+
 To build the original BSP collision profile, enable the Expansion Pak in ares:
 
 ```sh
@@ -167,23 +188,36 @@ Build these ROMs serially because the compiler object directory is shared.
 | Resource | Budget |
 | --- | ---: |
 | Blood Gulch BSP | 5,503 → 1,870 triangles |
-| Spartan | 460 nearby / 151 distant triangles |
-| First-person gun + hands | 467–587 triangles per weapon; 211 shared hand triangles |
-| World weapons | 174–274 triangles |
-| Vehicles | 554–808 nearby / 235–271 distant triangles, including part padding |
-| Grenades | 62 frag / 64 plasma triangles |
-| Model animation storage | 484,257 bytes after lossless track sharing and clip-local byte offsets |
+| Spartan | 310 nearby / 127 distant triangles |
+| First-person gun + hands | 384–519 triangles per weapon; 191 shared hand triangles |
+| World weapons | 140–274 nearby triangles; separate distant pickup/held models |
+| Vehicles | 242–366 nearby / 134–198 distant triangles, including part padding |
+| Grenades | 62 frag / 48 plasma triangles |
+| Model animation storage | 336,038 bytes after exact motion-track sharing and indexed vertices |
+| World / first-person model vertices | 4,920 / 4,264; 146,944 vertex bytes combined |
 | World materials | 17 × 32×32 RGBA16 |
-| World vertex storage | 91,104 bytes |
+| World vertex/index storage | 51,584 / 11,752 bytes |
+| Conservative model bounds | 1,444 bytes; near/far unions and per-clip/part metadata |
 | Collision mesh and grid | 80,506 bytes |
 | Color/depth buffers | 614,400 bytes: triple 320×240 color + depth |
 | Gameplay objects | fixed player/vehicle pools; bounded Blam arena for 48 projectiles; no per-tick system-heap allocation |
 | Audio | 11,025 Hz source PCM, 22,050 Hz stereo output; 14 bounded voices |
 
-Each camera independently culls world chunks and objects. Cached RSP display
-blocks, distant model LODs, batched HUD digits, and two sets of matrices
-and animated vertices reduce work. The three display color buffers remain
+Each camera independently culls world chunks and objects. Indexed vertex
+batches, cached RSP display blocks, projected pickup/held-weapon LODs, cropped
+HUD textures, and two sets of matrices and animated vertices reduce work.
+Model indexing preserves positions, winding, original material identity, team
+masks and complete animation trajectories. Its explicit per-model RGB limit is
+48/255, with Ghost models kept at 24/255 and the first-person rocket launcher at
+32/255 to preserve their identifying markings. Each shared color is an immutable
+original corner; errors cannot accumulate through successive merges. The terrain
+packer retains its separate 8/255 limit. The 59-entry audit checks identifying
+colors at native target sizes.
+Only visible character LODs are animated. The three display color buffers remain
 independent. RSP fences protect geometry buffers before reuse.
+Sibling object matrices avoid redundant camera reloads; exact current-pose
+vehicle-part bounds skip offscreen parts using another 1,176 CPU-only bytes.
+See [RENDER_MATRIX.md](RENDER_MATRIX.md) for the matrix-stack contract.
 Animation writes use the CPU cache followed by explicit writeback. The game
 uses Blam's local 30 Hz scheduler with bounded catch-up.
 
@@ -196,9 +230,22 @@ compares original highest-detail source, preserved prior packed output, and
 revised packed output from eight matching angles, with 160×120 and 48/24-pixel
 size probes. See [ASSET_PIPELINE.md](ASSET_PIPELINE.md#model-comparison-audit)
 for reproduction and the limits of these offline reference renders.
+Thirteen additional distant pickup entries use 12/8-pixel size probes and are
+excluded from that 46-entry aggregate because they have no prior distant bank.
+The final 59-entry report keeps all 46 existing comparisons within a 0.03 loss
+of source silhouette IoU relative to the approved quality build; this is an
+offline shape check, not a frame-rate measurement.
 
 ```sh
 build/n64-python/bin/python port/n64/test_pack_animation.py
+build/n64-python/bin/python port/n64/test_pack_mesh.py
+build/n64-python/bin/python port/n64/test_pack_bounds.py
+build/n64-python/bin/python port/n64/test_pack_terrain.py
+build/n64-python/bin/python port/n64/test_geometry_bounded.py
+build/n64-python/bin/python port/n64/test_vehicle_parts.py
+build/n64-python/bin/python port/n64/test_render_matrix.py
+build/n64-python/bin/python port/n64/test_render_segments.py
+build/n64-python/bin/python port/n64/test_rspq_override.py
 build/n64-python/bin/python port/n64/audit_models.py
 ```
 
@@ -240,15 +287,44 @@ actual flight, driver/front-passenger seating, same-tick frag double kills,
 shotgun kills, seven-hit Needler supercombines, and a single homing needle
 turning before impact. They also verify kill ownership through awarded scores.
 
-The revised model build was checked in ares v148 with Metal and the Expansion
-Pak disabled. Four-player profile scenes left about 135 KiB of heap headroom.
-The revised RDP validation replay reported zero errors and zero warnings
-through combat and vehicle phases; its recording is included in the local audit.
-The extra geometry has a performance cost: selected heavier four-view combat
-and mixed vehicle scenes rendered around 9–11 FPS. These samples are not a
-full-run minimum/maximum or a locked frame-rate guarantee. Counters measure
-emulated N64 time; emulator VPS measures host playback speed separately. The
-30 Hz simulation clock is independent of rendering.
+The final model bank, indexed terrain, per-part bounds, nonblocking queue
+flushes and exact vehicle-pose cache were checked in ares v148 with Metal and
+the Expansion Pak disabled. The 160-second paced three-buffer validation
+recording ended with **zero RDP errors and zero warnings** through combat,
+vehicles, respawns and a second replay cycle. Both streams decode cleanly;
+audio is active throughout. The exact ROM, source and bank hashes, full-frame
+proofs and audio measurements are in
+`performance-audit/vehicle-pose-cache/validation-report.json`. The earlier
+quality profile's 135 KiB of heap headroom is not a measurement of this bank.
+
+The final audited model bank with indexed terrain, sibling matrices and
+per-part culling completed 3,030 four-player frames over 75.018 measured seconds
+at **40.3 FPS average** using the original presenter, guard band 2 and a 16 KiB
+RSP queue. Completion intervals were **35.2 ms at p95 and 55.6 ms worst**;
+255 frames exceeded 33.33 ms, so this does not establish sustained 30 FPS.
+Combat averaged 40.3 FPS with 34.1 ms p95; vehicle scenes averaged 40.4 FPS
+with 36.2 ms p95. Submitted vertices averaged 8,255 and peaked at 16,720.
+These are RDP full-sync completion / `display_show` callback measurements,
+not CPU acquisition intervals or VI scanout timing. The four result pages,
+ROM hash and transcribed values are preserved in the local
+`performance-audit/runtime-final48-results.json` and its linked recording.
+Tail categories describe the completing scene's submitted geometry, not
+per-category GPU time. The longest interval includes the replay's reset at
+75 seconds; it remains in the reported distribution.
+Emulator VPS measures host playback speed separately; the 30 Hz simulation
+clock is independent of rendering.
+
+The optional `--paced30` experiment avoids repeated simulation poses and queues
+four-view presentation at every second VI retrace. New benchmark builds also
+measure fresh displayed poses, missed deadlines and latency separately from
+CPU and RDP throughput. See [PACING.md](PACING.md); compilation and portable
+tests alone do not establish its target performance.
+The quiet final-bank runs improve from 14 missed deadlines with three surfaces
+to six with four and three with five, at respective mean input-sample-to-VI
+latencies of 68, 100 and 129 ms. The remaining gaps are in vehicle scenes;
+none of these runs establishes sustained nominal 30 FPS. Exact phase results,
+source differences and the memory/latency tradeoff are recorded in the pacing
+notes and local audit. The default presenter is unchanged.
 
 The original-BSP profile's earlier validation used ares v147 with an 8 MiB
 Expansion Pak and reported zero RDP errors/warnings and about 3,634 KiB of heap
@@ -261,24 +337,46 @@ substantial overhead and is not a release-build performance measurement.
 `record_ares.swift` records only the requested ares window and its application
 audio using macOS ScreenCaptureKit (macOS 15+). `video_probe.swift` verifies
 video/audio tracks, measures audio amplitude and exports a frame for inspection.
+The recorder accepts an optional final PNG path. It writes a complete BGRA
+screen-stream buffer directly, without H.264 decoding, filtering or cropping;
+use this output for exact comparisons of frozen snapshot ROMs.
 `video_clip.swift` copies a selected time range without generating or altering
 gameplay frames. Its optional playback-rate argument changes timing for a
-clearly identified slow-motion copy. The final recordings and ROM checksums are local artifacts in
-`build/n64/videos/` and `build/n64/release-manifest.json`.
+clearly identified slow-motion copy. The optimized model recordings, exact source
+segments, audio checks and ROM checksums are local artifacts in
+`build/n64/videos/optimized/index.html` and its `showcase-manifest.json`. Earlier
+recordings remain in `build/n64/videos/`; they are not overwritten.
 
 ```sh
 xcrun swiftc -parse-as-library port/n64/record_ares.swift -o build/n64/record-ares
 xcrun swiftc -parse-as-library port/n64/video_probe.swift -o build/n64/video-probe
 build/n64/record-ares halo-blood-gulch-replay build/n64/videos/gameplay.mp4 90
 build/n64/video-probe build/n64/videos/gameplay.mp4 10 build/n64/screenshots/gameplay.png
+# Optional direct screen-buffer PNG, useful with a frozen snapshot ROM:
+build/n64/record-ares halo-blood-gulch-snapshot-1350 build/n64/videos/snapshot.mp4 3 build/n64/screenshots/snapshot-raw.png
 ```
+
+Before recording, set ares **Settings → Drivers → Defocus** to **Block input**
+instead of **Pause**. Otherwise moving focus to the terminal can produce an
+entire video of one frozen frame. Start the recorder, wait for
+`Recording ares window`, then choose **Nintendo 64 → Reset** so the clip includes
+the opening events around two seconds. Keep the window visible and verify that
+the scene advances. For benchmark captures, allow time for the CPU, RDP and both
+tail pages plus the fifth VI page; a CPU-only capture cannot establish
+completed-frame pacing or fresh displayed poses. Restore
+**Pause** after the final recordings. When navigating ares through accessibility
+tools, inspect only the relevant Drivers controls rather than expanding the
+large shader/settings menu tree.
 
 Focused recordings are `banshee-flight.mp4`, `frag-double-kill.mp4`,
 `warthog-passenger.mp4`, `shotgun-kill.mp4`, `needler-supercombine.mp4` and
-`needler-homing.mp4` in `build/n64/videos/`. An additional
+`needler-homing.mp4` in `build/n64/videos/optimized/`. An additional
 `needler-homing-quarter-speed.mp4` shows the same recorded projectile at 0.25×
 playback speed. All six use staged encounters and normal gameplay inputs,
-with game audio and an on-screen SCRIPTED label.
+with game audio and an on-screen SCRIPTED label. The shotgun encounter needs
+two shots against full shields. The homing clip demonstrates a single launch
+and shield hit rather than a kill. These focused one-, two- and four-view
+scenes are gameplay evidence; the separate four-view benchmark measures timing.
 
 ## Remaining limits
 

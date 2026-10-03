@@ -86,7 +86,7 @@ static int cell(float x,float z){
     if(ix<0||iz<0||ix>=BG_GRID||iz>=BG_GRID)return -1;
     return iz*BG_GRID+ix;
 }
-float bg_floor(float x,float z,float ceiling){
+static float floor_uncached(float x,float z,float ceiling){
 #ifdef BG_BLAM_BSP
     /* Original cache coordinates are Halo XYZ; the presentation coordinates
      * subtract (68,-118,0), use Y up and reverse the original Y axis. */
@@ -122,6 +122,23 @@ float bg_floor(float x,float z,float ceiling){
     }
     return best;
 #endif
+}
+
+float bg_floor(float x,float z,float ceiling){
+    /* The terrain is immutable. Parked vehicles repeatedly ask for exactly
+     * the same body/nose/tail support heights; retain those answers without
+     * quantizing coordinates or skipping a moving object's collision query.
+     * Bitwise keys also distinguish signed zero and every ceiling value. */
+    static struct { uint32_t key[3]; float height; bool valid; } cache[64];
+    uint32_t key[3];
+    memcpy(&key[0],&x,sizeof(x));memcpy(&key[1],&z,sizeof(z));memcpy(&key[2],&ceiling,sizeof(ceiling));
+    uint32_t hash=key[0]^(key[1]*0x9E3779B9u)^(key[2]*0x85EBCA6Bu);
+    hash^=hash>>16;hash^=hash>>8;
+    unsigned slot=hash&63u;
+    if(cache[slot].valid&&cache[slot].key[0]==key[0]&&cache[slot].key[1]==key[1]&&cache[slot].key[2]==key[2])return cache[slot].height;
+    float height=floor_uncached(x,z,ceiling);
+    memcpy(cache[slot].key,key,sizeof(key));cache[slot].height=height;cache[slot].valid=true;
+    return height;
 }
 
 static void closest(float q[3],const float p[3],const bg_triangle*t){
@@ -162,8 +179,10 @@ static void walls(bg_player*p){
                 for(int sample=0;sample<2;sample++){
                     float point[3]={p->pos[0],p->pos[1]+.19f+sample*.32f,p->pos[2]},q[3];closest(q,point,t);
                     float dx=point[0]-q[0],dy=point[1]-q[1],dz=point[2]-q[2];
-                    float d2=dx*dx+dy*dy+dz*dz, horizontal=sqrtf(dx*dx+dz*dz);
-                    if(d2<radius*radius&&horizontal>1e-6f){
+                    float d2=dx*dx+dy*dy+dz*dz;
+                    if(!(d2<radius*radius))continue;
+                    float horizontal=sqrtf(dx*dx+dz*dz);
+                    if(horizontal>1e-6f){
                         float amount=(radius-sqrtf(d2))/horizontal;
                         p->pos[0]+=dx*amount;p->pos[2]+=dz*amount;
                     }
@@ -363,7 +382,8 @@ static void damage_vehicle(unsigned index,int owner,float amount){
     v->active=false;v->respawn=20;v->speed=0;event(BG_EVENT_EXPLOSION,owner,BG_EXPLOSION_NORMAL,v->pos,2);
 }
 static void explode(const float pos[3],int owner,float damage,float radius,bg_projectile_kind kind){
-    event(BG_EVENT_EXPLOSION,owner,kind==BG_P_PLASMA_GRENADE?BG_EXPLOSION_PLASMA:BG_EXPLOSION_NORMAL,pos,radius);
+    event(BG_EVENT_EXPLOSION,owner,kind==BG_P_NEEDLE?BG_EXPLOSION_NEEDLER:
+        kind==BG_P_PLASMA_GRENADE?BG_EXPLOSION_PLASMA:BG_EXPLOSION_NORMAL,pos,radius);
     for(unsigned i=0;i<active_players;i++){
         bg_player*p=&bg_players[i];if(p->health<=0)continue;
         float target[3]={p->pos[0],p->pos[1]+.35f,p->pos[2]},d[3];sub(d,target,pos);float length=sqrtf(dot(d,d));
@@ -462,7 +482,8 @@ static void update_projectiles(float dt){
             }
             bool grenade_kind=q->kind==BG_P_FRAG||q->kind==BG_P_PLASMA_GRENADE;
             if(grenade_kind)q->velocity[1]-=4.8f*dt;
-            float speed=sqrtf(dot(q->velocity,q->velocity)),dir[3];memcpy(dir,q->velocity,sizeof(dir));normalize(dir);
+            float speed=sqrtf(dot(q->velocity,q->velocity)),dir[3];memcpy(dir,q->velocity,sizeof(dir));
+            if(speed>1e-8f)for(int a=0;a<3;a++)dir[a]/=speed;
             float length=speed*dt,nearest=length;bool head=false;
             int target=target_ray(q->owner,q->pos,dir,&nearest,&head),vehicle=-1;
             for(unsigned j=0;j<bg_vehicle_count;j++){
@@ -559,7 +580,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS],float dt){
         if(v->kind==BG_V_BANSHEE&&in){v->velocity[1]=sinf(v->pitch)*fabsf(v->speed)+(in->jump?3:0)-(in->crouch?3:0);}
         else v->velocity[1]-=4.8f*dt;
         float travel[3]={v->velocity[0]*dt,0,v->velocity[2]*dt},len=sqrtf(dot(travel,travel));
-        if(len>.001f){float dir[3];memcpy(dir,travel,sizeof(dir));normalize(dir);
+        if(len>.001f){float dir[3];for(int a=0;a<3;a++)dir[a]=travel[a]/len;
             float start[3]={v->pos[0],v->pos[1]+.5f,v->pos[2]},radius=v->kind==BG_V_SCORPION?.95f:.6f;
             if(bg_raycast(start,dir,len+radius)<len+radius){v->speed*=.2f;travel[0]=travel[2]=0;}}
         v->pos[0]+=travel[0];v->pos[2]+=travel[2];v->pos[1]+=v->velocity[1]*dt;

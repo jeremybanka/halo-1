@@ -26,10 +26,8 @@ def node_positions(nodes):
     return [p for _,p in result]
 
 
-def split_vehicle(name,model,original):
-    if name not in ('warthog','scorpion'):
-        return model,{'parts':[{'first':0,'count':len(model['triangles'])*3,'kind':0,'pivot':[0,0,0]}],'turret_pivot':[0,0,0]}
-    nodes=original['nodes'];pivots=node_positions(nodes)
+def _layout(name,original):
+    nodes=original['nodes']
     def descendants(index,ancestor):
         while index>=0:
             if index==ancestor:return True
@@ -45,18 +43,26 @@ def split_vehicle(name,model,original):
             if descendants(bone,1):return 5
             return 0
     else:
-        # The coaxial gun and cannon are both attached to the turret's pitch
-        # origin. Hull hatches and tread supports retain their rest geometry.
+        # Retail "stand fixed aim-still" rotates node7 about Z (yaw) and
+        # node8 about Y (pitch). The broad turret and its gun/cannon children
+        # must pitch together; rotating only children9/10 detaches the barrel.
         roots=[-1,7,8];kinds=[0,2,3];turret=7
         def group(bone):
-            if bone in (9,10):return 2
+            if descendants(bone,8):return 2
             if descendants(bone,7):return 1
             return 0
-    groups=[[] for _ in roots]
+    return roots,kinds,turret,group
+
+
+def triangle_groups(name,model,original):
+    """Original skinning-palette rigid group for each reduced triangle."""
+    if name not in ('warthog','scorpion'):return [0]*len(model['triangles'])
+    roots,_,_,group=_layout(name,original)
     source=original['vertices'];weights=original['weights']
     cache={}
+    result=[]
     for tri in model['triangles']:
-        votes=[0.0]*len(groups)
+        votes=[0.0]*len(roots)
         for point in tri['p']:
             key=tuple(point)
             if key not in cache:
@@ -66,7 +72,18 @@ def split_vehicle(name,model,original):
             if a<0:raise ValueError('Missing vehicle skinning palette')
             votes[group(a)]+=1-w
             if b>=0 and w>0:votes[group(b)]+=w
-        groups[max(range(len(groups)),key=votes.__getitem__)].append(tri)
+        result.append(max(range(len(roots)),key=votes.__getitem__))
+    return result
+
+
+def split_vehicle(name,model,original):
+    if name not in ('warthog','scorpion'):
+        return model,{'parts':[{'first':0,'count':len(model['triangles'])*3,'kind':0,'pivot':[0,0,0]}],'turret_pivot':[0,0,0]}
+    nodes=original['nodes'];pivots=node_positions(nodes)
+    roots,kinds,turret,_=_layout(name,original)
+    groups=[[] for _ in roots]
+    for tri,group in zip(model['triangles'],triangle_groups(name,model,original)):
+        groups[group].append(tri)
     ordered=[];parts=[]
     for root,kind,tris in zip(roots,kinds,groups):
         if not tris:continue

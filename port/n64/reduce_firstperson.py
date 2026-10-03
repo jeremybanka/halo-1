@@ -20,12 +20,27 @@ MATERIAL_METADATA = ('material_names', 'material_types', 'material_colors',
                      'material_overrides', 'texture_sources', 'material_multipurpose',
                      'material_change_source')
 
+# Measured against the approved quality meshes in eight matching views. The
+# profile is opt-in so isolated experiments never replace the quality baseline.
+PERFORMANCE_GUNS = {
+    'ar':{'budget':210,'refine':True,'cosmetic_min':2},
+    'pistol':{'budget':238},'plasma_pistol':{'budget':221},
+    'plasma_rifle':{'budget':255},
+    'needler':{'budget':360,'omit_opaque_cores':True},
+    'shotgun':{'budget':196,'refine':True,'cosmetic_min':2},
+    'sniper':{'budget':306},'rocket':{'budget':224,'cosmetic_min':2},
+    'flamethrower':{'budget':238}}
 
-def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0):
+
+def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
+                       gun_budgets=None, hand_topology='anatomy', needle_min=8,
+                       cosmetic_min=None, feature_minima=None, refine_approved=False,
+                       performance_profile=False):
     import bpy
     from mathutils import Quaternion, Vector
 
     data = json.loads(Path(source).read_text())
+    if performance_profile:hand_budget=200;hand_topology='continuous'
     scene = bpy.data.scenes.new('Halo N64 - First person')
     if bpy.context.window:
         bpy.context.window.scene = scene
@@ -53,22 +68,50 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0):
             # Keep each whole finger connected while retaining its interpolated
             # weights at all three source joints.
             labels[i] = re.sub(r'\s*(low|mid|tip)$', '', name)
+            if hand_topology=='continuous' and any(p in name for p in ('upperarm','forearm','wriste')):
+                # Preserve the independently weighted fingers, but allow each
+                # material's arm/wrist shell to collapse without artificial cuts.
+                labels[i] = 'frame l arm' if 'frame l ' in name else 'frame r arm'
         return labels
 
-    def importance_for(model, hands=False):
+    def importance_for(model, hands=False, weapon_name=None, approved_baseline=False, settings=None):
+        settings=settings if settings is not None else {'needle_min':needle_min,'cosmetic_min':cosmetic_min}
         def importance(material, bone, component):
             name = model.get('material_names', [''] * len(model['textures']))[material]
             if hands:
                 return 1.65 if any(x in bone for x in ('index','thumb','middle','ring','pinky')) else 1.2
+            for rule in ({} if approved_baseline or performance_profile else (feature_minima or {})).get(weapon_name,[]):
+                if (rule.get('bone',bone)==bone and rule.get('material',material)==material
+                        and component['face_count']>=rule.get('source_min',0)):
+                    return {'weight':rule.get('weight',1),'min':min(rule['minimum'],component['face_count'])}
             if 'needle' in bone:
-                return {'weight':2.4, 'min':min(8, component['face_count'])}
+                return {'weight':2.4, 'min':min(8 if approved_baseline else settings.get('needle_min',8), component['face_count'])}
             if any(x in name for x in ('display','screen','luminous','decal')):
                 return 1.4
             if any(x in bone for x in ('magazine','tubes','pump','cover','wing','rod')):
                 return 1.25
+            if not approved_baseline and settings.get('cosmetic_min') is not None and component['face_count']<=24:
+                return {'weight':.65,'min':min(settings['cosmetic_min'],component['face_count'])}
             return 1.0
         return importance
 
+    def refinement_source(model, triangles):
+        # Refine the already approved piecewise-planar gun shape in bind pose.
+        # Its rigid gun parts retain exact bone identity through the second
+        # collapse; no animation or pose inversion is required.
+        refined={**model,'vertices':[],'faces':[],'uv':[],'materials':[],'weights':[]}
+        for tri in triangles:
+            first=len(refined['vertices'])
+            refined['vertices'].extend(tri['p']);refined['uv'].extend(tri['uv'])
+            refined['faces'].append([first,first+1,first+2]);refined['materials'].append(tri['material'])
+            for skin in tri['weights']:
+                if len(skin)>2:raise ValueError('Gun refinement requires at most two influences per vertex')
+                total=sum(weight for _,weight in skin)
+                refined['weights'].append([skin[0][0],skin[1][0] if len(skin)>1 else -1,
+                                           skin[1][1]/total if len(skin)>1 else 0])
+        return refined
+
+    budgets={**GUN_BUDGETS,**(gun_budgets or {})}
     hands = data['hands']
     hand_obj, hand_tris, hand_weights, hand_report = reduce_geometry(
         scene, hands, 'Xbox hands', hand_budget,
@@ -79,13 +122,46 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0):
         hands['nodes'], [n['parent'] for n in hands['nodes']])]
     result = {'weapons':{}, 'hand_triangle_count':len(hand_tris),
               'reduction_report':{'hands':hand_report},
-              'reference_note':data.get('reference_note', '')}
+              'reference_note':data.get('reference_note', ''),
+              'reduction_profile':'performance' if performance_profile else 'quality-or-custom'}
     limits = {'idle':4, 'fire':4, 'reload':8, 'melee':6}
     for index, (name, weapon) in enumerate(data['weapons'].items()):
         gun = weapon['gun']
+        settings=PERFORMANCE_GUNS[name] if performance_profile else {
+            'budget':budgets[name],'refine':refine_approved,'needle_min':needle_min,'cosmetic_min':cosmetic_min}
+        refine=settings.get('refine',False)
         obj, gun_tris, gun_weights, report = reduce_geometry(
-            scene, gun, 'FP ' + name, GUN_BUDGETS[name],
-            part_importance=importance_for(gun), partition_colors=False, protect_boundaries=boundary_strength, project_surface='outside')
+            scene, gun, 'FP ' + name, GUN_BUDGETS[name] if refine else settings['budget'],
+            part_importance=importance_for(gun,weapon_name=name,approved_baseline=refine,settings=settings), partition_colors=False, protect_boundaries=boundary_strength, project_surface='outside')
+        if refine:
+            obj.hide_set(True)
+            refined=refinement_source(gun,gun_tris);baseline_report=report
+            obj,gun_tris,gun_weights,report=reduce_geometry(
+                scene,refined,'FP refined '+name,settings['budget'],
+                part_importance=importance_for(refined,weapon_name=name,settings=settings),partition_colors=False,
+                protect_boundaries=boundary_strength,project_surface='outside')
+            report['approved_baseline_triangles']=baseline_report['triangles']
+        if settings.get('omit_opaque_cores'):
+            # The N64 glass proxy is opaque. Retain all sixteen complete outer
+            # crystals and omit only their original additive interior planes.
+            omitted={i for i,part in enumerate(report['parts'])
+                     if part['material']==3 and 'needle' in part['bone']}
+            outer=[part for part in report['parts'] if part['material']==2 and 'needle' in part['bone']]
+            if len(omitted)!=16 or len(outer)!=16 or any(part['triangles']<=0 for part in outer):
+                raise ValueError('Needler performance profile expects all sixteen original crystal shells and core planes')
+            keep=[i for i,tri in enumerate(gun_tris) if tri['part'] not in omitted]
+            report['opaque_shell_core_triangles_removed']=len(gun_tris)-len(keep)
+            # Keep the reviewable .blend mesh consistent with the packed JSON.
+            import bmesh
+            mesh=bmesh.new();mesh.from_mesh(obj.data);mesh.faces.ensure_lookup_table()
+            retained=set(keep)
+            bmesh.ops.delete(mesh,geom=[face for i,face in enumerate(mesh.faces) if i not in retained],context='FACES')
+            mesh.to_mesh(obj.data);mesh.free()
+            gun_weights=[point for i in keep for point in gun_weights[i*3:i*3+3]]
+            gun_tris=[gun_tris[i] for i in keep];report['triangles']=len(gun_tris)
+            for i in omitted:
+                report['parts'][i]['triangles']=0
+                report['parts'][i]['omitted_reason']='interior additive plane under opaque N64 crystal proxy'
         obj.location = (index * .5, 0, 0)
         result['reduction_report'][name] = report
         gun_inverse = [m.inverted() for m in globals_for(
@@ -137,5 +213,15 @@ if __name__ == '__main__':
     parser.add_argument('output')
     parser.add_argument('--hand-budget', type=int, default=220)
     parser.add_argument('--boundary-strength', type=float, default=0)
+    parser.add_argument('--budget-file',type=Path,help='Optional JSON weapon-name to triangle-budget overrides')
+    parser.add_argument('--hand-topology',choices=('anatomy','continuous'),default='anatomy')
+    parser.add_argument('--needle-min',type=int,default=8,help='Minimum triangles per original needle component; each of the 16 crystals is retained')
+    parser.add_argument('--cosmetic-min',type=int,help='Optional minimum for tiny static cosmetic components')
+    parser.add_argument('--feature-minima',type=Path,help='Optional JSON per-weapon feature allocation rules')
+    parser.add_argument('--refine-approved',action='store_true',help='First reproduce the approved gun geometry, then reduce that piecewise-planar mesh with the requested budgets')
+    parser.add_argument('--performance-profile',action='store_true',help='Use the verified per-weapon performance allocations and joined 200-budget hands')
     args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
-    reduce_firstperson(args.source, args.output, args.hand_budget, args.boundary_strength)
+    budgets=json.loads(args.budget_file.read_text()) if args.budget_file else None
+    features=json.loads(args.feature_minima.read_text()) if args.feature_minima else None
+    reduce_firstperson(args.source, args.output, args.hand_budget, args.boundary_strength,
+                       budgets,args.hand_topology,args.needle_min,args.cosmetic_min,features,args.refine_approved,args.performance_profile)

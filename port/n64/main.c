@@ -5,16 +5,64 @@
 #include "game.h"
 #include "asset_models.h"
 #include "asset_firstperson.h"
+#include "render_animation.h"
+#include "render_lod.h"
+#include "render_pose_cache.h"
+#include "rspq_metrics.h"
 #include "blam/runtime.h"
 #include "sound.h"
 #include "hud.h"
 #include "replay.h"
+#ifndef BG_PACED30_BUFFERS
+#define BG_PACED30_BUFFERS 3
+#endif
+#if defined(BG_PACED30) && defined(BG_SNAPSHOT_TICK)
+#undef BG_PACED30 /* Frozen pixel fixtures always use the ordinary presenter. */
+#undef BG_PACED30_BUFFERS
+#define BG_PACED30_BUFFERS 3
+#endif
+#if !defined(BG_PACED30) && BG_PACED30_BUFFERS != 3
+#error "Extra display surfaces require the explicit paced30 experiment"
+#endif
+#if defined(BG_PACED30) && BG_PACED30_BUFFERS >= 4
+#define BG_PRESENT_TRACK
+#endif
+#ifdef BG_PACED30
+#include "render_pacing.h"
+#endif
+#ifdef BG_SNAPSHOT_TICK
+#include "replay_snapshot.h"
+#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK) || defined(BG_SHOWCASE) || defined(BG_PROFILE) || defined(RDPQ_VALIDATE)
+#error "Snapshot QA requires an overlay-free build without benchmark/showcase/profile/validation"
+#endif
+#endif
+#if defined(BG_VI_BENCHMARK) && (defined(BG_BENCHMARK) || defined(BG_PROFILE) || defined(BG_GPU_DIAGNOSTIC) || defined(RDPQ_VALIDATE) || defined(BG_SHOWCASE))
+#error "Quiet VI measurement cannot include full profiling or a different scene"
+#endif
+#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK)
+#define BG_VI_MEASURE
+#endif
+#ifdef BG_BENCHMARK
+#include "benchmark.h"
+#include "cadence.h"
+#include "cadence_tail.h"
+#include "vi_meter.h"
+#ifndef BG_PROFILE
+#define BG_PROFILE
+#endif
+#endif
+#ifdef BG_VI_BENCHMARK
+#include "vi_meter.h"
+#endif
+#if defined(BG_GPU_DIAGNOSTIC) && !defined(BG_PROFILE)
+#define BG_PROFILE
+#endif
 #ifdef BG_SHOWCASE
 #include "showcase.h"
 #endif
 
 /* Two fenced geometry slots retain detailed models within base 4 MiB RAM.
- * Display color buffers remain triple buffered; geometry reuse waits on RSP. */
+ * Display surfaces are separate; geometry reuse always waits on RSP. */
 #define BG_FRAME_SLOTS 2
 extern T3DVertPacked bg_vertices[];
 extern uint16_t bg_textures[][32*32];
@@ -25,23 +73,236 @@ static T3DVertPacked *firstperson[BG_FRAME_SLOTS][4];
 static int firstperson_weapon[BG_FRAME_SLOTS][4];
 static T3DVertPacked *armor_lod[BG_FRAME_SLOTS][4];
 static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
-static rspq_block_t *firstperson_blocks[BG_FRAME_SLOTS][4];
+/* A segmented vertex address shares each weapon's commands across all
+ * fenced player/slot buffers. Segment 1 is reserved for these draw calls. */
+static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static float fired_at[4]={-100,-100,-100,-100};
 static rspq_block_t *world_blocks[512], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT], *particle_blocks[7];
 static rspq_block_t *vehicle_lods[4];
+static rspq_block_t *pickup_lod_blocks[BG_M_COUNT];
 static rspq_block_t *vehicle_parts[4][7];
 static T3DMat4FP part_matrices[BG_FRAME_SLOTS][BG_MAX_VEHICLES][7];
+static bg_cull_bounds vehicle_part_bounds[BG_MAX_VEHICLES][7];
 static float wheel_rotation[BG_MAX_VEHICLES];
+static bg_vehicle_pose_cache vehicle_pose_cache[BG_MAX_VEHICLES];
 static T3DViewport viewports[BG_FRAME_SLOTS][4] __attribute__((aligned(16)));
 static T3DMat4FP transforms[BG_FRAME_SLOTS][4], guns[BG_FRAME_SLOTS][4], vehicle_matrices[BG_FRAME_SLOTS][BG_MAX_VEHICLES],
     pickup_matrices[BG_FRAME_SLOTS][BG_MAX_PICKUPS], projectile_matrices[BG_FRAME_SLOTS][BG_MAX_PROJECTILES], explosion_matrices[BG_FRAME_SLOTS][12];
 static T3DMat4FP held_matrices[BG_FRAME_SLOTS][4];
 static rspq_syncpoint_t fences[BG_FRAME_SLOTS];
-static bool pending[BG_FRAME_SLOTS],paused;
-static unsigned slot,views=4,triangles,fps,menu_row;
+static bool pending[BG_FRAME_SLOTS];
+static unsigned slot,views=4,triangles,fps;
+#ifndef BG_SNAPSHOT_TICK
+static bool paused;
+static unsigned menu_row;
+#endif
 static float game_time;
+static int16_t triangle_lists[20][64] __attribute__((aligned(16)));
+static bg_motion_track *motion_tracks;
+static unsigned motion_capacity;
+static T3DVec3 view_eyes[4];
+/* 0: absent, 1: full mesh, 2: distant mesh. Visibility is evaluated once. */
+static uint8_t body_lods[4][4],wanted_lods[4],held_masks[4],wanted_held;
+static uint8_t vehicle_view_lods[4][BG_MAX_VEHICLES];
+static uint8_t pickup_visible[4][BG_MAX_PICKUPS];
+static bg_cull_bounds body_bounds[4],held_bounds[4],vehicle_bounds[BG_MAX_VEHICLES],pickup_bounds[BG_MAX_PICKUPS];
+static T3DMat4 body_matrices[4];
+static unsigned body_clips[4];
+static bool body_throwing[4];
+/* CPU readiness resets after the geometry-slot fence, before any draw. */
+static unsigned body_animation_ready,fp_animation_ready;
+static void prepare_view(unsigned p);
 #ifdef BG_PROFILE
 static unsigned sim_us,prep_us,draw_us,wait_us;
+static unsigned queue_us;
+#ifdef BG_RSPQ_OVERRIDE
+static bg_rspq_metrics previous_queue_metrics;
+#endif
+static unsigned camera_us,animation_us,matrix_us,world_us,object_us,fp_us,hud_us,audio_us,overlay_us,present_us;
+static unsigned geometry_rsp_us,geometry_rdp_us;
+static unsigned category_triangles[6]; /* Terrain, vehicles, bodies, pickups, effects, first person. */
+static unsigned submitted_vertices,model_vertex_loads[BG_M_COUNT],pickup_vertex_loads[BG_M_COUNT];
+static unsigned vehicle_vertex_loads[4],part_vertex_loads[4][7],spartan_lod_vertex_loads,fp_vertex_loads[BG_FP_WEAPONS];
+static unsigned animated_vertices,animated_tracks;
+#ifndef BG_BENCHMARK
+static uint32_t frame_times[120],frame_time_count,frame_time_next;
+static unsigned frame_average,frame_minimum,frame_p95,frame_maximum;
+static void profile_frame_time(uint32_t elapsed){
+    frame_times[frame_time_next++%120]=elapsed;
+    if(frame_time_count<120)frame_time_count++;
+}
+static void profile_frame_summary(void){
+    uint32_t sorted[120];uint64_t sum=0;
+    for(unsigned i=0;i<frame_time_count;i++){
+        uint32_t value=frame_times[i];sum+=value;unsigned j=i;
+        while(j&&sorted[j-1]>value){sorted[j]=sorted[j-1];j--;}
+        sorted[j]=value;
+    }
+    if(frame_time_count){
+        frame_average=sum/frame_time_count;frame_minimum=sorted[0];
+        frame_p95=sorted[(frame_time_count*95+99)/100-1];frame_maximum=sorted[frame_time_count-1];
+    }
+}
+#endif
+#endif
+#ifdef BG_BENCHMARK
+static bg_benchmark benchmark;
+static bg_cadence completed_cadence;
+static bg_cadence_tail completed_tail;
+#endif
+#ifdef BG_VI_MEASURE
+static bg_vi_meter visible_meter;
+static unsigned result_heap_free,result_held_peak;
+#ifdef BG_PRESENT_TRACK
+static unsigned result_ready_peak,result_outstanding_peak;
+#endif
+#endif
+#if defined(BG_VI_MEASURE) || defined(BG_PACED30)
+typedef struct {
+    surface_t*screen;unsigned vehicle;uint32_t pose_tick;
+    uint64_t sampled_us,completed_us;
+#ifdef BG_BENCHMARK
+    bg_cadence_frame sample;
+#endif
+} bg_completion_frame;
+/* Metadata follows DISPLAY buffers, not the two geometry slots. A
+ * display buffer cannot be acquired again before completion AND presentation. */
+static bg_completion_frame completion_frames[BG_PACED30_BUFFERS];
+static uint32_t video_retraces,simulation_pose;
+static uint64_t frame_sample_us;
+#ifdef BG_PACED30
+static bg_present30 presenter;
+static unsigned paced_dropped_ticks;
+#ifdef BG_PRESENT_TRACK
+static volatile bg_present30_tracker present_tracker;
+static void present_surface(unsigned id){
+    bool released=bg_present30_track_release(&present_tracker,id);
+    assertf(released,"Invalid display surface release");(void)released;
+    display_show(completion_frames[id].screen);
+}
+#endif
+static void paced_vi(void){
+#ifdef BG_PRESENT_TRACK
+    ++video_retraces;
+    if(present_tracker.draining||(!presenter.started&&bg_present30_track_start_blocked(&present_tracker,video_retraces))){
+        presenter.due=presenter.missed=false;return;
+    }
+    int id=bg_present30_vi(&presenter,video_retraces);
+    if(id>=0)present_surface((unsigned)id);
+#else
+    int id=bg_present30_vi(&presenter,++video_retraces);
+    if(id>=0)display_show(completion_frames[id].screen);
+#endif
+}
+static void presentation_mode(bool enabled){
+    disable_interrupts();
+    if(presenter.enabled!=enabled){
+        /* Release every held surface in FIFO. In-flight full-sync callbacks
+         * use the new mode; libdragon retains acquisition order across both. */
+        int id;
+#ifdef BG_PRESENT_TRACK
+        while((id=bg_present30_pop(&presenter))>=0){
+            present_surface((unsigned)id);
+        }
+#else
+        while((id=bg_present30_pop(&presenter))>=0)display_show(completion_frames[id].screen);
+#endif
+        presenter.enabled=enabled;presenter.started=false;
+        presenter.due=presenter.missed=false;
+#ifdef BG_PRESENT_TRACK
+        if(enabled)bg_present30_track_begin_drain(&present_tracker);
+        else bg_present30_track_cancel_drain(&present_tracker);
+#endif
+    }
+    enable_interrupts();
+}
+#endif
+#if defined(BG_VI_MEASURE) || defined(BG_PRESENT_TRACK)
+static void observe_vi(void){
+#ifndef BG_PACED30
+    ++video_retraces;
+#endif
+    /* VI_ORIGIN is the physical scanout address. This callback is registered
+     * before display_init, so libdragon's prepended swap handler runs first. */
+    uint32_t origin=*(volatile uint32_t*)0xA4400004u&0x00ffffffu;
+    for(unsigned i=0;i<BG_PACED30_BUFFERS;i++){
+        const bg_completion_frame*f=&completion_frames[i];
+        if(!f->screen||PhysicalAddr(f->screen->buffer)!=origin)continue;
+#ifdef BG_PRESENT_TRACK
+        bg_present30_track_observe(&present_tracker,i,video_retraces);
+#endif
+#ifdef BG_VI_MEASURE
+        bg_vi_frame sample={.pose_tick=f->pose_tick,.vehicle=f->vehicle,
+            .sampled_us=f->sampled_us,.completed_us=f->completed_us};
+        bool due=false,missed=false;
+#ifdef BG_PACED30
+        due=presenter.due;missed=presenter.missed;
+#endif
+        bg_vi_record(&visible_meter,get_ticks_us(),video_retraces,origin,&sample,due,missed);
+#endif
+        break;
+    }
+}
+#endif
+static void frame_complete(void*argument){
+    bg_completion_frame*frame=argument;
+    uint64_t now=get_ticks_us();frame->completed_us=now;
+#ifdef BG_PACED30
+    if(presenter.enabled
+#ifdef BG_PRESENT_TRACK
+       &&!present_tracker.draining
+#endif
+    ){
+        bool queued=bg_present30_complete(&presenter,(unsigned)(frame-completion_frames));
+        assertf(queued,"Paced presentation queue overflow/duplicate surface");
+    }else
+#endif
+#ifdef BG_PRESENT_TRACK
+    present_surface((unsigned)(frame-completion_frames));
+#else
+    display_show(frame->screen);
+#endif
+#ifdef BG_BENCHMARK
+    bg_cadence_record_with_tail(&completed_cadence,&completed_tail,now,frame->vehicle,&frame->sample);
+#endif
+}
+static void frame_present(surface_t*screen,unsigned vehicle){
+    unsigned i=0;
+    while(i<BG_PACED30_BUFFERS&&completion_frames[i].screen&&completion_frames[i].screen!=screen)i++;
+    assertf(i<BG_PACED30_BUFFERS,"Display buffer metadata exhausted");
+    completion_frames[i]=(bg_completion_frame){.screen=screen,.vehicle=vehicle,
+        .pose_tick=simulation_pose,.sampled_us=frame_sample_us};
+#ifdef BG_PRESENT_TRACK
+    disable_interrupts();
+    bool submitted=bg_present30_track_submit(&present_tracker,i);
+    assertf(submitted,"Display surface reused before VI presentation");(void)submitted;
+    enable_interrupts();
+#endif
+#ifdef BG_BENCHMARK
+    bg_cadence_frame*sample=&completion_frames[i].sample;
+    sample->sim_ms=(uint32_t)(game_time*1000.f);sample->triangles=triangles;sample->vertices=submitted_vertices;
+    memcpy(sample->category_triangles,category_triangles,sizeof(sample->category_triangles));
+    for(unsigned p=0;p<4;p++){
+        if(bg_players[p].vehicle>=0)sample->vehicle_mask|=1u<<p;
+        if(bg_players[p].zoom)sample->zoom_mask|=1u<<p;
+        if(bg_players[p].health<=0)sample->dead_mask|=1u<<p;
+    }
+#endif
+    /* libdragon's detach_show uses this same full-sync callback, with
+     * display_show directly. No extra fence or wait is introduced. */
+    rdpq_detach_cb(frame_complete,&completion_frames[i]);
+}
+#endif
+#ifdef BG_BENCHMARK
+static uint64_t benchmark_origin,benchmark_previous;
+static uint64_t audio_pump_previous;
+static uint32_t audio_pump_max_gap;
+static unsigned benchmark_vehicle,benchmark_triangles,benchmark_vertices,benchmark_phases[BG_BENCHMARK_PHASES];
+static unsigned benchmark_categories[BG_BENCHMARK_CATEGORIES];
+#endif
+#ifdef BG_GPU_DIAGNOSTIC
+static volatile bool diagnostic_rdp_done;
+static void diagnostic_rdp_complete(void*unused){(void)unused;diagnostic_rdp_done=true;}
 #endif
 #ifdef RDPQ_VALIDATE
 static unsigned validation_errors,validation_warnings;
@@ -63,10 +324,33 @@ static int validation_write(void*cookie,const char*text,int length){
     return fwrite(text,1,length,(FILE*)cookie);
 }
 #endif
-static struct {float pos[3],life,radius;} explosions[12];
+static struct {float pos[3],life,radius;bg_explosion_kind kind;} explosions[12];
 static unsigned explosion_next;
 
+static void pump_audio(void){
+#ifdef BG_PROFILE
+    uint64_t begin=get_ticks_us();
+#endif
+#ifdef BG_BENCHMARK
+    /* Reuse the profiler timestamp; no extra clock read in polling loops.
+     * This is a scheduling gap, not an assertion about SDK queue occupancy. */
+    if(audio_pump_previous&&benchmark_origin&&begin>=benchmark_origin+1000000){
+        uint64_t gap=begin-audio_pump_previous;
+        if(gap>audio_pump_max_gap)audio_pump_max_gap=gap>UINT32_MAX?UINT32_MAX:(uint32_t)gap;
+    }
+    audio_pump_previous=begin;
+#endif
+    bg_sound_pump();
+#ifdef BG_PROFILE
+    audio_us+=get_ticks_us()-begin;
+#endif
+}
 static unsigned weapon_model(unsigned w){return w==BG_W_FLAMETHROWER?BG_M_FLAMETHROWER:w<8?w:BG_M_AR;}
+static unsigned pickup_model(unsigned w){
+    return w<BG_WEAPON_COUNT?weapon_model(w):w==BG_PICK_FRAG?BG_M_FRAG:
+        w==BG_PICK_PLASMA?BG_M_PLASMA_GRENADE:w==BG_PICK_HEALTH?BG_M_HEALTHPACK:
+        w==BG_PICK_OVERSHIELD?BG_M_OVERSHIELD:BG_M_CAMOUFLAGE;
+}
 static void tint_team(T3DVertPacked*vertices,unsigned count,const uint8_t*masks,unsigned player){
     for(unsigned i=0;i<count;i++){
         uint32_t*rgba=t3d_vertbuffer_get_color(vertices,i);
@@ -82,45 +366,150 @@ static rspq_block_t *record(T3DVertPacked *verts,unsigned count){
     for(unsigned first=0;first<count;first+=60){
         unsigned n=count-first>60?60:count-first;
         t3d_vert_load(verts+first/2,0,(n+1)&~1u);
-        for(unsigned j=0;j<n;j+=3)t3d_tri_draw(j,j+1,j+2);
+        /* Restart every triangle: exact original order/winding, one RSP
+         * command per batch. 60 vertices leave 360 bytes of DMEM; indices
+         * consume at most 120 bytes, within Tiny3D's documented cache limit. */
+        t3d_tri_draw_strip(triangle_lists[n/3-1],n);
         t3d_tri_sync();
     }
     return rspq_block_end();
 }
+static void prepare_model(const bg_model_asset*asset){
+    static const int16_t*converted[64];static unsigned converted_count;
+    data_cache_hit_writeback(asset->vertices,((asset->vertex_count+1)&~1u)*16);
+    if(!asset->batch_count)return;
+    for(unsigned i=0;i<converted_count;i++)if(converted[i]==asset->indices)return;
+    assertf(converted_count<64,"Model index conversion capacity");
+    converted[converted_count++]=asset->indices;
+    for(unsigned b=0;b<asset->batch_count;b++){
+        const bg_mesh_batch*batch=&asset->batches[b];
+        assertf(batch->count<=60&&batch->index_count<=120&&batch->index_count%3==0&&
+            !(batch->first&1)&&!(batch->index_first&3)&&batch->first+batch->count<=asset->vertex_count,
+            "Model batch capacity/alignment");
+        int16_t*indices=asset->indices+batch->index_first;
+        for(unsigned i=0;i<batch->index_count;i++){
+            assertf(indices[i]>=0&&indices[i]<batch->count,"Model batch index range");
+            if(i&&i%3==0)indices[i]|=0x8000;
+        }
+        t3d_indexbuffer_convert(indices,batch->index_count);
+        data_cache_hit_writeback(indices,((batch->index_count+3u)&~3u)*2);
+    }
+}
+static rspq_block_t *record_model_range(const bg_model_asset*asset,T3DVertPacked*vertices,
+        unsigned first,unsigned count,unsigned batch_first,unsigned batch_count){
+    if(!asset->batch_count)return record(vertices+first/2,count);
+    assertf(batch_first+batch_count<=asset->batch_count,"Model batch range");
+    rspq_block_begin();
+    for(unsigned b=batch_first;b<batch_first+batch_count;b++){
+        const bg_mesh_batch*batch=&asset->batches[b];
+        t3d_vert_load(vertices+batch->first/2,0,(batch->count+1)&~1u);
+        t3d_tri_draw_strip(asset->indices+batch->index_first,batch->index_count);t3d_tri_sync();
+    }
+    return rspq_block_end();
+}
+static rspq_block_t *record_model(const bg_model_asset*asset,T3DVertPacked*vertices){
+    return record_model_range(asset,vertices,0,asset->vertex_count,0,asset->batch_count);
+}
+#ifdef BG_PROFILE
+static unsigned model_load_count(const bg_model_asset*asset,unsigned count,unsigned first,unsigned batches){
+    if(!asset->batch_count)return (count+1)&~1u;
+    unsigned total=0;for(unsigned b=first;b<first+batches;b++)total+=(asset->batches[b].count+1)&~1u;
+    return total;
+}
+#endif
+static rspq_block_t *record_indexed(const bg_chunk*chunk){
+    int16_t*indices=bg_chunk_indices+chunk->index_first;
+    assertf(chunk->count<=60&&chunk->index_count<=120&&chunk->index_count%3==0,
+        "Terrain batch capacity");
+    for(unsigned i=3;i<chunk->index_count;i+=3)indices[i]|=0x8000;
+    t3d_indexbuffer_convert(indices,chunk->index_count);
+    data_cache_hit_writeback(indices,((chunk->index_count+3u)&~3u)*2);
+    rspq_block_begin();
+    t3d_vert_load(bg_vertices+chunk->first/2,0,(chunk->count+1)&~1u);
+    t3d_tri_draw_strip(indices,chunk->index_count);t3d_tri_sync();
+    return rspq_block_end();
+}
 static void init_scene(void){
     assertf(bg_chunk_count<=512&&bg_material_count<=32,"Asset capacity exceeded");
+    for(unsigned list=0;list<20;list++){
+        unsigned count=(list+1)*3;
+        for(unsigned i=0;i<count;i++)triangle_lists[list][i]=i|((i&&i%3==0)?0x8000:0);
+        t3d_indexbuffer_convert(triangle_lists[list],count);
+    }
+    data_cache_hit_writeback(triangle_lists,sizeof(triangle_lists));
+    for(unsigned clip=0;clip<BG_A_COUNT;clip++){
+        if(bg_animations[clip].tracks>motion_capacity)motion_capacity=bg_animations[clip].tracks;
+        if(bg_spartan_lod_animations[clip].tracks>motion_capacity)motion_capacity=bg_spartan_lod_animations[clip].tracks;
+    }
+    for(unsigned weapon=0;weapon<BG_FP_WEAPONS;weapon++)for(unsigned clip=0;clip<BG_FP_CLIPS;clip++)
+        if(bg_fp_animations[weapon][clip].tracks>motion_capacity)motion_capacity=bg_fp_animations[weapon][clip].tracks;
+    motion_tracks=malloc(motion_capacity*sizeof(*motion_tracks));
+    assertf(motion_tracks,"Animation interpolation scratch allocation");
     data_cache_hit_writeback(bg_vertices,bg_vertex_count*16);
     for(unsigned i=0;i<bg_material_count;i++){
         textures[i]=surface_make(bg_textures[i],FMT_RGBA16,32,32,64);
         data_cache_hit_writeback(bg_textures[i],2048);
     }
-    for(unsigned i=0;i<bg_chunk_count;i++)world_blocks[i]=record(bg_vertices+bg_chunks[i].first/2,bg_chunks[i].count);
+    for(unsigned i=0;i<bg_chunk_count;i++)world_blocks[i]=record_indexed(&bg_chunks[i]);
     for(unsigned m=0;m<BG_M_COUNT;m++){
         const bg_model_asset*a=&bg_model_assets[m];
-        data_cache_hit_writeback(a->vertices,((a->vertex_count+1)&~1u)*16);
-        models[m]=record(a->vertices,a->vertex_count);
+        prepare_model(a);models[m]=record_model(a,a->vertices);
+        const bg_model_asset*far=&bg_pickup_lods[m];
+#ifdef BG_PROFILE
+        model_vertex_loads[m]=model_load_count(a,a->vertex_count,0,a->batch_count);
+        pickup_vertex_loads[m]=model_load_count(far,far->vertex_count,0,far->batch_count);
+#endif
+        if(far->vertices==a->vertices&&far->indices==a->indices)pickup_lod_blocks[m]=models[m];
+        else{
+            prepare_model(far);pickup_lod_blocks[m]=record_model(far,far->vertices);
+        }
     }
     for(unsigned m=0;m<4;m++){
         const bg_model_asset*a=&bg_vehicle_lods[m];
-        data_cache_hit_writeback(a->vertices,((a->vertex_count+1)&~1u)*16);
-        vehicle_lods[m]=record(a->vertices,a->vertex_count);
+        prepare_model(a);vehicle_lods[m]=record_model(a,a->vertices);
+#ifdef BG_PROFILE
+        vehicle_vertex_loads[m]=model_load_count(a,a->vertex_count,0,a->batch_count);
+#endif
         const bg_vehicle_rig*rig=&bg_vehicle_rigs[m];
         assertf(rig->count<=7,"Vehicle rig capacity");
-        for(unsigned j=0;j<rig->count;j++)
-            vehicle_parts[m][j]=record(bg_model_assets[BG_M_WARTHOG+m].vertices+rig->parts[j].first/2,rig->parts[j].count);
+        for(unsigned j=0;j<rig->count;j++){
+            const bg_vehicle_part*part=&rig->parts[j];const bg_model_asset*full=&bg_model_assets[BG_M_WARTHOG+m];
+            vehicle_parts[m][j]=record_model_range(full,full->vertices,part->first,part->count,part->batch_first,part->batch_count);
+#ifdef BG_PROFILE
+            part_vertex_loads[m][j]=model_load_count(full,part->count,part->batch_first,part->batch_count);
+#endif
+        }
     }
     const bg_model_asset*spartan=&bg_model_assets[BG_M_SPARTAN];
+    prepare_model(&bg_spartan_lod);
+    for(unsigned weapon=0;weapon<BG_FP_WEAPONS;weapon++){
+        const bg_model_asset*a=&bg_fp_models[weapon];prepare_model(a);
+        for(unsigned prior=0;prior<weapon;prior++){
+            const bg_model_asset*b=&bg_fp_models[prior];
+            if(a->vertices==b->vertices&&a->indices==b->indices){
+                firstperson_blocks[weapon]=firstperson_blocks[prior];break;
+            }
+        }
+        if(!firstperson_blocks[weapon])
+            firstperson_blocks[weapon]=record_model(a,t3d_segment_placeholder(T3D_SEGMENT_1));
+    }
+#ifdef BG_PROFILE
+    spartan_lod_vertex_loads=model_load_count(&bg_spartan_lod,bg_spartan_lod.vertex_count,0,bg_spartan_lod.batch_count);
+    for(unsigned weapon=0;weapon<BG_FP_WEAPONS;weapon++){
+        const bg_model_asset*a=&bg_fp_models[weapon];fp_vertex_loads[weapon]=model_load_count(a,a->vertex_count,0,a->batch_count);
+    }
+#endif
     unsigned bytes=((spartan->vertex_count+1)/2)*sizeof(T3DVertPacked);
     for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
         armor[s][p]=malloc_uncached(bytes);assertf(armor[s][p],"Spartan buffer allocation");
         memcpy(armor[s][p],spartan->vertices,bytes);
         tint_team(armor[s][p],spartan->vertex_count,bg_spartan_team_mask,p);
-        player_blocks[s][p]=record(armor[s][p],spartan->vertex_count);
+        player_blocks[s][p]=record_model(spartan,armor[s][p]);
         unsigned lod_bytes=((bg_spartan_lod.vertex_count+1)&~1u)*16;
         armor_lod[s][p]=malloc_uncached(lod_bytes);assertf(armor_lod[s][p],"Spartan LOD allocation");
         memcpy(armor_lod[s][p],bg_spartan_lod.vertices,lod_bytes);
         tint_team(armor_lod[s][p],bg_spartan_lod.vertex_count,bg_spartan_lod_team_mask,p);
-        armor_lod_blocks[s][p]=record(armor_lod[s][p],bg_spartan_lod.vertex_count);
+        armor_lod_blocks[s][p]=record_model(&bg_spartan_lod,armor_lod[s][p]);
         firstperson[s][p]=malloc_uncached(bg_fp_max_vertices*16);
         assertf(firstperson[s][p],"First-person buffer allocation");
         firstperson_weapon[s][p]=-1;
@@ -142,6 +531,7 @@ static void reset_view_state(void){
     for(unsigned p=0;p<4;p++)fired_at[p]=-100;
     memset(explosions,0,sizeof(explosions));memset(wheel_rotation,0,sizeof(wheel_rotation));explosion_next=0;
 }
+#ifndef BG_SNAPSHOT_TICK
 static bool input(bg_input in[4]){
     bool was_paused=paused;
     joypad_poll();
@@ -167,18 +557,94 @@ static bool input(bg_input in[4]){
     if(paused||was_paused)memset(in,0,sizeof(bg_input)*4);
     return paused||was_paused;
 }
+#ifdef BG_PACED30
+static surface_t*paced_acquire(blam_clock*clock,uint64_t*previous,
+        bg_input latch[4],bg_input in[4],unsigned*ticks,bool*first,uint64_t*ui_deadline){
+    unsigned pending_ticks=0,dropped_ticks=0;uint64_t last_poll=0;
+    for(;;){
+        uint64_t now=get_ticks_us();
+        if(!last_poll||now-last_poll>=2000){
+            if(input(in)){
+                memset(latch,0,sizeof(bg_input)*4);
+                /* Pausing/resuming consumes no queued gameplay input, as in
+                 * the ordinary local clock's paused update. */
+                clock->ticks-=pending_ticks;pending_ticks=0;
+            }
+            for(unsigned p=0;p<4;p++){
+#define EDGE(field) latch[p].field|=in[p].field;in[p].field=latch[p].field
+                EDGE(jump);EDGE(reload);EDGE(switch_weapon);EDGE(grenade);EDGE(switch_grenade);EDGE(interact);EDGE(melee);EDGE(zoom);
+#undef EDGE
+            }
+            presentation_mode(views==4);last_poll=now;
+        }
+        clock->paused=paused;
+        dropped_ticks+=bg_paced_clock_accumulate(clock,now-*previous,&pending_ticks);*previous=now;
+        /* Wait BEFORE acquiring: a repeated simulation pose never locks a
+         * display surface. Paused menus may redraw on a wall-time permit. */
+        bool redraw=views!=4||pending_ticks||*first||(paused&&now>=*ui_deadline);
+#ifdef BG_PRESENT_TRACK
+        /* Drain old SDK-ready/in-flight frames before fresh paced prefill.
+         * Input, clock accumulation and audio above/below continue normally. */
+        if(present_tracker.draining)redraw=false;
+#endif
+        surface_t*screen=redraw?display_try_get():NULL;
+        if(screen){
+            if(dropped_ticks)clock->leftover_dt=0;
+            paced_dropped_ticks+=dropped_ticks;
+            *ticks=pending_ticks;*first=false;*ui_deadline=now+33333;
+            frame_sample_us=last_poll;return screen;
+        }
+        pump_audio();
+    }
+}
+#endif
+#endif
 static bool visible(T3DViewport*vp,const float pos[3],float radius){
     int16_t lo[3],hi[3];for(int i=0;i<3;i++){lo[i]=(pos[i]-radius)*BG_SCALE;hi[i]=(pos[i]+radius)*BG_SCALE;}
     return t3d_frustum_vs_aabb_s16(&vp->viewFrustum,lo,hi);
 }
+static bool visible_bounds(T3DViewport*vp,const bg_cull_bounds*bounds){
+    return !bounds->valid||t3d_frustum_vs_aabb_s16(&vp->viewFrustum,bounds->min,bounds->max);
+}
 static void instance(unsigned model,T3DMat4FP*matrix){
-    t3d_matrix_push(matrix);rspq_block_run(models[model]);t3d_matrix_pop(1);triangles+=bg_model_assets[model].vertex_count/3;
+    t3d_matrix_set(matrix,true);rspq_block_run(models[model]);triangles+=bg_model_assets[model].triangle_count;
+#ifdef BG_PROFILE
+    submitted_vertices+=model_vertex_loads[model];
+#endif
+}
+static void small_model_instance(unsigned model,T3DMat4FP*matrix,T3DViewport*vp,const T3DVec3*eye,bool zoom){
+    /* Positions in matrices are render units; asset radii are Halo units.
+     * Camera-forward depth is conservative at the edges of the viewport,
+     * unlike Euclidean distance. A bounding sphere controls the pixel LOD.
+     * Held guns use the same size or shrink when crouching, so retaining the
+     * unscaled source radius safely overestimates the crouched silhouette. */
+    float pos[3];for(unsigned a=0;a<3;a++)pos[a]=t3d_mat4fp_get_float(matrix,3,a);
+    float depth=-(pos[0]*vp->matCamera.m[0][2]+pos[1]*vp->matCamera.m[1][2]+
+        pos[2]*vp->matCamera.m[2][2]+vp->matCamera.m[3][2])/BG_SCALE;
+    float distance_squared=0;for(unsigned a=0;a<3;a++){float d=(pos[a]-eye->v[a])/BG_SCALE;distance_squared+=d*d;}
+    bool far=!zoom&&bg_lod_diameter_below(bg_model_assets[model].radius,
+        vp->size[1]*fabsf(vp->matProj.m[1][1]),depth,distance_squared,12.f);
+    t3d_matrix_set(matrix,true);rspq_block_run(far?pickup_lod_blocks[model]:models[model]);
+    triangles+=far?bg_pickup_lods[model].triangle_count:bg_model_assets[model].triangle_count;
+#ifdef BG_PROFILE
+    submitted_vertices+=far?pickup_vertex_loads[model]:model_vertex_loads[model];
+#endif
 }
 static void matrix(T3DMat4FP*out,float scale,float yaw,float pitch,const float pos[3]){
     t3d_mat4fp_from_srt_euler(out,(float[]){scale,scale,scale},(float[]){0,-yaw,-pitch},
         (float[]){pos[0]*BG_SCALE,pos[1]*BG_SCALE,pos[2]*BG_SCALE});
 }
-static void animate_player(unsigned p){
+static void animate_mesh(T3DVertPacked*output,const bg_anim_asset*a,unsigned f0,unsigned f1,int fraction){
+    assertf(a->tracks<=motion_capacity,"Animation scratch capacity");
+    const uint8_t*src0=a->positions+f0*a->tracks*3,*src1=a->positions+f1*a->tracks*3;
+    bg_motion_decode(motion_tracks,a->tracks,src0,src1,a->origin,fraction);
+    bg_motion_scatter(output,a->vertices,a->indices,motion_tracks);
+    data_cache_hit_writeback(output,((a->vertices+1)&~1u)*16);
+#ifdef BG_PROFILE
+    animated_tracks+=a->tracks;animated_vertices+=a->vertices;
+#endif
+}
+static void prepare_player_bounds(unsigned p){
     bg_player*player=&bg_players[p];unsigned clip;
     float body_yaw=player->yaw,body_pitch=0;
     switch(player->animation){
@@ -198,36 +664,47 @@ static void animate_player(unsigned p){
     }
     bool throwing=player->health>0&&player->grenade_cooldown>.55f&&player->vehicle<0;
     if(throwing)clip=BG_A_THROW;
-    for(unsigned lod=0;lod<2;lod++){
-    const bg_anim_asset*a=lod?&bg_spartan_lod_animations[clip]:&bg_animations[clip];
-    float phase=throwing?(.9f-player->grenade_cooldown)/.35f:player->anim_time/a->duration;
+    body_clips[p]=clip;body_throwing[p]=throwing;
+    float size=player->crouched?.8f:1;
+    T3DMat4*body=&body_matrices[p];
+    t3d_mat4_from_srt_euler(body,(float[]){size,size,size},(float[]){0,-body_yaw,-body_pitch},
+        (float[]){player->pos[0]*BG_SCALE,player->pos[1]*BG_SCALE,player->pos[2]*BG_SCALE});
+    bg_bounds box;bg_bounds_transform(&box,&bg_body_cull_bounds[clip],body->m,BG_SCALE);
+    bg_bounds_quantize(&body_bounds[p],&box);
+    /* Any normalized hand quaternion keeps a weapon within its origin sphere.
+     * Marker position interpolation stays inside this clip's endpoint box. */
+    bg_bounds marker=bg_attachment_cull_bounds[clip];
+    bg_bounds_expand(&marker,bg_model_cull_radii[weapon_model(player->weapon)]);
+    bg_bounds_transform(&box,&marker,body->m,BG_SCALE);bg_bounds_quantize(&held_bounds[p],&box);
+    T3DMat4 armor_matrix=*body;
+    for(unsigned a=0;a<3;a++)for(unsigned b=0;b<3;b++)armor_matrix.m[a][b]*=BG_SCALE/BG_MODEL_SCALE;
+    t3d_mat4_to_fixed_3x4(&transforms[slot][p],&armor_matrix);
+}
+static void animate_player(unsigned p){
+    if(!wanted_lods[p]&&!(wanted_held&(1u<<p)))return;
+    bg_player*player=&bg_players[p];unsigned clip=body_clips[p];
+    const bg_anim_asset*base=&bg_animations[clip];
+    float phase=body_throwing[p]?(.9f-player->grenade_cooldown)/.35f:player->anim_time/base->duration;
     bool loop=clip==BG_A_RUN||clip==BG_A_IDLE||clip==BG_A_DRIVE||clip==BG_A_PASSENGER||clip==BG_A_GUNNER;
-    if(loop)phase-=floorf(phase);else phase=fminf(phase,.9999f);
-    float frame=phase*(a->frames-1);unsigned f0=(unsigned)frame,f1=f0+1<a->frames?f0+1:f0;
+    if(loop)phase-=floorf(phase);else phase=fminf(fmaxf(phase,0),.9999f);
+    float frame=phase*(base->frames-1);unsigned f0=(unsigned)frame,f1=f0+1<base->frames?f0+1:f0;
     int fraction=(frame-f0)*256;
-    T3DVertPacked*output=CachedAddr(lod?armor_lod[slot][p]:armor[slot][p]);
-    for(unsigned v=0;v<a->vertices;v++){
-        int16_t*dst=t3d_vertbuffer_get_pos(output,v);
-        unsigned track=a->indices[v];
-        const uint8_t*src0=a->positions+(f0*a->tracks+track)*3,*src1=a->positions+(f1*a->tracks+track)*3;
-        for(unsigned c=0;c<3;c++)dst[c]=a->origin[c]+src0[c]+((src1[c]-src0[c])*fraction)/256;
+    for(unsigned lod=0;lod<2;lod++)if(wanted_lods[p]&(1u<<lod)){
+        const bg_anim_asset*a=lod?&bg_spartan_lod_animations[clip]:base;
+        T3DVertPacked*output=CachedAddr(lod?armor_lod[slot][p]:armor[slot][p]);
+        animate_mesh(output,a,f0,f1,fraction);
     }
-    data_cache_hit_writeback(output,((a->vertices+1)&~1u)*16);
-    if(lod==0){
+    if(wanted_held&(1u<<p)){
         const bg_attachment_clip*attach=&bg_weapon_attachment[clip];
         const bg_attachment_pose*pose0=&attach->poses[f0],*pose1=&attach->poses[f1];
         float q[4],pos[3],weight=frame-f0;
         blam_quaternions_interpolate_and_normalize(pose0->quat,pose1->quat,weight,q);
         for(unsigned c=0;c<3;c++)pos[c]=(pose0->pos[c]+(pose1->pos[c]-pose0->pos[c])*weight)*BG_SCALE;
-        T3DMat4 hand,body,world;float size=player->crouched?.8f:1;
+        T3DMat4 hand,world;
         float model_scale=BG_SCALE/BG_OBJECT_SCALE;
         t3d_mat4_from_srt(&hand,(float[]){model_scale,model_scale,model_scale},q,pos);
-        t3d_mat4_from_srt_euler(&body,(float[]){size,size,size},(float[]){0,-body_yaw,-body_pitch},
-            (float[]){player->pos[0]*BG_SCALE,player->pos[1]*BG_SCALE,player->pos[2]*BG_SCALE});
-        t3d_mat4_mul(&world,&body,&hand);t3d_mat4_to_fixed_3x4(&held_matrices[slot][p],&world);
+        t3d_mat4_mul(&world,&body_matrices[p],&hand);t3d_mat4_to_fixed_3x4(&held_matrices[slot][p],&world);
     }
-    }
-    matrix(&transforms[slot][p],(player->crouched?.8f:1)*BG_SCALE/BG_MODEL_SCALE,body_yaw,body_pitch,player->pos);
 }
 static void pivot_rotation(T3DMat4*out,const float pivot[3],float yaw,float pitch){
     t3d_mat4_from_srt_euler(out,(float[]){1,1,1},(float[]){0,-yaw,-pitch},(float[]){0,0,0});
@@ -235,67 +712,134 @@ static void pivot_rotation(T3DMat4*out,const float pivot[3],float yaw,float pitc
     t3d_mat3_mul_vec3(&rotated,out,&p);
     for(unsigned a=0;a<3;a++)out->m[3][a]=p.v[a]-rotated.v[a];
 }
-static void prepare_vehicle(unsigned i){
+static void compute_vehicle_pose(unsigned i){
     bg_vehicle*v=&bg_vehicles[i];const bg_vehicle_rig*rig=&bg_vehicle_rigs[v->kind];
     float model_scale=BG_SCALE/BG_OBJECT_SCALE;
     T3DMat4 base,yaw;t3d_mat4_from_srt_euler(&base,(float[]){model_scale,model_scale,model_scale},(float[]){0,-v->yaw,-v->pitch},
         (float[]){v->pos[0]*BG_SCALE,v->pos[1]*BG_SCALE,v->pos[2]*BG_SCALE});
     t3d_mat4_to_fixed_3x4(&vehicle_matrices[slot][i],&base);
+    bg_bounds combined;
+    bg_bounds_transform(&combined,&bg_vehicle_lod_bounds[v->kind],base.m,BG_OBJECT_SCALE);
     pivot_rotation(&yaw,rig->turret_pivot,v->turret_yaw,0);
     for(unsigned j=0;j<rig->count;j++){
         const bg_vehicle_part*part=&rig->parts[j];T3DMat4 local,world;
-        if(part->kind==BG_PART_BODY){part_matrices[slot][i][j]=vehicle_matrices[slot][i];continue;}
-        if(part->kind==BG_PART_TURRET)local=yaw;
-        else if(part->kind==BG_PART_WHEEL)pivot_rotation(&local,part->pivot,0,-wheel_rotation[i]);
-        else{
-            T3DMat4 pitch;pivot_rotation(&pitch,part->pivot,0,v->turret_pitch-v->pitch);
-            t3d_mat4_mul(&local,&yaw,&pitch);
+        if(part->kind==BG_PART_BODY)world=base;
+        else {
+            if(part->kind==BG_PART_TURRET)local=yaw;
+            else if(part->kind==BG_PART_WHEEL)pivot_rotation(&local,part->pivot,0,-wheel_rotation[i]);
+            else{
+                T3DMat4 pitch;pivot_rotation(&pitch,part->pivot,0,v->turret_pitch-v->pitch);
+                t3d_mat4_mul(&local,&yaw,&pitch);
+            }
+            t3d_mat4_mul(&world,&base,&local);
         }
-        t3d_mat4_mul(&world,&base,&local);t3d_mat4_to_fixed_3x4(&part_matrices[slot][i][j],&world);
+        t3d_mat4_to_fixed_3x4(&part_matrices[slot][i][j],&world);
+        bg_bounds box;bg_bounds_transform(&box,&part->bounds,world.m,BG_OBJECT_SCALE);
+        /* Reuse the exact current wheel/turret/barrel pose, not a sampled
+         * rotation envelope. CPU-only bounds need no geometry-slot lifetime. */
+        bg_bounds_quantize(&vehicle_part_bounds[i][j],&box);
+        bg_bounds_union(&combined,&box);
+    }
+    bg_bounds_quantize(&vehicle_bounds[i],&combined);
+}
+static void prepare_vehicle(unsigned i){
+    bg_vehicle_pose_cache*cache=&vehicle_pose_cache[i];uint32_t key[9];
+    bg_vehicle_pose_key(key,&bg_vehicles[i],&wheel_rotation[i]);
+    if(cache->valid&&!memcmp(cache->key,key,sizeof(key))){
+        if(!(cache->slot_mask&(1u<<slot))){
+            /* The destination slot is fenced before prepare_frame. The other
+             * slot is only read here; RSP matrix DMA never modifies it. */
+            unsigned count=bg_vehicle_rigs[bg_vehicles[i].kind].count;
+            memcpy(&vehicle_matrices[slot][i],&vehicle_matrices[cache->last_slot][i],sizeof(T3DMat4FP));
+            memcpy(part_matrices[slot][i],part_matrices[cache->last_slot][i],count*sizeof(T3DMat4FP));
+            cache->slot_mask|=1u<<slot;
+        }
+        /* These shared CPU bounds have no writer outside the miss path. */
+    }else{
+        compute_vehicle_pose(i);
+        memcpy(cache->key,key,sizeof(key));cache->valid=true;cache->slot_mask=1u<<slot;
+    }
+    cache->last_slot=slot;
+}
+static void prepare_pickup_bounds(void){
+    T3DMat4 rotation;float scale=BG_SCALE/BG_OBJECT_SCALE;
+    t3d_mat4_from_srt_euler(&rotation,(float[]){scale,scale,scale},
+        (float[]){0,-game_time*.5f,0},(float[]){0,0,0});
+    T3DMat4FP fixed;t3d_mat4_to_fixed_3x4(&fixed,&rotation);
+    for(unsigned i=0;i<bg_pickup_count;i++){
+        const bg_pickup*q=&bg_pickups[i];if(!q->active)continue;
+        float pos[3];memcpy(pos,q->pos,sizeof(pos));pos[1]+=.035f*sinf(game_time*2+i);
+        for(unsigned a=0;a<3;a++){pos[a]*=BG_SCALE;rotation.m[3][a]=pos[a];}
+        pickup_matrices[slot][i]=fixed;t3d_mat4fp_set_pos(&pickup_matrices[slot][i],pos);
+        bg_bounds box;bg_bounds_transform(&box,&bg_model_cull_bounds[pickup_model(q->weapon)],rotation.m,BG_OBJECT_SCALE);
+        bg_bounds_quantize(&pickup_bounds[i],&box);
     }
 }
+static void animate_firstperson(unsigned p){
+    if(p>=views)return;
+    bg_player*player=&bg_players[p];unsigned w=player->weapon;
+    if(player->vehicle>=0||player->health<=0||player->zoom||p>=views)return;
+    const bg_model_asset*m=&bg_fp_models[w];
+    T3DVertPacked*output=CachedAddr(firstperson[slot][p]);
+    unsigned bytes=((m->vertex_count+1)&~1u)*16;
+    if(firstperson_weapon[slot][p]!=(int)w){
+        memset((uint8_t*)output+bytes,0,bg_fp_max_vertices*16-bytes);
+        memcpy(output,m->vertices,bytes);
+        tint_team(output,m->vertex_count,bg_fp_team_masks[w],p);
+        /* The slot fence protects this buffer. Commands are shared and
+         * select its address through the RSP's ordered segment table. */
+        firstperson_weapon[slot][p]=w;
+    }
+    unsigned clip=BG_FP_IDLE;float seconds=game_time;
+    if(player->reload>0){clip=BG_FP_RELOAD;seconds=player->anim_time;}
+    else if(player->overheated){clip=BG_FP_RELOAD;seconds=(1-player->heat)/.85f*bg_fp_animations[w][clip].duration;}
+    else if(player->melee_time>0){clip=BG_FP_MELEE;seconds=.7f-player->melee_time;}
+    else if(game_time>=fired_at[p]&&game_time-fired_at[p]<bg_fp_animations[w][BG_FP_FIRE].duration){clip=BG_FP_FIRE;seconds=game_time-fired_at[p];}
+    const bg_anim_asset*a=&bg_fp_animations[w][clip];
+    float phase=fmaxf(0,seconds/a->duration);
+    if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
+    float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
+    animate_mesh(output,a,f0,f1,fraction);
+}
+static void ensure_player_animation(unsigned p){
+    unsigned bit=1u<<p;if(body_animation_ready&bit)return;
+#ifdef BG_PROFILE
+    uint64_t begin=get_ticks_us();
+#endif
+    /* Prepare the union needed by ALL views exactly once. This must precede
+     * the first near/far body or held-weapon command that borrows its buffer. */
+    animate_player(p);
+    if(wanted_held&bit)data_cache_hit_writeback(&held_matrices[slot][p],sizeof(T3DMat4FP));
+    body_animation_ready|=bit;
+#ifdef BG_PROFILE
+    animation_us+=get_ticks_us()-begin;
+#endif
+}
+static void ensure_firstperson_animation(unsigned p){
+    unsigned bit=1u<<p;if(fp_animation_ready&bit)return;
+#ifdef BG_PROFILE
+    uint64_t begin=get_ticks_us();
+#endif
+    animate_firstperson(p);fp_animation_ready|=bit;
+#ifdef BG_PROFILE
+    animation_us+=get_ticks_us()-begin;
+#endif
+}
 static void prepare_frame(void){
-    for(unsigned p=0;p<4;p++){
-        if(p>=views)continue;
-        animate_player(p);
-        bg_player*player=&bg_players[p];unsigned w=player->weapon;
-        if(player->vehicle>=0||player->health<=0||player->zoom||p>=views)continue;
-        const bg_model_asset*m=&bg_fp_models[w];
-        T3DVertPacked*output=CachedAddr(firstperson[slot][p]);
-        unsigned bytes=((m->vertex_count+1)&~1u)*16;
-        if(firstperson_weapon[slot][p]!=(int)w){
-            memset((uint8_t*)output+bytes,0,bg_fp_max_vertices*16-bytes);
-            memcpy(output,m->vertices,bytes);
-            tint_team(output,m->vertex_count,bg_fp_team_masks[w],p);
-            /* This frame slot's RSP fence has completed before preparation. */
-            if(firstperson_blocks[slot][p])rspq_block_free(firstperson_blocks[slot][p]);
-            firstperson_blocks[slot][p]=record(firstperson[slot][p],m->vertex_count);
-            firstperson_weapon[slot][p]=w;
-        }
-        unsigned clip=BG_FP_IDLE;float seconds=game_time;
-        if(player->reload>0){clip=BG_FP_RELOAD;seconds=player->anim_time;}
-        else if(player->overheated){clip=BG_FP_RELOAD;seconds=(1-player->heat)/.85f*bg_fp_animations[w][clip].duration;}
-        else if(player->melee_time>0){clip=BG_FP_MELEE;seconds=.7f-player->melee_time;}
-        else if(game_time>=fired_at[p]&&game_time-fired_at[p]<bg_fp_animations[w][BG_FP_FIRE].duration){clip=BG_FP_FIRE;seconds=game_time-fired_at[p];}
-        const bg_anim_asset*a=&bg_fp_animations[w][clip];
-        float phase=fmaxf(0,seconds/a->duration);
-        if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
-        float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
-        for(unsigned v=0;v<a->vertices;v++){
-            int16_t*dst=t3d_vertbuffer_get_pos(output,v);
-            unsigned track=a->indices[v];
-            const uint8_t*src0=a->positions+(f0*a->tracks+track)*3,*src1=a->positions+(f1*a->tracks+track)*3;
-            for(unsigned c=0;c<3;c++)dst[c]=a->origin[c]+src0[c]+(src1[c]-src0[c])*fraction/256;
-        }
-        data_cache_hit_writeback(output,bg_fp_max_vertices*16);
-    }
-    for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active)
-        prepare_vehicle(i);
-    for(unsigned i=0;i<bg_pickup_count;i++){
-        if(!bg_pickups[i].active)continue;
-        float pos[3];memcpy(pos,bg_pickups[i].pos,sizeof(pos));pos[1]+=.035f*sinf(game_time*2+i);
-        matrix(&pickup_matrices[slot][i],BG_SCALE/BG_OBJECT_SCALE,game_time*.5f,0,pos);
-    }
+#ifdef BG_PROFILE
+    uint64_t begin=get_ticks_us();
+#endif
+    body_animation_ready=fp_animation_ready=0;
+    memset(wanted_lods,0,sizeof(wanted_lods));wanted_held=0;
+    /* Matrix construction precedes visibility so culling uses the exact pose
+     * later submitted, once per frame rather than once per viewport. */
+    for(unsigned p=0;p<views;p++)prepare_player_bounds(p);
+    for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active)prepare_vehicle(i);
+    prepare_pickup_bounds();
+    for(unsigned p=0;p<views;p++)prepare_view(p);
+#ifdef BG_PROFILE
+    camera_us=get_ticks_us()-begin;begin=get_ticks_us();
+#endif
     for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
         bg_projectile*q=bg_projectile_at(i);if(!q||!q->active)continue;
         float scale=q->kind==BG_P_CANNON?.09f:q->kind==BG_P_FLAME?.18f:.045f;
@@ -308,7 +852,9 @@ static void prepare_frame(void){
     data_cache_hit_writeback(pickup_matrices[slot],sizeof(pickup_matrices[slot]));data_cache_hit_writeback(projectile_matrices[slot],sizeof(projectile_matrices[slot]));
     data_cache_hit_writeback(explosion_matrices[slot],sizeof(explosion_matrices[slot]));
     data_cache_hit_writeback(part_matrices[slot],sizeof(part_matrices[slot]));
-    data_cache_hit_writeback(held_matrices[slot],sizeof(held_matrices[slot]));
+#ifdef BG_PROFILE
+    matrix_us=get_ticks_us()-begin;
+#endif
 }
 static void update_effects(float dt){
     if(bg_match_time()<=dt+.00001f)reset_view_state();
@@ -319,9 +865,10 @@ static void update_effects(float dt){
     for(unsigned i=0;i<bg_event_count;i++)if(bg_events[i].kind==BG_EVENT_EXPLOSION){
         unsigned j=explosion_next++%12;memcpy(explosions[j].pos,bg_events[i].pos,12);
         explosions[j].life=.35f;explosions[j].radius=bg_events[i].amount*.4f;
+        explosions[j].kind=(bg_explosion_kind)bg_events[i].weapon;
     }
 }
-static void draw_view(unsigned p){
+static void prepare_view(unsigned p){
     int w=views==4?160:320,h=views==1?240:120,x=views==4?(p%2)*160:0,y=views==1?0:(views==4?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
     float head=player->crouched?.42f:.62f;
@@ -357,9 +904,45 @@ static void draw_view(unsigned p){
         target.v[1]+=.3f*BG_SCALE;
     }
     T3DViewport*vp=&viewports[slot][p];t3d_viewport_set_area(vp,x,y,w,h);
+#ifdef BG_GUARDBAND4
+    /* Tiny3D supports factors 1–4. Enlarge only the clipping guard band;
+     * projection, viewport scissor and full triangle clipping stay active. */
+    vp->guardBandScale=views==4?4:2;
+#endif
     float fov=views==2?.72f:1.08f;
     if(player->health>0&&player->zoom)fov/=player->weapon==BG_W_SNIPER?(player->zoom==2?10:2):2;
     t3d_viewport_set_projection(vp,fov,1.4f,6200.f);t3d_viewport_look_at(vp,&eye,&target,&(T3DVec3){{0,1,0}});
+    view_eyes[p]=eye;held_masks[p]=0;
+    for(unsigned j=0;j<views;j++){
+        bg_player*q=&bg_players[j];body_lods[p][j]=0;
+        if((j==p&&player->vehicle<0&&player->health>0)||q->invisibility>0)continue;
+        if(q->vehicle>=0&&bg_vehicles[q->vehicle].kind==BG_V_BANSHEE)continue;
+        float distance=0;for(unsigned a=0;a<3;a++){float d=q->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
+        bool personal=q->vehicle<0||q->seat==2||(q->seat==1&&bg_vehicles[q->vehicle].kind==BG_V_SCORPION);
+        bool held=(distance<=16||player->zoom)&&q->health>0&&personal;
+        if(visible_bounds(vp,&body_bounds[j])){
+            unsigned lod=distance>(views==4?4.f:16.f)&&player->zoom==0;
+            body_lods[p][j]=lod+1;wanted_lods[j]|=1u<<lod;
+        }
+        if(held&&visible_bounds(vp,&held_bounds[j])){held_masks[p]|=1u<<j;wanted_held|=1u<<j;}
+    }
+    for(unsigned i=0;i<bg_vehicle_count;i++){
+        const bg_vehicle*v=&bg_vehicles[i];vehicle_view_lods[p][i]=0;
+        if(!v->active||!visible_bounds(vp,&vehicle_bounds[i]))continue;
+        float distance=0;for(unsigned a=0;a<3;a++){float d=v->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
+        unsigned lod=distance>36&&player->zoom==0;
+        vehicle_view_lods[p][i]=lod+1;
+    }
+    for(unsigned i=0;i<bg_pickup_count;i++){
+        pickup_visible[p][i]=bg_pickups[i].active&&visible_bounds(vp,&pickup_bounds[i]);
+    }
+}
+static void draw_view(unsigned p){
+    T3DViewport*vp=&viewports[slot][p];T3DVec3 eye=view_eyes[p];bg_player*player=&bg_players[p];
+#ifdef BG_PROFILE
+    uint64_t begin=get_ticks_us();
+    unsigned before=triangles,animation_before=animation_us;
+#endif
     t3d_viewport_attach(vp);rdpq_clear(RGBA32(150,185,216,255));t3d_frame_start();
     rdpq_mode_dithering(DITHER_NONE_NONE);t3d_light_set_ambient((uint8_t[]){255,255,255,255});t3d_light_set_count(0);
     rdpq_mode_tlut(TLUT_NONE);rdpq_mode_combiner(RDPQ_COMBINER_TEX_SHADE);rdpq_mode_persp(true);rdpq_mode_filter(FILTER_BILINEAR);
@@ -371,61 +954,110 @@ static void draw_view(unsigned p){
             rdpq_tex_upload(TILE0,&textures[c->material],&(rdpq_texparms_t){.s.repeats=REPEAT_INFINITE,.t.repeats=REPEAT_INFINITE});
             bound=c->material;
         }
-        rspq_block_run(world_blocks[b]);triangles+=c->count/3;
+        rspq_block_run(world_blocks[b]);triangles+=c->index_count/3;
+#ifdef BG_PROFILE
+        submitted_vertices+=(c->count+1)&~1u;
+#endif
     }
     rdpq_mode_combiner(RDPQ_COMBINER_SHADE);t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_FRONT);
-    for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active&&visible(vp,bg_vehicles[i].pos,2.5f)){
-        bg_vehicle*v=&bg_vehicles[i];float distance=0;
-        for(unsigned a=0;a<3;a++){float d=v->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
-        if(distance>36&&player->zoom==0){
-            t3d_matrix_push(&vehicle_matrices[slot][i]);rspq_block_run(vehicle_lods[v->kind]);t3d_matrix_pop(1);
-            triangles+=bg_vehicle_lods[v->kind].vertex_count/3;
+    /* Every object matrix below is already in world space, including vehicle
+     * parts, held weapons and first person. Reserve one sibling stack entry:
+     * matrix_set(...,true) always multiplies the unchanged camera entry below
+     * it, avoiding a redundant camera reload/normalization between objects. */
+    /* Writes do not wake a sleeping RSP. The depth-clear flush may have
+     * drained before this terrain batch; start it while objects are queued. */
+    rspq_flush();
+    t3d_matrix_push_pos(1);
+#ifdef BG_PROFILE
+    world_us+=get_ticks_us()-begin;begin=get_ticks_us();
+    category_triangles[0]+=triangles-before;before=triangles;
+#endif
+    for(unsigned i=0;i<bg_vehicle_count;i++)if(vehicle_view_lods[p][i]){
+        bg_vehicle*v=&bg_vehicles[i];
+        if(vehicle_view_lods[p][i]==2){
+            t3d_matrix_set(&vehicle_matrices[slot][i],true);rspq_block_run(vehicle_lods[v->kind]);
+            triangles+=bg_vehicle_lods[v->kind].triangle_count;
+#ifdef BG_PROFILE
+            submitted_vertices+=vehicle_vertex_loads[v->kind];
+#endif
         }else{
             const bg_vehicle_rig*rig=&bg_vehicle_rigs[v->kind];
             for(unsigned j=0;j<rig->count;j++){
-                t3d_matrix_push(&part_matrices[slot][i][j]);rspq_block_run(vehicle_parts[v->kind][j]);t3d_matrix_pop(1);
+                if(!visible_bounds(vp,&vehicle_part_bounds[i][j]))continue;
+                t3d_matrix_set(&part_matrices[slot][i][j],true);rspq_block_run(vehicle_parts[v->kind][j]);
                 triangles+=rig->parts[j].count/3;
+#ifdef BG_PROFILE
+                submitted_vertices+=part_vertex_loads[v->kind][j];
+#endif
             }
         }
     }
+#ifdef BG_PROFILE
+    category_triangles[1]+=triangles-before;before=triangles;
+#endif
     for(unsigned j=0;j<views;j++){
-        bg_player*q=&bg_players[j];
-        if((j==p&&player->vehicle<0&&player->health>0)||!visible(vp,q->pos,1)||q->invisibility>0)continue;
-        if(q->vehicle>=0&&bg_vehicles[q->vehicle].kind==BG_V_BANSHEE)continue;
-        float distance=0;for(unsigned a=0;a<3;a++){float d=q->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
-        /* A 160x120 view needs the detailed body only at close range. The
-         * authored distant topology preserves its silhouette at small sizes. */
-        bool lod=distance>(views==4?4.f:16.f)&&player->zoom==0;
-        t3d_matrix_push(&transforms[slot][j]);rspq_block_run(lod?armor_lod_blocks[slot][j]:player_blocks[slot][j]);t3d_matrix_pop(1);
-        triangles+=(lod?bg_spartan_lod.vertex_count:bg_model_assets[BG_M_SPARTAN].vertex_count)/3;
-        bool personal=q->vehicle<0||q->seat==2||
-            (q->seat==1&&bg_vehicles[q->vehicle].kind==BG_V_SCORPION);
-        if((distance<=16||player->zoom)&&q->health>0&&personal)
-            instance(weapon_model(q->weapon),&held_matrices[slot][j]);
+        if(body_lods[p][j]||(held_masks[p]&(1u<<j)))ensure_player_animation(j);
+        if(body_lods[p][j]){
+            bool lod=body_lods[p][j]==2;
+            t3d_matrix_set(&transforms[slot][j],true);rspq_block_run(lod?armor_lod_blocks[slot][j]:player_blocks[slot][j]);
+            triangles+=lod?bg_spartan_lod.triangle_count:bg_model_assets[BG_M_SPARTAN].triangle_count;
+#ifdef BG_PROFILE
+            submitted_vertices+=lod?spartan_lod_vertex_loads:model_vertex_loads[BG_M_SPARTAN];
+#endif
+        }
+        if(held_masks[p]&(1u<<j))small_model_instance(weapon_model(bg_players[j].weapon),&held_matrices[slot][j],vp,&eye,player->zoom!=0);
     }
+#ifdef BG_PROFILE
+    category_triangles[2]+=triangles-before;before=triangles;
+#endif
     for(unsigned i=0;i<bg_pickup_count;i++){
-        bg_pickup*q=&bg_pickups[i];if(!q->active||!visible(vp,q->pos,.6f))continue;
-        if(q->weapon<BG_WEAPON_COUNT)instance(weapon_model(q->weapon),&pickup_matrices[slot][i]);
-        else if(q->weapon==BG_PICK_FRAG||q->weapon==BG_PICK_PLASMA)instance(q->weapon==BG_PICK_FRAG?BG_M_FRAG:BG_M_PLASMA_GRENADE,&pickup_matrices[slot][i]);
-        else instance(q->weapon==BG_PICK_HEALTH?BG_M_HEALTHPACK:q->weapon==BG_PICK_OVERSHIELD?BG_M_OVERSHIELD:BG_M_CAMOUFLAGE,&pickup_matrices[slot][i]);
+        bg_pickup*q=&bg_pickups[i];if(!pickup_visible[p][i])continue;
+        unsigned model=pickup_model(q->weapon);
+        small_model_instance(model,&pickup_matrices[slot][i],vp,&eye,player->zoom!=0);
     }
+#ifdef BG_PROFILE
+    category_triangles[3]+=triangles-before;before=triangles;
+#endif
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH);
     for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
         bg_projectile*q=bg_projectile_at(i);if(!q||!q->active||!visible(vp,q->pos,.2f))continue;
         if(q->kind==BG_P_FRAG||q->kind==BG_P_PLASMA_GRENADE){instance(q->kind==BG_P_FRAG?BG_M_FRAG:BG_M_PLASMA_GRENADE,&projectile_matrices[slot][i]);continue;}
-        t3d_matrix_push(&projectile_matrices[slot][i]);rspq_block_run(particle_blocks[q->kind]);t3d_matrix_pop(1);triangles+=8;
+        t3d_matrix_set(&projectile_matrices[slot][i],true);rspq_block_run(particle_blocks[q->kind]);triangles+=8;
+#ifdef BG_PROFILE
+        submitted_vertices+=24;
+#endif
     }
     for(unsigned i=0;i<12;i++)if(explosions[i].life>0&&visible(vp,explosions[i].pos,explosions[i].radius)){
-        t3d_matrix_push(&explosion_matrices[slot][i]);rspq_block_run(particle_blocks[6]);t3d_matrix_pop(1);triangles+=8;
+        unsigned particle=explosions[i].kind==BG_EXPLOSION_NEEDLER?BG_P_NEEDLE:6;
+        t3d_matrix_set(&explosion_matrices[slot][i],true);rspq_block_run(particle_blocks[particle]);triangles+=8;
+#ifdef BG_PROFILE
+        submitted_vertices+=24;
+#endif
     }
+#ifdef BG_PROFILE
+    object_us+=get_ticks_us()-begin-(animation_us-animation_before);begin=get_ticks_us();
+    animation_before=animation_us;
+    category_triangles[4]+=triangles-before;before=triangles;
+#endif
     if(player->health>0&&player->vehicle<0&&!player->zoom){
+        ensure_firstperson_animation(p);
         float pos[3]={eye.v[0]/BG_SCALE,eye.v[1]/BG_SCALE+sinf(player->gait)*.007f,eye.v[2]/BG_SCALE};
         matrix(&guns[slot][p],BG_SCALE/BG_FP_SCALE,player->yaw,player->pitch,pos);data_cache_hit_writeback(&guns[slot][p],sizeof(T3DMat4FP));
         t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_CULL_FRONT);rdpq_mode_zbuf(false,false);
-        t3d_matrix_push(&guns[slot][p]);rspq_block_run(firstperson_blocks[slot][p]);t3d_matrix_pop(1);triangles+=bg_fp_models[player->weapon].vertex_count/3;
+        t3d_segment_set(T3D_SEGMENT_1,firstperson[slot][p]);
+        t3d_matrix_set(&guns[slot][p],true);rspq_block_run(firstperson_blocks[player->weapon]);triangles+=bg_fp_models[player->weapon].triangle_count;
+#ifdef BG_PROFILE
+        submitted_vertices+=fp_vertex_loads[player->weapon];
+#endif
     }
-    bg_hud_draw(p,x,y,w,h);
+#ifdef BG_PROFILE
+    fp_us+=get_ticks_us()-begin-(animation_us-animation_before);
+    category_triangles[5]+=triangles-before;
+#endif
+    /* Restore depth zero before the next viewport replaces camera/projection. */
+    t3d_matrix_pop(1);
 }
+#ifndef BG_SNAPSHOT_TICK
 static void draw_menu(void){
     fill(48,32,224,176,RGBA32(12,27,56,255));fill(48,32,224,2,RGBA32(114,176,233,255));
     rdpq_set_mode_standard();rdpq_text_print(NULL,1,66,52,"HALO / BLOOD GULCH");
@@ -437,6 +1069,7 @@ static void draw_menu(void){
     rdpq_text_print(NULL,1,58,182,"D: UP ZOOM / DOWN MELEE");
     rdpq_text_print(NULL,1,58,194,"LEFT GRENADE / RIGHT CROUCH");
 }
+#endif
 static void draw_result(void){
     fill(66,45,188,146,RGBA32(12,27,56,255));fill(66,45,188,2,RGBA32(114,176,233,255));
     rdpq_set_mode_standard();rdpq_text_print(NULL,1,124,64,"GAME OVER");
@@ -447,12 +1080,211 @@ static void draw_result(void){
     }
     rdpq_text_print(NULL,1,90,178,"START FOR MATCH OPTIONS");
 }
+#ifdef BG_BENCHMARK
+static void benchmark_page(surface_t*screen,bool completed){
+    rdpq_attach(screen,NULL);rdpq_set_mode_standard();
+    rdpq_set_scissor(0,0,320,240);rdpq_clear(RGBA32(9,20,39,255));
+    rdpq_text_print(NULL,1,8,16,completed?"RDP COMPLETION / 4-PLAYER":"CPU ACQUISITION / 4-PLAYER");
+#ifdef BG_GPU_DIAGNOSTIC
+    rdpq_text_print(NULL,1,8,38,"GPU DIAGNOSTIC / SERIALIZED");
+#endif
+    rdpq_text_printf(NULL,1,8,28,"%u MS MEASURED / 1S WARMUP",(unsigned)((completed?completed_cadence.result[0].elapsed:benchmark.result[0].elapsed)/1000));
+    const char*labels[]={"ALL FRAMES","COMBAT","VEHICLES"};
+    for(unsigned g=0;g<3;g++){
+        bg_benchmark_result completion={0};
+        if(completed){
+            const bg_cadence_result*c=&completed_cadence.result[g];
+            completion.elapsed=c->elapsed;completion.frames=c->frames;
+            completion.minimum=c->minimum;completion.maximum=c->maximum;
+            completion.p95=c->p95;completion.slow_frames=c->slow_frames;
+        }
+        const bg_benchmark_result*r=completed?&completion:&benchmark.result[g];
+        unsigned average=r->frames?r->elapsed/r->frames:0;
+        unsigned fps10=r->elapsed?(uint64_t)r->frames*10000000/r->elapsed:0;
+        int y=48+g*42;
+        rdpq_text_printf(NULL,1,8,y,"%s: %u FRAMES / %u.%u FPS",labels[g],r->frames,fps10/10,fps10%10);
+        rdpq_text_printf(NULL,1,8,y+12,"AVG %u.%u  P95 %u.%u  MAX %u.%u MS",average/1000,(average/100)%10,
+            r->p95/1000,(r->p95/100)%10,r->maximum/1000,(r->maximum/100)%10);
+        rdpq_text_printf(NULL,1,8,y+24,"MIN %u.%u MS / >33.33MS: %u",r->minimum/1000,(r->minimum/100)%10,r->slow_frames);
+        debugf("BENCH %s group=%s frames=%u elapsed_us=%llu avg_us=%u min_us=%u p95_us=%u max_us=%u over_33333=%u triangles_avg=%u triangles_max=%u vertices_avg=%u vertices_max=%u\n",
+            completed?"rdp_completed":"cpu_acquisition",labels[g],r->frames,(unsigned long long)r->elapsed,average,r->minimum,r->p95,r->maximum,r->slow_frames,
+            r->frames?(unsigned)(r->triangles/r->frames):0,r->max_triangles,r->frames?(unsigned)(r->vertices/r->frames):0,r->max_vertices);
+    }
+    if(completed){
+        rdpq_text_print(NULL,1,8,180,"TIMESTAMP AT RDP FULL-SYNC CALLBACK");
+#ifdef BG_PACED30
+        rdpq_text_print(NULL,1,8,192,"EXPERIMENT: TWO-RETRACE FIFO");
+#else
+        rdpq_text_print(NULL,1,8,192,"DISPLAY_SHOW PIPELINE UNCHANGED");
+#endif
+        rdpq_text_print(NULL,1,8,204,"NOT A VI SCANOUT MEASUREMENT");
+        rdpq_text_print(NULL,1,8,228,"TAIL PAGE IN 8S / A TO SWITCH");
+        if(completed_cadence.overflow)rdpq_text_print(NULL,1,8,216,"CAPACITY EXCEEDED: P95 INVALID");
+        return;
+    }
+    const bg_benchmark_result*r=&benchmark.result[0];
+    unsigned average_phases[BG_BENCHMARK_PHASES];
+    for(unsigned p=0;p<BG_BENCHMARK_PHASES;p++)average_phases[p]=r->frames?r->phase_us[p]/r->frames:0;
+    rdpq_text_printf(NULL,1,8,180,"TRIANGLES AVG %u / MAX %u",r->frames?(unsigned)(r->triangles/r->frames):0,r->max_triangles);
+    rdpq_text_printf(NULL,1,8,192,"SIM %u ANIM %u WORLD %u OBJ %u MS",average_phases[0]/1000,average_phases[2]/1000,average_phases[4]/1000,average_phases[5]/1000);
+    rdpq_text_printf(NULL,1,8,204,"HUD %u AUDIO %u WAIT %u QUEUE %u",average_phases[7]/1000,average_phases[8]/1000,average_phases[9]/1000,average_phases[12]/1000);
+#ifdef BG_GPU_DIAGNOSTIC
+    rdpq_text_printf(NULL,1,8,216,"GPU WAIT RSP %u RDP %u MS",average_phases[10]/1000,average_phases[11]/1000);
+#else
+    rdpq_text_printf(NULL,1,8,216,"VERTICES AVG %u / MAX %u",r->frames?(unsigned)(r->vertices/r->frames):0,r->max_vertices);
+#endif
+    unsigned cats[BG_BENCHMARK_CATEGORIES];for(unsigned c=0;c<BG_BENCHMARK_CATEGORIES;c++)cats[c]=r->frames?r->category_triangles[c]/r->frames:0;
+    rdpq_text_print(NULL,1,8,228,"RDP PAGE IN 8S / A TO SWITCH");
+    if(benchmark.overflow)rdpq_text_print(NULL,1,8,234,"SAMPLE CAPACITY EXCEEDED: P95 INVALID");
+    debugf("BENCH phase_us sim=%u camera=%u animation=%u matrix=%u world=%u objects=%u firstperson=%u hud=%u audio=%u wait=%u geometry_rsp_wait=%u geometry_rdp_wait=%u queue_stall=%u overflow=%u\n",
+        average_phases[0],average_phases[1],average_phases[2],average_phases[3],average_phases[4],average_phases[5],average_phases[6],average_phases[7],average_phases[8],average_phases[9],average_phases[10],average_phases[11],average_phases[12],benchmark.overflow);
+    debugf("BENCH triangles world=%u vehicles=%u bodies_held=%u pickups=%u effects=%u firstperson=%u\n",cats[0],cats[1],cats[2],cats[3],cats[4],cats[5]);
+}
+static void benchmark_tail_page(surface_t*screen,unsigned first){
+    rdpq_attach(screen,NULL);rdpq_set_mode_standard();
+    rdpq_set_scissor(0,0,320,240);rdpq_clear(RGBA32(9,20,39,255));
+    rdpq_text_printf(NULL,1,8,16,"SLOWEST RDP COMPLETIONS / %u-%u",first+1,first+4);
+    rdpq_text_print(NULL,1,8,28,"SCENE AT COMPLETING FRAME / 4 VIEWS");
+    for(unsigned i=first;i<first+4&&i<completed_tail.count;i++){
+        const bg_cadence_tail_entry*entry=&completed_tail.entry[i];
+        const bg_cadence_frame*f=&entry->frame;const unsigned*c=f->category_triangles;
+        int y=46+(i-first)*40;
+        rdpq_text_printf(NULL,1,8,y,"#%u %u.%uMS T%u.%uS VERT%u",i+1,entry->elapsed/1000,(entry->elapsed/100)%10,
+            f->sim_ms/1000,(f->sim_ms/100)%10,f->vertices);
+        rdpq_text_printf(NULL,1,8,y+12,"TRI %u W%u V%u B%u",f->triangles,c[0],c[1],c[2]);
+        rdpq_text_printf(NULL,1,8,y+24,"P%u E%u F%u / M%X Z%X D%X",c[3],c[4],c[5],
+            (unsigned)f->vehicle_mask,(unsigned)f->zoom_mask,(unsigned)f->dead_mask);
+        debugf("BENCH rdp_tail rank=%u interval_us=%u sim_ms=%u vertices=%u triangles=%u world=%u vehicles=%u bodies_held=%u pickups=%u effects=%u firstperson=%u mounted_mask=%u zoom_mask=%u dead_mask=%u\n",
+            i+1,entry->elapsed,f->sim_ms,f->vertices,f->triangles,c[0],c[1],c[2],c[3],c[4],c[5],
+            (unsigned)f->vehicle_mask,(unsigned)f->zoom_mask,(unsigned)f->dead_mask);
+    }
+    rdpq_text_print(NULL,1,8,204,"M MOUNTED / Z ZOOM / D DEAD");
+    rdpq_text_print(NULL,1,8,216,"MASK BITS 1/2/4/8 = PLAYERS 1/2/3/4");
+    rdpq_text_print(NULL,1,8,228,"NEXT PAGE IN 8S / A TO SWITCH");
+}
+#endif
+#ifdef BG_VI_MEASURE
+static void benchmark_vi_page(surface_t*screen){
+    rdpq_attach(screen,NULL);rdpq_set_mode_standard();
+    rdpq_set_scissor(0,0,320,240);rdpq_clear(RGBA32(9,20,39,255));
+#if defined(BG_VI_BENCHMARK) && defined(BG_PACED30)
+    rdpq_text_printf(NULL,1,8,16,"QUIET VI / PACED30 / %u BUFFERS",(unsigned)BG_PACED30_BUFFERS);
+#elif defined(BG_VI_BENCHMARK)
+    rdpq_text_print(NULL,1,8,16,"QUIET VI ONLY / UNPACED");
+#elif defined(BG_PACED30)
+    rdpq_text_print(NULL,1,8,16,"VI FRESH POSES / PACED30 EXPERIMENT");
+#else
+    rdpq_text_print(NULL,1,8,16,"VI FRESH POSES / UNPACED");
+#endif
+    rdpq_text_printf(NULL,1,8,28,"%u MS / 1S WARMUP / 2 VI TARGET",
+        (unsigned)(visible_meter.fresh.result[0].elapsed/1000));
+    const char*labels[]={"ALL","COMBAT","VEHICLES"};
+    for(unsigned g=0;g<3;g++){
+        const bg_cadence_result*c=&visible_meter.fresh.result[g];
+        const bg_vi_result*r=&visible_meter.result[g];
+        unsigned fps10=c->elapsed?(uint64_t)c->frames*10000000/c->elapsed:0;
+        int y=48+g*42;
+        rdpq_text_printf(NULL,1,8,y,"%s: %u POSES / %u.%u FPS",labels[g],c->frames,fps10/10,fps10%10);
+        rdpq_text_printf(NULL,1,8,y+12,"P95 %u.%u MAX %u.%u MS / MAX %u VI",
+            c->p95/1000,(c->p95/100)%10,c->maximum/1000,(c->maximum/100)%10,r->max_gap);
+        rdpq_text_printf(NULL,1,8,y+24,"1VI %u  2VI %u  >2VI %u",r->gap_one,r->gap_two,r->gap_long);
+        debugf("BENCH vi_fresh group=%s frames=%u elapsed_us=%llu p95_us=%u max_us=%u gap1=%u gap2=%u gap_long=%u max_gap=%u flips=%u duplicate_poses=%u skipped_poses=%u deadlines=%u missed=%u sample_latency_avg=%u sample_latency_max=%u ready_wait_avg=%u ready_wait_max=%u\n",
+            labels[g],c->frames,(unsigned long long)c->elapsed,c->p95,c->maximum,
+            r->gap_one,r->gap_two,r->gap_long,r->max_gap,r->flips,r->duplicates,r->skipped_poses,r->due,r->missed,
+            c->frames?(unsigned)(r->latency_us/c->frames):0,r->max_latency_us,
+            c->frames?(unsigned)(r->ready_wait_us/c->frames):0,r->max_ready_wait_us);
+    }
+    const bg_cadence_result*c=&visible_meter.fresh.result[0];const bg_vi_result*r=&visible_meter.result[0];
+    unsigned latency=c->frames?r->latency_us/c->frames:0,ready=c->frames?r->ready_wait_us/c->frames:0;
+    rdpq_text_printf(NULL,1,8,180,"BUFFER FLIPS %u / SAME POSE %u",r->flips,r->duplicates);
+    rdpq_text_printf(NULL,1,8,192,"SAMPLE->VI AVG %u MAX %u MS",latency/1000,r->max_latency_us/1000);
+    rdpq_text_printf(NULL,1,8,204,"READY->VI AVG %u MAX %u MS",ready/1000,r->max_ready_wait_us/1000);
+    unsigned dropped=0;
+#ifdef BG_PACED30
+    dropped=paced_dropped_ticks;
+#endif
+    rdpq_text_printf(NULL,1,8,216,"MISS %u / POSE SKIP %u / DROP %u",r->missed,r->skipped_poses,dropped);
+    debugf("BENCH paced_catchup_dropped_ticks_total=%u (includes warmup; original seven-tick catch-up ceiling)\n",dropped);
+#ifdef BG_BENCHMARK
+    rdpq_text_printf(NULL,1,8,228,"PUMP GAP MAX %u.%u MS / VI ORIGIN",
+        (unsigned)(audio_pump_max_gap/1000),(unsigned)((audio_pump_max_gap/100)%10));
+    debugf("BENCH audio_pump_max_entry_gap_us=%u (after warmup; not SDK queue occupancy)\n",(unsigned)audio_pump_max_gap);
+#else
+#ifdef BG_PRESENT_TRACK
+    rdpq_text_printf(NULL,1,8,228,"QPEAK H%u R%u S%u / FREE%uK",result_held_peak,
+        result_ready_peak,result_outstanding_peak,result_heap_free/1024);
+#else
+    rdpq_text_printf(NULL,1,8,228,"HELD PEAK %u / LIVE FREE %uK",result_held_peak,result_heap_free/1024);
+#endif
+#endif
+}
+static void benchmark_results(surface_t*screen){
+    /* Snapshot queue peaks before teardown releases every held frame at once.
+     * These are whole-run peaks, including warmup. Heap is live, with audio and
+     * the result screen still allocated; no per-frame allocator walk occurs. */
+    heap_stats_t result_heap;sys_get_heap_stats(&result_heap);
+    result_heap_free=result_heap.total-result_heap.used;
+#ifdef BG_PACED30
+    disable_interrupts();result_held_peak=presenter.peak;
+#ifdef BG_PRESENT_TRACK
+    result_ready_peak=present_tracker.peak_ready;
+    result_outstanding_peak=present_tracker.peak_outstanding;
+#endif
+    enable_interrupts();
+#endif
+    debugf("BENCH display_buffers=%u held_peak=%u live_heap_free_bytes=%u (whole-run peak including warmup; before teardown)\n",
+        (unsigned)BG_PACED30_BUFFERS,result_held_peak,result_heap_free);
+#ifdef BG_PRESENT_TRACK
+    debugf("BENCH sdk_ready_peak=%u submitted_not_presented_peak=%u (excludes currently acquired unsubmitted surface)\n",
+        result_ready_peak,result_outstanding_peak);
+#endif
+    /* The ISR stops writing before publication; sorting happens only here. */
+#ifdef BG_BENCHMARK
+    bg_benchmark_finish(&benchmark);bg_cadence_finish(&completed_cadence);
+#endif
+    bg_cadence_finish(&visible_meter.fresh);
+#ifdef BG_PACED30
+    /* Flush existing callbacks before handing every retained surface back to
+     * ordinary FIFO presentation. No locked surface is abandoned at results. */
+    rspq_wait();presentation_mode(false);
+    disable_interrupts();unregister_VI_handler(paced_vi);enable_interrupts();
+#endif
+    audio_close();
+#ifdef BG_BENCHMARK
+    unsigned page=0;
+#endif
+    for(;;){
+#ifdef BG_BENCHMARK
+        if(page<2)benchmark_page(screen,page==1);
+        else if(page<4)benchmark_tail_page(screen,(page-2)*4);
+        else benchmark_vi_page(screen);
+#else
+        benchmark_vi_page(screen);
+#endif
+        rdpq_detach_show();rspq_wait();
+        uint64_t next_page=get_ticks_us()+8000000;
+        do {wait_ms(20);joypad_poll();}
+        while(!joypad_get_buttons_pressed(0).a&&get_ticks_us()<next_page);
+#ifdef BG_BENCHMARK
+        page=(page+1)%5;
+#endif
+        screen=display_get();
+    }
+}
+#endif
 int main(void){
     debug_init_isviewer();debug_init_usblog();
 #ifdef BG_BLAM_BSP
     assertf(get_memory_size()>=8*1024*1024,"Original Blam BSP requires an 8 MiB Expansion Pak");
 #endif
-    display_init(RESOLUTION_320x240,DEPTH_16_BPP,3,GAMMA_NONE,FILTERS_RESAMPLE);
+#if defined(BG_VI_MEASURE) || defined(BG_PRESENT_TRACK)
+    register_VI_handler(observe_vi);
+#endif
+    display_init(RESOLUTION_320x240,DEPTH_16_BPP,BG_PACED30_BUFFERS,GAMMA_NONE,FILTERS_RESAMPLE);
+#ifdef BG_PACED30
+    assertf(get_tv_type()!=TV_PAL,"Experimental paced30 requires NTSC/MPAL (60 Hz)");
+    register_VI_handler(paced_vi);
+#endif
     joypad_init();rdpq_init();
 #ifdef RDPQ_VALIDATE
     FILE*original_log=stderr;stderr=funopen(original_log,NULL,validation_write,NULL,NULL);
@@ -462,22 +1294,78 @@ int main(void){
     t3d_init((T3DInitParams){});
     rdpq_text_register_font(1,rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
     surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_reset();bg_set_players(views);bg_sound_init();
+#ifdef BG_SNAPSHOT_TICK
+    /* No rendering or wall-clock scheduling during this advance. Presentation
+     * state follows every tick, including recoil timestamps, explosions and
+     * wheel rotations; the final state is then rendered indefinitely. */
+    views=4;game_time=0;reset_view_state();
+    for(uint32_t tick=0;tick!=(uint32_t)BG_SNAPSHOT_TICK;tick++){
+        bg_replay_snapshot_tick(&game_time);
+        update_effects(BLAM_TICK_SECONDS);bg_sound_update();
+    }
+    debugf("SNAPSHOT fixed_ticks=%u game_time=%.9g / frozen pixel QA, not FPS proof\n",
+        (unsigned)BG_SNAPSHOT_TICK,game_time);
+#endif
 #ifdef BG_SHOWCASE
     bg_showcase_begin(BG_SHOWCASE);views=bg_showcase_views();
 #endif
     heap_stats_t heap;sys_get_heap_stats(&heap);
     debugf("HALO N64 world=%u textures=%u RAM=%d free=%d\n",bg_collision_count,bg_material_count,get_memory_size(),heap.total-heap.used);
-    uint64_t previous=get_ticks_us(),fps_time=previous;unsigned frames=0;blam_clock clock;blam_clock_reset(&clock);
+    uint64_t previous=get_ticks_us(),fps_time=previous;unsigned frames=0;
+#ifndef BG_SNAPSHOT_TICK
+    blam_clock clock;blam_clock_reset(&clock);
     bg_input latch[4]={0};
+#ifdef BG_PACED30
+    bool first_pose=true;uint64_t ui_deadline=0;
+#if defined(BG_PROFILE) && !defined(BG_BENCHMARK)
+    uint64_t last_acquisition=previous;
+#endif
+#endif
+#endif
     while(1){
 #ifdef BG_PROFILE
         uint64_t profile_start=get_ticks_us();
+        camera_us=animation_us=matrix_us=world_us=object_us=fp_us=hud_us=audio_us=0;
+        geometry_rsp_us=geometry_rdp_us=0;memset(category_triangles,0,sizeof(category_triangles));
+        animated_vertices=animated_tracks=0;
 #endif
-        surface_t*screen;while(!(screen=display_try_get()))bg_sound_pump();
+#ifdef BG_PACED30
+        unsigned ticks;bg_input in[4]={0};
+        surface_t*screen=paced_acquire(&clock,&previous,latch,in,&ticks,&first_pose,&ui_deadline);
+#else
+        surface_t*screen;while(!(screen=display_try_get()))pump_audio();
+#endif
 #ifdef BG_PROFILE
         wait_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
 #endif
-        uint64_t now=get_ticks_us();float dt=(now-previous)*.000001f;previous=now;
+        uint64_t now=get_ticks_us();
+#ifndef BG_SNAPSHOT_TICK
+#ifdef BG_VI_BENCHMARK
+        /* Only the actual VI observer measures this run. No CPU/RDP cadence,
+         * per-draw counters or audio polling timestamps execute in this mode. */
+        if(bg_vi_complete(&visible_meter))benchmark_results(screen);
+#endif
+#ifndef BG_PACED30
+        float dt=(now-previous)*.000001f;
+#endif
+#ifdef BG_BENCHMARK
+        if(!benchmark_origin)benchmark_origin=now;
+        if(benchmark_previous>=benchmark_origin+1000000&&benchmark.result[0].elapsed<75000000)
+            bg_benchmark_add(&benchmark,now-benchmark_previous,benchmark_vehicle,benchmark_triangles,benchmark_vertices,benchmark_phases,benchmark_categories);
+        if(benchmark.result[0].elapsed>=75000000&&bg_cadence_complete(&completed_cadence)&&bg_vi_complete(&visible_meter))
+            benchmark_results(screen);
+        benchmark_previous=now;
+#endif
+#if defined(BG_PROFILE) && !defined(BG_BENCHMARK)
+#ifdef BG_PACED30
+        if(frames||frame_time_count)profile_frame_time(now-last_acquisition);
+        last_acquisition=now;
+#else
+        if(frames||frame_time_count)profile_frame_time(now-previous);
+#endif
+#endif
+#ifndef BG_PACED30
+        previous=now;
         bg_input in[4]={0};if(input(in))memset(latch,0,sizeof(latch));clock.paused=paused;
         for(unsigned p=0;p<4;p++){
 #define EDGE(field) latch[p].field|=in[p].field;in[p].field=latch[p].field
@@ -485,6 +1373,7 @@ int main(void){
 #undef EDGE
         }
         unsigned ticks=blam_clock_update(&clock,dt);
+#endif
         for(unsigned t=0;t<ticks;t++){
 #ifdef BG_DEMO
             bg_replay_input(in,game_time);views=4;bg_set_players(4);
@@ -503,24 +1392,77 @@ int main(void){
             }
             memset(latch,0,sizeof(latch));
         }
-        bg_sound_pump();
+#if defined(BG_VI_MEASURE) || defined(BG_PACED30)
+        simulation_pose=clock.ticks;
+#ifndef BG_PACED30
+        frame_sample_us=now;
+#endif
+#endif
+#endif
 #ifdef BG_PROFILE
         sim_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
 #endif
-        if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))bg_sound_pump();
+        if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();
 #ifdef BG_PROFILE
         wait_us+=get_ticks_us()-profile_start;profile_start=get_ticks_us();
+#endif
+        /* Frame preparation only writes the fenced geometry slot on the CPU.
+         * Begin this frame's ordered depth clear while those matrices/vertices
+         * are prepared; clear_z's nested detach already wakes the RSP. */
+        rdpq_attach(screen,&depth);rdpq_clear_z(ZBUF_MAX);
+#ifdef BG_PROFILE
+        uint64_t attach_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
 #endif
         prepare_frame();
 #ifdef BG_PROFILE
         prep_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
 #endif
-        rdpq_attach(screen,&depth);rdpq_clear_z(ZBUF_MAX);triangles=0;
-        for(unsigned p=0;p<views;p++){draw_view(p);bg_sound_pump();}
+        triangles=0;
+#ifdef BG_PROFILE
+        submitted_vertices=0;
+#endif
+        for(unsigned p=0;p<views;p++){
+            draw_view(p);
+            /* Submit each completed view before mixing audio. This is a
+             * nonblocking wakeup, not a fence or a new RDP command. */
+            rspq_flush();pump_audio();
+        }
+#ifdef BG_GPU_DIAGNOSTIC
+        uint64_t geometry_begin=get_ticks_us();
+#endif
+        /* All RSP reads of this slot's vertices, matrices and viewports end
+         * with the 3D pass. HUD rectangles are copied into commands on the
+         * CPU; HUD textures/blocks are immutable and own no slot resources.
+         * Release geometry before HUD work so the CPU can prepare its next
+         * use while that work drains. RDP completion/display ownership still
+         * belongs to detach below, independently of this RSP-only fence. */
+        fences[slot]=rspq_syncpoint_new();pending[slot]=true;
+#ifdef BG_GPU_DIAGNOSTIC
+        /* Diagnostic-only serialization: separate pending 3D work from HUD
+         * submission. These results are not the production FPS benchmark. */
+        rspq_flush();
+        while(!rspq_syncpoint_check(fences[slot]))pump_audio();
+        geometry_rsp_us=get_ticks_us()-geometry_begin;geometry_begin=get_ticks_us();
+        diagnostic_rdp_done=false;rdpq_sync_full(diagnostic_rdp_complete,NULL);rspq_flush();
+        while(!diagnostic_rdp_done)pump_audio();
+        geometry_rdp_us=get_ticks_us()-geometry_begin;
+#endif
+        /* Complete every 3D view before the HUD pass to keep sprite/text
+         * submission together. HUD scissoring preserves each viewport. */
+#ifdef BG_PROFILE
+        uint64_t hud_begin=get_ticks_us();
+#endif
+        for(unsigned p=0;p<views;p++){
+            T3DViewport*vp=&viewports[slot][p];
+            bg_hud_draw(p,vp->offset[0],vp->offset[1],vp->size[0],vp->size[1]);
+        }
+#ifdef BG_PROFILE
+        hud_us=get_ticks_us()-hud_begin;
+#endif
         rdpq_set_scissor(0,0,320,240);
         if(views>1)fill(0,119,320,2,RGBA32(0,0,0,255));
         if(views==4)fill(159,0,2,240,RGBA32(0,0,0,255));
-#ifdef BG_DEMO
+#if defined(BG_DEMO) && !defined(BG_VI_MEASURE) && !defined(BG_SNAPSHOT_TICK)
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,116,118,"REPLAY %u FPS",fps);
 #endif
 #ifdef BG_SHOWCASE
@@ -533,21 +1475,56 @@ int main(void){
         }
 #endif
 #ifdef BG_PROFILE
-        draw_us=get_ticks_us()-profile_start;sys_get_heap_stats(&heap);rdpq_set_mode_standard();
+        draw_us=get_ticks_us()-profile_start+attach_us;profile_start=get_ticks_us();
+#ifndef BG_BENCHMARK
+        sys_get_heap_stats(&heap);rdpq_set_mode_standard();
+        rdpq_text_printf(NULL,1,2,202,"C%u A%u X%u SND%u V%u/%u",camera_us/1000,animation_us/1000,matrix_us/1000,audio_us/1000,animated_tracks,animated_vertices);
+        rdpq_text_printf(NULL,1,2,212,"WRL%u OBJ%u FP%u HUD%u",world_us/1000,object_us/1000,fp_us/1000,hud_us/1000);
+        rdpq_text_printf(NULL,1,2,222,"FRAME %u MIN%u P95%u MAX%u",frame_average/1000,frame_minimum/1000,frame_p95/1000,frame_maximum/1000);
         rdpq_text_printf(NULL,1,2,232,"S%u P%u D%u W%u T%u M%d",sim_us/1000,prep_us/1000,draw_us/1000,wait_us/1000,triangles,(heap.total-heap.used)/1024);
+#endif
 #endif
 #ifdef RDPQ_VALIDATE
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"RDP %u ERRORS %u WARNINGS",validation_errors,validation_warnings);
         if(validation_errors||validation_warnings)rdpq_text_print(NULL,1,4,225,validation_message);
 #endif
         if(bg_match_finished())draw_result();
+#ifndef BG_SNAPSHOT_TICK
         if(paused)draw_menu();
-        rdpq_detach_show();fences[slot]=rspq_syncpoint_new();pending[slot]=true;slot=(slot+1)%BG_FRAME_SLOTS;
+#endif
+#ifdef BG_PROFILE
+        overlay_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
+#endif
+#if defined(BG_VI_MEASURE) || defined(BG_PACED30)
+        frame_present(screen,fmodf(game_time,75.f)>=36.f);
+#else
+        rdpq_detach_show();
+#endif
+        slot=(slot+1)%BG_FRAME_SLOTS;
+#ifdef BG_PROFILE
+        present_us=get_ticks_us()-profile_start;
+#ifdef BG_RSPQ_OVERRIDE
+        bg_rspq_metrics current_queue_metrics;bg_rspq_get_metrics(&current_queue_metrics);
+        queue_us=current_queue_metrics.stall_us-previous_queue_metrics.stall_us;
+        previous_queue_metrics=current_queue_metrics;
+#endif
+#endif
+#ifdef BG_BENCHMARK
+        benchmark_vehicle=fmodf(game_time,75.f)>=36.f;benchmark_triangles=triangles;benchmark_vertices=submitted_vertices;
+        const unsigned phase_values[BG_BENCHMARK_PHASES]={sim_us,camera_us,animation_us,matrix_us,world_us,object_us,fp_us,hud_us,audio_us,wait_us,geometry_rsp_us,geometry_rdp_us,queue_us};
+        memcpy(benchmark_phases,phase_values,sizeof(benchmark_phases));
+        memcpy(benchmark_categories,category_triangles,sizeof(benchmark_categories));
+#endif
         frames++;
         if(now-fps_time>=1000000){
-            fps=frames*1000000ULL/(now-fps_time);frames=0;fps_time=now;sys_get_heap_stats(&heap);
+            fps=frames*1000000ULL/(now-fps_time);frames=0;fps_time=now;
+#if defined(BG_PROFILE) && !defined(BG_BENCHMARK)
+            sys_get_heap_stats(&heap);
+            profile_frame_summary();
+            debugf("PHASE camera=%u anim=%u matrix=%u world=%u objects=%u fp=%u hud=%u audio=%u overlay=%u present=%u queue=%u tracks=%u corners=%u frame_avg=%u frame_min=%u frame_p95=%u frame_max=%u samples=%u\n",camera_us,animation_us,matrix_us,world_us,object_us,fp_us,hud_us,audio_us,overlay_us,present_us,queue_us,animated_tracks,animated_vertices,frame_average,frame_minimum,frame_p95,frame_maximum,(unsigned)frame_time_count);
             debugf("PERF views=%u fps=%u triangles=%u free=%d audio=%d p1=(%.2f %.2f %.2f)\n",views,fps,triangles,heap.total-heap.used,audio_can_write(),
                 bg_players[0].pos[0],bg_players[0].pos[1],bg_players[0].pos[2]);
+#endif
         }
     }
 }

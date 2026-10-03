@@ -1,7 +1,9 @@
 #ifndef BG_ASSET_HUD_H
 #define BG_ASSET_HUD_H
 #include <stdint.h>
-typedef struct { const uint16_t *pixels; uint16_t w,h; } bg_hud_image;
+/* w/h retain the Xbox layout rectangle. Only transparent padding is removed
+ * from the stored texture; offsets and one border texel preserve filtering. */
+typedef struct { const uint16_t *pixels; uint16_t w,h,tex_w,tex_h,x,y; } bg_hud_image;
 enum { BG_H_SHIELD_BG, BG_H_HEALTH_BG, BG_H_MOTION_BG, BG_H_SHIELD_METER,
        BG_H_HEALTH_METER, BG_H_AMMO_BG,
        BG_H_RETICLE_AR, BG_H_RETICLE_PISTOL, BG_H_RETICLE_PLASMA_PISTOL,

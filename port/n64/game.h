@@ -23,7 +23,7 @@ typedef enum { BG_EVENT_FIRE, BG_EVENT_RELOAD, BG_EVENT_JUMP, BG_EVENT_LAND,
 typedef enum { BG_P_PLASMA, BG_P_NEEDLE, BG_P_ROCKET, BG_P_FRAG,
     BG_P_PLASMA_GRENADE, BG_P_CANNON, BG_P_FLAME } bg_projectile_kind;
 /* BG_EVENT_EXPLOSION stores this presentation type in event.weapon. */
-typedef enum { BG_EXPLOSION_NORMAL, BG_EXPLOSION_PLASMA } bg_explosion_kind;
+typedef enum { BG_EXPLOSION_NORMAL, BG_EXPLOSION_PLASMA, BG_EXPLOSION_NEEDLER } bg_explosion_kind;
 typedef struct {
     const char *name; int magazine,reserve;
     float interval,reload,damage,spread,range,speed,heat,zoom;

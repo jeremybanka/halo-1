@@ -17,6 +17,20 @@ typedef struct { unsigned value; int places; float x,y,scale; bool warning; } hu
 static hud_number numbers[8];
 static unsigned number_count;
 static int current_combiner,current_filter;
+/* Static sprite geometry/texture uploads do not depend on health, ammo or
+ * tint. Replaying these RDP blocks avoids repeating the large-sprite tiler
+ * on the CPU in every viewport. Blocks live for the whole match session. */
+typedef struct { unsigned id; float x,y,scale; rspq_block_t *block; } hud_blit;
+static hud_blit blits[192];
+static unsigned blit_count;
+enum { HUD_EXIT, HUD_PICKUP, HUD_ENTER, HUD_RELOAD, HUD_OVERHEAT,
+       HUD_RESPAWN_0, HUD_RESPAWN_1, HUD_RESPAWN_2, HUD_RESPAWN_3, HUD_STATUS_COUNT };
+static const char *const status_strings[HUD_STATUS_COUNT]={
+    "B EXIT","B PICK UP","B ENTER","Reloading","Overheated",
+    "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3"};
+/* These labels have fixed font, width and alignment. Lay them out once instead
+ * of allocating and formatting the same paragraph in each player view. */
+static rdpq_paragraph_t *status_layouts[2][HUD_STATUS_COUNT];
 static const color_t blue = {105,166,236,255};
 static const color_t bright = {149,207,255,255};
 static const color_t red = {248,63,58,255};
@@ -61,20 +75,46 @@ static void mode(color_t tint) {
     rdpq_set_prim_color(tint);
 }
 
-static void picture(unsigned id, float x, float y, float scale, color_t tint) {
-    if (bg_hud_images[id].w<=1 || bg_hud_images[id].h<=1) return;
-    mode(tint);
+static void blit_picture(unsigned id,float x,float y,float scale) {
+    const bg_hud_image *im=&bg_hud_images[id];
+    x+=im->x*scale;y+=im->y*scale;
+    /* Moving radar blips are deliberately uncached: their positions can fill
+     * an unbounded number of entries. Full caches fall back to ordinary blits. */
+    if (id!=BG_H_BLIP) {
+        for (unsigned i=0;i<blit_count;i++) {
+            const hud_blit *b=&blits[i];
+            if(b->id==id&&b->x==x&&b->y==y&&b->scale==scale) {
+                rspq_block_run(b->block);return;
+            }
+        }
+        if(blit_count<sizeof(blits)/sizeof(blits[0])) {
+            hud_blit *b=&blits[blit_count++];
+            *b=(hud_blit){.id=id,.x=x,.y=y,.scale=scale};
+            rspq_block_begin();
+            rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
+                .scale_x=scale,.scale_y=scale,.filtering=true});
+            b->block=rspq_block_end();rspq_block_run(b->block);return;
+        }
+    }
     rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
         .scale_x=scale,.scale_y=scale,.filtering=true});
+}
+
+static void picture(unsigned id, float x, float y, float scale, color_t tint) {
+    if (bg_hud_images[id].w<=1 || bg_hud_images[id].h<=1) return;
+    mode(tint);blit_picture(id,x,y,scale);
 }
 
 static void meter(unsigned id, float x, float y, float scale, float amount, color_t tint) {
     amount=fminf(fmaxf(amount,0.f),1.f);
     picture(id,x,y,scale,muted);
     if (amount<=0.f) return;
-    int width=(int)ceilf(bg_hud_images[id].w*amount);
+    const bg_hud_image *im=&bg_hud_images[id];
+    int width=(int)ceilf(im->w*amount)-im->x;
+    if(width<=0)return;
     mode(tint);
-    rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
+    if(width>=im->tex_w) { blit_picture(id,x,y,scale);return; }
+    rdpq_tex_blit(&images[id],x+im->x*scale,y+im->y*scale,&(rdpq_blitparms_t){
         .width=width,.scale_x=scale,.scale_y=scale,.filtering=true});
 }
 
@@ -152,21 +192,21 @@ static float distance_squared(const float a[3],const float b[3]) {
     return x*x+y*y+z*z;
 }
 
-static const char *interaction(const bg_player *p) {
-    if (p->interact_cooldown>0) return NULL;
-    if (p->vehicle>=0) return "B EXIT";
+static int interaction(const bg_player *p) {
+    if (p->interact_cooldown>0) return -1;
+    if (p->vehicle>=0) return HUD_EXIT;
     /* Match game.c interaction ranges and pickup priority, so the prompt
      * names an action that pressing B can actually perform. */
     for (unsigned i=0;i<bg_pickup_count;i++)
         if (bg_pickups[i].active&&distance_squared(p->pos,bg_pickups[i].pos)<.85f*.85f)
-            return "B PICK UP";
+            return HUD_PICKUP;
     for (unsigned i=0;i<bg_vehicle_count;i++) {
         const bg_vehicle *v=&bg_vehicles[i];
         if (!v->active||distance_squared(p->pos,v->pos)>=4.f) continue;
         int seats=v->kind==BG_V_WARTHOG||v->kind==BG_V_SCORPION?3:1;
-        for (int s=0;s<seats;s++) if (v->occupants[s]<0) return "B ENTER";
+        for (int s=0;s<seats;s++) if (v->occupants[s]<0) return HUD_ENTER;
     }
-    return NULL;
+    return -1;
 }
 
 static bool scoped(const bg_player *p) {
@@ -213,8 +253,8 @@ static void scope_marks(const bg_player *p,int x,int y,int width,int height) {
 void bg_hud_init(void) {
     for (unsigned i=0;i<BG_H_COUNT;i++) {
         const bg_hud_image *im=&bg_hud_images[i];
-        images[i]=surface_make((void *)im->pixels,FMT_RGBA16,im->w,im->h,im->w*2);
-        data_cache_hit_writeback((void *)im->pixels,im->w*im->h*2);
+        images[i]=surface_make((void *)im->pixels,FMT_RGBA16,im->tex_w,im->tex_h,im->tex_w*2);
+        data_cache_hit_writeback((void *)im->pixels,im->tex_w*im->tex_h*2);
     }
     for (unsigned i=0;i<BG_SCOPE_COUNT;i++) {
         const bg_scope_image *im=&bg_scope_images[i];
@@ -234,6 +274,11 @@ void bg_hud_init(void) {
     rdpq_font_t *font=(rdpq_font_t *)rdpq_text_get_font(1);
     rdpq_font_style(font,7,&(rdpq_fontstyle_t){.color=bright});
     rdpq_font_style(font,8,&(rdpq_fontstyle_t){.color=red});
+    for(unsigned split=0;split<2;split++)for(unsigned i=0;i<HUD_STATUS_COUNT;i++) {
+        const rdpq_textparms_t text={.style_id=7,.width=split?150:302,.align=ALIGN_CENTER};
+        int length=(int)strlen(status_strings[i]);
+        status_layouts[split][i]=rdpq_paragraph_build(&text,1,status_strings[i],&length);
+    }
 }
 
 void bg_hud_draw(unsigned index,int x,int y,int width,int height) {
@@ -304,16 +349,22 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height) {
     number((unsigned)(score<0?-score:score),2,score_x,score_y,scale,bright);
     draw_numbers();
     rdpq_set_mode_standard();
-    const rdpq_textparms_t text={.style_id=7,.width=width-2*margin,.align=ALIGN_CENTER};
+    int status=-1,status_y=y+height-8;
     if (p->health<=0) {
-        rdpq_text_printf(&text,1,x+margin,y+height/2+12,"Respawn in %d",(int)ceilf(p->respawn));
+        int seconds=(int)ceilf(p->respawn);
+        if(seconds>=0&&seconds<=3)status=HUD_RESPAWN_0+seconds;
+        else {
+            const rdpq_textparms_t text={.style_id=7,.width=width-2*margin,.align=ALIGN_CENTER};
+            rdpq_text_printf(&text,1,x+margin,y+height/2+12,"Respawn in %d",seconds);
+        }
+        status_y=y+height/2+12;
     } else if (personal&&p->reload>0) {
-        rdpq_text_print(&text,1,x+margin,y+height-8,"Reloading");
+        status=HUD_RELOAD;
     } else if (personal&&p->overheated) {
-        rdpq_text_print(&text,1,x+margin,y+height-8,"Overheated");
+        status=HUD_OVERHEAT;
     } else {
-        const char *prompt=interaction(p);
-        if (prompt) rdpq_text_print(&text,1,x+margin,y+height-8,prompt);
+        status=interaction(p);
     }
+    if(status>=0)rdpq_paragraph_render(status_layouts[width<200][status],x+margin,status_y);
     rdpq_set_mode_standard();
 }

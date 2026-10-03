@@ -169,7 +169,7 @@ def tag_values(block):
     return getattr(block,'data',None)
 
 
-def extract(output, maps, models_only=False):
+def extract(output, maps, models_only=False, include_source_lods=False):
     from reclaimer.model.model_decompilation import extract_model
     from reclaimer.animation.animation_decompilation import extract_animation
     from reclaimer.bitmaps.bitmap_decompilation import extract_bitmaps
@@ -308,6 +308,25 @@ def extract(output, maps, models_only=False):
                 far_model.pop('bind_nodes',None);far_model.pop('baked_vehicle_pose',None)
                 if name=='banshee':bake_pose(far_model,states,'stand closing:terminal')
                 result['models'][name]['lod_source']=far_model
+            if include_source_lods:
+                # Keep the highest-detail reference untouched. Optional
+                # performance profiles can explicitly choose an original
+                # artist-authored LOD instead of recollapsing fine geometry.
+                pool={}
+                for authored in normal or lods:
+                    geometry={'name':authored.name,'source_lod':authored.name,
+                        'vertices':[[v.pos_x/100,v.pos_y/100,v.pos_z/100] for v in authored.verts],
+                        'uv':[[v.tex_u,1-v.tex_v] for v in authored.verts],
+                        'weights':[[v.node_0,v.node_1,v.node_1_weight] for v in authored.verts],
+                        'faces':[[t.v0,t.v1,t.v2] for t in authored.tris],
+                        'materials':[t.shader for t in authored.tris],
+                        'regions':[authored.regions[t.region] for t in authored.tris],
+                        'nodes':[{'name':n.name,'parent':n.parent_index,
+                                  'q':[n.rot_i,n.rot_j,n.rot_k,n.rot_w],
+                                  'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100]} for n in authored.nodes]}
+                    if name=='banshee':bake_pose(geometry,states,'stand closing:terminal')
+                    pool[authored.name]=geometry
+                result['models'][name]['source_geometry_lods']=pool
         if models_only:
             (output/'extended-raw.json').write_text(json.dumps(result))
             print(json.dumps({'models':{k:len(v['faces']) for k,v in result['models'].items()}}))
@@ -348,6 +367,7 @@ if __name__=='__main__':
     p.add_argument('--output',type=Path,default=Path('build/n64/assets'))
     p.add_argument('--hud-only',action='store_true',help='Refresh HUD bitmaps and metadata without extracting models/audio')
     p.add_argument('--models-only',action='store_true',help='Refresh highest-detail models/source textures while retaining audio/HUD/animation data')
+    p.add_argument('--include-source-lods',action='store_true',help='Also retain original normal-permutation geometry LODs for explicit performance-profile selection')
     a=p.parse_args()
     if a.hud_only:
         source=a.output/'extended-raw.json';result=json.loads(source.read_text())
@@ -355,4 +375,4 @@ if __name__=='__main__':
             halo=open_cache(a.maps/'bloodgulch.map',a.output)
             result['hud']=extract_hud(halo,a.output);write_metadata(halo,a.output)
         source.write_text(json.dumps(result));print(json.dumps({'hud_atlases':len(result['hud'])}))
-    else:extract(a.output,a.maps,a.models_only)
+    else:extract(a.output,a.maps,a.models_only,a.include_source_lods)

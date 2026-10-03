@@ -7,6 +7,8 @@ from extract_extended import MODEL_PATHS, AUDIO_TAGS, ANIM_NAMES
 from vehicle_parts import VEHICLES, split_vehicle
 from pack_animation import emit_clip, clip_initializer
 from model_colors import load_images, bake_triangle, bake_team_mask
+from pack_mesh import indexed_mesh, emit_batches, trajectory_keys, remap_clip, MODEL_COLOR_TOLERANCE, model_color_tolerance
+import pack_bounds
 
 
 def pack(source,out,pc_extras=False):
@@ -17,11 +19,16 @@ def pack(source,out,pc_extras=False):
  def rgba(rgb):return (rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255
  def xyz(v):return '{'+','.join(map(str,v))+'}'
  lines=['/* Generated from local game data; do not commit. */','#include "asset_models.h"']
- model_sizes={};previews={};scales={}
- all_models=list(data['models'].items())+[(name+'_lod',model) for name,model in data.get('vehicle_lods',{}).items()]+[('spartan_lod',data['spartan_lod'])]
+ model_sizes={};previews={};scales={};meshes={};triangle_counts={};packed_animations={};cull_bounds={};cull_radii={}
+ all_models=(list(data['models'].items())
+             +[(name+'_lod',model) for name,model in data.get('vehicle_lods',{}).items()]
+             +[('spartan_lod',data['spartan_lod'])]
+             +[(name+'_pickup_lod',model) for name,model in data.get('pickup_lods',{}).items()
+               if pc_extras or name!='flamethrower'])
  for name,model in all_models:
   if name=='flamethrower' and not pc_extras:continue
   scale=128 if name.startswith('spartan') else 1024;scales[name]=scale
+  cull_bounds[name],cull_radii[name]=pack_bounds.model_bounds(model,scale)
   verts=[];team_mask=[]
   images=load_images(model['textures'])
   masks=load_images(model.get('team_masks',[]));channels=model.get('team_mask_channels',[])
@@ -30,51 +37,95 @@ def pack(source,out,pc_extras=False):
    colors=bake_triangle(tri,images,model)
    team_mask.extend(bake_team_mask(tri,masks,channels))
    for p,rgb in zip(points,colors):
-    if name=='overshield':rgb=[238,92,52]
-    if name=='camouflage':rgb=[57,151,234]
+    if name in ('overshield','overshield_pickup_lod'):rgb=[238,92,52]
+    if name in ('camouflage','camouflage_pickup_lod'):rgb=[57,151,234]
     verts.append(([round(x*scale) for x in p],rgb))
-  previews[name]={'positions':[[c/scale for c in p] for p,rgb in verts],
-                  'colors':[rgb for p,rgb in verts],'triangle_count':len(model['triangles']),
-                  'team_mask':[m/255 for m in team_mask]}
+  clips=data['animations'] if name=='spartan' else data['animations_lod'] if name=='spartan_lod' else None
+  segments=[(p['first'],p['count']) for p in rigs[name]['parts']] if name in rigs else None
+  mesh=indexed_mesh([p for p,rgb in verts],[rgb for p,rgb in verts],team_mask,
+                    trajectory_keys(clips,scale) if clips else None,segments,reorder_static=clips is None,
+                    color_tolerance=model_color_tolerance('world',name),
+                    material_keys=[t['material'] for t in model['triangles'] for _ in range(3)])
+  meshes[name]=mesh;triangle_counts[name]=len(model['triangles'])
+  corners=[triangle*3+corner for triangle in mesh['triangle_order'] for corner in range(3)]
+  previews[name]={'positions':[[c/scale for c in verts[i][0]] for i in corners],
+                  'colors':[mesh['colors'][i] for i in corners],'triangle_count':len(model['triangles']),
+                  'team_mask':[team_mask[i]/255 for i in corners]}
+  if clips:packed_animations[name]={n:remap_clip(c,mesh['sources']) for n,c in clips.items()}
   if name in ('spartan','spartan_lod'):
-   lines.append(f'const uint8_t bg_{name}_team_mask[]={{'+','.join(map(str,team_mask))+'};')
-  count=len(verts);model_sizes[name]=count
-  if count%2:verts.append(verts[-1])
+   lines.append(f'const uint8_t bg_{name}_team_mask[]={{'+','.join(str(v[2]) for v in mesh['vertices'])+'};')
+  verts=mesh['vertices'];model_sizes[name]=len(verts)
   lines.append(f'static T3DVertPacked model_{name}[] __attribute__((aligned(16)))={{')
   for i in range(0,len(verts),2):
    a,b=verts[i:i+2];lines.append('{'+f'{xyz(a[0])},0,{xyz(b[0])},0,0x{rgba(a[1]):08x},0x{rgba(b[1]):08x},{{0,0}},{{0,0}}'+'},')
   lines.append('};')
+  emit_batches(lines,'model_'+name,mesh)
+ def initializer(name,radius):
+  return (f'{{model_{name},{model_sizes[name]},{radius:.6f}f,model_{name}_batches,'
+          f'model_{name}_indices,{len(meshes[name]["batches"])},{triangle_counts[name]}}},')
  lines.append('const bg_model_asset bg_model_assets[BG_M_COUNT]={')
  for name in MODEL_PATHS:
   if name=='flamethrower' and not pc_extras:name='ar'
   radius=max(math.sqrt(sum(v*v for v in p)) for t in data['models'][name]['triangles'] for p in t['p'])
-  lines.append(f'{{model_{name},{model_sizes[name]},{radius:.6f}f}},')
+  lines.append(initializer(name,radius))
+ lines.append('};')
+ lines.append('const bg_bounds bg_model_cull_bounds[BG_M_COUNT]={')
+ for name in MODEL_PATHS:
+  if name=='flamethrower' and not pc_extras:name='ar'
+  lod=name+'_pickup_lod'
+  lines.append(pack_bounds.initializer(pack_bounds.union(cull_bounds[name],cull_bounds.get(lod,cull_bounds[name])))+',')
+ lines.append('};')
+ lines.append('const float bg_model_cull_radii[BG_M_COUNT]={')
+ for name in MODEL_PATHS:
+  if name=='flamethrower' and not pc_extras:name='ar'
+  radius=max(cull_radii[name],cull_radii.get(name+'_pickup_lod',0))
+  lines.append(f'{radius+1e-6:.7f}f,')
+ lines.append('};')
+ lines.append('const bg_model_asset bg_pickup_lods[BG_M_COUNT]={')
+ for name in MODEL_PATHS:
+  if name=='flamethrower' and not pc_extras:name='ar'
+  lod=name+'_pickup_lod' if name in data.get('pickup_lods',{}) else name
+  radius=max(math.sqrt(sum(v*v for v in p)) for t in data['models'][name]['triangles'] for p in t['p'])
+  lines.append(initializer(lod,radius))
  lines.append('};')
  for name in VEHICLES:
   lines.append(f'static const bg_vehicle_part parts_{name}[]={{')
-  for part in rigs[name]['parts']:
-   lines.append('{'+f'{part["first"]},{part["count"]},{part["kind"]},{floats(part["pivot"])}'+'},')
+  for part,segment in zip(rigs[name]['parts'],meshes[name]['segments']):
+   triangles=data['models'][name]['triangles'][part['first']//3:(part['first']+part['count'])//3]
+   box,_=pack_bounds.model_bounds({'triangles':triangles},1024)
+   lines.append('{'+f'{part["first"]},{part["count"]},{part["kind"]},{floats(part["pivot"])},{segment[0]},{segment[1]},'+pack_bounds.initializer(box)+'},')
   lines.append('};')
  lines.append('const bg_vehicle_rig bg_vehicle_rigs[4]={')
  for name in VEHICLES:
   rig=rigs[name];lines.append('{'+f'parts_{name},{len(rig["parts"])},{floats(rig["turret_pivot"])}'+'},')
  lines.append('};')
+ lines.append('const bg_bounds bg_vehicle_lod_bounds[4]={')
+ for name in VEHICLES:lines.append(pack_bounds.initializer(cull_bounds[name+'_lod'])+',')
+ lines.append('};')
+ lines.append('const bg_bounds bg_body_cull_bounds[BG_A_COUNT]={')
+ for name in ANIM_NAMES:
+  lines.append(pack_bounds.initializer(pack_bounds.animation_bounds(data['animations'][name],data['animations_lod'][name]))+',')
+ lines.append('};')
+ lines.append('const bg_bounds bg_attachment_cull_bounds[BG_A_COUNT]={')
+ for name in ANIM_NAMES:
+  lines.append(pack_bounds.initializer(pack_bounds.bounds(p['pos'] for p in data['weapon_attachment'][name]['poses']))+',')
+ lines.append('};')
  lines.append('const bg_model_asset bg_vehicle_lods[4]={')
  for name in ('warthog','ghost','scorpion','banshee'):
   lod=name+'_lod';radius=max(math.sqrt(sum(v*v for v in p)) for t in data['models'][name]['triangles'] for p in t['p'])
-  lines.append(f'{{model_{lod},{model_sizes[lod]},{radius:.6f}f}},')
+  lines.append(initializer(lod,radius))
  lines.append('};')
  anim_bytes=0;animation_packing={}
  for name in ANIM_NAMES:
-  clip=data['animations'][name];packed=emit_clip(lines,'anim_'+name,clip,128)
+  clip=packed_animations['spartan'][name];packed=emit_clip(lines,'anim_'+name,clip,128)
   animation_packing[name]=packed;anim_bytes+=packed['bytes']
  lines.append('const bg_anim_asset bg_animations[BG_A_COUNT]={')
  for name in ANIM_NAMES:
   lines.append(clip_initializer('anim_'+name,data['animations'][name],animation_packing[name]))
  lines.append('};')
- lines.append(f'const bg_model_asset bg_spartan_lod={{model_spartan_lod,{model_sizes["spartan_lod"]},1.0f}};')
+ lines.append('const bg_model_asset bg_spartan_lod='+initializer('spartan_lod',1.0).rstrip(',')+';')
  for name in ANIM_NAMES:
-  clip=data['animations_lod'][name];packed=emit_clip(lines,'anim_lod_'+name,clip,128)
+  clip=packed_animations['spartan_lod'][name];packed=emit_clip(lines,'anim_lod_'+name,clip,128)
   animation_packing['lod_'+name]=packed;anim_bytes+=packed['bytes']
  lines.append('const bg_anim_asset bg_spartan_lod_animations[BG_A_COUNT]={')
  for name in ANIM_NAMES:
@@ -104,7 +155,12 @@ def pack(source,out,pc_extras=False):
   lines.append(f'{{audio_{buffer},{a["count"]},{a["rate"]},{str(a["loop"]).lower()}}},')
  lines.append('};');(out/'audio_data.c').write_text('\n'.join(lines)+'\n')
  hud_bytes,scope_bytes=pack_hud(raw['hud'],out,source.parent/'hud-sprites')
- report={'position_scale':1024,'model_position_scales':scales,'team_mask_bytes':sum(len(previews[n]['team_mask']) for n in ('spartan','spartan_lod')),'models':{k:v//3 for k,v in model_sizes.items()},'model_bytes':sum((v+1)//2*32 for v in model_sizes.values()),
+ report={'position_scale':1024,'model_position_scales':scales,'team_mask_bytes':sum(model_sizes[n] for n in ('spartan','spartan_lod')),'models':triangle_counts,'model_bytes':sum(v*16 for v in model_sizes.values()),
+ 'cull_bounds_bytes':len(MODEL_PATHS)*28+len(VEHICLES)*24+len(ANIM_NAMES)*48+sum(len(r['parts'])*24 for r in rigs.values()),
+ 'vertices':model_sizes,'batches':{n:len(m['batches']) for n,m in meshes.items()},
+ 'triangle_order':{n:m['triangle_order'] for n,m in meshes.items()},'static_cache_reorder':True,'unindexed_vertices':{n:count*3 for n,count in triangle_counts.items()},
+ 'mesh_index_bytes':sum(len(m['indices'])*2+len(m['batches'])*8 for m in meshes.values()),'color_weld_max_channel_delta':MODEL_COLOR_TOLERANCE,'material_boundaries_preserved':True,
+ 'color_weld_tolerances':{name:model_color_tolerance('world',name) for name in model_sizes},
  'animation_bytes':anim_bytes,'animation_uncompressed_bytes':sum(p['uncompressed_bytes'] for p in animation_packing.values()),'audio_bytes':sum(v['count'] for k,v in data['audio'].items() if 'alias' not in v and (pc_extras or k!='flamethrower')),'hud_bytes':hud_bytes,
  'scope_bytes':scope_bytes,'pc_extras':pc_extras,'audio_events':len(data['audio'])-(not pc_extras),'audio_unique_clips':sum('alias' not in v for k,v in data['audio'].items() if pc_extras or k!='flamethrower'),
  'vehicle_rigs':rigs}
@@ -138,13 +194,23 @@ def pack_hud(hud,out,preview):
  images.extend((f'reticle_{name}',sprite('reticles',seq)) for name,seq in
                [('warthog',2),('ghost',13),('scorpion',11),('banshee',1)])
  images.extend((f'zoom_{name}',sprite('sniper_reticles',1,i)) for i,name in enumerate(('2x','10x')))
- lines=['/* Generated original Xbox HUD imagery; do not commit. */','#include "asset_hud.h"'];hud_bytes=0
+ lines=['/* Generated original Xbox HUD imagery; do not commit. */','#include "asset_hud.h"'];hud_bytes=0;rects={}
  preview.mkdir(exist_ok=True)
  for name,im in images:
   im.save(preview/(name+'.png'));pixels=[]
+  # Keep all visible pixels and their exact filter neighbours, but omit the
+  # unused transparent rectangle. Original dimensions still drive the layout
+  # and meter amounts. Digits retain their source cells for atlas extraction.
+  box=im.getchannel('A').point(lambda a:255 if a>=64 else 0).getbbox()
+  if name.startswith('digit_'):box=(0,0,im.width,im.height)
+  elif box:
+   box=(max(0,box[0]-1),max(0,box[1]-1),min(im.width,box[2]+1),min(im.height,box[3]+1))
+  else:box=(0,0,1,1)
+  rects[name]=box
+  stored=im.crop(box)
   tint=(42,148,255) if name.startswith(('reticle','digit','shield_meter','ammo_','zoom_')) else (93,155,219)
   if name=='health_meter':tint=(71,219,147)
-  for r,g,b,a in im.get_flattened_data():
+  for r,g,b,a in stored.get_flattened_data():
    # Halo uses white bitmap intensity and tag colors. Bake that modulation
    # so the runtime can use a single ordinary RGBA16 blit per HUD element.
    intensity=max(r,g,b)/255;r,g,b=[round(c*intensity) for c in tint]
@@ -152,7 +218,9 @@ def pack_hud(hud,out,preview):
   hud_bytes+=len(pixels)*2
   lines.append(f'static const uint16_t hud_{name}[] __attribute__((aligned(16)))={{'+','.join(hex(v) for v in pixels)+'};')
  lines.append('const bg_hud_image bg_hud_images[BG_H_COUNT]={')
- for name,im in images:lines.append(f'{{hud_{name},{im.width},{im.height}}},')
+ for name,im in images:
+  x,y,r,b=rects[name]
+  lines.append(f'{{hud_{name},{im.width},{im.height},{r-x},{b-y},{x},{y}}},')
  lines.append('};')
  # Monochrome original screen masks retain eight-bit alpha; they are not
  # ordinary RGBA16 HUD sprites. Scale the source split-screen art offline.

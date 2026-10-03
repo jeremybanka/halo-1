@@ -11,6 +11,7 @@ typedef struct {
     uint32_t first;
     uint16_t count, material;
     int16_t bounds[6];
+    uint16_t index_first, index_count;
 } bg_chunk;
 extern const bg_triangle bg_collision[];
 extern const unsigned bg_collision_count;
@@ -21,5 +22,9 @@ extern const bg_spawn bg_spawns[];
 extern const unsigned bg_spawn_count;
 extern const unsigned bg_chunk_count, bg_vertex_count, bg_material_count;
 extern const bg_chunk bg_chunks[];
+/* Plain local indices, converted once to Tiny3D triangle lists at startup.
+ * Each chunk starts on an eight-byte boundary, loads at most60 paired vertices,
+ * and references at most120 triangle corners. */
+extern int16_t bg_chunk_indices[];
 extern const unsigned bg_spartan_vertices, bg_rifle_vertices;
 #endif

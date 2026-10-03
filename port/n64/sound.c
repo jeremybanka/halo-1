@@ -1,0 +1,106 @@
+#include <libdragon.h>
+#include <math.h>
+#include <string.h>
+#include "game.h"
+#include "asset_models.h"
+#include "sound.h"
+
+/* Bounded software mixer: eight effects and four vehicle engines. Samples are
+ * the supplied Xbox ADPCM decoded offline to signed 8-bit PCM, never synthesized.
+ * A split-screen listener belongs to the whole couch; pan by viewport column. */
+typedef struct { const bg_audio_asset *asset; uint32_t frame,fraction,step; int left,right; bool loop; } voice;
+static voice voices[14];
+static unsigned replacement;
+static int rate;
+static float footsteps[4], shield_sound[4];
+static void play(unsigned channel,unsigned sound,int volume,int pan,bool loop) {
+    if(sound>=BG_S_COUNT || !bg_audio_assets[sound].count)return;
+    voice*v=&voices[channel];v->asset=&bg_audio_assets[sound];v->frame=v->fraction=0;
+    v->step=((uint32_t)v->asset->rate<<16)/rate;v->loop=loop;
+    v->left=volume*(256-pan)/256;v->right=volume*pan/256;
+}
+void bg_sound_announce(unsigned sound){play(12,sound,160,128,false);}
+void bg_sound_init(void) {
+    audio_init(22050,6);rate=audio_get_frequency();
+    memset(voices,0,sizeof(voices));bg_sound_announce(BG_S_SLAYER);play(13,BG_S_AMBIENCE,18,128,true);
+}
+static unsigned reload_sound(int weapon) {
+    static const unsigned sounds[BG_WEAPON_COUNT]={BG_S_RELOAD,BG_S_PISTOL_RELOAD,BG_S_RELOAD,BG_S_RELOAD,
+        BG_S_NEEDLER_RELOAD,BG_S_SHOTGUN_RELOAD,BG_S_SNIPER_RELOAD,BG_S_ROCKET_RELOAD,BG_S_RELOAD};
+    return sounds[weapon<0||weapon>=BG_WEAPON_COUNT?0:weapon];
+}
+void bg_sound_update(void) {
+    for(unsigned i=0;i<bg_event_count;i++){
+        const bg_event*e=&bg_events[i];unsigned sound=BG_S_COUNT;int volume=112;
+        int p=e->player>=0&&e->player<4?e->player:0,pan=bg_player_count()==4?(p%2?176:80):128;
+        switch(e->kind){
+            case BG_EVENT_GAME_OVER:bg_sound_announce(BG_S_GAME_OVER);continue;
+            case BG_EVENT_DOUBLE_KILL:bg_sound_announce(BG_S_DOUBLE_KILL);continue;
+            case BG_EVENT_TRIPLE_KILL:bg_sound_announce(BG_S_TRIPLE_KILL);continue;
+            case BG_EVENT_KILLING_SPREE:bg_sound_announce(BG_S_KILLING_SPREE);continue;
+            case BG_EVENT_TELEPORTER:sound=BG_S_TELEPORTER;volume=112;break;
+            case BG_EVENT_FIRE:
+                sound=e->weapon<BG_WEAPON_COUNT?(unsigned)e->weapon:BG_S_AR;
+                if(bg_players[p].vehicle>=0){
+                    bg_vehicle*v=&bg_vehicles[bg_players[p].vehicle];int seat=bg_players[p].seat;
+                    if(v->kind==BG_V_WARTHOG&&seat==1)sound=BG_S_WARTHOG_GUN;
+                    else if(v->kind==BG_V_SCORPION&&seat==0)sound=e->weapon==BG_W_AR?BG_S_WARTHOG_GUN:BG_S_SCORPION_GUN;
+                    else if(v->kind==BG_V_GHOST&&seat==0)sound=BG_S_GHOST_GUN;
+                    else if(v->kind==BG_V_BANSHEE&&seat==0)sound=e->weapon==BG_W_ROCKET?BG_S_BANSHEE_BOMB:BG_S_BANSHEE_GUN;
+                }
+                break;
+            case BG_EVENT_RELOAD:sound=reload_sound(e->weapon);volume=100;break;
+            case BG_EVENT_JUMP:sound=BG_S_JUMP;volume=65;break;
+            case BG_EVENT_LAND:sound=BG_S_FOOTSTEP;volume=65;break;
+            case BG_EVENT_HURT:if(bg_players[p].shield_delay>shield_sound[p]+.1f){sound=BG_S_SHIELD_HIT;shield_sound[p]=bg_players[p].shield_delay;}break;
+            case BG_EVENT_DIE:sound=BG_S_DEATH;break;
+            case BG_EVENT_RESPAWN:sound=BG_S_RESPAWN;break;
+            case BG_EVENT_EXPLOSION:sound=e->weapon==BG_EXPLOSION_PLASMA?BG_S_PLASMA_EXPLOSION:BG_S_EXPLOSION;volume=160;break;
+            case BG_EVENT_SHIELD:sound=BG_S_SHIELD_CHARGE;volume=80;break;
+            default:break;
+        }
+        if(sound<BG_S_COUNT){
+            float nearest=1e10f;
+            for(unsigned j=0;j<bg_player_count();j++){
+                float distance=0;for(unsigned a=0;a<3;a++){float d=bg_players[j].pos[a]-e->pos[a];distance+=d*d;}
+                nearest=fminf(nearest,distance);
+            }
+            volume=(int)(volume/(1+nearest*.012f));
+            play(replacement++%8,sound,volume,pan,false);
+        }
+    }
+    for(unsigned p=0;p<4;p++){
+        bg_player*player=&bg_players[p];shield_sound[p]=fminf(shield_sound[p],player->shield_delay);
+        if(player->grounded&&player->health>0&&player->vehicle<0&&player->gait-footsteps[p]>3.2f){
+            play(replacement++%8,BG_S_FOOTSTEP,35,p%2?176:80,false);footsteps[p]=player->gait;
+        }
+        if(player->gait<footsteps[p])footsteps[p]=player->gait;
+        if(p>=bg_player_count()||player->health<=0||player->vehicle<0||player->seat!=0){voices[8+p].asset=NULL;continue;}
+        bg_vehicle*v=&bg_vehicles[player->vehicle];
+        unsigned sample=v->kind==BG_V_WARTHOG?BG_S_WARTHOG:v->kind==BG_V_SCORPION?BG_S_SCORPION:v->kind==BG_V_BANSHEE?BG_S_BANSHEE:BG_S_GHOST;
+        if(voices[8+p].asset!=&bg_audio_assets[sample])play(8+p,sample,40,p%2?176:80,true);
+        if(!voices[8+p].asset)continue;
+        voices[8+p].step=(uint32_t)((float)((uint32_t)voices[8+p].asset->rate<<16)/rate*(.75f+fabsf(v->speed)*.065f));
+    }
+}
+void bg_sound_pump(void) {
+    while(audio_can_write()){
+        int16_t*out=audio_write_begin();int count=audio_get_buffer_length();
+        voice*active[14];unsigned active_count=0;
+        for(unsigned c=0;c<14;c++)if(voices[c].asset)active[active_count++]=&voices[c];
+        for(int f=0;f<count;f++){
+            int left=0,right=0;
+            for(unsigned c=0;c<active_count;c++){
+                voice*v=active[c];if(!v->asset)continue;
+                int sample=v->asset->samples[v->frame];
+                left+=sample*v->left;right+=sample*v->right;
+                v->fraction+=v->step;v->frame+=v->fraction>>16;v->fraction&=65535;
+                if(v->frame>=v->asset->count){if(v->loop)v->frame%=v->asset->count;else v->asset=NULL;}
+            }
+            left/=2;right/=2; /* Headroom for four simultaneous weapon reports. */
+            out[f*2]=left>32767?32767:left< -32768?-32768:left;
+            out[f*2+1]=right>32767?32767:right< -32768?-32768:right;
+        }
+        audio_write_end();
+    }
+}

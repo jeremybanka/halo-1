@@ -1,0 +1,41 @@
+/* Scenario coordinates from the supplied Xbox Blood Gulch map. */
+static void load_scenario(void){
+    bg_add_vehicle(BG_V_WARTHOG,(float[]){-38.863001f,0.286439f,-27.165802f},-0.848279f);
+    bg_add_vehicle(BG_V_WARTHOG,(float[]){34.312370f,0.579716f,26.626144f},1.895099f);
+    bg_add_vehicle(BG_V_GHOST,(float[]){-41.011095f,0.426602f,-31.166359f},-0.778145f);
+    bg_add_vehicle(BG_V_GHOST,(float[]){-16.889324f,0.200095f,-28.021378f},-2.106262f);
+    bg_add_vehicle(BG_V_GHOST,(float[]){36.687675f,0.197242f,31.324677f},1.866184f);
+    bg_add_vehicle(BG_V_GHOST,(float[]){14.222473f,-0.094405f,35.987000f},2.005298f);
+    bg_add_vehicle(BG_V_SCORPION,(float[]){27.463425f,0.748604f,56.392944f},1.610201f);
+    bg_add_vehicle(BG_V_SCORPION,(float[]){-27.619904f,0.905973f,-54.037434f},-1.611491f);
+    bg_add_vehicle(BG_V_BANSHEE,(float[]){-22.000000f,0.000000f,-52.000000f},-1.5f);
+    bg_add_vehicle(BG_V_BANSHEE,(float[]){22.000000f,0.000000f,54.000000f},1.5f);
+    bg_add_pickup(BG_W_SHOTGUN,(float[]){-29.566399f,-0.285985f,-38.805901f});
+    bg_add_pickup(BG_W_SHOTGUN,(float[]){-26.165081f,-0.285741f,-38.762802f});
+    bg_add_pickup(BG_W_AR,(float[]){-27.871666f,-0.286866f,-40.158554f});
+    bg_add_pickup(BG_W_PLASMA_RIFLE,(float[]){-27.840885f,-0.286833f,-37.545578f});
+    bg_add_pickup(BG_W_AR,(float[]){27.662941f,-0.285741f,40.276230f});
+    bg_add_pickup(BG_W_PLASMA_RIFLE,(float[]){27.563568f,-0.286697f,42.914490f});
+    bg_add_pickup(BG_W_SHOTGUN,(float[]){29.138451f,-0.285741f,41.546188f});
+    bg_add_pickup(BG_W_SHOTGUN,(float[]){25.809006f,-0.285985f,41.384323f});
+    bg_add_pickup(BG_PICK_CAMO,(float[]){-9.004868f,1.841909f,-1.145317f});
+    bg_add_pickup(BG_PICK_HEALTH,(float[]){-30.952507f,1.704972f,-35.839127f});
+    bg_add_pickup(BG_PICK_HEALTH,(float[]){30.702393f,1.704486f,38.558075f});
+    bg_add_pickup(BG_PICK_FRAG,(float[]){27.575989f,1.704730f,39.233536f});
+    bg_add_pickup(BG_PICK_FRAG,(float[]){-27.937374f,1.705216f,-36.846146f});
+    bg_add_pickup(BG_W_PISTOL,(float[]){27.503784f,1.784486f,44.578461f});
+    bg_add_pickup(BG_W_PISTOL,(float[]){-27.922729f,1.784486f,-41.862267f});
+    bg_add_pickup(BG_W_ROCKET,(float[]){4.379219f,1.201870f,8.418854f});
+    bg_add_pickup(BG_W_SNIPER,(float[]){-24.904358f,1.704972f,-35.890633f});
+    bg_add_pickup(BG_W_SNIPER,(float[]){24.589211f,1.704486f,38.463806f});
+    bg_add_pickup(BG_PICK_OVERSHIELD,(float[]){41.008713f,2.057363f,-9.747719f});
+    bg_add_pickup(BG_PICK_PLASMA,(float[]){-5.787441f,5.940379f,37.560654f});
+    bg_add_pickup(BG_PICK_PLASMA,(float[]){6.428474f,5.709664f,-39.648293f});
+    bg_add_pickup(BG_W_PISTOL,(float[]){1.833427f,5.659782f,-29.835312f});
+    bg_add_pickup(BG_W_PISTOL,(float[]){-10.242676f,5.751720f,31.996552f});
+    /* Extra Covenant weapons make the complete catalog available. */
+    bg_add_pickup(BG_W_NEEDLER,(float[]){-28.000000f,1.800000f,-40.000000f});
+    bg_add_pickup(BG_W_NEEDLER,(float[]){28.000000f,1.800000f,43.000000f});
+    bg_add_pickup(BG_W_PLASMA_PISTOL,(float[]){-26.000000f,1.800000f,-40.000000f});
+    bg_add_pickup(BG_W_PLASMA_PISTOL,(float[]){26.000000f,1.800000f,43.000000f});
+}

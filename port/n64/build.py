@@ -14,6 +14,7 @@ def main():
     parser.add_argument('--sdk', type=Path, default=os.environ.get('N64_INST', ROOT.parent/'n64-2048/.build/libdragon'))
     parser.add_argument('--tiny3d', type=Path, default=os.environ.get('TINY3D_DIR', ROOT.parent/'n64-3d-splitscreen/.build/tiny3d'))
     parser.add_argument('--validate', action='store_true')
+    parser.add_argument('--profile', action='store_true', help='Show N64 frame timing and memory counters')
     parser.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
     args = parser.parse_args()
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
@@ -29,7 +30,9 @@ def main():
                        env={**os.environ, 'N64_INST': str(sdk)})
 
     objects = []
-    for source in [ROOT/'port/n64/main.c', ROOT/'port/n64/game.c', out/'generated/render_data.c', out/'generated/collision_data.c']:
+    sources = ['main.c', 'game.c', 'hud.c', 'sound.c', 'replay.c', 'blam/runtime.c']
+    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'firstperson_data.c']
+    for source in [*(ROOT/'port/n64'/name for name in sources), *(out/'generated'/name for name in generated)]:
         obj = out/(source.stem+'.o')
         objects.append(obj)
         run([sdk/'bin/mips64-elf-gcc', '-c', source, '-o', obj,
@@ -39,7 +42,9 @@ def main():
              '-Wall', '-Wextra', '-Werror', '-ftrivial-auto-var-init=pattern',
              '-I'+str(sdk/'mips64-elf/include'), '-I'+str(tiny/'src'), '-I'+str(ROOT/'port/n64'),
              *(['-DRDPQ_VALIDATE'] if args.validate else []),
-             *(['-DBG_DEMO'] if args.demo else [])])
+             *(['-DBG_DEMO'] if args.demo else []),
+             *(['-DBG_PROFILE'] if args.profile else []),
+             *(['-fno-fast-math', '-ffp-contract=off'] if source.name == 'runtime.c' else [])])
     elf = out/('halo-blood-gulch-replay.elf' if args.demo else 'halo-blood-gulch.elf')
     run([sdk/'bin/mips64-elf-g++', '-o', elf, *objects, tiny/'build/libt3d.a', '-lc', '-mabi=o64',
          '-Wl,-g', '-Wl,-L'+str(sdk/'mips64-elf/lib'), '-Wl,-ldragon', '-Wl,-lm', '-Wl,-ldragonsys',

@@ -3,6 +3,12 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "controls.h"
+#include "menu.h"
+#include "menu_draw.h"
+#ifdef BG_MENU_QA
+#include "menu_qa.h"
+#endif
 #include "asset_models.h"
 #include "asset_firstperson.h"
 #include "firstperson_ammo.h"
@@ -99,9 +105,9 @@ static T3DMat4FP held_matrices[BG_FRAME_SLOTS][4];
 static rspq_syncpoint_t fences[BG_FRAME_SLOTS];
 static bool pending[BG_FRAME_SLOTS];
 static unsigned slot,views=4,triangles,fps;
+static bg_menu menu;
 #ifndef BG_SNAPSHOT_TICK
 static bool paused;
-static unsigned menu_row;
 #endif
 static float game_time;
 static int16_t triangle_lists[20][64] __attribute__((aligned(16)));
@@ -561,30 +567,38 @@ static void reset_view_state(void){
     memset(explosions,0,sizeof(explosions));memset(wheel_rotation,0,sizeof(wheel_rotation));explosion_next=0;
 }
 #ifndef BG_SNAPSHOT_TICK
+static uint32_t control_buttons(joypad_buttons_t buttons){
+    uint32_t bits=0;
+#define BUTTON(field,name) if(buttons.field)bits|=BG_BUTTON_##name
+    BUTTON(a,A);BUTTON(b,B);BUTTON(l,L);BUTTON(r,R);BUTTON(z,Z);BUTTON(start,START);
+    BUTTON(d_up,D_UP);BUTTON(d_down,D_DOWN);BUTTON(d_left,D_LEFT);BUTTON(d_right,D_RIGHT);
+    BUTTON(c_up,C_UP);BUTTON(c_down,C_DOWN);BUTTON(c_left,C_LEFT);BUTTON(c_right,C_RIGHT);
+#undef BUTTON
+    return bits;
+}
 static bool input(bg_input in[4]){
-    bool was_paused=paused;
+    bg_control_state raw[4];bg_menu_input navigation[4];
     joypad_poll();
     for(unsigned i=0;i<4;i++){
         joypad_inputs_t stick=joypad_get_inputs(i);joypad_buttons_t held=joypad_get_buttons(i),pressed=joypad_get_buttons_pressed(i);
-        float x=stick.stick_x/80.f,y=stick.stick_y/80.f;if(fabsf(x)<.12f)x=0;if(fabsf(y)<.12f)y=0;
-        in[i]=(bg_input){.forward=y,.turn=-x,.strafe=held.c_right-held.c_left,.look=held.c_up-held.c_down,
-            .jump=bg_players[i].vehicle>=0?held.a:pressed.a,.fire=held.z,.reload=pressed.b,.interact=pressed.b,.switch_weapon=pressed.r,
-            .grenade=pressed.l,.secondary_fire=held.l,.switch_grenade=pressed.d_left,.melee=pressed.d_down,.zoom=pressed.d_up,.crouch=held.d_right};
-        if(i==0){
-            if(pressed.start)paused=!paused;
-            if(paused){
-                if(pressed.d_down)menu_row=(menu_row+1)%4;
-                if(pressed.d_up)menu_row=(menu_row+3)%4;
-                if(pressed.a){
-                    if(menu_row==0)paused=false;
-                    if(menu_row==1){bg_reset();paused=false;game_time=0;reset_view_state();}
-                    if(menu_row==2){views=views==4?1:views==1?2:4;bg_set_players(views);}
-                }
-            }
-        }
+        raw[i]=(bg_control_state){.stick_x=stick.stick_x,.stick_y=stick.stick_y,
+            .held=control_buttons(held),.pressed=control_buttons(pressed)};
     }
-    if(paused||was_paused)memset(in,0,sizeof(bg_input)*4);
-    return paused||was_paused;
+#ifdef BG_MENU_QA
+    bg_menu_qa_input(raw,get_ticks_us());
+#endif
+    bg_menu_inputs(&menu,raw,navigation);
+    bg_menu_result result=bg_menu_update(&menu,navigation,views);
+    paused=menu.open;
+    if(result.action==BG_MENU_ACTION_RESTART){bg_reset();game_time=0;reset_view_state();}
+    if(result.action==BG_MENU_ACTION_PLAYER_COUNT){views=result.player_count;bg_set_players(views);}
+    memset(in,0,sizeof(bg_input)*4);
+    if(!result.consumed)for(unsigned i=0;i<views;i++)
+        bg_controls_map(&in[i],&raw[i],menu.styles[i],bg_players[i].vehicle>=0);
+#ifdef BG_MENU_QA
+    bg_menu_qa_check(&menu,views,&result,in);
+#endif
+    return result.consumed;
 }
 #ifdef BG_PACED30
 static surface_t*paced_acquire(blam_clock*clock,uint64_t*previous,
@@ -1119,15 +1133,7 @@ static void draw_view(unsigned p){
 }
 #ifndef BG_SNAPSHOT_TICK
 static void draw_menu(void){
-    fill(48,32,224,176,RGBA32(12,27,56,255));fill(48,32,224,2,RGBA32(114,176,233,255));
-    rdpq_set_mode_standard();rdpq_text_print(NULL,1,66,52,"HALO / BLOOD GULCH");
-    rdpq_text_print(NULL,1,66,68,"SLAYER");
-    const char*items[]={"RESUME","RESTART MATCH","PLAYERS","CONTROLS"};
-    for(unsigned i=0;i<4;i++)rdpq_text_printf(NULL,1,66,90+i*16,"%c %s%s",menu_row==i?'>':' ',items[i],i==2?(views==4?" 4":views==2?" 2":" 1"):"");
-    rdpq_text_print(NULL,1,58,158,"Z FIRE  A JUMP  B USE/RELOAD");
-    rdpq_text_print(NULL,1,58,170,"R WEAPON  L GRENADE  C AIM");
-    rdpq_text_print(NULL,1,58,182,"D: UP ZOOM / DOWN MELEE");
-    rdpq_text_print(NULL,1,58,194,"LEFT GRENADE / RIGHT CROUCH");
+    bg_menu_draw(&menu);
 }
 #endif
 static void draw_result(void){
@@ -1354,6 +1360,10 @@ int main(void){
     t3d_init((T3DInitParams){});
     bg_fp_ammo_init();
     rdpq_text_register_font(1,rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
+    bg_menu_init(&menu,views);
+#ifndef BG_SNAPSHOT_TICK
+    bg_menu_draw_init();
+#endif
     surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_reset();bg_set_players(views);bg_sound_init();
 #ifdef BG_SNAPSHOT_TICK
     /* No rendering or wall-clock scheduling during this advance. Presentation
@@ -1368,7 +1378,7 @@ int main(void){
         (unsigned)BG_SNAPSHOT_TICK,game_time);
 #endif
 #ifdef BG_SHOWCASE
-    bg_showcase_begin(BG_SHOWCASE);views=bg_showcase_views();
+    bg_showcase_begin(BG_SHOWCASE);views=bg_showcase_views();menu.player_count=views;
 #endif
     heap_stats_t heap;sys_get_heap_stats(&heap);
     debugf("HALO N64 world=%u textures=%u RAM=%d free=%d\n",bg_collision_count,bg_material_count,get_memory_size(),heap.total-heap.used);
@@ -1515,7 +1525,7 @@ int main(void){
 #endif
         for(unsigned p=0;p<views;p++){
             T3DViewport*vp=&viewports[slot][p];
-            bg_hud_draw(p,vp->offset[0],vp->offset[1],vp->size[0],vp->size[1]);
+            bg_hud_draw(p,vp->offset[0],vp->offset[1],vp->size[0],vp->size[1],menu.styles[p]);
         }
 #ifdef BG_PROFILE
         hud_us=get_ticks_us()-hud_begin;
@@ -1545,13 +1555,22 @@ int main(void){
         rdpq_text_printf(NULL,1,2,232,"S%u P%u D%u W%u T%u M%d",sim_us/1000,prep_us/1000,draw_us/1000,wait_us/1000,triangles,(heap.total-heap.used)/1024);
 #endif
 #endif
-#ifdef RDPQ_VALIDATE
+#if defined(RDPQ_VALIDATE) && !defined(BG_MENU_QA)
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"RDP %u ERRORS %u WARNINGS",validation_errors,validation_warnings);
         if(validation_errors||validation_warnings)rdpq_text_print(NULL,1,4,225,validation_message);
 #endif
         if(bg_match_finished())draw_result();
 #ifndef BG_SNAPSHOT_TICK
         if(paused)draw_menu();
+#endif
+#ifdef BG_MENU_QA
+        rdpq_set_mode_standard();
+        fill(0,0,320,12,RGBA32(6,15,30,255));rdpq_set_mode_standard();
+        rdpq_text_printf(NULL,1,4,9,"SCRIPTED MENU QA %u/40%s",bg_menu_qa_step()+1,bg_menu_qa_done()?" PASS":"");
+#ifdef RDPQ_VALIDATE
+        fill(0,228,320,12,RGBA32(6,15,30,255));rdpq_set_mode_standard();
+        rdpq_text_printf(NULL,1,4,237,"RDP %u ERRORS %u WARNINGS",validation_errors,validation_warnings);
+#endif
 #endif
 #ifdef BG_PROFILE
         overlay_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();

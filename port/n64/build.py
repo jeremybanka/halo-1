@@ -33,6 +33,7 @@ def main():
     mode.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
     mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')
     mode.add_argument('--snapshot-tick', type=int, help='QA only: fast-forward exactly N fixed replay ticks, then redraw the frozen four-player scene without overlays')
+    mode.add_argument('--menu-qa', action='store_true', help='QA only: script raw controller inputs through the real pause menu and verify all four owners, styles, and setup permissions')
     args = parser.parse_args()
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
@@ -46,6 +47,8 @@ def main():
             parser.error('--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds')
     if args.gpu_diagnostic and not args.benchmark:
         parser.error('--gpu-diagnostic requires --benchmark')
+    if args.menu_qa and (args.benchmark or args.vi_benchmark or args.profile):
+        parser.error('--menu-qa cannot combine with timing or profiling modes')
     if args.vi_benchmark:
         if args.benchmark or args.profile or args.validate or args.gpu_diagnostic or args.showcase:
             parser.error('--vi-benchmark is a quiet four-player replay and cannot combine with benchmark/profile/validation/diagnostic/showcase modes')
@@ -79,6 +82,16 @@ def main():
         path = out/'generated'/name
         if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             parser.error('Stale on-weapon ammo bank; run port/n64/pack_fp_ammo.py after packing first-person models')
+    menu_report = out/'generated/menu-report.json'
+    if not menu_report.exists():
+        parser.error('Generate the original menu fonts and panel first: port/n64/extract_menu_assets.py')
+    menu = json.loads(menu_report.read_text())
+    menu_inputs = {**menu.get('inputs', {}),
+                   'build/n64/generated/menu_data.c': menu.get('generated_sha256')}
+    for name, expected in menu_inputs.items():
+        path = ROOT/name
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            parser.error('Stale menu bank; regenerate with port/n64/extract_menu_assets.py')
     if not (sdk/'bin/mips64-elf-gcc').exists() or not (tiny/'build/libt3d.a').exists():
         parser.error('Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D')
 
@@ -88,7 +101,7 @@ def main():
 
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
-    sources = ['main.c', 'game.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    sources = ['main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
     sdk_extra_sources = []
     if args.rspq_buffer_kib:
         sdk_source = (args.libdragon_source or sdk.parent/'libdragon-src').resolve()
@@ -97,7 +110,9 @@ def main():
         sdk_extra_sources.append(out/'rspq-override/rspq_override.c')
     if args.showcase:
         sources.append('showcase.c')
-    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    if args.menu_qa:
+        sources.append('menu_qa.c')
+    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -121,6 +136,7 @@ def main():
              *(['-DRDPQ_VALIDATE'] if args.validate else []),
              *(['-DBG_DEMO'] if args.demo else []),
              *(['-DBG_SHOWCASE='+str(SHOWCASES.index(args.showcase))] if args.showcase else []),
+             *(['-DBG_MENU_QA'] if args.menu_qa else []),
              *(['-DBG_SNAPSHOT_TICK='+str(args.snapshot_tick)+'u'] if args.snapshot_tick is not None else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
              *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
@@ -137,6 +153,8 @@ def main():
     name = 'halo-blood-gulch-showcase-'+args.showcase if args.showcase else 'halo-blood-gulch-replay' if args.demo else 'halo-blood-gulch'
     if args.snapshot_tick is not None:
         name += '-snapshot-'+str(args.snapshot_tick)
+    if args.menu_qa:
+        name += '-menu-qa'
     if args.blam_bsp:
         name += '-blam-bsp'
     if args.vi_benchmark:

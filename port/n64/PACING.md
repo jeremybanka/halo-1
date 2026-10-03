@@ -1,10 +1,25 @@
 `--paced30` enables four-view presentation on every second retrace. For the
-current visual build, use `--paced30 --paced30-buffers 5`: its production replay
-has zero missed deadlines. Four surfaces offer lower measured input-to-display
-latency but have one vehicle-phase deadline miss in the same replay.
+current build, use `--paced30 --paced30-buffers 5`: its production replay
+has zero missed deadlines. In the preceding visibility/weapon-display revision,
+four surfaces offered lower measured input-to-display latency with one
+vehicle-phase deadline miss. That four-surface comparison was not repeated
+after the controls/menu update.
 The ordinary no-option build remains unpaced. The option adds `-paced30` to the ROM name;
 frozen `--snapshot-tick` builds ignore it. This is an emulator-tested profile,
 not a physical-console performance guarantee.
+
+The controls/menu revision was remeasured with five surfaces in Ares v148,
+Metal, NTSC and 4 MiB. In 75.017 seconds after one second of warmup, all 2,244
+fresh displayed poses arrive two retraces apart: 1,078 combat and 1,166 vehicle
+poses. There are zero missed deadlines, duplicate displayed poses or dropped
+simulation ticks; five intermediate poses are skipped. P95 and maximum are
+33.4 ms, with the NTSC rate displayed as 29.9 FPS. Input sample to VI is
+130/135 ms mean/maximum, ready to VI is 98/115 ms, and free heap is 683 KiB.
+Held/SDK-ready/submitted peaks remain 4/1/4. The original menu asset bank and
+working storage remain resident during this menu-closed gameplay measurement.
+The local proof is `build/n64/controls-menu-qa/timing-result.json`, with the
+captured result page and exact ROM/source hashes. This is a fresh measurement
+of the same scripted replay, not a claim about every possible match.
 
 In the three-surface four-view mode, completed frames wait in a two-entry FIFO
 while the third surface is scanned out. After two completed frames prefill the queue, one frame
@@ -80,7 +95,7 @@ candidate results remain separately labeled. This measurement covers the
 scripted replay, not every possible match.
 
 After the title-safe aiming projection, conservative edge submission,
-Scorpion cannon repair and on-weapon ammunition displays, the current
+Scorpion cannon repair and on-weapon ammunition displays, the preceding
 four-surface build presents 2,243 fresh poses in 75.017 seconds. There is one
 vehicle-phase missed deadline: 2,242 intervals are two VI retraces and one is
 four retraces (66.8 ms). The exact-output CPU/command-cache refinements preserve

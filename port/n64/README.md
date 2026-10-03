@@ -21,36 +21,48 @@ cartridge for the recommended four-player presentation profile. Build it with
 `build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
 The five-surface profile holds two-retrace cadence in the measured Ares replay,
-with 127/135 ms mean/maximum input-sample-to-display latency. The four-surface
+with 130/135 ms mean/maximum input-sample-to-display latency after the menu update. The four-surface
 alternative has lower latency and one missed deadline; see [PACING.md](PACING.md).
 Four views start immediately. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.
-Player 1's Start menu selects one, two or four players and restarts the match.
+Any active player can press **Start** to pause and own the menu. Another
+player's Start transfers ownership; the current owner's Start resumes.
+**Setup** is enabled only for Player 1 and selects one, two or four players
+or restarts the match. **Controls** changes only the menu owner's layout.
+Every player starts with **N64** controls. Each player's choice survives match
+restarts and player-count changes, but is not saved across power cycles.
 Slayer ends at **25 kills**, with a winner panel and announcer audio.
 
-| N64 control | Action |
-| --- | --- |
-| Stick up/down | Walk, or drive forward/backward |
-| Stick left/right | Turn / aim |
-| C-left/right | Strafe; steer the Scorpion hull |
-| C-up/down | Look up/down |
-| A | Jump; hold to raise the Banshee |
-| Z | Fire primary weapon |
-| B | Reload / pick up a nearby weapon / enter or exit a vehicle |
-| R | Switch between the two carried weapons |
-| L | Throw grenade; hold for mounted secondary fire |
-| D-up | Cycle weapon zoom |
-| D-down | Melee |
-| D-left | Switch grenade type |
-| D-right | Crouch; lower the Banshee |
-| Player 1 Start | Pause / match options |
+| Action | N64 (unchanged default) | Xbox style |
+| --- | --- | --- |
+| Walk / drive forward and backward | Stick up/down | D-up/down |
+| Turn / aim horizontally | Stick left/right | Stick left/right |
+| Strafe / steer the Scorpion hull | C-left/right | D-left/right |
+| Look up/down | C-up/down | Stick up/down |
+| Jump; hold to raise the Banshee | A | A |
+| Fire primary weapon | Z | Z |
+| Reload / pick up / enter or exit a vehicle | B | R |
+| Switch carried weapon | R | C-left |
+| Throw grenade; hold for mounted secondary fire | L | L |
+| Cycle weapon zoom | D-up | C-up |
+| Melee | D-down | B |
+| Switch grenade type | D-left | C-right |
+| Crouch; lower the Banshee | D-right | C-down |
+| Pause / menu ownership / resume | Start | Start |
+
+In the menu, D-pad or stick up/down moves the highlight, **A** selects, and
+**B** goes back or resumes from the root. Left/right or A changes the selected
+player count or control style. See [CONTROLS.md](CONTROLS.md) for ownership,
+button-edge behavior and vehicle controls.
 
 Approach the Warthog's left side for the driver, right side for the front
-passenger, or rear for the gunner, then press B. The nearest available entry
-marker selects the seat.
+passenger, or rear for the gunner, then press **B** with N64 controls or **R**
+with Xbox style. The nearest available entry marker selects the seat; HUD
+interaction prompts use that player's selected button.
 
-The Scorpion's stick aims its turret independently; C-left/right steer its
-hull. Z fires the cannon and L fires the machine gun. The Warthog has a driver,
+The Scorpion's turn/look inputs aim its turret independently; strafe steers its
+hull (C-left/right in N64, D-left/right in Xbox style). Z fires the cannon and
+L fires the machine gun. The Warthog has a driver,
 independent turret gunner and passenger. Ghost and Banshee have forward plasma
 weapons; the Banshee's L fires its secondary projectile. The tank also carries
 two passengers. Both original rooftop teleporter pairs lead to their original
@@ -146,6 +158,7 @@ Then follow the six expanded extraction/reduction/packing commands in
 `a30.map` and bake the first-person rigs. Finish with:
 
 ```sh
+build/n64-python/bin/python port/n64/extract_menu_assets.py
 build/n64-python/bin/python port/n64/validate_assets.py
 build/n64-python/bin/python port/n64/build.py
 build/n64-python/bin/python port/n64/build.py --demo
@@ -164,6 +177,13 @@ four human controllers. `--profile` adds N64 timing/memory counters;
 `--validate` enables the expensive libdragon RDP command validator.
 Instrumented ROM names end in `-validation` or `-profile`, preserving the
 uninstrumented cartridge.
+
+`--menu-qa --validate --paced30 --paced30-buffers 5` builds a separate scripted
+menu test. It injects raw controller samples through the production input path,
+checks all four menu owners, both styles, permissions, player counts and match
+restart, then holds its `40/40 PASS` page. This is automated input verification;
+the normal cartridge uses physical controller input. Original menu assets and
+their adaptation are documented in [MENU_STYLE.md](MENU_STYLE.md).
 
 `--benchmark` runs the four-player replay for a 75-second measured interval
 after a one-second warmup, with no live diagnostic text. Its result pages

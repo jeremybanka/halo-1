@@ -28,10 +28,12 @@ static unsigned blit_count;
  * The recorded blocks and their lifetime remain unchanged. */
 static uint16_t blit_heads[BG_H_COUNT],blit_next[192];
 enum { HUD_EXIT, HUD_PICKUP, HUD_ENTER, HUD_RELOAD, HUD_OVERHEAT,
-       HUD_RESPAWN_0, HUD_RESPAWN_1, HUD_RESPAWN_2, HUD_RESPAWN_3, HUD_STATUS_COUNT };
+       HUD_RESPAWN_0, HUD_RESPAWN_1, HUD_RESPAWN_2, HUD_RESPAWN_3,
+       HUD_XBOX_EXIT, HUD_XBOX_PICKUP, HUD_XBOX_ENTER, HUD_STATUS_COUNT };
 static const char *const status_strings[HUD_STATUS_COUNT]={
     "B EXIT","B PICK UP","B ENTER","Reloading","Overheated",
-    "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3"};
+    "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3",
+    "R EXIT","R PICK UP","R ENTER"};
 /* These labels have fixed font, width and alignment. Lay them out once instead
  * of allocating and formatting the same paragraph in each player view. */
 static rdpq_paragraph_t *status_layouts[2][HUD_STATUS_COUNT];
@@ -52,6 +54,12 @@ static const unsigned magazines[BG_WEAPON_COUNT] = {
 static const int vehicle_reticles[BG_VEHICLE_COUNT] = {
     BG_H_RETICLE_WARTHOG, BG_H_RETICLE_GHOST, BG_H_RETICLE_SCORPION, BG_H_RETICLE_BANSHEE
 };
+
+static int control_status(int status,bg_control_style style) {
+    if(style==BG_CONTROLS_XBOX&&status>=HUD_EXIT&&status<=HUD_ENTER)
+        return HUD_XBOX_EXIT+status-HUD_EXIT;
+    return status;
+}
 
 static void set_combiner(int kind) {
     if (current_combiner==kind) return;
@@ -300,7 +308,7 @@ void bg_hud_init(void) {
     }
 }
 
-void bg_hud_draw(unsigned index,int x,int y,int width,int height) {
+void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_style style) {
     const bg_player *p=&bg_players[index];
     float scale=width<200?.45f:.5f;
     int margin=width<200?5:9;
@@ -387,6 +395,7 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height) {
     } else {
         status=interaction(p);
     }
+    status=control_status(status,style);
     if(status>=0)rdpq_paragraph_render(status_layouts[width<200][status],x+margin,status_y);
     rdpq_set_mode_standard();
 }

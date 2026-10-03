@@ -2,13 +2,14 @@
 """Pack locally extracted Xbox models, baked animation, audio and HUD for libdragon."""
 import argparse,json,math
 from pathlib import Path
-from pack_assets import position, normal, floats
+from pack_assets import position, floats
 from extract_extended import MODEL_PATHS, AUDIO_TAGS, ANIM_NAMES
 from vehicle_parts import VEHICLES, split_vehicle
+from pack_animation import emit_clip, clip_initializer
+from model_colors import load_images, bake_triangle, bake_team_mask
 
 
 def pack(source,out,pc_extras=False):
- from PIL import Image
  data=json.loads(source.read_text());out.mkdir(parents=True,exist_ok=True)
  raw=json.loads((source.parent/'extended-raw.json').read_text());rigs={}
  for name in VEHICLES:
@@ -16,23 +17,27 @@ def pack(source,out,pc_extras=False):
  def rgba(rgb):return (rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255
  def xyz(v):return '{'+','.join(map(str,v))+'}'
  lines=['/* Generated from local game data; do not commit. */','#include "asset_models.h"']
- model_sizes={}
+ model_sizes={};previews={};scales={}
  all_models=list(data['models'].items())+[(name+'_lod',model) for name,model in data.get('vehicle_lods',{}).items()]+[('spartan_lod',data['spartan_lod'])]
  for name,model in all_models:
   if name=='flamethrower' and not pc_extras:continue
-  verts=[]
-  images=[Image.open(p).convert('RGB') if p else None for p in model['textures']]
+  scale=128 if name.startswith('spartan') else 1024;scales[name]=scale
+  verts=[];team_mask=[]
+  images=load_images(model['textures'])
+  masks=load_images(model.get('team_masks',[]));channels=model.get('team_mask_channels',[])
   for tri in model['triangles']:
-   points=[position(p,(0,0,0)) for p in tri['p']];n=normal(points);light=.68+.32*max(0,sum(a*b for a,b in zip(n,[.25,.83,.49])))
-   im=images[tri['material']] if tri['material']<len(images) else None
-   for p,(u,v) in zip(points,tri['uv']):
-    rgb=im.getpixel((int((u%1)*im.width)%im.width,int(((1-v)%1)*im.height)%im.height)) if im else (130,133,135)
-    if name=='overshield':rgb=(238,92,52)
-    if name=='camouflage':rgb=(57,151,234)
-    if name.startswith('spartan'):
-     # Team recoloring is applied by runtime, retaining gold visor pixels.
-     rgb=(230,170,45) if tri['material']==3 or (p[1]>.56 and p[0]>.025) else (200,206,210)
-    rgb=[round(c*light) for c in rgb];verts.append(([round(x*32) for x in p],rgb))
+   points=[position(p,(0,0,0)) for p in tri['p']]
+   colors=bake_triangle(tri,images,model)
+   team_mask.extend(bake_team_mask(tri,masks,channels))
+   for p,rgb in zip(points,colors):
+    if name=='overshield':rgb=[238,92,52]
+    if name=='camouflage':rgb=[57,151,234]
+    verts.append(([round(x*scale) for x in p],rgb))
+  previews[name]={'positions':[[c/scale for c in p] for p,rgb in verts],
+                  'colors':[rgb for p,rgb in verts],'triangle_count':len(model['triangles']),
+                  'team_mask':[m/255 for m in team_mask]}
+  if name in ('spartan','spartan_lod'):
+   lines.append(f'const uint8_t bg_{name}_team_mask[]={{'+','.join(map(str,team_mask))+'};')
   count=len(verts);model_sizes[name]=count
   if count%2:verts.append(verts[-1])
   lines.append(f'static T3DVertPacked model_{name}[] __attribute__((aligned(16)))={{')
@@ -59,25 +64,21 @@ def pack(source,out,pc_extras=False):
   lod=name+'_lod';radius=max(math.sqrt(sum(v*v for v in p)) for t in data['models'][name]['triangles'] for p in t['p'])
   lines.append(f'{{model_{lod},{model_sizes[lod]},{radius:.6f}f}},')
  lines.append('};')
- anim_bytes=0
+ anim_bytes=0;animation_packing={}
  for name in ANIM_NAMES:
-  clip=data['animations'][name];values=[round(v*32) for frame in clip['frames'] for p in frame for v in position(p,(0,0,0))]
-  if not all(-32768<=v<=32767 for v in values):raise ValueError('Animation vertex overflow')
-  anim_bytes+=len(values)*2
-  lines.append(f'static const int16_t anim_{name}[]={{'+','.join(map(str,values))+'};')
+  clip=data['animations'][name];packed=emit_clip(lines,'anim_'+name,clip,128)
+  animation_packing[name]=packed;anim_bytes+=packed['bytes']
  lines.append('const bg_anim_asset bg_animations[BG_A_COUNT]={')
  for name in ANIM_NAMES:
-  a=data['animations'][name];lines.append(f'{{anim_{name},{len(a["frames"])},{model_sizes["spartan"]},{a["duration"]:.6f}f}},')
+  lines.append(clip_initializer('anim_'+name,data['animations'][name],animation_packing[name]))
  lines.append('};')
  lines.append(f'const bg_model_asset bg_spartan_lod={{model_spartan_lod,{model_sizes["spartan_lod"]},1.0f}};')
  for name in ANIM_NAMES:
-  clip=data['animations_lod'][name];values=[round(v*32) for frame in clip['frames'] for p in frame for v in position(p,(0,0,0))]
-  if not all(-32768<=v<=32767 for v in values):raise ValueError('LOD animation vertex overflow')
-  anim_bytes+=len(values)*2
-  lines.append(f'static const int16_t anim_lod_{name}[]={{'+','.join(map(str,values))+'};')
+  clip=data['animations_lod'][name];packed=emit_clip(lines,'anim_lod_'+name,clip,128)
+  animation_packing['lod_'+name]=packed;anim_bytes+=packed['bytes']
  lines.append('const bg_anim_asset bg_spartan_lod_animations[BG_A_COUNT]={')
  for name in ANIM_NAMES:
-  a=data['animations_lod'][name];lines.append(f'{{anim_lod_{name},{len(a["frames"])},{model_sizes["spartan_lod"]},{a["duration"]:.6f}f}},')
+  lines.append(clip_initializer('anim_lod_'+name,data['animations_lod'][name],animation_packing['lod_'+name]))
  lines.append('};')
  for name in ANIM_NAMES:
   lines.append(f'static const bg_attachment_pose attachment_{name}[]={{')
@@ -88,6 +89,7 @@ def pack(source,out,pc_extras=False):
  for name in ANIM_NAMES:
   a=data['weapon_attachment'][name];lines.append(f'{{attachment_{name},{len(a["poses"])},{a["duration"]:.6f}f}},')
  lines.append('};');(out/'models_data.c').write_text('\n'.join(lines)+'\n')
+ (out/'model-preview.json').write_text(json.dumps(previews))
  lines=['/* Generated from local game audio; do not commit. */','#include "asset_models.h"']
  for name in AUDIO_TAGS:
   if name=='flamethrower' and not pc_extras:continue
@@ -102,8 +104,8 @@ def pack(source,out,pc_extras=False):
   lines.append(f'{{audio_{buffer},{a["count"]},{a["rate"]},{str(a["loop"]).lower()}}},')
  lines.append('};');(out/'audio_data.c').write_text('\n'.join(lines)+'\n')
  hud_bytes,scope_bytes=pack_hud(raw['hud'],out,source.parent/'hud-sprites')
- report={'models':{k:v//3 for k,v in model_sizes.items()},'model_bytes':sum((v+1)//2*32 for v in model_sizes.values()),
- 'animation_bytes':anim_bytes,'audio_bytes':sum(v['count'] for k,v in data['audio'].items() if 'alias' not in v and (pc_extras or k!='flamethrower')),'hud_bytes':hud_bytes,
+ report={'position_scale':1024,'model_position_scales':scales,'team_mask_bytes':sum(len(previews[n]['team_mask']) for n in ('spartan','spartan_lod')),'models':{k:v//3 for k,v in model_sizes.items()},'model_bytes':sum((v+1)//2*32 for v in model_sizes.values()),
+ 'animation_bytes':anim_bytes,'animation_uncompressed_bytes':sum(p['uncompressed_bytes'] for p in animation_packing.values()),'audio_bytes':sum(v['count'] for k,v in data['audio'].items() if 'alias' not in v and (pc_extras or k!='flamethrower')),'hud_bytes':hud_bytes,
  'scope_bytes':scope_bytes,'pc_extras':pc_extras,'audio_events':len(data['audio'])-(not pc_extras),'audio_unique_clips':sum('alias' not in v for k,v in data['audio'].items() if pc_extras or k!='flamethrower'),
  'vehicle_rigs':rigs}
  (out/'extended-report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

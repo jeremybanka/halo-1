@@ -4,6 +4,7 @@ import json,math
 from pathlib import Path
 from vehicle_parts import split_vehicle
 from extract_extended import AUDIO_TAGS,AUDIO_ALIASES
+from pack_animation import compact_clip
 
 
 def main():
@@ -12,9 +13,9 @@ def main():
  fp=json.loads((root/'assets/firstperson-reduced.json').read_text())
  assert len(reduced['models'])==19
  assert len(reduced['vehicle_lods'])==4
- assert all(0<len(m['triangles'])<=80 for m in reduced['vehicle_lods'].values())
- assert len(reduced['spartan_lod']['triangles'])<=60
- assert all(len(reduced['models'][name]['triangles'])<=20 for name in ('frag','plasma_grenade'))
+ assert all(0<len(m['triangles'])<=450 for m in reduced['vehicle_lods'].values())
+ assert len(reduced['spartan_lod']['triangles'])<=240
+ assert all(len(reduced['models'][name]['triangles'])<=80 for name in ('frag','plasma_grenade'))
  assert raw['models']['banshee']['baked_vehicle_pose']=='stand closing:terminal'
  for mesh in (reduced['models']['banshee'],reduced['vehicle_lods']['banshee']):
   points=[p for t in mesh['triangles'] for p in t['p']]
@@ -67,7 +68,7 @@ def main():
  assert len(fp['weapons'])==9
  for name,weapon in fp['weapons'].items():
   count=len(weapon['triangles'])*3
-  assert count<=660,name
+  assert count<=1800,name
   for cn,clip in weapon['clips'].items():
    assert all(len(frame)==count for frame in clip['frames']),(name,cn)
    assert all(math.isfinite(v) and abs(v)<3 for frame in clip['frames'] for p in frame for v in p),(name,cn)
@@ -83,9 +84,11 @@ def main():
   assert len(fp_report['vertices'])==8 and fp_report['aliases']=={'flamethrower':'ar'}
   assert 'fp_flamethrower' not in fp_c
   assert fp_report['total_bytes']==sum(
-      ((len(w['triangles'])*3+1)//2)*32+
-      sum(len(a['frames'])*len(w['triangles'])*18 for a in w['clips'].values())
+      ((len(w['triangles'])*3+1)//2)*32+len(w['triangles'])*3+
+      sum(compact_clip(a,256)['bytes'] for a in w['clips'].values())
       for n,w in fp['weapons'].items() if n!='flamethrower')
+ for key in ('animations','animations_lod'):
+  for clip in reduced[key].values():compact_clip(clip,128)
  for name,sound in raw['audio'].items():
   samples=Path(sound['file']).read_bytes()
   assert sound['count']==len(samples)>0 and sound['rate']==11025,name

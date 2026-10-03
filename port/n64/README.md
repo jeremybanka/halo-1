@@ -167,9 +167,12 @@ Build these ROMs serially because the compiler object directory is shared.
 | Resource | Budget |
 | --- | ---: |
 | Blood Gulch BSP | 5,503 → 1,870 triangles |
-| Spartan | 170 nearby / 60 distant triangles |
-| First-person gun + hands | 218–220 triangles per weapon |
-| Vehicle | approximately 240 nearby / 80 distant triangles |
+| Spartan | 460 nearby / 151 distant triangles |
+| First-person gun + hands | 467–587 triangles per weapon; 211 shared hand triangles |
+| World weapons | 174–274 triangles |
+| Vehicles | 554–808 nearby / 235–271 distant triangles, including part padding |
+| Grenades | 62 frag / 64 plasma triangles |
+| Model animation storage | 484,257 bytes after lossless track sharing and clip-local byte offsets |
 | World materials | 17 × 32×32 RGBA16 |
 | World vertex storage | 91,104 bytes |
 | Collision mesh and grid | 80,506 bytes |
@@ -178,12 +181,26 @@ Build these ROMs serially because the compiler object directory is shared.
 | Audio | 11,025 Hz source PCM, 22,050 Hz stereo output; 14 bounded voices |
 
 Each camera independently culls world chunks and objects. Cached RSP display
-blocks, distant model LODs, batched HUD digits, and triple-buffered matrices
-and animated vertices reduce work. RSP fences protect buffers before reuse.
+blocks, distant model LODs, batched HUD digits, and two sets of matrices
+and animated vertices reduce work. The three display color buffers remain
+independent. RSP fences protect geometry buffers before reuse.
 Animation writes use the CPU cache followed by explicit writeback. The game
 uses Blam's local 30 Hz scheduler with bounded catch-up.
 
 ## Verification
+
+The model comparison audit covers all eight Xbox multiplayer weapons in world
+and first-person forms, shared hands, all four Spartan colors at both LODs,
+four vehicles at both LODs, both grenades and three pickups. Each of 46 entries
+compares original highest-detail source, preserved prior packed output, and
+revised packed output from eight matching angles, with 160×120 and 48/24-pixel
+size probes. See [ASSET_PIPELINE.md](ASSET_PIPELINE.md#model-comparison-audit)
+for reproduction and the limits of these offline reference renders.
+
+```sh
+build/n64-python/bin/python port/n64/test_pack_animation.py
+build/n64-python/bin/python port/n64/audit_models.py
+```
 
 ```sh
 python3 port/n64/blam/prepare_core.py
@@ -223,20 +240,21 @@ actual flight, driver/front-passenger seating, same-tick frag double kills,
 shotgun kills, seven-hit Needler supercombines, and a single homing needle
 turning before impact. They also verify kill ownership through awarded scores.
 
-The emulator used for visual checks is ares v147, OpenGL 3.2. The default build
-was checked with the Expansion Pak disabled; the original-BSP build was checked
-with it enabled. Both instrumented replays reported zero RDP errors and warnings.
-The updated default validation build had about 175 KiB of heap headroom; the
-8 MiB original-BSP validation build had about 3,634 KiB.
-Performance counters measure emulated N64 time;
-emulator VPS measures host playback speed and is a separate number. Observed
-default-profile four-view combat and mixed vehicle scenes render around 15–24 FPS; this is not
-a locked frame-rate guarantee. The 30 Hz simulation clock is independent of
-rendering. The RDP validation build reported zero errors and zero warnings
-through combat and vehicle scenes. Real N64 hardware and four physical
-controllers have not been tested.
-RDP validation adds substantial overhead; the roughly 8–9 FPS observed in the
-instrumented original-BSP run is not a release-build performance measurement.
+The revised model build was checked in ares v148 with Metal and the Expansion
+Pak disabled. Four-player profile scenes left about 135 KiB of heap headroom.
+The revised RDP validation replay reported zero errors and zero warnings
+through combat and vehicle phases; its recording is included in the local audit.
+The extra geometry has a performance cost: selected heavier four-view combat
+and mixed vehicle scenes rendered around 9–11 FPS. These samples are not a
+full-run minimum/maximum or a locked frame-rate guarantee. Counters measure
+emulated N64 time; emulator VPS measures host playback speed separately. The
+30 Hz simulation clock is independent of rendering.
+
+The original-BSP profile's earlier validation used ares v147 with an 8 MiB
+Expansion Pak and reported zero RDP errors/warnings and about 3,634 KiB of heap
+headroom. Those measurements predate the model revision. Real N64 hardware
+and four physical controllers have not been tested. RDP validation adds
+substantial overhead and is not a release-build performance measurement.
 
 ## Gameplay videos
 

@@ -154,13 +154,30 @@ def extract_audio(caches,output):
     return sounds
 
 
-def extract(output, maps):
+def tag_values(block):
+    """Small JSON representation retaining shader parameters and bitmap paths."""
+    if isinstance(block,(int,float,str,bool)):return block
+    if hasattr(block,'enum_name'):return block.enum_name
+    if hasattr(block,'filepath'):return block.filepath
+    if isinstance(block,(bytes,bytearray)):return '<raw>'
+    if hasattr(block,'STEPTREE') and isinstance(block.STEPTREE,(list,tuple)):
+        return [tag_values(v) for v in block.STEPTREE]
+    if hasattr(block,'desc') and block.desc.get('NAME_MAP'):
+        return {k:tag_values(getattr(block,k)) for k in block.desc['NAME_MAP']
+                if k not in ('pointer','id','path_pointer','path_length')}
+    if isinstance(block,(list,tuple)):return [tag_values(v) for v in block]
+    return getattr(block,'data',None)
+
+
+def extract(output, maps, models_only=False):
     from reclaimer.model.model_decompilation import extract_model
     from reclaimer.animation.animation_decompilation import extract_animation
     from reclaimer.bitmaps.bitmap_decompilation import extract_bitmaps
     from PIL import Image
     output.mkdir(exist_ok=True,parents=True)
-    result={'models':{},'animations':{},'audio':{},'hud':{},'sources':{}}
+    result=(json.loads((output/'extended-raw.json').read_text()) if models_only else
+            {'models':{},'animations':{},'audio':{},'hud':{},'sources':{}})
+    result['models']={}
     with (output/'extended-extraction.log').open('w') as log,contextlib.redirect_stdout(log):
         halo=open_cache(maps/'bloodgulch.map',output);entries=halo.tag_index.tag_index
         result['sources']['bloodgulch']=hashlib.sha256((maps/'bloodgulch.map').read_bytes()).hexdigest()
@@ -171,6 +188,7 @@ def extract(output, maps):
             return m,sorted(p for p in directory.glob(name+'*.png')
                             if p.name==name+'.png' or p.name.startswith(name+'__'))
         texture_dir=output/'model-textures';texture_dir.mkdir(exist_ok=True)
+        reference_dir=output/'model-textures-reference';reference_dir.mkdir(exist_ok=True)
         for name,path in MODEL_PATHS.items():
             h=halo;ix=next((i for i,t in enumerate(entries) if t.class_1.enum_name=='model' and t.path==path),None)
             if ix is None:
@@ -191,25 +209,70 @@ def extract(output, maps):
                         if verts[off+28]>=128 and verts[off+29]<128:
                             verts[off+28],verts[off+29]=verts[off+29],verts[off+28]
             lods=extract_model(meta,write_jms=False)
-            target=310 if name=='spartan' else 600 if name in ('warthog','ghost','scorpion','banshee') else 200
             lods=[m for m in lods if m.tris]
-            model=min(lods,key=lambda m:abs(len(m.tris)-target))
-            textures=[]
+            # Audit/reduction must begin with the real highest-detail normal
+            # permutation. Damaged bodies and wheel-motion blur are different
+            # assets, not alternate high-detail references for an intact model.
+            normal=[m for m in lods if not m.name.startswith('~')]
+            model=max(normal or lods,key=lambda m:len(m.tris))
+            textures=[];textures_fullres=[];multipurpose_fullres=[];material_metadata=[];material_colors=[];material_overrides=[]
             for si,s in enumerate(meta.shaders.STEPTREE):
-                shader=h.get_meta(s.shader.id); tex=None
+                shader=h.get_meta(s.shader.id);tex=None;full=None;multi=None
+                material={'path':s.shader.filepath,
+                    'class':h.tag_index.tag_index[s.shader.id&65535].class_1.enum_name,
+                    'shader':tag_values(shader)}
+                refs=[];fallback=None;override=None
                 if hasattr(shader,'soso_attrs'):
-                    ref=shader.soso_attrs.maps.diffuse_map
-                    if ref.id!=0xffffffff:
-                        _,paths=bitmap(h,ref.id,name+'_'+str(si),texture_dir)
-                        if paths:
-                            tex=str(paths[0].resolve());im=Image.open(tex).convert('RGB');im.thumbnail((64,64));im.save(tex)
+                    attrs=shader.soso_attrs
+                    material['color_change_source']=attrs.color_change_source.enum_name
+                    material['map_scale']=[attrs.maps.map_u_scale,attrs.maps.map_v_scale]
+                    refs=[('diffuse',attrs.maps.diffuse_map),('multipurpose',attrs.maps.multipurpose_map)]
+                elif hasattr(shader,'schi_attrs') and shader.schi_attrs.maps.STEPTREE:
+                    refs=[('diffuse',shader.schi_attrs.maps.STEPTREE[0].bitmap)]
+                elif hasattr(shader,'sotr_attrs') and shader.sotr_attrs.maps.STEPTREE:
+                    refs=[('diffuse',shader.sotr_attrs.maps.STEPTREE[0].bitmap)]
+                    material['approximation']='First source map; animated multilayer combiner is not baked'
+                elif hasattr(shader,'smet_attrs'):
+                    refs=[('diffuse',shader.smet_attrs.meter_shader.map)]
+                    color=shader.smet_attrs.colors.gadient_min
+                    override=[round(255*max(0,min(1,x))) for x in color]
+                    material['approximation']='Static original meter gradient minimum'
+                elif hasattr(shader,'sgla_attrs'):
+                    reflection=shader.sgla_attrs.reflection_properties
+                    fallback=[round(255*max(0,min(1,x*reflection.perpendicular_brightness)))
+                              for x in reflection.perpendicular_tint_color]
+                    material['approximation']='Static perpendicular glass reflection tint; transparency omitted'
+                for role,ref in refs:
+                    if ref.id==0xffffffff:continue
+                    _,paths=bitmap(h,ref.id,name+'_'+str(si)+'_'+role,reference_dir)
+                    material[role+'_bitmap']=ref.filepath
+                    material[role+'_fullres']=str(paths[0].resolve()) if paths else None
+                    if not paths:continue
+                    # Never shrink the source bitmap in place. In particular,
+                    # multipurpose alpha/color masks are source fidelity data.
+                    im=Image.open(paths[0]).convert('RGBA');im.save(paths[0])
+                    material[role+'_size']=list(im.size)
+                    if role=='diffuse':
+                        full=str(paths[0].resolve());preview=texture_dir/(name+'_'+str(si)+'.png')
+                        im.thumbnail((64,64),Image.Resampling.LANCZOS);im.save(preview);tex=str(preview.resolve())
+                    else:multi=str(paths[0].resolve())
                 textures.append(tex)
+                textures_fullres.append(full);multipurpose_fullres.append(multi);material_metadata.append(material)
+                material_colors.append(fallback);material_overrides.append(override)
             result['models'][name]={'name':model.name,'path':path,
+                'source_lod':model.name,'source_cache':'bloodgulch' if h is halo else 'a30',
+                'source_lods':[{'name':m.name,'triangles':len(m.tris),'vertices':len(m.verts)} for m in lods],
                 'vertices':[[v.pos_x/100,v.pos_y/100,v.pos_z/100] for v in model.verts],
-                'uv':[[v.tex_u,v.tex_v] for v in model.verts],
+                'uv':[[v.tex_u,1-v.tex_v] for v in model.verts],'uv_origin':'top-left',
                 'weights':[[v.node_0,v.node_1,v.node_1_weight] for v in model.verts],
                 'faces':[[t.v0,t.v1,t.v2] for t in model.tris],
-                'materials':[t.shader for t in model.tris],'textures':textures,
+                'materials':[t.shader for t in model.tris],
+                'regions':[model.regions[t.region] for t in model.tris],
+                'textures':textures,'textures_fullres':textures_fullres,
+                'multipurpose_fullres':multipurpose_fullres,'material_metadata':material_metadata,
+                'material_colors':material_colors,'material_overrides':material_overrides,
+                'team_masks':multipurpose_fullres if name=='spartan' else [None]*len(textures),
+                'team_mask_channels':[2 if name=='spartan' and p else None for p in multipurpose_fullres],
                 'nodes':[{'name':n.name,'parent':n.parent_index,'q':[n.rot_i,n.rot_j,n.rot_k,n.rot_w],
                           'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100]} for n in model.nodes],
                 'markers':{marker.name:[{'node':inst.node_index,'p':list(inst.translation),'q':list(inst.rotation)}
@@ -228,6 +291,27 @@ def extract(output, maps):
                 states=[{'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100],
                          'q':[n.rot_i,n.rot_j,n.rot_k,n.rot_w]} for n in terminal]
                 bake_pose(result['models'][name],states,'stand closing:terminal')
+            if name in ('spartan','warthog','ghost','scorpion','banshee'):
+                # Distant meshes can profit from the original artists' console
+                # LOD topology (already simplified wheels/armor), while all
+                # audit references and nearby geometry remain truly superhigh.
+                desired=310 if name=='spartan' else 600 if name in ('warthog','scorpion') else 350
+                far=min(normal or lods,key=lambda m:abs(len(m.tris)-desired))
+                far_model={**result['models'][name],'name':far.name,'source_lod':far.name,
+                    'vertices':[[v.pos_x/100,v.pos_y/100,v.pos_z/100] for v in far.verts],
+                    'uv':[[v.tex_u,1-v.tex_v] for v in far.verts],
+                    'weights':[[v.node_0,v.node_1,v.node_1_weight] for v in far.verts],
+                    'faces':[[t.v0,t.v1,t.v2] for t in far.tris],
+                    'materials':[t.shader for t in far.tris],'regions':[far.regions[t.region] for t in far.tris],
+                    'nodes':[{'name':n.name,'parent':n.parent_index,'q':[n.rot_i,n.rot_j,n.rot_k,n.rot_w],
+                              'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100]} for n in far.nodes]}
+                far_model.pop('bind_nodes',None);far_model.pop('baked_vehicle_pose',None)
+                if name=='banshee':bake_pose(far_model,states,'stand closing:terminal')
+                result['models'][name]['lod_source']=far_model
+        if models_only:
+            (output/'extended-raw.json').write_text(json.dumps(result))
+            print(json.dumps({'models':{k:len(v['faces']) for k,v in result['models'].items()}}))
+            return result
         anim=halo.get_meta(160);halo.meta_to_tag_data(anim,'antr',entries[160])
         for name,tag_name in ANIM_NAMES.items():
             ix=next(i for i,a in enumerate(anim.animations.STEPTREE) if a.name==tag_name)
@@ -263,6 +347,7 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--maps',type=Path,default=Path('build/assets/halo-retail/maps'))
     p.add_argument('--output',type=Path,default=Path('build/n64/assets'))
     p.add_argument('--hud-only',action='store_true',help='Refresh HUD bitmaps and metadata without extracting models/audio')
+    p.add_argument('--models-only',action='store_true',help='Refresh highest-detail models/source textures while retaining audio/HUD/animation data')
     a=p.parse_args()
     if a.hud_only:
         source=a.output/'extended-raw.json';result=json.loads(source.read_text())
@@ -270,4 +355,4 @@ if __name__=='__main__':
             halo=open_cache(a.maps/'bloodgulch.map',a.output)
             result['hud']=extract_hud(halo,a.output);write_metadata(halo,a.output)
         source.write_text(json.dumps(result));print(json.dumps({'hud_atlases':len(result['hud'])}))
-    else:extract(a.output,a.maps)
+    else:extract(a.output,a.maps,a.models_only)

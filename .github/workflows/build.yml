@@ -21,6 +21,9 @@ name: Build
 # gives the latest build; the last five are kept.
 on:
   push:
+    # This branch has its own Windows-only build in windows.yml.
+    branches-ignore:
+      - jeremybanka/windows-build
     paths-ignore:
       - "**.md"
   workflow_dispatch:

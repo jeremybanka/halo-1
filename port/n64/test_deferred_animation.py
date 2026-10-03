@@ -53,7 +53,7 @@ def check_source(source, before=None):
         restored=restored.replace('unsignedbefore=triangles,animation_before=animation_us;','unsignedbefore=triangles;')
         restored=restored.replace('-(animation_us-animation_before)','').replace('animation_before=animation_us;','')
         assert restored==compact(function(old,'draw_view')),'Draw command/order or another operation changed'
-    print('PASS: eager visibility union; first-use guards; body/FP arithmetic and draw command order unchanged; animation attributed once.')
+    print('PASS: eager visibility union; first-use guards; animation precedes each vertex borrow and is attributed once.')
 
 
 SHIM=r'''
@@ -66,6 +66,8 @@ _Static_assert(sizeof(T3DVertPacked)==32,"packed pair");
 typedef struct {float m[4][4];} T3DMat4;
 typedef struct {struct {int16_t i[4];uint16_t f[4];} m[4];} T3DMat4FP;
 static inline uint32_t*t3d_vertbuffer_get_color(T3DVertPacked*v,unsigned i){return i&1?&v[i/2].rgbaB:&v[i/2].rgbaA;}
+static inline int16_t*t3d_vertbuffer_get_pos(T3DVertPacked*v,unsigned i){return i&1?v[i/2].posB:v[i/2].posA;}
+static inline int16_t*t3d_vertbuffer_get_uv(T3DVertPacked*v,unsigned i){return i&1?v[i/2].stB:v[i/2].stA;}
 #endif
 '''
 PRELUDE=r'''
@@ -77,6 +79,7 @@ PRELUDE=r'''
 #include "game.h"
 #include "asset_firstperson.h"
 #include "render_animation.h"
+#include "firstperson_ammo_logic.h"
 #include "blam/runtime.h"
 #define BG_FRAME_SLOTS 2
 #define CachedAddr(x) (x)
@@ -86,12 +89,14 @@ enum { CAPACITY=2048, PAIRS=CAPACITY/2 };
 typedef struct {
  _Alignas(16) T3DVertPacked near[2][4][PAIRS],far[2][4][PAIRS],fp[2][4][PAIRS];
  _Alignas(16) T3DMat4FP held[2][4];
+ _Alignas(16) T3DVertPacked counter[2][4][4];
  int weapons[2][4];
 } output_bank;
 static output_bank banks[2],*active;
 static T3DVertPacked*armor[2][4],*armor_lod[2][4],*firstperson[2][4];
 #define held_matrices active->held
 #define firstperson_weapon active->weapons
+#define digits active->counter
 bg_player bg_players[4];
 static unsigned slot,views,body_clips[4],body_animation_ready,fp_animation_ready;
 static uint8_t wanted_lods[4];static unsigned wanted_held;
@@ -113,6 +118,7 @@ static void data_cache_hit_writeback(void*ptr,unsigned bytes){
   else if(ptr==armor_lod[slot][p])assert(!borrowed[p][1]);
   else if(ptr==&held_matrices[slot][p])assert(!borrowed[p][2]);
   else if(ptr==firstperson[slot][p])assert(!borrowed[p][3]);
+  else if(ptr==digits[slot][p])assert(!borrowed[p][3]);
  }
 }
 static uint32_t seed=0xCE064;
@@ -132,6 +138,7 @@ int main(void){
   for(unsigned p=0;p<4;p++){
    bg_player*q=&bg_players[p];memset(q,0,sizeof(*q));q->weapon=(trial+p)%9;
    q->vehicle=-1;q->health=100;q->anim_time=uniform(-.1f,4);q->heat=uniform(0,1);
+   q->ammo=(trial+p)%61;q->reserve=(trial/7+p)%60;
    switch((trial/9+p)%8){case 1:q->reload=1;break;case 2:q->overheated=true;break;
     case 3:q->melee_time=uniform(.01f,.7f);break;case 4:q->vehicle=1;break;
     case 5:q->health=0;break;case 6:q->zoom=1;break;default:break;}
@@ -191,6 +198,12 @@ def main():
     sdk=ROOT.parent/'n64-3d-splitscreen/.build/tiny3d/src/t3d'
     header=(sdk/'t3dmath.h').read_text();math=(sdk/'t3dmath.c').read_text()
     c=PRELUDE
+    game=(ROOT/'port/n64/game.c').read_text()
+    definitions=re.search(r'const bg_weapon_def bg_weapon_defs\[BG_WEAPON_COUNT\]=\{.*?\n\};',game,re.S)
+    assert definitions
+    c+='\n'+definitions[0]+'\n'
+    ammo_source=(ROOT/'port/n64/firstperson_ammo.c').read_text()
+    c+='\nvoid bg_fp_ammo_prepare(unsigned slot,unsigned player,unsigned weapon,unsigned clip,unsigned f0,unsigned f1,int fraction,int ammo,int reserve,float reload_elapsed,T3DVertPacked*firstperson_vertices){'+function(ammo_source,'bg_fp_ammo_prepare')+'}\n'
     for src,name,argspec in [
       (header,'t3d_mat4_scale','T3DMat4*mat,float scaleX,float scaleY,float scaleZ'),
       (header,'t3d_mat4_mul','T3DMat4*matRes,const T3DMat4*matA,const T3DMat4*matB'),
@@ -205,11 +218,13 @@ def main():
     cmd=['clang','-std=c11','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined',
          '-fno-omit-frame-pointer','-fno-strict-aliasing','-I'+str(shim.parent),'-Iport/n64',
          str(OUT/'actual-functions.c'),'build/n64/generated/models_data.c',
-         'build/n64/generated/firstperson_data.c','port/n64/blam/runtime.c','-lm','-o',str(OUT/'actual-functions')]
+         'build/n64/generated/firstperson_data.c','build/n64/generated/firstperson_ammo_data.c',
+         'port/n64/blam/runtime.c','-lm','-o',str(OUT/'actual-functions')]
     subprocess.run(cmd,check=True,cwd=ROOT)
     result=subprocess.run([str(OUT/'actual-functions')],check=True,capture_output=True,text=True)
     print(result.stdout,end='');(OUT/'actual-functions.log').write_text(result.stdout)
-    inputs=['port/n64/main.c','port/n64/render_animation.h','build/n64/generated/models_data.c','build/n64/generated/firstperson_data.c']
+    inputs=['port/n64/main.c','port/n64/render_animation.h','port/n64/firstperson_ammo.c','port/n64/firstperson_ammo_logic.h',
+            'build/n64/generated/models_data.c','build/n64/generated/firstperson_data.c','build/n64/generated/firstperson_ammo_data.c']
     (OUT/'actual-functions-proof.json').write_text(json.dumps({'command':cmd,'output':result.stdout,
         'sha256':{f:hashlib.sha256((ROOT/f).read_bytes()).hexdigest() for f in inputs},
         'scope':'Actual functions and current banks; little-endian host Tiny3D layout shim and exact SDK math; no target timing or pixel claim'},indent=2)+'\n')

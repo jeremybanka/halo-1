@@ -5,11 +5,13 @@
 #include "game.h"
 #include "asset_models.h"
 #include "asset_firstperson.h"
+#include "firstperson_ammo.h"
 #include "render_animation.h"
 #include "render_lod.h"
 #include "asset_micro.h"
 #include "render_micro_lod.h"
 #include "render_pose_cache.h"
+#include "render_visibility.h"
 #include "rspq_metrics.h"
 #include "blam/runtime.h"
 #include "sound.h"
@@ -111,6 +113,8 @@ static uint8_t body_lods[4][4],wanted_lods[4],held_masks[4],wanted_held;
 static uint8_t vehicle_view_lods[4][BG_MAX_VEHICLES];
 static uint8_t pickup_visible[4][BG_MAX_PICKUPS];
 static bg_cull_bounds body_bounds[4],held_bounds[4],vehicle_bounds[BG_MAX_VEHICLES],pickup_bounds[BG_MAX_PICKUPS];
+/* CPU-only effect boxes are immutable from preparation through all views. */
+static bg_cull_bounds projectile_bounds[BG_MAX_PROJECTILES],explosion_bounds[12];
 static T3DMat4 body_matrices[4];
 static unsigned body_clips[4];
 static bool body_throwing[4];
@@ -624,9 +628,10 @@ static surface_t*paced_acquire(blam_clock*clock,uint64_t*previous,
 }
 #endif
 #endif
-static bool visible(T3DViewport*vp,const float pos[3],float radius){
-    int16_t lo[3],hi[3];for(int i=0;i<3;i++){lo[i]=(pos[i]-radius)*BG_SCALE;hi[i]=(pos[i]+radius)*BG_SCALE;}
-    return t3d_frustum_vs_aabb_s16(&vp->viewFrustum,lo,hi);
+static void prepare_effect_bounds(bg_cull_bounds*bounds,const float pos[3],float radius){
+    bg_bounds box;
+    for(unsigned a=0;a<3;a++){box.min[a]=(pos[a]-radius)*BG_SCALE;box.max[a]=(pos[a]+radius)*BG_SCALE;}
+    bg_bounds_quantize(bounds,&box);
 }
 static bool visible_bounds(T3DViewport*vp,const bg_cull_bounds*bounds){
     return !bounds->valid||t3d_frustum_vs_aabb_s16(&vp->viewFrustum,bounds->min,bounds->max);
@@ -818,7 +823,12 @@ static void animate_firstperson(unsigned p){
         firstperson_weapon[slot][p]=w;
     }
     unsigned clip=BG_FP_IDLE;float seconds=game_time;
-    if(player->reload>0){clip=BG_FP_RELOAD;seconds=player->anim_time;}
+    if(player->reload>0){
+        clip=BG_FP_RELOAD;seconds=player->anim_time;
+        /* Fit the source needle-regrowth timeline to the game's reload
+         * duration; mesh motion and ammunition overlay share that clock. */
+        if(w==BG_W_NEEDLER)seconds*=bg_fp_animations[w][clip].duration/bg_weapon_defs[w].reload;
+    }
     else if(player->overheated){clip=BG_FP_RELOAD;seconds=(1-player->heat)/.85f*bg_fp_animations[w][clip].duration;}
     else if(player->melee_time>0){clip=BG_FP_MELEE;seconds=.7f-player->melee_time;}
     else if(game_time>=fired_at[p]&&game_time-fired_at[p]<bg_fp_animations[w][BG_FP_FIRE].duration){clip=BG_FP_FIRE;seconds=game_time-fired_at[p];}
@@ -827,6 +837,8 @@ static void animate_firstperson(unsigned p){
     if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
     float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
     animate_mesh(output,a,f0,f1,fraction);
+    bg_fp_ammo_prepare(slot,p,w,clip,f0,f1,fraction,player->ammo,player->reserve,
+        player->reload>0?seconds:-1,output);
 }
 static void ensure_player_animation(unsigned p){
     unsigned bit=1u<<p;if(body_animation_ready&bit)return;
@@ -878,9 +890,12 @@ static void prepare_frame(void){
         float scale=q->kind==BG_P_CANNON?.09f:q->kind==BG_P_FLAME?.18f:.045f;
         if(q->kind==BG_P_FRAG||q->kind==BG_P_PLASMA_GRENADE)scale=BG_SCALE/BG_OBJECT_SCALE;
         matrix(&projectile_matrices[slot][i],scale,game_time*4,0,q->pos);
+        prepare_effect_bounds(&projectile_bounds[i],q->pos,.2f);
     }
-    for(unsigned i=0;i<12;i++)if(explosions[i].life>0)
+    for(unsigned i=0;i<12;i++)if(explosions[i].life>0){
         matrix(&explosion_matrices[slot][i],explosions[i].radius*(.4f+1-explosions[i].life/.35f),0,0,explosions[i].pos);
+        prepare_effect_bounds(&explosion_bounds[i],explosions[i].pos,explosions[i].radius);
+    }
     data_cache_hit_writeback(transforms[slot],sizeof(transforms[slot]));data_cache_hit_writeback(vehicle_matrices[slot],sizeof(vehicle_matrices[slot]));
     data_cache_hit_writeback(pickup_matrices[slot],sizeof(pickup_matrices[slot]));data_cache_hit_writeback(projectile_matrices[slot],sizeof(projectile_matrices[slot]));
     data_cache_hit_writeback(explosion_matrices[slot],sizeof(explosion_matrices[slot]));
@@ -904,7 +919,7 @@ static void update_effects(float dt){
 static void prepare_view(unsigned p){
     int w=views==4?160:320,h=views==1?240:120,x=views==4?(p%2)*160:0,y=views==1?0:(views==4?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
-    float head=player->crouched?.42f:.62f;
+    float head=player->crouched?.4f:.62f;
     T3DVec3 eye={{player->pos[0]*BG_SCALE,(player->pos[1]+head)*BG_SCALE,player->pos[2]*BG_SCALE}};
     T3DVec3 target={{eye.v[0]+cy*cp,eye.v[1]+sinf(player->pitch),eye.v[2]-sy*cp}};
     if(player->vehicle>=0){
@@ -944,7 +959,10 @@ static void prepare_view(unsigned p){
 #endif
     float fov=views==2?.72f:1.08f;
     if(player->health>0&&player->zoom)fov/=player->weapon==BG_W_SNIPER?(player->zoom==2?10:2):2;
-    t3d_viewport_set_projection(vp,fov,1.4f,6200.f);t3d_viewport_look_at(vp,&eye,&target,&(T3DVec3){{0,1,0}});
+    t3d_viewport_set_projection(vp,fov,1.4f,6200.f);
+    bg_hud_aim_projection(vp->matProj.m,views,p);
+    t3d_viewport_look_at(vp,&eye,&target,&(T3DVec3){{0,1,0}});
+    bg_visibility_side_planes((float (*)[4])vp->viewFrustum.planes,vp->matCamProj.m,w,h);
     view_eyes[p]=eye;held_masks[p]=0;
     for(unsigned j=0;j<views;j++){
         bg_player*q=&bg_players[j];body_lods[p][j]=0;
@@ -1056,14 +1074,14 @@ static void draw_view(unsigned p){
 #endif
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH);
     for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
-        bg_projectile*q=bg_projectile_at(i);if(!q||!q->active||!visible(vp,q->pos,.2f))continue;
+        bg_projectile*q=bg_projectile_at(i);if(!q||!q->active||!visible_bounds(vp,&projectile_bounds[i]))continue;
         if(q->kind==BG_P_FRAG||q->kind==BG_P_PLASMA_GRENADE){instance(q->kind==BG_P_FRAG?BG_M_FRAG:BG_M_PLASMA_GRENADE,&projectile_matrices[slot][i]);continue;}
         t3d_matrix_set(&projectile_matrices[slot][i],true);rspq_block_run(particle_blocks[q->kind]);triangles+=8;
 #ifdef BG_PROFILE
         submitted_vertices+=24;
 #endif
     }
-    for(unsigned i=0;i<12;i++)if(explosions[i].life>0&&visible(vp,explosions[i].pos,explosions[i].radius)){
+    for(unsigned i=0;i<12;i++)if(explosions[i].life>0&&visible_bounds(vp,&explosion_bounds[i])){
         unsigned particle=explosions[i].kind==BG_EXPLOSION_NEEDLER?BG_P_NEEDLE:6;
         t3d_matrix_set(&explosion_matrices[slot][i],true);rspq_block_run(particle_blocks[particle]);triangles+=8;
 #ifdef BG_PROFILE
@@ -1085,6 +1103,12 @@ static void draw_view(unsigned p){
 #ifdef BG_PROFILE
         submitted_vertices+=fp_vertex_loads[player->weapon];
 #endif
+        if(player->weapon==BG_W_AR){
+            bg_fp_ammo_draw(slot,p);triangles+=4;
+#ifdef BG_PROFILE
+            submitted_vertices+=8;
+#endif
+        }
     }
 #ifdef BG_PROFILE
     fp_us+=get_ticks_us()-begin-(animation_us-animation_before);
@@ -1328,6 +1352,7 @@ int main(void){
     rdpq_debug_start();
 #endif
     t3d_init((T3DInitParams){});
+    bg_fp_ammo_init();
     rdpq_text_register_font(1,rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
     surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_reset();bg_set_players(views);bg_sound_init();
 #ifdef BG_SNAPSHOT_TICK

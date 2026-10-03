@@ -4,6 +4,7 @@ The exported UV convention matches image rows (+V downward). Samples are
 inset into each face, avoiding unrelated pixels across texture atlas seams.
 This preserves diffuse color blocking; it does not reproduce Xbox reflections.
 """
+import math
 from PIL import Image
 from pack_assets import normal, position
 
@@ -36,6 +37,10 @@ def bake_team_mask(tri, masks, channels):
 
 
 def bake_triangle(tri, images, model, firstperson=False):
+    direct = tri.get('sample_uv_direct', False)
+    if not isinstance(direct,bool) or (direct and (len(tri['uv'])!=3 or
+            any(len(c)!=2 or any(not math.isfinite(v) for v in c) for c in tri['uv']))):
+        raise ValueError('Invalid source-derived diffuse UV samples')
     material = tri['material']
     image = images[material] if material < len(images) else None
     overrides = model.get('material_overrides', [])
@@ -50,7 +55,8 @@ def bake_triangle(tri, images, model, firstperson=False):
         if override is not None:
             rgb = override
         elif image is not None:
-            samples = [sample(image, uv) for uv in corner_samples(tri['uv'], corner)]
+            samples = ([sample(image,tri['uv'][corner])] if direct else
+                       [sample(image, uv) for uv in corner_samples(tri['uv'], corner)])
             rgb = [sum(s[c] for s in samples) / len(samples) for c in range(3)]
         else:
             rgb = fallback or (130, 133, 135)

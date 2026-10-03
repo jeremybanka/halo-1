@@ -132,10 +132,11 @@ def declaration(source, name):
 
 def run(root, sdk, generated, out):
     paths = [root/'port/n64/main.c', root/'port/n64/asset_models.h',
-             sdk/'src/t3d/t3dmath.h', sdk/'src/t3d/t3dmath.c', generated]
+             sdk/'src/t3d/t3dmath.h', sdk/'src/t3d/t3dmath.c', generated,
+             generated.with_name('micro_data.c')]
     texts = [p.read_text() for p in paths]
     before = [hashlib.sha256(p.read_bytes()).hexdigest() for p in paths]
-    main, assets, header, math, bank = texts
+    main, assets, header, math, bank, micro_bank = texts
     assert '#define T3D_F32_TO_FIXED(val) (int32_t)((val) * (float)(1<<16))' in header
     prepare = compact(function(main, 'compute_vehicle_pose'))
     assert prepare.count('bg_bounds_quantize(&vehicle_part_bounds[i][j],&box);') == 1
@@ -151,6 +152,7 @@ def run(root, sdk, generated, out):
     for name in ('parts_warthog','parts_ghost','parts_scorpion','parts_banshee',
                  'bg_vehicle_rigs','bg_vehicle_lod_bounds'):
         c += '\n' + declaration(bank, name)
+    c += '\n' + declaration(micro_bank, 'bg_vehicle_micro_gate_bounds')
     for source, result, name, args in (
         (math,'void','t3d_mat4_from_srt_euler','T3DMat4 *mat,const float scale[3],const float rot[3],const float translate[3]'),
         (header,'void','t3d_mat4_mul','T3DMat4 *matRes,const T3DMat4 *matA,const T3DMat4 *matB'),

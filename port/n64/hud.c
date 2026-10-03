@@ -23,6 +23,10 @@ static int current_combiner,current_filter;
 typedef struct { unsigned id; float x,y,scale; rspq_block_t *block; } hud_blit;
 static hud_blit blits[192];
 static unsigned blit_count;
+/* Slot+1 links keep zero-initialized empty lists and the original append order.
+ * Match coordinates only against this image's entries, not every HUD sprite.
+ * The recorded blocks and their lifetime remain unchanged. */
+static uint16_t blit_heads[BG_H_COUNT],blit_next[192];
 enum { HUD_EXIT, HUD_PICKUP, HUD_ENTER, HUD_RELOAD, HUD_OVERHEAT,
        HUD_RESPAWN_0, HUD_RESPAWN_1, HUD_RESPAWN_2, HUD_RESPAWN_3, HUD_STATUS_COUNT };
 static const char *const status_strings[HUD_STATUS_COUNT]={
@@ -81,19 +85,25 @@ static void blit_picture(unsigned id,float x,float y,float scale) {
     /* Moving radar blips are deliberately uncached: their positions can fill
      * an unbounded number of entries. Full caches fall back to ordinary blits. */
     if (id!=BG_H_BLIP) {
-        for (unsigned i=0;i<blit_count;i++) {
+        uint16_t *link=&blit_heads[id];
+        while (*link) {
+            unsigned i=*link-1;
             const hud_blit *b=&blits[i];
-            if(b->id==id&&b->x==x&&b->y==y&&b->scale==scale) {
+            if(b->x==x&&b->y==y&&b->scale==scale) {
                 rspq_block_run(b->block);return;
             }
+            link=&blit_next[i];
         }
         if(blit_count<sizeof(blits)/sizeof(blits[0])) {
-            hud_blit *b=&blits[blit_count++];
+            unsigned i=blit_count++;
+            hud_blit *b=&blits[i];
             *b=(hud_blit){.id=id,.x=x,.y=y,.scale=scale};
             rspq_block_begin();
             rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
                 .scale_x=scale,.scale_y=scale,.filtering=true});
-            b->block=rspq_block_end();rspq_block_run(b->block);return;
+            b->block=rspq_block_end();
+            blit_next[i]=0;*link=i+1;
+            rspq_block_run(b->block);return;
         }
     }
     rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
@@ -214,19 +224,28 @@ static bool scoped(const bg_player *p) {
         (p->weapon==BG_W_PISTOL||p->weapon==BG_W_SNIPER);
 }
 
-static void scope_mask(const bg_player *p,int x,int y,int width,int height) {
+static void scope_mask(const bg_player *p,int x,int y,int width,int height,float cx,float cy) {
     unsigned id=p->weapon==BG_W_PISTOL?BG_SCOPE_PISTOL:BG_SCOPE_SNIPER;
     /* Original AY8 mask: zero leaves the scope clear, the outer field is
      * half intensity and the border is full intensity. N64 uses that channel
      * as darkening opacity; Xbox convolution and night vision are not used. */
+    float left=cx-width*.5f,top=cy-height*.5f;
+    /* Moving the source mask with its aim center exposes a narrow outer
+     * strip. Extend its constant source edge alpha, without darkening the
+     * interior twice. Source mask corners are 132 (pistol), 128 (sniper). */
+    color_t edge=RGBA32(0,0,0,bg_scope_images[id].pixels[0]);
+    if(top>y)pixel(x,y,width,top-y,edge);
+    if(top+height<y+height)pixel(x,top+height,width,y-top,edge);
+    float inner_top=fmaxf(y,top),inner_bottom=fminf(y+height,top+height);
+    if(left>x)pixel(x,inner_top,left-x,inner_bottom-inner_top,edge);
+    if(left+width<x+width)pixel(left+width,inner_top,x-left,inner_bottom-inner_top,edge);
     mode(RGBA32(0,0,0,255));
-    rdpq_tex_blit(&scope_images[id],x,y,&(rdpq_blitparms_t){
+    rdpq_tex_blit(&scope_images[id],left,top,&(rdpq_blitparms_t){
         .scale_x=(float)width/bg_scope_images[id].w,
         .scale_y=(float)height/bg_scope_images[id].h,.filtering=true});
 }
 
-static void scope_marks(const bg_player *p,int x,int y,int width,int height) {
-    float cx=x+width*.5f,cy=y+height*.5f;
+static void scope_marks(const bg_player *p,float cx,float cy,int height) {
     bool split=height<240;
     if (p->weapon==BG_W_SNIPER) {
         /* cyborg multiplayer weapon HUD offsets, centered as hud_draw_bitmap
@@ -289,6 +308,9 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height) {
     const bg_vehicle *vehicle=p->vehicle>=0&&(unsigned)p->vehicle<bg_vehicle_count?
         &bg_vehicles[p->vehicle]:NULL;
     bool personal=!vehicle || p->seat==2 || (p->seat==1&&vehicle->kind==BG_V_SCORPION);
+    float aim_x,aim_y;
+    unsigned views=height>=240?1:width<200?4:2;
+    bg_hud_aim_point(views,index,x,y,width,height,&aim_x,&aim_y);
     number_count=0;current_combiner=current_filter=-1;
     rdpq_mode_begin();
     rdpq_set_mode_standard();
@@ -296,7 +318,7 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height) {
     rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
     rdpq_mode_end();
     rdpq_set_scissor(x,y,x+width,y+height);
-    if (scoped(p)) scope_mask(p,x,y,width,height);
+    if (scoped(p)) scope_mask(p,x,y,width,height,aim_x,aim_y);
 
     /* Shields and segmented health retain the sloped Xbox backgrounds. */
     /* cyborg_mp tag anchors: background(-7,1), meter(0,0), health(29,11). */
@@ -329,15 +351,15 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height) {
     }
 
     if (p->health>0) {
-        if (scoped(p)) scope_marks(p,x,y,width,height);
+        if (scoped(p)) scope_marks(p,aim_x,aim_y,height);
         float reticle_scale=scale;
         int id=reticles[weapon];
         if (!personal) id=vehicle->kind==BG_V_WARTHOG&&p->seat==0?-1:
             vehicle_reticles[vehicle->kind];
         if (id>=0) {
             const bg_hud_image *reticle=&bg_hud_images[id];
-            picture(id,x+width*.5f-reticle->w*reticle_scale*.5f,
-                y+height*.5f-reticle->h*reticle_scale*.5f,reticle_scale,bright);
+            picture(id,aim_x-reticle->w*reticle_scale*.5f,
+                aim_y-reticle->h*reticle_scale*.5f,reticle_scale,bright);
         }
         if (!p->zoom) radar(index,x+margin,y+height-margin-bg_hud_images[BG_H_MOTION_BG].h*scale,scale);
     }

@@ -22,14 +22,16 @@ EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast
 
 def calls(body):
     body = re.sub(r'/\*.*?\*/|//[^\n]*', '', body, flags=re.S)
-    return set(re.findall(r'\b([A-Za-z_]\w*)\s*\(', body)) - {'if', 'for', 'while', 'switch', 'sizeof', 'return'}
+    # A pointer-to-array cast such as (float (*)[4]) is not a function call.
+    return set(re.findall(r'\b([A-Za-z_]\w*)\s*\(', body)) - {'if', 'for', 'while', 'switch', 'sizeof', 'return', 'float'}
 
 
 def check(main, sdk, tiny, before=None):
     source = main.read_text()
     # Follow the actual inline projection helpers too, rather than allowing an
     # unchecked external call across the CPU-only preparation boundary.
-    helpers = source + '\n' + (main.parent/'render_micro_lod.h').read_text() + '\n' + (main.parent/'render_lod.h').read_text()
+    helpers = source + '\n' + '\n'.join((main.parent/name).read_text() for name in
+        ('render_micro_lod.h', 'render_lod.h', 'hud_layout.h', 'render_visibility.h'))
     visited = set()
 
     def visit(name):

@@ -63,6 +63,9 @@ static inline bool bg_micro_lod_below(const bg_micro_sphere*s,const float camera
         float y=q[1]*(height*.5f*projection[1][1])/z;
         if(!bg_micro_finite(&x)||!bg_micro_finite(&y))return false;
         minx=fminf(minx,x);maxx=fmaxf(maxx,x);miny=fminf(miny,y);maxy=fmaxf(maxy,y);
+        /* Finite projected ranges only expand. Later invalid/near corners
+         * also reject, so an already-too-wide box cannot become eligible. */
+        if(maxx-minx>=limit||maxy-miny>=limit)return false;
     }
     float extent=fmaxf(maxx-minx,maxy-miny);
     return bg_micro_finite(&extent)&&extent<limit;

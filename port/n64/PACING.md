@@ -1,6 +1,8 @@
 `--paced30` enables four-view presentation on every second retrace. For the
-reviewed tiny-model bank, use `--paced30 --paced30-buffers 4`. The ordinary
-no-option build remains unpaced. The option adds `-paced30` to the ROM name;
+current visual build, use `--paced30 --paced30-buffers 5`: its production replay
+has zero missed deadlines. Four surfaces offer lower measured input-to-display
+latency but have one vehicle-phase deadline miss in the same replay.
+The ordinary no-option build remains unpaced. The option adds `-paced30` to the ROM name;
 frozen `--snapshot-tick` builds ignore it. This is an emulator-tested profile,
 not a physical-console performance guarantee.
 
@@ -55,7 +57,8 @@ These earlier results did not meet the nominal-30-FPS target.
 The separately recorded four-surface RDP validation finishes with zero errors
 and warnings; its instrumentation is not a performance measurement.
 
-The maintained tiny-model build meets the nominal-30-Hz cadence in the complete
+Before the visibility and weapon-display changes, the tiny-model build met
+the nominal-30-Hz cadence in the complete
 75.017-second quiet ares replay with four surfaces. All **2,244 fresh poses**
 arrive exactly two retraces apart: 1,078 combat poses and 1,166 vehicle poses,
 with **zero missed deadlines, duplicate displayed poses or dropped simulation
@@ -66,15 +69,47 @@ separate from dropped ticks and repeats. Input-sample-to-VI latency is
 906 KiB, with held/SDK-ready/submitted peaks of 3/1/3.
 
 The same model recipe's private three-surface comparison has one vehicle
-deadline miss and 67 / 101 ms input-sample-to-VI latency. Four surfaces are
-therefore the recommended tested profile. The original 59-entry bank remains
+deadline miss and 67 / 101 ms input-sample-to-VI latency. Four surfaces were
+therefore the recommended profile for that revision. Its original 59-entry bank remained
 unchanged; twelve tiny meshes are selected only for already-far pickups and
 vehicles below the conservative four-view pixel threshold. Full scene geometry,
 audio, simulation and HUD remain enabled. See [MICRO_LODS.md](MICRO_LODS.md).
-The final-source result, exact ROM/source/bank hashes and captured page are in
+That revision's result, exact ROM/source/bank hashes and captured page are in
 `performance-audit/runtime-micro-production-four-results.json`; private
 candidate results remain separately labeled. This measurement covers the
 scripted replay, not every possible match.
+
+After the title-safe aiming projection, conservative edge submission,
+Scorpion cannon repair and on-weapon ammunition displays, the current
+four-surface build presents 2,243 fresh poses in 75.017 seconds. There is one
+vehicle-phase missed deadline: 2,242 intervals are two VI retraces and one is
+four retraces (66.8 ms). The exact-output CPU/command-cache refinements preserve
+this cadence result. Its displayed p95 is still 33.4 ms; p95 alone does not
+establish an every-two-VI guarantee. See
+`visibility-weapon-qa/timing-four-result.json` for the ROM/source hashes.
+
+The **production five-surface profile** using the same renderer and assets has
+2,244 fresh poses, all exactly two VI retraces apart: 1,079 combat and 1,165
+vehicle poses. It has zero missed deadlines, duplicate displayed poses or
+dropped simulation ticks, and six skipped intermediate poses. Displayed p95
+and maximum are 33.4 ms. Input-sample-to-VI latency increases from the matched
+four-surface run's 100/118 ms mean/maximum to **127/135 ms**; ready-to-VI is
+98/115 ms. Live free heap is 718 KiB, with held/SDK-ready/submitted peaks 4/1/4.
+The extra surface costs 150 KiB and retains a longer presentation queue; this
+does not reduce scene rendering work. Production evidence is
+`visibility-weapon-qa/timing-result.json`, its captured `timing-result.png`,
+and frozen `timing-builds.json`. The quiet ROM's SHA-256 is
+`eee71ec9162d92d6d74295d50534971954379718f90239f09088194c8b74cd23`.
+The video lasts 106.017 seconds including lead-in and result display;
+the measured replay window is 75.017 seconds after one second of warmup.
+
+The earlier **private five-surface candidate** independently produced the same
+displayed counters. Its separate ROM/source/object proof remains at
+`visibility-weapon-qa/quiet5/result.json` and `quiet5/provenance.json`; it is not
+substituted for the production measurement. Four surfaces remain available
+when the measured 27 ms lower mean sample-to-VI latency is preferable to the
+five-surface run's uninterrupted two-retrace cadence. RDP validation is a
+separate diagnostic and does not establish these timing results.
 
 These are emulator measurements. The official ares v148 RDP bridge submits
 commands to paraLLEl-RDP without charging emulated CPU time for physical pixel,
@@ -88,7 +123,7 @@ also do not isolate a hardware fill-rate bottleneck. See the
 and local `performance-audit/ares-v148-timing-review/` source audit. The installed
 app reports v148; a reproducible binary match to that source tag was not made.
 
-Four-surface mode tracks submitted and SDK-ready surface ownership separately.
+Four- and five-surface modes track submitted and SDK-ready surface ownership separately.
 Only an observed VI origin clears ownership. When enabling pacing after an
 unpaced interval, it releases held frames in FIFO, snapshots all outstanding
 predecessors, and gates new acquisition until those predecessors have appeared.
@@ -99,7 +134,7 @@ VI counter wrap. This handles the state that three surfaces cannot reach:
 one front surface, one old SDK-ready surface, and two newly held surfaces.
 
 The quiet VI result includes whole-run held-queue peaks and live free heap,
-sampled before teardown closes audio or flushes the held queue. Four-surface
+sampled before teardown closes audio or flushes the held queue. Four/five-surface
 results also show SDK-ready peak (`R`) and submitted-but-not-presented peak
 (`S`, excluding an acquired surface that has not yet been submitted). These
 peaks include warmup; they require only bounded integer updates, with no extra
@@ -142,6 +177,7 @@ ordinary FIFO presentation before unregistering the pacing handler.
 python3 port/n64/build.py --benchmark
 python3 port/n64/build.py --benchmark --paced30
 python3 port/n64/build.py --vi-benchmark --paced30 --paced30-buffers 4
+python3 port/n64/build.py --vi-benchmark --paced30 --paced30-buffers 5
 cc -std=c11 -O2 -Wall -Wextra -Werror -fsanitize=address,undefined \
   -Iport/n64 port/n64/test_render_pacing.c port/n64/blam/runtime.c -lm \
   -o build/n64/test_render_pacing

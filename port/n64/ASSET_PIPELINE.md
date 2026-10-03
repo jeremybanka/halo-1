@@ -11,10 +11,18 @@ build/n64-python/bin/python port/n64/pack_extended.py
 build/n64-python/bin/python port/n64/extract_firstperson.py
 /Applications/Blender.app/Contents/MacOS/Blender --background --python port/n64/reduce_firstperson.py -- build/n64/assets/firstperson-raw.json build/n64/assets/firstperson-reduced.json --performance-profile
 build/n64-python/bin/python port/n64/pack_firstperson.py
+build/n64-python/bin/python port/n64/extract_fp_ammo.py
+build/n64-python/bin/python port/n64/pack_fp_ammo.py
 build/n64-python/bin/python port/n64/generate_micro_lods.py --assets build/n64/assets --verify-generated build/n64/generated --output build/n64/assets/micro-lods.json
 build/n64-python/bin/python port/n64/pack_micro_lods.py
 build/n64-python/bin/python port/n64/validate_assets.py
 ```
+
+The on-weapon ammunition bank uses the original AR numeric shader/bitmaps and
+Needler ammunition overlay. It supplements the existing first-person bank;
+repack it whenever that bank changes. `build.py` rejects mismatched base and
+supplemental banks. See [FIRSTPERSON_AMMO.md](FIRSTPERSON_AMMO.md) for the
+counter's native-resolution enlargement and the needle animation adaptations.
 
 The Blender scripts also run through MCP using `reduce_extended(source, output)` and `reduce_firstperson(source, output)`. They create separate scenes and save separate `.blend` libraries; they do not overwrite the user's existing scene or project. The full extraction and reduction were rerun from the disc caches for verification. On this Mac, a sandboxed background Blender process can fail during Metal initialization before Python starts. The working MCP equivalent loads the same maintained scripts, without depending on existing scene objects:
 

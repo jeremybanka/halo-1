@@ -154,6 +154,9 @@ def reduce_extended(source,output,budget_file=None,refine_approved=None):
                     low_report['bounded']=collapse;low_report['triangles']=len(distant['triangles'])
                     update_review_mesh(low_obj,distant['triangles'],low_model,name+' bounded LOD')
                 out['vehicle_lods'][name]=distant
+    if budget.get('scorpion_cannon'):
+        from scorpion_barrel import apply_recipe
+        apply_recipe(out,data,budget['scorpion_cannon'])
     if budget.get('pickup_targets'):
         out['pickup_lods']={}
         for index,(name,target) in enumerate(budget['pickup_targets'].items()):

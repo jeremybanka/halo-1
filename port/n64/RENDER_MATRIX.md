@@ -93,3 +93,21 @@ pixels across 1,282,500 compared pixels. Evidence is under
 `performance-audit/deferred-animation/`. This preserves the image but has not
 demonstrated a cadence improvement: the four-buffer replay retains six missed
 deadlines before and after the change.
+
+Viewport visibility now includes a four-native-pixel submission margin at all
+four edges. `render_visibility.h` derives the side planes from the final
+camera/projection product, including the source-derived Xbox reticle offset.
+Only CPU AABB rejection is widened: the actual projection, near/far planes,
+Tiny3D triangle clipping and per-player RDP scissor are retained. Side planes
+are deliberately unnormalized because the AABB test uses only their signs.
+Particle bounds also use the same outward rounding and overflow fallback as
+model bounds, instead of truncating floating bounds inward.
+
+`python3 port/n64/test_render_visibility.py` compiles the actual installed
+Tiny3D AABB function and probes all four edges, all supported viewport sizes,
+camera rotations, asymmetric projections and 1×/2×/10× zoom. Each strict and
+target-math sanitizer run checks 143,856 points: visible edge points and the
+two-pixel bleed remain submitted, while distant off-screen points are rejected.
+It also verifies the projection and near/far planes remain unchanged. This
+host check proves conservative CPU submission; target raster clipping and
+frame cost require separate Ares verification.

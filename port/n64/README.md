@@ -16,10 +16,13 @@ and remaining engine work.
 
 ## Play
 
-Load `build/n64/halo-blood-gulch-paced30-buffers4.z64` in ares as a Nintendo 64
+Load `build/n64/halo-blood-gulch-paced30-buffers5.z64` in ares as a Nintendo 64
 cartridge for the recommended four-player presentation profile. Build it with
-`build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 4`.
+`build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
+The five-surface profile holds two-retrace cadence in the measured Ares replay,
+with 127/135 ms mean/maximum input-sample-to-display latency. The four-surface
+alternative has lower latency and one missed deadline; see [PACING.md](PACING.md).
 Four views start immediately. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.
 Player 1's Start menu selects one, two or four players and restarts the match.
@@ -60,6 +63,8 @@ exits with a short re-entry cooldown.
 - Assault rifle, pistol, plasma pistol, plasma rifle, Needler, shotgun,
   sniper rifle and rocket launcher. Fragmentation and plasma grenades,
   charge/overheat, reloads, zoom, melee, tracking needles and supercombine.
+  The assault rifle carries an animated on-weapon ammo counter using the Xbox
+  digits; the Needler's crystals retract with its loaded ammunition.
 - Warthog, Ghost, Scorpion and Banshee driving/flying, seats, mounted weapons,
   vehicle damage and respawning. The Banshee is an added demake option; its
   original model comes from the supplied campaign map, not Xbox Blood Gulch.
@@ -75,9 +80,29 @@ exits with a short re-entry cooldown.
   reticles and multiplayer radar opacity. Pistol/sniper zoom adds reduced
   original split-screen masks, sniper markings and 2×/10× labels. Layout is
   adapted to the N64 viewports.
+  Reticles and aiming projection use the original Xbox title-safe centers,
+  including the split-screen offsets; see [RETICLE_LAYOUT.md](RETICLE_LAYOUT.md).
 - Original decoded shots, reloads, explosions, engines, footsteps, player
   effects, teleporters, announcer lines and outdoor ambience. A bounded stereo
   mixer supports simultaneous split-screen sound.
+
+## Visibility and weapon display QA
+
+The CPU culler submits geometry through a four-pixel margin beyond each view,
+with conservative rounded effect bounds shared by all players. RSP triangle
+clipping and the viewport scissor still use the actual view. See
+[RENDER_MATRIX.md](RENDER_MATRIX.md), [RETICLE_LAYOUT.md](RETICLE_LAYOUT.md),
+[FIRSTPERSON_AMMO.md](FIRSTPERSON_AMMO.md) and
+[SCORPION_BARREL.md](SCORPION_BARREL.md) for source behavior and deliberate
+N64 adaptations.
+
+The local comparison gallery is `build/n64/visibility-weapon-qa/index.html`.
+It includes source/before/after Scorpion views at several pixel sizes, actual
+Ares four-player ammo screenshots, a live firing/reload recording, and an
+edge fixture compared against disabled CPU bounds rejection. Timing and RDP
+validation are separate tests bound to the exact ROM hashes in `builds.json`.
+The canonical local `build/n64/release-manifest.json` identifies the current
+recommended ROM; older six-showcase recordings retain their original provenance.
 
 ## Build
 
@@ -193,16 +218,19 @@ Build these ROMs serially because the compiler object directory is shared.
 | Blood Gulch BSP | 5,503 → 1,870 triangles |
 | Spartan | 310 nearby / 127 distant triangles |
 | First-person gun + hands | 384–519 triangles per weapon; 191 shared hand triangles |
+| On-weapon AR counter | +4 triangles / +8 transformed vertices per visible AR |
 | World weapons | 140–274 nearby triangles; separate distant pickup/held models |
-| Vehicles | 242–366 nearby / 134–198 distant triangles, including part padding |
+| Vehicles | 242–380 nearby / 134–210 distant triangles, including part padding |
 | Grenades | 62 frag / 48 plasma triangles |
-| Model animation storage | 336,038 bytes after exact motion-track sharing and indexed vertices |
-| World / first-person model vertices | 4,920 / 4,264; 146,944 vertex bytes combined |
+| Model animation storage | 336,038 bytes after exact motion-track sharing and indexed vertices; ammo supplement below |
+| World / first-person model vertices | 4,964 / 4,264; 147,648 vertex bytes combined, excluding the separate micro bank |
+| Ammunition display assets | 3,200-byte AR atlas + 1,056-byte panel animation + 18,128-byte Needler overlay = 22,384 bytes |
+| AR counter runtime | 1,024 bytes of mutable digit buffers; eight cached command blocks |
 | World materials | 17 × 32×32 RGBA16 |
 | World vertex/index storage | 51,584 / 11,752 bytes |
 | Conservative model bounds | 1,444 bytes; near/far unions and per-clip/part metadata |
 | Collision mesh and grid | 80,506 bytes |
-| Color/depth buffers | 768,000 bytes with recommended four color surfaces + depth; 614,400 for the ordinary triple-buffer build |
+| Color/depth buffers | 921,600 bytes with five color surfaces + depth; 768,000 with four; 614,400 for the ordinary triple-buffer build |
 | Gameplay objects | fixed player/vehicle pools; bounded Blam arena for 48 projectiles; no per-tick system-heap allocation |
 | Audio | 11,025 Hz source PCM, 22,050 Hz stereo output; 14 bounded voices |
 

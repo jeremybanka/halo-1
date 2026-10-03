@@ -68,6 +68,17 @@ def main():
                       ('micro_data.c', 'generated_c_sha256')]:
         if hashlib.sha256((out/'generated'/name).read_bytes()).hexdigest() != report.get(key):
             parser.error('Stale micro bank after model changes; regenerate and pack micro LODs (port/n64/MICRO_LODS.md)')
+    ammo_report = out/'generated/firstperson-ammo-report.json'
+    if not ammo_report.exists():
+        parser.error('Generate the on-weapon ammo displays first: extract_fp_ammo.py, then pack_fp_ammo.py')
+    ammo = json.loads(ammo_report.read_text())
+    fp_sha = next((value for name, value in ammo.get('inputs', {}).items()
+                   if Path(name).name == 'firstperson_data.c'), None)
+    for name, expected in [('firstperson_data.c', fp_sha),
+                           ('firstperson_ammo_data.c', ammo.get('generated_sha256'))]:
+        path = out/'generated'/name
+        if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            parser.error('Stale on-weapon ammo bank; run port/n64/pack_fp_ammo.py after packing first-person models')
     if not (sdk/'bin/mips64-elf-gcc').exists() or not (tiny/'build/libt3d.a').exists():
         parser.error('Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D')
 
@@ -77,7 +88,7 @@ def main():
 
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
-    sources = ['main.c', 'game.c', 'hud.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    sources = ['main.c', 'game.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
     sdk_extra_sources = []
     if args.rspq_buffer_kib:
         sdk_source = (args.libdragon_source or sdk.parent/'libdragon-src').resolve()
@@ -86,7 +97,7 @@ def main():
         sdk_extra_sources.append(out/'rspq-override/rspq_override.c')
     if args.showcase:
         sources.append('showcase.c')
-    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'firstperson_data.c', 'micro_data.c']
+    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')

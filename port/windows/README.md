@@ -40,6 +40,28 @@ For a new optimization profile (`--pgo=train`), the build compiles the
 profile runtime of LLVM for 32-bit x86 (`pgo/halo_profile_runtime.c`).
 LLVM for Windows supplies this runtime only for x86-64.
 
+## Build this fork from macOS or Linux
+
+The `jeremybanka/windows-build` branch uses
+[Windows build](https://github.com/jeremybanka/halo-1/actions/workflows/windows.yml)
+to run the same build on a Windows runner. Push a code change to that branch
+to build both configurations. Documentation-only pushes do not rebuild.
+The workflow saves `halo-windows-debug` and `halo-windows-release` artifacts
+for 14 days; it does not publish a release.
+
+Download a completed build with the GitHub CLI (replace `RUN_ID` with the
+run ID returned by the first command):
+
+```sh
+gh run list --repo jeremybanka/halo-1 --branch jeremybanka/windows-build
+gh run download RUN_ID --repo jeremybanka/halo-1 \
+  --name halo-windows-release --dir dist/halo-windows-release
+```
+
+Keep `halo.exe`, `SDL3.dll`, and the included license notices together.
+Place the extracted `maps` folder beside `halo.exe`, then run `halo.exe`
+on Windows. The workflow does not upload or include game data.
+
 ## Start the game
 
 Enter `build\windows\halo.exe`.

@@ -360,6 +360,7 @@ def audit(args):
               'texture_inputs':texture_hashes,'inputs':hashes,'revised_is_frozen_baseline':hashlib.sha256((before/'models_data.c').read_bytes()).digest()==hashlib.sha256((generated/'models_data.c').read_bytes()).digest() and hashlib.sha256((before/'firstperson_data.c').read_bytes()).digest()==hashlib.sha256((generated/'firstperson_data.c').read_bytes()).digest(),'results':results,'elapsed_seconds':time.monotonic()-started}
     if (before/'firstperson-report.json').exists() and (generated/'firstperson-report.json').exists():
         manifest['packing']=packing_statistics(before_report,report,load(before/'firstperson-report.json'),load(generated/'firstperson-report.json'))
+    if getattr(args,'micro_dir',None):attach_micro_audit(args,manifest)
     (output/'metrics.json').write_text(json.dumps(manifest,indent=2)+'\n');write_html(output,manifest)
     print('Report:',output/'index.html',flush=True)
 
@@ -469,6 +470,12 @@ def runtime_benchmarks_html(output):
             media=Path(value)
             if not media.is_absolute():media=output/media
             if media.is_file():links.append(f'<a href="{href(media)}">Screenshot</a>')
+        for field,label in (('source_provenance','Build proof'),('micro_quality_proof','Asset proof'),('micro_packed_proof','Packing proof')):
+            value=data.get(field)
+            if not isinstance(value,str) or not value:continue
+            proof=Path(value)
+            if not proof.is_absolute():proof=output/proof
+            if proof.is_file():links.append(f'<a href="{href(proof)}">{label}</a>')
         return ' · '.join(links)
     runs=[]
     for path in sorted(output.glob('runtime-*-results.json'),key=natural_key):
@@ -608,6 +615,17 @@ def runtime_benchmarks_html(output):
     parts.append('</details></section>');return '\n'.join(parts)
 
 
+def attach_micro_audit(args,manifest):
+    """Optional supplement; keep the frozen base comparisons and aggregate."""
+    from audit_micro_lods import audit_micro
+    output=args.output.resolve()
+    audit_micro(args.micro_dir,args.generated,output/'reference/extended-raw.json',
+                output/'micro',getattr(args,'micro_proof',None))
+    path=output/'micro/metrics.json'
+    manifest['micro_supplement']={'path':'micro/metrics.json',
+                                  'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
 def write_html(output,manifest):
     performance=manifest.get('comparison_mode')=='performance'
     parts=['<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blood Gulch model audit</title>',
@@ -664,6 +682,12 @@ def write_html(output,manifest):
         for r in rows:
             name=r['id'];extent_label='12 and 8' if r.get('new_distance_lod') else '48 and 24'
             parts.append(f'<details id="{name}"><summary>{html.escape(r["title"])} — eight matching angles and 160×120 readability</summary><p>Source: {html.escape(r["source_provenance"])}</p><p>{html.escape(findings(r,performance))}</p><a href="images/{name}.png"><img loading="lazy" src="images/{name}.png" alt="Eight angles of {html.escape(r["title"])}"></a><img loading="lazy" src="images/{name}-160x120.png" alt="160 by 120 viewport-size comparison"><img loading="lazy" src="images/{name}-distance.png" alt="{extent_label} pixel extent comparison in a 160 by 120 viewport"></details>')
+    if manifest.get('micro_supplement'):
+        from audit_micro_lods import micro_html
+        path=output/manifest['micro_supplement']['path']
+        if hashlib.sha256(path.read_bytes()).hexdigest()!=manifest['micro_supplement']['sha256']:
+            raise RuntimeError('Micro audit metadata changed; regenerate the supplement before refreshing HTML')
+        parts.append(micro_html(load(path)))
     parts.append('</html>');document='\n'.join(parts)
     if performance:
         document=document.replace('Triangles source / before / revised','Triangles source / approved / optimized').replace('IoU before → revised','IoU approved → optimized').replace('Color error before → revised','Color error approved → optimized')
@@ -675,8 +699,16 @@ if __name__=='__main__':
     parser.add_argument('--size',type=int,default=224);parser.add_argument('--only',help='Comma-separated substrings of catalog IDs');parser.add_argument('--allow-legacy-reference',action='store_true')
     parser.add_argument('--performance',action='store_true',help='Compare approved quality baseline against optimized meshes, reporting savings and silhouette loss')
     parser.add_argument('--html-only',action='store_true',help='Refresh index.html from existing metrics and optional runtime validation/benchmark JSON; do not rerender images')
+    parser.add_argument('--micro-dir',type=Path,help='Optional separate micro C/preview/report bank to audit at4/6/8px; leaves the existing59-entry aggregate unchanged')
+    parser.add_argument('--micro-proof',type=Path,help='Optional independent micro C proof to link alongside the supplement')
+    parser.add_argument('--micro-only',action='store_true',help='Generate only the micro supplement, retaining existing base metrics/images')
     args=parser.parse_args()
-    if args.html_only:
+    if args.micro_only:
+        if not args.micro_dir or args.html_only:parser.error('--micro-only requires --micro-dir and cannot combine with --html-only')
+        manifest=load(args.output/'metrics.json');attach_micro_audit(args,manifest)
+        (args.output/'metrics.json').write_text(json.dumps(manifest,indent=2)+'\n')
+        write_html(args.output,manifest);print('Report:',args.output/'index.html')
+    elif args.html_only:
         manifest=load(args.output/'metrics.json')
         if args.performance:manifest['comparison_mode']='performance'
         write_html(args.output,manifest);print('Report:',args.output/'index.html')

@@ -1,9 +1,11 @@
-`--paced30` is an opt-in presentation experiment, not a validated performance
-claim. The normal release remains unpaced. The option adds `-paced30` to the
-ROM name; frozen `--snapshot-tick` builds ignore it.
+`--paced30` enables four-view presentation on every second retrace. For the
+reviewed tiny-model bank, use `--paced30 --paced30-buffers 4`. The ordinary
+no-option build remains unpaced. The option adds `-paced30` to the ROM name;
+frozen `--snapshot-tick` builds ignore it. This is an emulator-tested profile,
+not a physical-console performance guarantee.
 
-In four-view mode, completed frames wait in a two-entry FIFO while the third
-surface is scanned out. After two completed frames prefill the queue, one frame
+In the three-surface four-view mode, completed frames wait in a two-entry FIFO
+while the third surface is scanned out. After two completed frames prefill the queue, one frame
 is released every second VI retrace. An empty deadline repeats the displayed
 frame and increments the miss counter; it never triggers consecutive-retrace
 catch-up. This targets nominal 30 Hz on NTSC/MPAL and rejects PAL. Actual timing
@@ -17,7 +19,7 @@ views, older ready surfaces may drain before the new two-frame prefill starts.
 Three-surface ownership prevents two held surfaces coexisting with an older
 ready surface, so the first paced release cannot overtake that transition.
 
-`--paced30 --paced30-buffers 4` is a separate, unproven acquisition experiment
+`--paced30 --paced30-buffers 4` selects four display surfaces
 with the `-paced30-buffers4` filename suffix. The default remains three surfaces;
 an explicit buffer option requires `--paced30`, and snapshots ignore both.
 The fourth 320×240 RGBA16 surface costs 153,600 pixel bytes plus surface metadata
@@ -33,7 +35,7 @@ retaining the two-frame prefill and two geometry slots. Buffer counts above
 five are rejected. The same ownership tracker handles four and five surfaces;
 three-surface and unpaced target assembly remain unchanged by this extension.
 
-The final-bank quiet Ares runs still miss deadlines:
+Before adding the tiny-model layer, quiet Ares runs still missed deadlines:
 
 | Run | Missed two-VI deadlines | Skipped poses | Input sample → VI mean/max | Live free heap |
 | --- | ---: | ---: | ---: | ---: |
@@ -49,9 +51,42 @@ The three-surface checkpoint predates deferred animation; four/five are a
 matched source comparison. Exact ROM/source hashes and phase metrics are in
 `runtime-cache-quiet-results.json`, `runtime-lazy-four-results.json` and
 `runtime-five-quiet-results.json` under the local performance audit.
-These results justify neither a sustained-30-FPS claim nor a default change.
+These earlier results did not meet the nominal-30-FPS target.
 The separately recorded four-surface RDP validation finishes with zero errors
 and warnings; its instrumentation is not a performance measurement.
+
+The maintained tiny-model build meets the nominal-30-Hz cadence in the complete
+75.017-second quiet ares replay with four surfaces. All **2,244 fresh poses**
+arrive exactly two retraces apart: 1,078 combat poses and 1,166 vehicle poses,
+with **zero missed deadlines, duplicate displayed poses or dropped simulation
+ticks**. The observer reports 33.4 ms p95 and maximum, and truncates the NTSC
+rate to 29.9 FPS. Six intermediate simulated poses were skipped; this is
+separate from dropped ticks and repeats. Input-sample-to-VI latency is
+100 ms mean / 102 ms maximum; ready-to-VI is 69 / 84 ms. Live free heap is
+906 KiB, with held/SDK-ready/submitted peaks of 3/1/3.
+
+The same model recipe's private three-surface comparison has one vehicle
+deadline miss and 67 / 101 ms input-sample-to-VI latency. Four surfaces are
+therefore the recommended tested profile. The original 59-entry bank remains
+unchanged; twelve tiny meshes are selected only for already-far pickups and
+vehicles below the conservative four-view pixel threshold. Full scene geometry,
+audio, simulation and HUD remain enabled. See [MICRO_LODS.md](MICRO_LODS.md).
+The final-source result, exact ROM/source/bank hashes and captured page are in
+`performance-audit/runtime-micro-production-four-results.json`; private
+candidate results remain separately labeled. This measurement covers the
+scripted replay, not every possible match.
+
+These are emulator measurements. The official ares v148 RDP bridge submits
+commands to paraLLEl-RDP without charging emulated CPU time for physical pixel,
+blending, antialiasing, depth or framebuffer-memory work. Waiting for the host
+GPU at SyncFull does not add those omitted costs to CPU Count. RSP execution
+and DMA do advance emulated clocks. Consequently, the VI measurements can
+compare command/CPU/RSP workload in ares, but even a zero-miss run cannot
+certify a physical N64 frame budget. The DPC busy flags in a diagnostic trace
+also do not isolate a hardware fill-rate bottleneck. See the
+[v148 RDP integration](https://github.com/ares-emulator/ares/blob/v148/ares/n64/vulkan/vulkan.cpp)
+and local `performance-audit/ares-v148-timing-review/` source audit. The installed
+app reports v148; a reproducible binary match to that source tag was not made.
 
 Four-surface mode tracks submitted and SDK-ready surface ownership separately.
 Only an observed VI origin clears ownership. When enabling pacing after an

@@ -11,6 +11,8 @@ build/n64-python/bin/python port/n64/pack_extended.py
 build/n64-python/bin/python port/n64/extract_firstperson.py
 /Applications/Blender.app/Contents/MacOS/Blender --background --python port/n64/reduce_firstperson.py -- build/n64/assets/firstperson-raw.json build/n64/assets/firstperson-reduced.json --performance-profile
 build/n64-python/bin/python port/n64/pack_firstperson.py
+build/n64-python/bin/python port/n64/generate_micro_lods.py --assets build/n64/assets --verify-generated build/n64/generated --output build/n64/assets/micro-lods.json
+build/n64-python/bin/python port/n64/pack_micro_lods.py
 build/n64-python/bin/python port/n64/validate_assets.py
 ```
 
@@ -44,7 +46,7 @@ Xbox rigid vertices with an invalid first palette slot and a valid second slot a
 
 `model_colors.py` bakes full-resolution source diffuse textures into per-corner colors, sampling inward from UV seams. UVs use image-row coordinates consistently. Original Xbox multipurpose blue-channel color-change masks preserve the Spartan's dark undersuit and visor while tinting armor for each player; first-person hands use the same masks. Glass and meter materials have explicit flat-color approximations. Fine markings, glossy reflections, transparency and emissive effects are not reproduced by this vertex-color representation.
 
-`pack_animation.py` shares identical complete motion tracks across triangle corners and stores each clip relative to an integer origin using unsigned-byte offsets. Packing verifies every decoded frame and corner equals its quantized source; out-of-range offsets fail the build. Clip samples, durations and interpolation are unchanged. Generated reports record compressed and uncompressed animation bytes for the selected preset and indexed vertex layout. Two RSP-fenced geometry slots and three independent display buffers keep the larger models within the base 4 MiB configuration.
+`pack_animation.py` shares identical complete motion tracks across triangle corners and stores each clip relative to an integer origin using unsigned-byte offsets. Packing verifies every decoded frame and corner equals its quantized source; out-of-range offsets fail the build. Clip samples, durations and interpolation are unchanged. Generated reports record compressed and uncompressed animation bytes for the selected preset and indexed vertex layout. Two RSP-fenced geometry slots keep animation storage bounded; the recommended paced profile uses four independent display surfaces within the base 4 MiB configuration.
 
 Audio is decoded from original Xbox ADPCM to signed 8-bit mono PCM at 11,025 Hz. The default bank preserves 39 stable slots, with 38 populated events backed by 35 unique clips: shots, reloads, explosions, engine loops, player/UI effects, announcer lines and the map's outdoor ambience. The Banshee engine and fuel-rod bomb shot come from `a30.map`; the Warthog gun uses the original chaingun firing sound. Scorpion primary fire uses the same explosion sound as its original firing effect, while Ghost and Banshee primary fire use the original plasma-rifle sound. Those three source-identical events share existing PCM buffers after extraction verifies byte equality. The unused flamethrower sound slot contains no samples in the Xbox bank; `--pc-extras` restores it as the 36th unique clip. One source permutation per sound is retained. Ordinary one-shot tails are limited to four seconds and engine/flamethrower/ambient loop samples to two seconds. Warthog gun and Banshee bomb tails are limited to 0.6 and one second respectively; the runtime supplies mixing and spatial attenuation.
 
@@ -68,7 +70,63 @@ These switches add assets only; they do not enable a different gameplay ruleset.
 
 The commands above regenerate every extended output directly from the extracted disc caches: gameplay and projectile metadata, both Spartan LODs and their poses, right-hand attachments, vehicle part ranges and pivots, weapon/vehicle HUD sprites, and audio. No one-off JSON edits or external Blender scene state are required.
 
-Generated APIs live in `asset_models.h`, `asset_firstperson.h` and `asset_hud.h`. Reports under `build/n64/generated/` contain triangle counts and byte budgets. The extracted tags supply geometry, motion and presentation data; game rules and vehicle physics remain separate runtime code.
+Generated APIs live in `asset_models.h`, `asset_firstperson.h`, `asset_micro.h` and `asset_hud.h`. Reports under `build/n64/generated/` contain triangle counts and byte budgets. The extracted tags supply geometry, motion and presentation data; game rules and vehicle physics remain separate runtime code.
+
+## Tiny far models
+
+Normal builds include the additional `micro_data.c` bank. Its twelve models are
+derived from the current source-based far meshes by the tracked
+`micro_lod_recipe.json`, not from saved experimental geometry. The generator
+uses an isolated factory-startup Blender process and records source/helper
+hashes plus Blender, Python and NumPy versions. The reviewed recipe reproduced
+all twelve selected position/RGB/material payloads exactly; generated game data
+remains ignored.
+
+Run this stage after the normal extended pack, and rerun it whenever that far
+bank, its colors or the recipe changes:
+
+```sh
+build/n64-python/bin/python port/n64/generate_micro_lods.py \
+  --assets build/n64/assets --verify-generated build/n64/generated \
+  --output build/n64/assets/micro-lods.json
+build/n64-python/bin/python port/n64/pack_micro_lods.py
+```
+
+`pack_micro_lods.py` defaults to that JSON input and writes `micro_data.c`,
+`micro-preview.json` and `micro-report.json` beside the existing generated bank.
+It leaves `models_data.c`, first-person geometry, animations, audio, HUD and
+terrain unchanged. The pointer tables alias the existing far model for plasma
+pistol, sniper, rocket, health pack and Scorpion; their tested smaller versions
+lost identifying features. The twelve selected micro meshes add 412 triangles
+and 386 loaded vertices as a separate bank. These are storage/model counts,
+not the number submitted in every frame.
+
+`render_micro_lod.h` selects this layer only for already-far ground pickups and
+vehicles in four-player views, with zoom off and valid bounds beyond the near
+plane. A conservative sphere fast pass or all eight projected outward AABB
+corners must fit the eight-pixel gate with a half-pixel safety margin. The bounds
+include the original nearby/distant meshes and current rigid-part poses; they
+are not shrunk to the micro mesh. First-person guns, held weapons, nearby models
+and one/two-player views retain their finer paths. All selected quantized micro
+vertices remain inside their original far AABB.
+
+The two support-hull assets, shotgun and frag, deliberately fill small recesses
+at this tiny size. Their facets have the inward winding required by the current
+`CULL_FRONT` path, verified by closed edge incidence, normals and one-sided
+native comparisons. Warthog rear lamps retain all eight original directed
+material-3 triangles. The other reductions preserve the chosen body/color cues;
+weaker Needler, Ghost and Banshee candidates were rejected. Exact target image
+and graphics-validation evidence remains separate from the offline audit.
+
+The recommended measured pacing profile is selected explicitly when building:
+
+```sh
+python3 port/n64/build.py --paced30 --paced30-buffers 4
+```
+
+The micro bank is included in normal builds independently of that pacing
+switch. See `MICRO_LODS.md` for the generation contract, quality decisions,
+target-validation requirements and video provenance workflow.
 
 ## Conservative runtime bounds
 
@@ -232,6 +290,25 @@ The performance report also includes 13 new distant pickup entries, for 59
 displayed entries in total. Their 12/8-pixel strips compare the new distant mesh
 with the approved nearby mesh; they have no prior distant baseline and are
 excluded from the 46-entry silhouette-loss aggregate.
+
+The micro supplement adds twelve separately labeled entries and the five
+intentional aliases, preserving all original 59 metrics. It checks actual C
+index expansion, material barriers and source color bounds, then compares the
+highest source, existing far and micro geometry across eight directions,
+including bottom, at 4/6/8 pixels and four quarter-pixel positions. Those 1,152
+native views do not emulate N64 coverage antialiasing or certify animation-time
+transitions. Append or refresh only this supplement without rerendering the
+base comparisons:
+
+```sh
+build/n64-python/bin/python port/n64/audit_models.py --performance \
+  --output build/n64/performance-audit --generated build/n64/generated \
+  --micro-dir build/n64/generated --micro-only
+```
+
+Omit `--micro-only` to render the base comparisons and micro supplement together.
+The separate tiny-model comparisons do not alter the existing near-model
+0.03 silhouette-loss budget.
 
 Saved `runtime-*-results.json` files in the report directory supply a separate
 benchmark history, including all/combat/vehicle phases, mean/p95/worst frame

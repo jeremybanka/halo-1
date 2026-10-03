@@ -7,6 +7,8 @@
 #include "asset_firstperson.h"
 #include "render_animation.h"
 #include "render_lod.h"
+#include "asset_micro.h"
+#include "render_micro_lod.h"
 #include "render_pose_cache.h"
 #include "rspq_metrics.h"
 #include "blam/runtime.h"
@@ -80,6 +82,9 @@ static float fired_at[4]={-100,-100,-100,-100};
 static rspq_block_t *world_blocks[512], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT], *particle_blocks[7];
 static rspq_block_t *vehicle_lods[4];
 static rspq_block_t *pickup_lod_blocks[BG_M_COUNT];
+static rspq_block_t *vehicle_micro_blocks[4],*pickup_micro_blocks[BG_M_COUNT];
+static bg_micro_sphere vehicle_micro_spheres[BG_MAX_VEHICLES],pickup_micro_spheres[BG_MAX_PICKUPS];
+static bool vehicle_micro_available[4],pickup_micro_available[BG_M_COUNT];
 static rspq_block_t *vehicle_parts[4][7];
 static T3DMat4FP part_matrices[BG_FRAME_SLOTS][BG_MAX_VEHICLES][7];
 static bg_cull_bounds vehicle_part_bounds[BG_MAX_VEHICLES][7];
@@ -123,6 +128,7 @@ static unsigned geometry_rsp_us,geometry_rdp_us;
 static unsigned category_triangles[6]; /* Terrain, vehicles, bodies, pickups, effects, first person. */
 static unsigned submitted_vertices,model_vertex_loads[BG_M_COUNT],pickup_vertex_loads[BG_M_COUNT];
 static unsigned vehicle_vertex_loads[4],part_vertex_loads[4][7],spartan_lod_vertex_loads,fp_vertex_loads[BG_FP_WEAPONS];
+static unsigned vehicle_micro_vertex_loads[4],pickup_micro_vertex_loads[BG_M_COUNT];
 static unsigned animated_vertices,animated_tracks;
 #ifndef BG_BENCHMARK
 static uint32_t frame_times[120],frame_time_count,frame_time_next;
@@ -375,11 +381,11 @@ static rspq_block_t *record(T3DVertPacked *verts,unsigned count){
     return rspq_block_end();
 }
 static void prepare_model(const bg_model_asset*asset){
-    static const int16_t*converted[64];static unsigned converted_count;
+    static const int16_t*converted[96];static unsigned converted_count;
     data_cache_hit_writeback(asset->vertices,((asset->vertex_count+1)&~1u)*16);
     if(!asset->batch_count)return;
     for(unsigned i=0;i<converted_count;i++)if(converted[i]==asset->indices)return;
-    assertf(converted_count<64,"Model index conversion capacity");
+    assertf(converted_count<96,"Model index conversion capacity");
     converted[converted_count++]=asset->indices;
     for(unsigned b=0;b<asset->batch_count;b++){
         const bg_mesh_batch*batch=&asset->batches[b];
@@ -479,6 +485,25 @@ static void init_scene(void){
             part_vertex_loads[m][j]=model_load_count(full,part->count,part->batch_first,part->batch_count);
 #endif
         }
+    }
+    /* New tables explicitly alias the existing far asset when absent. */
+    for(unsigned m=0;m<BG_M_COUNT;m++){
+        const bg_model_asset*a=bg_pickup_micro_lods[m],*old=&bg_pickup_lods[m];
+        pickup_micro_available[m]=a->vertices!=old->vertices||a->indices!=old->indices;
+        if(!pickup_micro_available[m])pickup_micro_blocks[m]=pickup_lod_blocks[m];
+        else{prepare_model(a);pickup_micro_blocks[m]=record_model(a,a->vertices);}
+#ifdef BG_PROFILE
+        pickup_micro_vertex_loads[m]=model_load_count(a,a->vertex_count,0,a->batch_count);
+#endif
+    }
+    for(unsigned m=0;m<4;m++){
+        const bg_model_asset*a=bg_vehicle_micro_lods[m],*old=&bg_vehicle_lods[m];
+        vehicle_micro_available[m]=a->vertices!=old->vertices||a->indices!=old->indices;
+        if(!vehicle_micro_available[m])vehicle_micro_blocks[m]=vehicle_lods[m];
+        else{prepare_model(a);vehicle_micro_blocks[m]=record_model(a,a->vertices);}
+#ifdef BG_PROFILE
+        vehicle_micro_vertex_loads[m]=model_load_count(a,a->vertex_count,0,a->batch_count);
+#endif
     }
     const bg_model_asset*spartan=&bg_model_assets[BG_M_SPARTAN];
     prepare_model(&bg_spartan_lod);
@@ -612,7 +637,7 @@ static void instance(unsigned model,T3DMat4FP*matrix){
     submitted_vertices+=model_vertex_loads[model];
 #endif
 }
-static void small_model_instance(unsigned model,T3DMat4FP*matrix,T3DViewport*vp,const T3DVec3*eye,bool zoom){
+static void small_model_instance(unsigned model,T3DMat4FP*matrix,T3DViewport*vp,const T3DVec3*eye,bool zoom,const bg_micro_sphere*micro_bounds){
     /* Positions in matrices are render units; asset radii are Halo units.
      * Camera-forward depth is conservative at the edges of the viewport,
      * unlike Euclidean distance. A bounding sphere controls the pixel LOD.
@@ -624,10 +649,12 @@ static void small_model_instance(unsigned model,T3DMat4FP*matrix,T3DViewport*vp,
     float distance_squared=0;for(unsigned a=0;a<3;a++){float d=(pos[a]-eye->v[a])/BG_SCALE;distance_squared+=d*d;}
     bool far=!zoom&&bg_lod_diameter_below(bg_model_assets[model].radius,
         vp->size[1]*fabsf(vp->matProj.m[1][1]),depth,distance_squared,12.f);
-    t3d_matrix_set(matrix,true);rspq_block_run(far?pickup_lod_blocks[model]:models[model]);
-    triangles+=far?bg_pickup_lods[model].triangle_count:bg_model_assets[model].triangle_count;
+    bool micro=far&&pickup_micro_available[model]&&bg_micro_lod_below(micro_bounds,vp->matCamera.m,vp->matProj.m,
+        vp->size[0],vp->size[1],1.4f,BG_MICRO_PIXELS,true,zoom,views);
+    t3d_matrix_set(matrix,true);rspq_block_run(micro?pickup_micro_blocks[model]:far?pickup_lod_blocks[model]:models[model]);
+    triangles+=micro?bg_pickup_micro_lods[model]->triangle_count:far?bg_pickup_lods[model].triangle_count:bg_model_assets[model].triangle_count;
 #ifdef BG_PROFILE
-    submitted_vertices+=far?pickup_vertex_loads[model]:model_vertex_loads[model];
+    submitted_vertices+=micro?pickup_micro_vertex_loads[model]:far?pickup_vertex_loads[model]:model_vertex_loads[model];
 #endif
 }
 static void matrix(T3DMat4FP*out,float scale,float yaw,float pitch,const float pos[3]){
@@ -719,7 +746,7 @@ static void compute_vehicle_pose(unsigned i){
         (float[]){v->pos[0]*BG_SCALE,v->pos[1]*BG_SCALE,v->pos[2]*BG_SCALE});
     t3d_mat4_to_fixed_3x4(&vehicle_matrices[slot][i],&base);
     bg_bounds combined;
-    bg_bounds_transform(&combined,&bg_vehicle_lod_bounds[v->kind],base.m,BG_OBJECT_SCALE);
+    bg_bounds_transform(&combined,&bg_vehicle_micro_gate_bounds[v->kind],base.m,BG_OBJECT_SCALE);
     pivot_rotation(&yaw,rig->turret_pivot,v->turret_yaw,0);
     for(unsigned j=0;j<rig->count;j++){
         const bg_vehicle_part*part=&rig->parts[j];T3DMat4 local,world;
@@ -771,7 +798,7 @@ static void prepare_pickup_bounds(void){
         float pos[3];memcpy(pos,q->pos,sizeof(pos));pos[1]+=.035f*sinf(game_time*2+i);
         for(unsigned a=0;a<3;a++){pos[a]*=BG_SCALE;rotation.m[3][a]=pos[a];}
         pickup_matrices[slot][i]=fixed;t3d_mat4fp_set_pos(&pickup_matrices[slot][i],pos);
-        bg_bounds box;bg_bounds_transform(&box,&bg_model_cull_bounds[pickup_model(q->weapon)],rotation.m,BG_OBJECT_SCALE);
+        bg_bounds box;bg_bounds_transform(&box,&bg_pickup_micro_gate_bounds[pickup_model(q->weapon)],rotation.m,BG_OBJECT_SCALE);
         bg_bounds_quantize(&pickup_bounds[i],&box);
     }
 }
@@ -836,6 +863,12 @@ static void prepare_frame(void){
     for(unsigned p=0;p<views;p++)prepare_player_bounds(p);
     for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active)prepare_vehicle(i);
     prepare_pickup_bounds();
+    if(views==4){
+        for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active&&vehicle_micro_available[bg_vehicles[i].kind])
+            bg_micro_sphere_from_bounds(&vehicle_micro_spheres[i],&vehicle_bounds[i]);
+        for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].active&&pickup_micro_available[pickup_model(bg_pickups[i].weapon)])
+            bg_micro_sphere_from_bounds(&pickup_micro_spheres[i],&pickup_bounds[i]);
+    }
     for(unsigned p=0;p<views;p++)prepare_view(p);
 #ifdef BG_PROFILE
     camera_us=get_ticks_us()-begin;begin=get_ticks_us();
@@ -931,6 +964,8 @@ static void prepare_view(unsigned p){
         if(!v->active||!visible_bounds(vp,&vehicle_bounds[i]))continue;
         float distance=0;for(unsigned a=0;a<3;a++){float d=v->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
         unsigned lod=distance>36&&player->zoom==0;
+        if(lod&&vehicle_micro_available[v->kind]&&bg_micro_lod_below(&vehicle_micro_spheres[i],vp->matCamera.m,vp->matProj.m,
+            vp->size[0],vp->size[1],1.4f,BG_MICRO_PIXELS,true,player->zoom!=0,views))lod=2;
         vehicle_view_lods[p][i]=lod+1;
     }
     for(unsigned i=0;i<bg_pickup_count;i++){
@@ -974,11 +1009,12 @@ static void draw_view(unsigned p){
 #endif
     for(unsigned i=0;i<bg_vehicle_count;i++)if(vehicle_view_lods[p][i]){
         bg_vehicle*v=&bg_vehicles[i];
-        if(vehicle_view_lods[p][i]==2){
-            t3d_matrix_set(&vehicle_matrices[slot][i],true);rspq_block_run(vehicle_lods[v->kind]);
-            triangles+=bg_vehicle_lods[v->kind].triangle_count;
+        if(vehicle_view_lods[p][i]>=2){
+            bool micro=vehicle_view_lods[p][i]==3;
+            t3d_matrix_set(&vehicle_matrices[slot][i],true);rspq_block_run(micro?vehicle_micro_blocks[v->kind]:vehicle_lods[v->kind]);
+            triangles+=micro?bg_vehicle_micro_lods[v->kind]->triangle_count:bg_vehicle_lods[v->kind].triangle_count;
 #ifdef BG_PROFILE
-            submitted_vertices+=vehicle_vertex_loads[v->kind];
+            submitted_vertices+=micro?vehicle_micro_vertex_loads[v->kind]:vehicle_vertex_loads[v->kind];
 #endif
         }else{
             const bg_vehicle_rig*rig=&bg_vehicle_rigs[v->kind];
@@ -1005,7 +1041,7 @@ static void draw_view(unsigned p){
             submitted_vertices+=lod?spartan_lod_vertex_loads:model_vertex_loads[BG_M_SPARTAN];
 #endif
         }
-        if(held_masks[p]&(1u<<j))small_model_instance(weapon_model(bg_players[j].weapon),&held_matrices[slot][j],vp,&eye,player->zoom!=0);
+        if(held_masks[p]&(1u<<j))small_model_instance(weapon_model(bg_players[j].weapon),&held_matrices[slot][j],vp,&eye,player->zoom!=0,NULL);
     }
 #ifdef BG_PROFILE
     category_triangles[2]+=triangles-before;before=triangles;
@@ -1013,7 +1049,7 @@ static void draw_view(unsigned p){
     for(unsigned i=0;i<bg_pickup_count;i++){
         bg_pickup*q=&bg_pickups[i];if(!pickup_visible[p][i])continue;
         unsigned model=pickup_model(q->weapon);
-        small_model_instance(model,&pickup_matrices[slot][i],vp,&eye,player->zoom!=0);
+        small_model_instance(model,&pickup_matrices[slot][i],vp,&eye,player->zoom!=0,&pickup_micro_spheres[i]);
     }
 #ifdef BG_PROFILE
     category_triangles[3]+=triangles-before;before=triangles;

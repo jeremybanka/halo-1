@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast
     bg_bounds_expand bg_bounds_quantize bg_bounds_transform bg_bounds_union
     bg_motion_decode bg_motion_scatter blam_quaternions_interpolate_and_normalize
-    data_cache_hit_writeback floorf fmaxf fminf sinf cosf get_ticks_us memcpy memset memcmp bg_vehicle_pose_key
+    data_cache_hit_writeback floorf fmaxf fminf fabsf sqrtf sinf cosf get_ticks_us memcpy memset memcmp bg_vehicle_pose_key
     t3d_mat4_from_srt_euler t3d_mat4_from_srt t3d_mat4_to_fixed_3x4 t3d_mat4_mul
     t3d_mat4fp_set_pos t3d_mat3_mul_vec3 t3d_mat4fp_from_srt_euler
     t3d_vertbuffer_get_color t3d_frustum_vs_aabb_s16 t3d_viewport_look_at
@@ -22,18 +22,21 @@ EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast
 
 def calls(body):
     body = re.sub(r'/\*.*?\*/|//[^\n]*', '', body, flags=re.S)
-    return set(re.findall(r'\b([A-Za-z_]\w*)\s*\(', body)) - {'if', 'for', 'while', 'switch', 'sizeof'}
+    return set(re.findall(r'\b([A-Za-z_]\w*)\s*\(', body)) - {'if', 'for', 'while', 'switch', 'sizeof', 'return'}
 
 
 def check(main, sdk, tiny, before=None):
     source = main.read_text()
+    # Follow the actual inline projection helpers too, rather than allowing an
+    # unchecked external call across the CPU-only preparation boundary.
+    helpers = source + '\n' + (main.parent/'render_micro_lod.h').read_text() + '\n' + (main.parent/'render_lod.h').read_text()
     visited = set()
 
     def visit(name):
         if name in visited:
             return
         visited.add(name)
-        for call in calls(function(source, name)):
+        for call in calls(function(helpers, name)):
             if call not in EXTERNAL:
                 # Unknown calls must resolve to a reviewed local CPU helper.
                 # A new draw/queue call fails instead of silently crossing this boundary.

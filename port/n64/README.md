@@ -16,7 +16,10 @@ and remaining engine work.
 
 ## Play
 
-Load `build/n64/halo-blood-gulch.z64` in ares as a Nintendo 64 cartridge.
+Load `build/n64/halo-blood-gulch-paced30-buffers4.z64` in ares as a Nintendo 64
+cartridge for the recommended four-player presentation profile. Build it with
+`build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 4`.
+The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
 Four views start immediately. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.
 Player 1's Start menu selects one, two or four players and restarts the match.
@@ -199,7 +202,7 @@ Build these ROMs serially because the compiler object directory is shared.
 | World vertex/index storage | 51,584 / 11,752 bytes |
 | Conservative model bounds | 1,444 bytes; near/far unions and per-clip/part metadata |
 | Collision mesh and grid | 80,506 bytes |
-| Color/depth buffers | 614,400 bytes: triple 320×240 color + depth |
+| Color/depth buffers | 768,000 bytes with recommended four color surfaces + depth; 614,400 for the ordinary triple-buffer build |
 | Gameplay objects | fixed player/vehicle pools; bounded Blam arena for 48 projectiles; no per-tick system-heap allocation |
 | Audio | 11,025 Hz source PCM, 22,050 Hz stereo output; 14 bounded voices |
 
@@ -213,8 +216,9 @@ masks and complete animation trajectories. Its explicit per-model RGB limit is
 original corner; errors cannot accumulate through successive merges. The terrain
 packer retains its separate 8/255 limit. The 59-entry audit checks identifying
 colors at native target sizes.
-Only visible character LODs are animated. The three display color buffers remain
-independent. RSP fences protect geometry buffers before reuse.
+Only visible character LODs are animated. Display color surfaces remain
+independent of the two fenced geometry slots. RSP fences protect geometry
+buffers before reuse.
 Sibling object matrices avoid redundant camera reloads; exact current-pose
 vehicle-part bounds skip offscreen parts using another 1,176 CPU-only bytes.
 See [RENDER_MATRIX.md](RENDER_MATRIX.md) for the matrix-stack contract.
@@ -235,6 +239,14 @@ excluded from that 46-entry aggregate because they have no prior distant bank.
 The final 59-entry report keeps all 46 existing comparisons within a 0.03 loss
 of source silhouette IoU relative to the approved quality build; this is an
 offline shape check, not a frame-rate measurement.
+
+The additional tiny-model audit covers twelve entries from eight angles,
+at 4/6/8 pixels with four subpixel placements: 1,152 native-size comparisons.
+Five rejected candidates retain their existing far models. The new layer is
+restricted to already-distant pickups and vehicles in four-player views,
+with zoom off and conservative projected bounds below 7.5 pixels. It adds
+386 stored vertices and leaves the original 59-entry bank unchanged. See
+[MICRO_LODS.md](MICRO_LODS.md) for recipes, quality decisions and target checks.
 
 ```sh
 build/n64-python/bin/python port/n64/test_pack_animation.py
@@ -287,17 +299,18 @@ actual flight, driver/front-passenger seating, same-tick frag double kills,
 shotgun kills, seven-hit Needler supercombines, and a single homing needle
 turning before impact. They also verify kill ownership through awarded scores.
 
-The final model bank, indexed terrain, per-part bounds, nonblocking queue
-flushes and exact vehicle-pose cache were checked in ares v148 with Metal and
-the Expansion Pak disabled. The 160-second paced three-buffer validation
+The final maintained tiny-model build was checked in ares v148 with Metal and
+the Expansion Pak disabled. Its 95.743-second four-buffer graphics validation
 recording ended with **zero RDP errors and zero warnings** through combat,
-vehicles, respawns and a second replay cycle. Both streams decode cleanly;
-audio is active throughout. The exact ROM, source and bank hashes, full-frame
-proofs and audio measurements are in
-`performance-audit/vehicle-pose-cache/validation-report.json`. The earlier
-quality profile's 135 KiB of heap headroom is not a measurement of this bank.
+vehicles and respawns. All 2,826 video frames and the audio decode cleanly;
+seven inspected full frames, including the actual final frame, retain clean
+cumulative counters. The exact ROM, source and bank hashes, full-frame proofs,
+audio measurements and known vehicle-camera limitations are in
+`performance-audit/micro-production/validation-report.json`. An earlier
+158.957-second private candidate run also passed. Neither diagnostic recording
+is release-performance evidence.
 
-The final audited model bank with indexed terrain, sibling matrices and
+Before the tiny-model layer, the audited model bank with indexed terrain, sibling matrices and
 per-part culling completed 3,030 four-player frames over 75.018 measured seconds
 at **40.3 FPS average** using the original presenter, guard band 2 and a 16 KiB
 RSP queue. Completion intervals were **35.2 ms at p95 and 55.6 ms worst**;
@@ -314,17 +327,32 @@ per-category GPU time. The longest interval includes the replay's reset at
 Emulator VPS measures host playback speed separately; the 30 Hz simulation
 clock is independent of rendering.
 
-The optional `--paced30` experiment avoids repeated simulation poses and queues
+The optional `--paced30` presenter avoids repeated simulation poses and queues
 four-view presentation at every second VI retrace. New benchmark builds also
 measure fresh displayed poses, missed deadlines and latency separately from
 CPU and RDP throughput. See [PACING.md](PACING.md); compilation and portable
 tests alone do not establish its target performance.
-The quiet final-bank runs improve from 14 missed deadlines with three surfaces
+Before the tiny-model layer, quiet runs improved from 14 missed deadlines with three surfaces
 to six with four and three with five, at respective mean input-sample-to-VI
 latencies of 68, 100 and 129 ms. The remaining gaps are in vehicle scenes;
-none of these runs establishes sustained nominal 30 FPS. Exact phase results,
+none of those earlier runs established sustained nominal 30 FPS. Exact phase results,
 source differences and the memory/latency tradeoff are recorded in the pacing
 notes and local audit. The default presenter is unchanged.
+
+With the reviewed tiny-model layer, the final maintained four-buffer build
+holds **nominal 30 FPS throughout the 75.017-second ares stress replay**:
+2,244 fresh poses, all exactly two VI retraces apart, with zero missed
+deadlines, duplicate displayed poses or dropped simulation ticks. Combat and
+vehicle phases both pass. NTSC timing is truncated to 29.9 FPS on the result
+page; its p95 and maximum interval are 33.4 ms. Six intermediate poses were
+skipped. Input-sample-to-VI latency is 100 ms mean / 102 ms maximum, and live
+free heap is 906 KiB. Exact evidence is in
+`performance-audit/runtime-micro-production-four-results.json`.
+
+This is ares timing, not physical-console validation. Ares v148 does not charge
+physical RDP pixel, blending, antialiasing, depth and framebuffer-memory costs
+to emulated CPU Count. See [PACING.md](PACING.md) for the source audit, measured
+latency and remaining hardware limits.
 
 The original-BSP profile's earlier validation used ares v147 with an 8 MiB
 Expansion Pak and reported zero RDP errors/warnings and about 3,634 KiB of heap
@@ -342,10 +370,11 @@ screen-stream buffer directly, without H.264 decoding, filtering or cropping;
 use this output for exact comparisons of frozen snapshot ROMs.
 `video_clip.swift` copies a selected time range without generating or altering
 gameplay frames. Its optional playback-rate argument changes timing for a
-clearly identified slow-motion copy. The optimized model recordings, exact source
+clearly identified slow-motion copy. The final model recordings, exact source
 segments, audio checks and ROM checksums are local artifacts in
-`build/n64/videos/optimized/index.html` and its `showcase-manifest.json`. Earlier
-recordings remain in `build/n64/videos/`; they are not overwritten.
+`build/n64/videos/micro-lod/index.html` and its `showcase-manifest.json`. The
+previous optimized-bank recordings remain in `build/n64/videos/optimized/`;
+earlier recordings are also preserved.
 
 ```sh
 xcrun swiftc -parse-as-library port/n64/record_ares.swift -o build/n64/record-ares
@@ -370,7 +399,7 @@ large shader/settings menu tree.
 
 Focused recordings are `banshee-flight.mp4`, `frag-double-kill.mp4`,
 `warthog-passenger.mp4`, `shotgun-kill.mp4`, `needler-supercombine.mp4` and
-`needler-homing.mp4` in `build/n64/videos/optimized/`. An additional
+`needler-homing.mp4` in `build/n64/videos/micro-lod/`. An additional
 `needler-homing-quarter-speed.mp4` shows the same recorded projectile at 0.25×
 playback speed. All six use staged encounters and normal gameplay inputs,
 with game audio and an on-screen SCRIPTED label. The shotgun encounter needs

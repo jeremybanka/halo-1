@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Build the standalone N64 demake with an installed libdragon/Tiny3D SDK."""
 import argparse
+import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
@@ -55,8 +57,17 @@ def main():
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     out = ROOT/'build/n64'
     out.mkdir(parents=True, exist_ok=True)
-    if not (out/'generated/render_data.c').exists():
-        parser.error('Generate local assets first; see port/n64/README.md')
+    if not all((out/'generated'/name).exists() for name in ('render_data.c','micro_data.c')):
+        parser.error('Generate local assets, including the micro bank, first; see port/n64/README.md and port/n64/MICRO_LODS.md')
+    micro_report = out/'generated/micro-report.json'
+    if not micro_report.exists():
+        parser.error('Missing micro asset provenance; run port/n64/pack_micro_lods.py')
+    report = json.loads(micro_report.read_text())
+    for name, key in [('models_data.c', 'baseline_c_sha256'),
+                      ('model-preview.json', 'baseline_preview_sha256'),
+                      ('micro_data.c', 'generated_c_sha256')]:
+        if hashlib.sha256((out/'generated'/name).read_bytes()).hexdigest() != report.get(key):
+            parser.error('Stale micro bank after model changes; regenerate and pack micro LODs (port/n64/MICRO_LODS.md)')
     if not (sdk/'bin/mips64-elf-gcc').exists() or not (tiny/'build/libt3d.a').exists():
         parser.error('Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D')
 
@@ -75,7 +86,7 @@ def main():
         sdk_extra_sources.append(out/'rspq-override/rspq_override.c')
     if args.showcase:
         sources.append('showcase.c')
-    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'firstperson_data.c']
+    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'firstperson_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')

@@ -15,6 +15,10 @@ def main():
  assert all(0<len(m['triangles'])<=80 for m in reduced['vehicle_lods'].values())
  assert len(reduced['spartan_lod']['triangles'])<=60
  assert all(len(reduced['models'][name]['triangles'])<=20 for name in ('frag','plasma_grenade'))
+ assert raw['models']['banshee']['baked_vehicle_pose']=='stand closing:terminal'
+ for mesh in (reduced['models']['banshee'],reduced['vehicle_lods']['banshee']):
+  points=[p for t in mesh['triangles'] for p in t['p']]
+  assert max(p[2] for p in points)-min(p[2] for p in points)<1.1
  for name,expected in [('warthog',7),('scorpion',3)]:
   model,rig=split_vehicle(name,reduced['models'][name],raw['models'][name])
   assert len(rig['parts'])==expected,name
@@ -56,6 +60,10 @@ def main():
   assert death['duration']==raw['animations']['death']['duration']
   assert max(p[2] for p in terminal)<.25
   assert max(p[2] for p in terminal)-min(p[2] for p in terminal)<.25
+  for name in ('passenger','gunner'):
+   assert len(reduced[key][name]['frames'])==4
+ assert raw['animations']['passenger']['tag_name']=='W-passenger rifle idle'
+ assert raw['animations']['gunner']['tag_name']=='W-gunner fixed idle'
  assert len(fp['weapons'])==9
  for name,weapon in fp['weapons'].items():
   count=len(weapon['triangles'])*3
@@ -90,5 +98,5 @@ def main():
  assert added<=60000,added
  for file in ('models_data.c','audio_data.c','hud_data.c','firstperson_data.c'):
   assert (root/'generated'/file).stat().st_size>1000,file
- print(f'Asset contracts pass: 19 source models, 4 vehicle LODs, vehicle part ranges, 2 Spartan LODs, 9 clips, {len(fp_report["vertices"])} packed first-person rigs, 39 sound events / 36 source clips.')
+ print(f'Asset contracts pass: 19 source models, 4 vehicle LODs, vehicle part ranges, 2 Spartan LODs, {len(reduced["animations"])} clips, {len(fp_report["vertices"])} packed first-person rigs, 39 sound events / 36 source clips.')
 if __name__=='__main__':main()

@@ -5,8 +5,11 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+SHOWCASES = ['banshee', 'frag-double-kill', 'warthog-passenger', 'shotgun-kill',
+             'needler-supercombine', 'needler-homing']
 
 
 def main():
@@ -15,7 +18,10 @@ def main():
     parser.add_argument('--tiny3d', type=Path, default=os.environ.get('TINY3D_DIR', ROOT.parent/'n64-3d-splitscreen/.build/tiny3d'))
     parser.add_argument('--validate', action='store_true')
     parser.add_argument('--profile', action='store_true', help='Show N64 frame timing and memory counters')
-    parser.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
+    parser.add_argument('--blam-bsp', action='store_true', help='Use original Blam BSP collision; requires an 8 MiB Expansion Pak')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
+    mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')
     args = parser.parse_args()
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     out = ROOT/'build/n64'
@@ -30,8 +36,17 @@ def main():
                        env={**os.environ, 'N64_INST': str(sdk)})
 
     objects = []
-    sources = ['main.c', 'game.c', 'hud.c', 'sound.c', 'replay.c', 'blam/runtime.c']
+    run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
+    sources = ['main.c', 'game.c', 'hud.c', 'sound.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    if args.showcase:
+        sources.append('showcase.c')
     generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'firstperson_data.c']
+    if args.blam_bsp:
+        if not (out/'generated/blam_collision_data.c').exists():
+            parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
+        run([sys.executable, ROOT/'port/n64/blam/prepare_collision.py'])
+        sources.append('blam/collision.c')
+        generated.append('blam_collision_data.c')
     for source in [*(ROOT/'port/n64'/name for name in sources), *(out/'generated'/name for name in generated)]:
         obj = out/(source.stem+'.o')
         objects.append(obj)
@@ -41,11 +56,23 @@ def main():
              '-ffast-math', '-ftrapping-math', '-fno-associative-math', '-DN64',
              '-Wall', '-Wextra', '-Werror', '-ftrivial-auto-var-init=pattern',
              '-I'+str(sdk/'mips64-elf/include'), '-I'+str(tiny/'src'), '-I'+str(ROOT/'port/n64'),
+             '-I'+str(out/'blam-core'),
              *(['-DRDPQ_VALIDATE'] if args.validate else []),
              *(['-DBG_DEMO'] if args.demo else []),
+             *(['-DBG_SHOWCASE='+str(SHOWCASES.index(args.showcase))] if args.showcase else []),
              *(['-DBG_PROFILE'] if args.profile else []),
-             *(['-fno-fast-math', '-ffp-contract=off'] if source.name == 'runtime.c' else [])])
-    elf = out/('halo-blood-gulch-replay.elf' if args.demo else 'halo-blood-gulch.elf')
+             *(['-DBG_BLAM_BSP'] if args.blam_bsp else []),
+             *(['-fno-fast-math', '-ffp-contract=off'] if source.name == 'runtime.c' else []),
+             *(['-fno-fast-math', '-ffp-contract=off', '-fno-strict-aliasing'] if source.name == 'collision.c' else []),
+             *(['-Wno-multichar', '-Wno-unused-function', '-fno-strict-aliasing', '-fwrapv'] if source.name == 'core.c' else [])])
+    name = 'halo-blood-gulch-showcase-'+args.showcase if args.showcase else 'halo-blood-gulch-replay' if args.demo else 'halo-blood-gulch'
+    if args.blam_bsp:
+        name += '-blam-bsp'
+    if args.validate:
+        name += '-validation'
+    elif args.profile:
+        name += '-profile'
+    elf = out/(name+'.elf')
     run([sdk/'bin/mips64-elf-g++', '-o', elf, *objects, tiny/'build/libt3d.a', '-lc', '-mabi=o64',
          '-Wl,-g', '-Wl,-L'+str(sdk/'mips64-elf/lib'), '-Wl,-ldragon', '-Wl,-lm', '-Wl,-ldragonsys',
          '-Wl,-Tn64.ld', '-Wl,--gc-sections', '-Wl,--wrap,__do_global_ctors', '-Wl,-Map='+str(elf.with_suffix('.map'))])

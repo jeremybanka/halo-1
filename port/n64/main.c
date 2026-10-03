@@ -9,6 +9,9 @@
 #include "sound.h"
 #include "hud.h"
 #include "replay.h"
+#ifdef BG_SHOWCASE
+#include "showcase.h"
+#endif
 
 extern T3DVertPacked bg_vertices[];
 extern uint16_t bg_textures[][32*32];
@@ -174,6 +177,7 @@ static void matrix(T3DMat4FP*out,float scale,float yaw,float pitch,const float p
 }
 static void animate_player(unsigned p){
     bg_player*player=&bg_players[p];unsigned clip;
+    float body_yaw=player->yaw,body_pitch=0;
     switch(player->animation){
         case BG_ANIM_WALK:case BG_ANIM_RUN:clip=BG_A_RUN;break;
         case BG_ANIM_FIRE:clip=BG_A_FIRE;break;case BG_ANIM_RELOAD:clip=BG_A_RELOAD;break;
@@ -181,12 +185,20 @@ static void animate_player(unsigned p){
         case BG_ANIM_MELEE:clip=BG_A_MELEE;break;case BG_ANIM_DRIVE:clip=BG_A_DRIVE;break;
         default:clip=BG_A_IDLE;break;
     }
+    if(player->health>0&&player->vehicle>=0){
+        const bg_vehicle*vehicle=&bg_vehicles[player->vehicle];
+        if(vehicle->kind==BG_V_WARTHOG){
+            clip=player->seat==2?BG_A_PASSENGER:player->seat==1?BG_A_GUNNER:BG_A_DRIVE;
+            body_yaw=vehicle->yaw+(player->seat==1?vehicle->turret_yaw:0);
+            body_pitch=vehicle->pitch;
+        }
+    }
     bool throwing=player->health>0&&player->grenade_cooldown>.55f&&player->vehicle<0;
     if(throwing)clip=BG_A_THROW;
     for(unsigned lod=0;lod<2;lod++){
     const bg_anim_asset*a=lod?&bg_spartan_lod_animations[clip]:&bg_animations[clip];
     float phase=throwing?(.9f-player->grenade_cooldown)/.35f:player->anim_time/a->duration;
-    bool loop=clip==BG_A_RUN||clip==BG_A_IDLE||clip==BG_A_DRIVE;
+    bool loop=clip==BG_A_RUN||clip==BG_A_IDLE||clip==BG_A_DRIVE||clip==BG_A_PASSENGER||clip==BG_A_GUNNER;
     if(loop)phase-=floorf(phase);else phase=fminf(phase,.9999f);
     float frame=phase*(a->frames-1);unsigned f0=(unsigned)frame,f1=f0+1<a->frames?f0+1:f0;
     int fraction=(frame-f0)*256;
@@ -205,12 +217,12 @@ static void animate_player(unsigned p){
         for(unsigned c=0;c<3;c++)pos[c]=(pose0->pos[c]+(pose1->pos[c]-pose0->pos[c])*weight)*BG_SCALE;
         T3DMat4 hand,body,world;float size=player->crouched?.8f:1;
         t3d_mat4_from_srt(&hand,(float[]){1,1,1},q,pos);
-        t3d_mat4_from_srt_euler(&body,(float[]){size,size,size},(float[]){0,-player->yaw,0},
+        t3d_mat4_from_srt_euler(&body,(float[]){size,size,size},(float[]){0,-body_yaw,-body_pitch},
             (float[]){player->pos[0]*BG_SCALE,player->pos[1]*BG_SCALE,player->pos[2]*BG_SCALE});
         t3d_mat4_mul(&world,&body,&hand);t3d_mat4_to_fixed_3x4(&held_matrices[slot][p],&world);
     }
     }
-    matrix(&transforms[slot][p],player->crouched?.8f:1,player->yaw,0,player->pos);
+    matrix(&transforms[slot][p],player->crouched?.8f:1,body_yaw,body_pitch,player->pos);
 }
 static void pivot_rotation(T3DMat4*out,const float pivot[3],float yaw,float pitch){
     t3d_mat4_from_srt_euler(out,(float[]){1,1,1},(float[]){0,-yaw,-pitch},(float[]){0,0,0});
@@ -271,7 +283,7 @@ static void prepare_frame(void){
         matrix(&pickup_matrices[slot][i],1,game_time*.5f,0,pos);
     }
     for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
-        bg_projectile*q=&bg_projectiles[i];if(!q->active)continue;
+        bg_projectile*q=bg_projectile_at(i);if(!q||!q->active)continue;
         float scale=q->kind==BG_P_CANNON?.09f:q->kind==BG_P_FLAME?.18f:.045f;
         if(q->kind==BG_P_FRAG||q->kind==BG_P_PLASMA_GRENADE)scale=1;
         matrix(&projectile_matrices[slot][i],scale,game_time*4,0,q->pos);
@@ -302,7 +314,11 @@ static void draw_view(unsigned p){
     T3DVec3 eye={{player->pos[0]*BG_SCALE,(player->pos[1]+head)*BG_SCALE,player->pos[2]*BG_SCALE}};
     T3DVec3 target={{eye.v[0]+cy*cp,eye.v[1]+sinf(player->pitch),eye.v[2]-sy*cp}};
     if(player->vehicle>=0){
-        float direction[3]={-cy*.94f,.342f,sy*.94f},origin[3]={player->pos[0],player->pos[1]+.65f,player->pos[2]};
+        const bg_vehicle*vehicle=&bg_vehicles[player->vehicle];
+        /* A shallow hull-relative boom keeps the complete vehicle in view,
+         * including the front seats in a half-height split-screen viewport. */
+        float direction[3]={-cy*.992774f,.12f,sy*.992774f};
+        float origin[3]={vehicle->pos[0],vehicle->pos[1]+.5f,vehicle->pos[2]};
         float distance=bg_raycast(origin,direction,3.5f)-.15f;if(distance<.3f)distance=.3f;
         for(int i=0;i<3;i++)eye.v[i]=(origin[i]+direction[i]*distance)*BG_SCALE;
         /* Mounted weapons start one unit ahead of the player's aim origin.
@@ -366,7 +382,9 @@ static void draw_view(unsigned p){
         bool lod=distance>16&&player->zoom==0;
         t3d_matrix_push(&transforms[slot][j]);rspq_block_run(lod?armor_lod_blocks[slot][j]:player_blocks[slot][j]);t3d_matrix_pop(1);
         triangles+=(lod?bg_spartan_lod.vertex_count:bg_model_assets[BG_M_SPARTAN].vertex_count)/3;
-        if(!lod&&q->health>0&&q->vehicle<0)instance(weapon_model(q->weapon),&held_matrices[slot][j]);
+        bool personal=q->vehicle<0||q->seat==2||
+            (q->seat==1&&bg_vehicles[q->vehicle].kind==BG_V_SCORPION);
+        if(!lod&&q->health>0&&personal)instance(weapon_model(q->weapon),&held_matrices[slot][j]);
     }
     for(unsigned i=0;i<bg_pickup_count;i++){
         bg_pickup*q=&bg_pickups[i];if(!q->active||!visible(vp,q->pos,.6f))continue;
@@ -376,7 +394,7 @@ static void draw_view(unsigned p){
     }
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH);
     for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
-        bg_projectile*q=&bg_projectiles[i];if(!q->active||!visible(vp,q->pos,.2f))continue;
+        bg_projectile*q=bg_projectile_at(i);if(!q||!q->active||!visible(vp,q->pos,.2f))continue;
         if(q->kind==BG_P_FRAG||q->kind==BG_P_PLASMA_GRENADE){instance(q->kind==BG_P_FRAG?BG_M_FRAG:BG_M_PLASMA_GRENADE,&projectile_matrices[slot][i]);continue;}
         t3d_matrix_push(&projectile_matrices[slot][i]);rspq_block_run(particle_blocks[q->kind]);t3d_matrix_pop(1);triangles+=8;
     }
@@ -414,6 +432,9 @@ static void draw_result(void){
 }
 int main(void){
     debug_init_isviewer();debug_init_usblog();
+#ifdef BG_BLAM_BSP
+    assertf(get_memory_size()>=8*1024*1024,"Original Blam BSP requires an 8 MiB Expansion Pak");
+#endif
     display_init(RESOLUTION_320x240,DEPTH_16_BPP,3,GAMMA_NONE,FILTERS_RESAMPLE);
     joypad_init();rdpq_init();
 #ifdef RDPQ_VALIDATE
@@ -424,6 +445,9 @@ int main(void){
     t3d_init((T3DInitParams){});
     rdpq_text_register_font(1,rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
     surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_reset();bg_set_players(views);bg_sound_init();
+#ifdef BG_SHOWCASE
+    bg_showcase_begin(BG_SHOWCASE);views=bg_showcase_views();
+#endif
     heap_stats_t heap;sys_get_heap_stats(&heap);
     debugf("HALO N64 world=%u textures=%u RAM=%d free=%d\n",bg_collision_count,bg_material_count,get_memory_size(),heap.total-heap.used);
     uint64_t previous=get_ticks_us(),fps_time=previous;unsigned frames=0;blam_clock clock;blam_clock_reset(&clock);
@@ -448,7 +472,13 @@ int main(void){
 #ifdef BG_DEMO
             bg_replay_input(in,game_time);views=4;bg_set_players(4);
 #endif
+#ifdef BG_SHOWCASE
+            bg_showcase_input(in,game_time);views=bg_showcase_views();
+#endif
             bg_clear_events();bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;
+#ifdef BG_SHOWCASE
+            bg_showcase_observe();
+#endif
             update_effects(BLAM_TICK_SECONDS);bg_sound_update();
             for(unsigned p=0;p<4;p++){
                 if(bg_players[p].vehicle<0)in[p].jump=false;
@@ -475,6 +505,15 @@ int main(void){
         if(views==4)fill(159,0,2,240,RGBA32(0,0,0,255));
 #ifdef BG_DEMO
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,116,118,"REPLAY %u FPS",fps);
+#endif
+#ifdef BG_SHOWCASE
+        fill(50,222,220,16,RGBA32(8,19,37,255));rdpq_set_mode_standard();
+        rdpq_text_printf(NULL,1,56,233,"SCRIPTED | %s",bg_showcase_title());
+        const char*caption=bg_showcase_caption();
+        if(caption&&caption[0]){
+            fill(50,207,220,14,RGBA32(8,19,37,255));rdpq_set_mode_standard();
+            rdpq_text_print(NULL,1,56,218,caption);
+        }
 #endif
 #ifdef BG_PROFILE
         draw_us=get_ticks_us()-profile_start;sys_get_heap_stats(&heap);rdpq_set_mode_standard();

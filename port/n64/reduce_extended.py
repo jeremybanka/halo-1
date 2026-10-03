@@ -72,7 +72,8 @@ def reduce_extended(source,output):
             _,i,_=kd.find(Vector(p));n0,n1,w=model['weights'][i]
             weighted.append((Vector(p),[(n0,1-w)]+([(n1,w)] if n1>=0 and w>0 else [])))
         weighted_lods.append(weighted)
-    limits={'idle':8,'run':10,'fire':5,'reload':12,'death':12,'jump':8,'melee':8,'throw':8,'drive':6}
+    limits={'idle':8,'run':10,'fire':5,'reload':12,'death':12,'jump':8,'melee':8,'throw':8,'drive':6,
+            'passenger':4,'gunner':4}
     idle=data['animations']['idle']['frames'][0]
     marker=model['markers']['right hand'][0]
     x,y,z,w=marker['q'];marker_matrix=Quaternion((w,-x,-y,-z)).to_matrix().to_4x4()

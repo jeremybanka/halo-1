@@ -31,7 +31,8 @@ AUDIO_ALIASES={'scorpion_gun':'explosion','ghost_gun':'plasma_rifle','banshee_gu
 AUDIO_LIMITS={'warthog_gun':.6,'banshee_bomb':1}
 ANIM_NAMES={'idle':'stand rifle idle','run':'stand rifle move-front','fire':'stand rifle ar fire-1',
 'reload':'stand rifle ar reload-1','death':'h-kill front gut','jump':'stand rifle airborne',
-'melee':'stand rifle ar melee','throw':'stand rifle throw-grenade','drive':'W-driver unarmed idle'}
+'melee':'stand rifle ar melee','throw':'stand rifle throw-grenade','drive':'W-driver unarmed idle',
+'passenger':'W-passenger rifle idle','gunner':'W-gunner fixed idle'}
 HUD_TAGS={'unit_backgrounds':221,'unit_meters':222,'weapon_backgrounds':223,'ammo_outlines':287,
 'ammo_icons':288,'ammo_alphas':289,'ammo_meters':290,'reticles':291,'numbers':1445,'radar':1440,
 'radar_mask':1441,'blip':1446,'health':1690,'multiplayer':1442,'sniper_reticles':501,
@@ -213,6 +214,20 @@ def extract(output, maps):
                           'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100]} for n in model.nodes],
                 'markers':{marker.name:[{'node':inst.node_index,'p':list(inst.translation),'q':list(inst.rotation)}
                                         for inst in marker.marker_instances.STEPTREE] for marker in meta.markers.STEPTREE}}
+            if name=='banshee':
+                from vehicle_pose import bake_pose
+                animation_id=next(i for i,t in enumerate(h.tag_index.tag_index)
+                                  if t.class_1.enum_name=='model_animations' and t.path==path)
+                animations=h.get_meta(animation_id)
+                h.meta_to_tag_data(animations,'antr',h.tag_index.tag_index[animation_id])
+                ai=next(i for i,a in enumerate(animations.animations.STEPTREE) if a.name=='stand closing')
+                closing=extract_animation(ai,animations,write_jma=False)
+                closing.apply_root_node_info_to_states(undo=True)
+                # Reclaimer adds a synthetic initial-pose sentinel at the end.
+                terminal=closing.frames[animations.animations.STEPTREE[ai].frame_count-1]
+                states=[{'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100],
+                         'q':[n.rot_i,n.rot_j,n.rot_k,n.rot_w]} for n in terminal]
+                bake_pose(result['models'][name],states,'stand closing:terminal')
         anim=halo.get_meta(160);halo.meta_to_tag_data(anim,'antr',entries[160])
         for name,tag_name in ANIM_NAMES.items():
             ix=next(i for i,a in enumerate(anim.animations.STEPTREE) if a.name==tag_name)

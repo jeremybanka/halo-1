@@ -23,7 +23,8 @@ typedef struct { uint16_t first,count; uint8_t kind; float pivot[3]; } bg_vehicl
 typedef struct { const bg_vehicle_part *parts; uint8_t count; float turret_pivot[3]; } bg_vehicle_rig;
 extern const bg_vehicle_rig bg_vehicle_rigs[4];
 enum { BG_A_IDLE, BG_A_RUN, BG_A_FIRE, BG_A_RELOAD, BG_A_DEATH,
-       BG_A_JUMP, BG_A_MELEE, BG_A_THROW, BG_A_DRIVE, BG_A_COUNT };
+       BG_A_JUMP, BG_A_MELEE, BG_A_THROW, BG_A_DRIVE,
+       BG_A_PASSENGER, BG_A_GUNNER, BG_A_COUNT };
 /* Positions are frame-major, vertex-major XYZ in Y-up render coordinates. */
 typedef struct { const int16_t *positions; uint16_t frames, vertices; float duration; } bg_anim_asset;
 extern const bg_anim_asset bg_animations[BG_A_COUNT];

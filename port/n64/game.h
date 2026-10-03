@@ -19,7 +19,7 @@ typedef enum { BG_EVENT_FIRE, BG_EVENT_RELOAD, BG_EVENT_JUMP, BG_EVENT_LAND,
     BG_EVENT_HURT, BG_EVENT_DIE, BG_EVENT_RESPAWN, BG_EVENT_EXPLOSION,
     BG_EVENT_PICKUP, BG_EVENT_EMPTY, BG_EVENT_MELEE, BG_EVENT_ENTER,
     BG_EVENT_EXIT, BG_EVENT_ENGINE, BG_EVENT_SHIELD, BG_EVENT_GRENADE,
-    BG_EVENT_GAME_OVER, BG_EVENT_DOUBLE_KILL, BG_EVENT_TRIPLE_KILL, BG_EVENT_KILLING_SPREE, BG_EVENT_TELEPORTER } bg_event_kind;
+    BG_EVENT_GAME_OVER, BG_EVENT_DOUBLE_KILL, BG_EVENT_TRIPLE_KILL, BG_EVENT_KILLING_SPREE, BG_EVENT_TELEPORTER, BG_EVENT_NEEDLE_HIT, BG_EVENT_SUPERCOMBINE } bg_event_kind;
 typedef enum { BG_P_PLASMA, BG_P_NEEDLE, BG_P_ROCKET, BG_P_FRAG,
     BG_P_PLASMA_GRENADE, BG_P_CANNON, BG_P_FLAME } bg_projectile_kind;
 /* BG_EVENT_EXPLOSION stores this presentation type in event.weapon. */
@@ -60,7 +60,10 @@ extern const bg_teleporter bg_teleporters[2];
 extern const unsigned bg_teleporter_count;
 extern bg_player bg_players[BG_PLAYERS];
 extern bg_vehicle bg_vehicles[BG_MAX_VEHICLES];
-extern bg_projectile bg_projectiles[BG_MAX_PROJECTILES];
+/* Live records use original Blam object headers and its movable memory pool.
+ * A pointer is valid until a later allocation/tick; reacquire it by slot. */
+bg_projectile *bg_projectile_at(unsigned slot);
+bg_projectile *bg_projectile_create(void);
 extern bg_pickup bg_pickups[BG_MAX_PICKUPS];
 extern bg_event bg_events[BG_MAX_EVENTS];
 extern unsigned bg_vehicle_count,bg_pickup_count,bg_event_count;
@@ -80,5 +83,7 @@ float bg_raycast(const float origin[3],const float direction[3],float max_distan
 bool bg_give_weapon(unsigned player,bg_weapon weapon);
 /* Local map setup may replace default placements with extracted scenario data. */
 int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw);
+/* Original Warthog seat/entry markers, transformed by the current hull pose. */
+void bg_vehicle_seat_position(const bg_vehicle *vehicle,unsigned seat,bool entry,float out[3]);
 int bg_add_pickup(int weapon,const float pos[3]);
 #endif

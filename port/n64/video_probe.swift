@@ -33,6 +33,8 @@ import AppKit
         }
         let generator=AVAssetImageGenerator(asset:asset)
         generator.appliesPreferredTrackTransform=true
+        generator.requestedTimeToleranceBefore = .zero
+        generator.requestedTimeToleranceAfter = .zero
         let result=try await generator.image(at:CMTime(seconds:Double(CommandLine.arguments[2]) ?? 1,preferredTimescale:600))
         let bitmap=NSBitmapImageRep(cgImage:result.image)
         try bitmap.representation(using:.png,properties:[:])!.write(to:URL(fileURLWithPath:CommandLine.arguments[3]))

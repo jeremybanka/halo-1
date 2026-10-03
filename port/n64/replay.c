@@ -44,7 +44,10 @@ static void start_vehicles(void){
         v->pos[0]=locations[p][0];v->pos[2]=locations[p][1];v->pos[1]=ground(v->pos[0],v->pos[2])+(p==BG_V_GHOST?.18f:0);
         v->yaw=yaw[p];v->pitch=v->speed=0;memset(v->velocity,0,sizeof(v->velocity));
         memcpy(v->home,v->pos,sizeof(v->home));v->home_yaw=v->yaw;
-        if(bg_players[p].health>0){place_player(p,v->pos[0]+.85f,v->pos[2]);bg_players[p].interact_cooldown=0;}
+        if(bg_players[p].health>0){
+            float entry[3];bg_vehicle_seat_position(v,0,true,entry);
+            place_player(p,entry[0],entry[2]);bg_players[p].interact_cooldown=0;
+        }
     }
 }
 static void aim_at(bg_player*q,bg_input*in,float x,float y,float z){
@@ -89,9 +92,10 @@ static void driving_input(bg_input input[BG_PLAYERS],float t){
         bg_vehicle*v=&bg_vehicles[vehicle_for[p]];
         if(q->vehicle<0){
             if(v->active&&(v->occupants[0]<0||p==0)){
-                aim_at(q,in,v->pos[0],v->pos[1]+.5f,v->pos[2]);
-                float dx=v->pos[0]-q->pos[0],dz=v->pos[2]-q->pos[2];
-                in->forward=.7f;if(dx*dx+dz*dz<3)in->interact=true;
+                float entry[3];bg_vehicle_seat_position(v,0,true,entry);
+                aim_at(q,in,entry[0],entry[1]+.5f,entry[2]);
+                float dx=entry[0]-q->pos[0],dz=entry[2]-q->pos[2];
+                in->forward=.7f;if(dx*dx+dz*dz<.08f)in->interact=true;
             }else{
                 unsigned target=(p+1)%4;bg_player*other=&bg_players[target];
                 aim_at(q,in,other->pos[0],other->pos[1]+.4f,other->pos[2]);
@@ -136,9 +140,10 @@ static void driving_input(bg_input input[BG_PLAYERS],float t){
         bg_player*q=&bg_players[1];bg_input*in=&input[1];bg_vehicle*hog=&bg_vehicles[vehicle_for[0]];
         if(q->vehicle<0&&hog->active){
             in->interact=false;in->strafe=0;
-            aim_at(q,in,hog->pos[0],hog->pos[1]+.5f,hog->pos[2]);
-            float dx=hog->pos[0]-q->pos[0],dz=hog->pos[2]-q->pos[2];in->forward=.85f;
-            if(dx*dx+dz*dz<3.2f)in->interact=true;
+            float entry[3];bg_vehicle_seat_position(hog,1,true,entry);
+            aim_at(q,in,entry[0],entry[1]+.5f,entry[2]);
+            float dx=entry[0]-q->pos[0],dz=entry[2]-q->pos[2];in->forward=.85f;
+            if(dx*dx+dz*dz<.12f)in->interact=true;
         }else if(q->vehicle==vehicle_for[0]&&q->seat==1){
             bg_player*target=&bg_players[2];aim_at(q,in,target->pos[0],target->pos[1]+.5f,target->pos[2]);
             in->interact=false;in->fire=fmodf(t,3)<2;
@@ -160,7 +165,10 @@ void bg_replay_input(bg_input input[BG_PLAYERS],float time){
         bg_player*q=&bg_players[p];bool fresh=q->health>0&&!was_alive[p];
         if(fresh){
             if(phase==0)arena_spawn(p);
-            else if(vehicle_for[p]>=0){bg_vehicle*v=&bg_vehicles[vehicle_for[p]];place_player(p,v->pos[0]+1,v->pos[2]);}
+            else if(vehicle_for[p]>=0){
+                bg_vehicle*v=&bg_vehicles[vehicle_for[p]];float entry[3];
+                bg_vehicle_seat_position(v,0,true,entry);place_player(p,entry[0],entry[2]);
+            }
         }
         if(q->health>0&&phase==0&&(fresh||segment!=loadout))equip(p,requested_weapon(p,segment),&input[p]);
         was_alive[p]=q->health>0;

@@ -5,9 +5,12 @@ an emulated **4 MiB N64**, using the supplied Xbox disc for map, model,
 animation, HUD and audio data. The Windows/desktop build is separate.
 
 This is a playable N64 implementation, **not a complete port of Blam**.
-Source-derived Blam timing, deterministic random and hand-attachment quaternion
-interpolation code are used by the runtime; rendering, collision and most
-gameplay use reduced N64 systems.
+Original Blam data arrays, object-header allocation and movable memory pools
+now store live projectiles. Source-derived timing, deterministic random and
+hand-attachment quaternion interpolation also run in the game. Rendering and
+most gameplay still use reduced N64 systems. An optional 8 MiB build uses the
+original Blam BSP traversal and the complete Blood Gulch collision topology
+for floor queries and raycasts.
 [BLAM_STATUS.md](BLAM_STATUS.md) records the concrete compile/link/memory audit
 and remaining engine work.
 
@@ -36,6 +39,10 @@ Slayer ends at **25 kills**, with a winner panel and announcer audio.
 | D-right | Crouch; lower the Banshee |
 | Player 1 Start | Pause / match options |
 
+Approach the Warthog's left side for the driver, right side for the front
+passenger, or rear for the gunner, then press B. The nearest available entry
+marker selects the seat.
+
 The Scorpion's stick aims its turret independently; C-left/right steer its
 hull. Z fires the cannon and L fires the machine gun. The Warthog has a driver,
 independent turret gunner and passenger. Ghost and Banshee have forward plasma
@@ -58,7 +65,8 @@ exits with a short re-entry cooldown.
   active camouflage, and the original teleporters.
 - Reduced original Spartan motion and first-person weapon/hand animation for
   idle, firing, reload/overheat and melee. Third-person motion includes running,
-  jumping, throwing, death and a seated driver pose. Warthog wheels and mounted
+  jumping, throwing, death and separate Warthog driver, passenger and gunner
+  poses. Warthog wheels and mounted
   weapon parts move; tank hull and turret aim separately.
 - Original HUD artwork, digits, shield/health bars, grenade icons, vehicle
   reticles and multiplayer radar opacity. Pistol/sniper zoom adds reduced
@@ -120,6 +128,39 @@ loadouts are specific to this showcase; deaths, shots, boarding and driving
 use the live gameplay rules. It is **scripted footage**, not a recording of
 four human controllers. `--profile` adds N64 timing/memory counters;
 `--validate` enables the expensive libdragon RDP command validator.
+Instrumented ROM names end in `-validation` or `-profile`, preserving the
+uninstrumented cartridge.
+
+To build the original BSP collision profile, enable the Expansion Pak in ares:
+
+```sh
+build/n64-python/bin/python port/n64/blam/tags/export_collision.py
+build/n64-python/bin/python port/n64/build.py --blam-bsp
+```
+
+This produces `halo-blood-gulch-blam-bsp.z64` and requires **8 MiB RAM**.
+`--blam-bsp` also combines with `--demo`, `--showcase`, `--profile` and
+`--validate`. The original collision bank occupies 666,468 bytes. Floor and
+ray traversal use the original BSP; player wall pushing still uses the reduced
+triangle grid. It is an engine integration profile, not a completed Blam port.
+
+Six focused recording scenarios also have separate ROM names:
+
+```sh
+build/n64-python/bin/python port/n64/build.py --showcase banshee
+build/n64-python/bin/python port/n64/build.py --showcase frag-double-kill
+build/n64-python/bin/python port/n64/build.py --showcase warthog-passenger
+build/n64-python/bin/python port/n64/build.py --showcase shotgun-kill
+build/n64-python/bin/python port/n64/build.py --showcase needler-supercombine
+build/n64-python/bin/python port/n64/build.py --showcase needler-homing
+```
+
+For example, the first command produces
+`build/n64/halo-blood-gulch-showcase-banshee.z64`. These scenarios stage positions
+and loadouts, then drive ordinary gameplay inputs through the same simulation.
+On-screen captions report observed game events. They are labeled **SCRIPTED**
+and are intended to make specific actions reproducible in ares recordings.
+Build these ROMs serially because the compiler object directory is shared.
 
 ## Memory and rendering
 
@@ -133,7 +174,7 @@ four human controllers. `--profile` adds N64 timing/memory counters;
 | World vertex storage | 91,104 bytes |
 | Collision mesh and grid | 80,506 bytes |
 | Color/depth buffers | 614,400 bytes: triple 320×240 color + depth |
-| Gameplay objects | fixed pools; no per-tick allocation |
+| Gameplay objects | fixed player/vehicle pools; bounded Blam arena for 48 projectiles; no per-tick system-heap allocation |
 | Audio | 11,025 Hz source PCM, 22,050 Hz stereo output; 14 bounded voices |
 
 Each camera independently culls world chunks and objects. Cached RSP display
@@ -145,17 +186,27 @@ uses Blam's local 30 Hz scheduler with bounded catch-up.
 ## Verification
 
 ```sh
+python3 port/n64/blam/prepare_core.py
 clang -std=c17 -O1 -g -Wall -Wextra -Werror \
-  -fsanitize=address,undefined -Iport/n64 \
+  -fsanitize=address,undefined -Iport/n64 -Ibuild/n64/blam-core \
+  -Wno-multichar -Wno-unused-function -fno-strict-aliasing -fwrapv \
   port/n64/test_game.c port/n64/game.c port/n64/blam/runtime.c \
-  build/n64/generated/collision_data.c -lm -o build/n64/test-game
+  port/n64/blam/core.c build/n64/generated/collision_data.c -lm -o build/n64/test-game
 build/n64/test-game
 clang -std=c17 -O1 -g -Wall -Wextra -Werror \
-  -fsanitize=address,undefined -Iport/n64 \
+  -fsanitize=address,undefined -Iport/n64 -Ibuild/n64/blam-core \
+  -Wno-multichar -Wno-unused-function -fno-strict-aliasing -fwrapv \
   port/n64/test_replay.c port/n64/replay.c port/n64/game.c \
-  port/n64/blam/runtime.c build/n64/generated/collision_data.c \
+  port/n64/blam/runtime.c port/n64/blam/core.c build/n64/generated/collision_data.c \
   -lm -o build/n64/test-replay
 build/n64/test-replay
+clang -std=c17 -O1 -g -Wall -Wextra -Werror \
+  -fsanitize=address,undefined -Iport/n64 -Ibuild/n64/blam-core \
+  -Wno-multichar -Wno-unused-function -fno-strict-aliasing -fwrapv \
+  port/n64/test_showcase.c port/n64/showcase.c port/n64/game.c \
+  port/n64/blam/runtime.c port/n64/blam/core.c build/n64/generated/collision_data.c \
+  -lm -o build/n64/test-showcase
+build/n64/test-showcase
 cc -std=c17 -O2 -Wall -Wextra -Werror -ffp-contract=off \
   port/n64/blam/test_runtime.c port/n64/blam/runtime.c -lm \
   -o build/n64/test_blam_runtime
@@ -166,16 +217,26 @@ Tests use the generated map collision data and cover independent input,
 terrain/ray traversal, weapon behavior and terrain occlusion, shields,
 headshots, ammunition, grenades, supercombine, vehicle seats and weapons,
 teleporters, power-ups, match completion/restart, and extended four-player
-stress. The replay test runs two complete showcase loops under ASAN/UBSAN.
+stress. The replay test runs two complete demo loops under ASAN/UBSAN.
+The six focused showcase tests start with full shields and health, then verify
+actual flight, driver/front-passenger seating, same-tick frag double kills,
+shotgun kills, seven-hit Needler supercombines, and a single homing needle
+turning before impact. They also verify kill ownership through awarded scores.
 
-The emulator used for visual checks is ares v147, OpenGL 3.2, with the
-Expansion Pak disabled. Performance counters measure emulated N64 time;
+The emulator used for visual checks is ares v147, OpenGL 3.2. The default build
+was checked with the Expansion Pak disabled; the original-BSP build was checked
+with it enabled. Both instrumented replays reported zero RDP errors and warnings.
+The updated default validation build had about 175 KiB of heap headroom; the
+8 MiB original-BSP validation build had about 3,634 KiB.
+Performance counters measure emulated N64 time;
 emulator VPS measures host playback speed and is a separate number. Observed
-four-view combat and mixed vehicle scenes render around 15–24 FPS; this is not
+default-profile four-view combat and mixed vehicle scenes render around 15–24 FPS; this is not
 a locked frame-rate guarantee. The 30 Hz simulation clock is independent of
 rendering. The RDP validation build reported zero errors and zero warnings
 through combat and vehicle scenes. Real N64 hardware and four physical
 controllers have not been tested.
+RDP validation adds substantial overhead; the roughly 8–9 FPS observed in the
+instrumented original-BSP run is not a release-build performance measurement.
 
 ## Gameplay videos
 
@@ -183,7 +244,8 @@ controllers have not been tested.
 audio using macOS ScreenCaptureKit (macOS 15+). `video_probe.swift` verifies
 video/audio tracks, measures audio amplitude and exports a frame for inspection.
 `video_clip.swift` copies a selected time range without generating or altering
-gameplay frames. The final recordings and ROM checksums are local artifacts in
+gameplay frames. Its optional playback-rate argument changes timing for a
+clearly identified slow-motion copy. The final recordings and ROM checksums are local artifacts in
 `build/n64/videos/` and `build/n64/release-manifest.json`.
 
 ```sh
@@ -192,6 +254,13 @@ xcrun swiftc -parse-as-library port/n64/video_probe.swift -o build/n64/video-pro
 build/n64/record-ares halo-blood-gulch-replay build/n64/videos/gameplay.mp4 90
 build/n64/video-probe build/n64/videos/gameplay.mp4 10 build/n64/screenshots/gameplay.png
 ```
+
+Focused recordings are `banshee-flight.mp4`, `frag-double-kill.mp4`,
+`warthog-passenger.mp4`, `shotgun-kill.mp4`, `needler-supercombine.mp4` and
+`needler-homing.mp4` in `build/n64/videos/`. An additional
+`needler-homing-quarter-speed.mp4` shows the same recorded projectile at 0.25×
+playback speed. All six use staged encounters and normal gameplay inputs,
+with game audio and an on-screen SCRIPTED label.
 
 ## Remaining limits
 

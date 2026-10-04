@@ -52,9 +52,9 @@ provenance, verification, and current limitations.
 | Reload / pick up / enter or exit a vehicle | B | C-left |
 | Switch carried weapon | R | C-up |
 | Throw grenade; hold for mounted secondary fire | L | L |
-| Cycle weapon zoom | D-up | Hold R, press C-up |
+| Cycle weapon zoom | D-up | C-right |
 | Melee | D-down | B |
-| Switch grenade type | D-left | C-right |
+| Switch grenade type | D-left | Hold R, press C-up |
 | Crouch; lower the Banshee | D-right | C-down |
 | View scores | — | Hold R |
 | Pause / menu ownership / resume | Start | Start |
@@ -69,7 +69,7 @@ passenger, or rear for the gunner, then press **B** with N64 controls or **C-lef
 with Xbox style. The nearest available entry marker selects the seat; HUD
 interaction prompts show **B** or **C-LEFT** for that player's selected layout.
 In Xbox style, holding R shows scores in that player's view without pausing.
-R + C-up zooms instead of switching weapons; scores stay visible until R is released.
+R + C-up switches grenade type instead of switching weapons; scores stay visible until R is released.
 
 The Scorpion's turn/look inputs aim its turret independently; strafe steers its
 hull (C-left/right in N64, D-left/right in Xbox style). Z fires the cannon and

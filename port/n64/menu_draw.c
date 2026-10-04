@@ -174,8 +174,8 @@ static void controls_page(const bg_menu *m,bool frontend){
     static const char *const xbox[][2]={
         {"STICK","AIM"},{"D-PAD","MOVE"},{"A / B","JUMP / MELEE"},
         {"Z / L","FIRE / GRENADE"},{"C LEFT","RELOAD / USE"},
-        {"C UP / RIGHT","WEAPON / GRENADE TYPE"},{"C DOWN / R","CROUCH / SCORES"},
-        {"R + C UP","ZOOM"}};
+        {"C UP / RIGHT","WEAPON / ZOOM"},{"C DOWN / R","CROUCH / SCORES"},
+        {"R + C UP","SWITCH GRENADE"}};
     bool is_xbox=m->styles[m->owner]==BG_CONTROLS_XBOX;
     const char *const (*rows)[2]=is_xbox?xbox:n64;
     selection(55,true);

@@ -74,7 +74,7 @@ The visible owner is always labeled. Setup stays visible but disabled for
 players 2–4. Controls shows the selected player's style and all authoritative
 bindings from `controls.c`; the vehicle note distinguishes Banshee ascent and
 descent from secondary fire. Xbox style uses C-left for reload/use, C-up for
-weapon switching, held R for scores, and R+C-up for zoom. The mapping fits eight
+weapon switching, C-right for zoom, held R for scores, and R+C-up for grenade selection. The mapping fits eight
 rows without reducing the text size; Start navigation remains in the footer.
 Menu navigation and preference persistence belong
 to `menu.c` and its portable tests, not to this renderer.

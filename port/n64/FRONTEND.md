@@ -6,6 +6,10 @@ sounds and title music are extracted from the supplied USA Rev 2 Xbox disc.
 Coordinates are retained in the original 640×480 space and rasterized at
 320×240. This is the N64 shell implementation, not the original UI interpreter.
 
+The N64 adaptations use blue A / green B button legends and the ModRetro M64
+Pro controller in join slots, the pregame roster, and the Split Screen illustration.
+See [menu artwork provenance](menu_art/README.md).
+
 ## Menu itinerary
 
 Entries marked `(dim)` below are visible and focusable but cannot be activated.

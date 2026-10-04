@@ -72,7 +72,7 @@ static void xbox_buttons(void) {
         {BG_BUTTON_R,{0},{0},{0}},
         {BG_BUTTON_Z,{.fire=true},{.fire=true},{.fire=true}},
         {BG_BUTTON_C_LEFT,{.reload=true,.interact=true},{0},{0}},
-        {BG_BUTTON_C_RIGHT,{.switch_grenade=true},{0},{0}},
+        {BG_BUTTON_C_RIGHT,{.zoom=true},{0},{0}},
         {BG_BUTTON_C_UP,{.switch_weapon=true},{0},{0}},
         {BG_BUTTON_C_DOWN,{.crouch=true},{.crouch=true},{.crouch=true}},
         {BG_BUTTON_D_UP,{.forward=1},{.forward=1},{.forward=1}},
@@ -99,9 +99,9 @@ static void xbox_buttons(void) {
         BG_BUTTON_L|BG_BUTTON_C_LEFT|BG_BUTTON_C_RIGHT|BG_BUTTON_C_UP};
     check(&raw,BG_CONTROLS_XBOX,false,(bg_input){.jump=true,.reload=true,
         .interact=true,.melee=true,.grenade=true,.switch_weapon=true,
-        .switch_grenade=true});
+        .zoom=true});
     check(&raw,BG_CONTROLS_XBOX,true,(bg_input){.reload=true,.interact=true,
-        .melee=true,.grenade=true,.switch_weapon=true,.switch_grenade=true});
+        .melee=true,.grenade=true,.switch_weapon=true,.zoom=true});
 }
 
 static void axes(void) {
@@ -134,12 +134,15 @@ static void scores_and_zoom(void) {
             assert(bg_controls_show_scores(&raw,styles[s])==expected);
         }
     }
-    /* R+C-up consumes the switch edge as zoom. Holding C-up cannot repeat
-     * zoom; pressing R after C-up is held cannot synthesize a new edge. */
+    /* R+C-up consumes the weapon edge as grenade selection. Holding C-up cannot repeat
+     * selection; pressing R after C-up is held cannot synthesize a new edge. */
     const struct { uint32_t held,pressed;bg_input expected;bool scores; } cases[]={
         {BG_BUTTON_R, BG_BUTTON_R, {0}, true},
-        {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_C_UP, {.zoom=true}, true},
-        {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_R|BG_BUTTON_C_UP, {.zoom=true}, true},
+        {BG_BUTTON_C_RIGHT, BG_BUTTON_C_RIGHT, {.zoom=true}, false},
+        {BG_BUTTON_R|BG_BUTTON_C_RIGHT, BG_BUTTON_C_RIGHT, {.zoom=true}, true},
+        {BG_BUTTON_R|BG_BUTTON_C_RIGHT, 0, {0}, true},
+        {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_C_UP, {.switch_grenade=true}, true},
+        {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_R|BG_BUTTON_C_UP, {.switch_grenade=true}, true},
         {BG_BUTTON_R|BG_BUTTON_C_UP, 0, {0}, true},
         {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_R, {0}, true},
         {BG_BUTTON_C_UP, 0, {0}, false},
@@ -213,6 +216,6 @@ int main(void) {
     xbox_buttons();axes();n64_regression();isolation_and_styles();scores_and_zoom();
     printf("PASS: %u controls comparisons; all N64 held masks preserve original fields/float bits; "
         "Xbox actions/edges/holds, mounted A, aim axes, deadzone, player isolation, "
-        "196608 score-mask checks and exclusive R+C-up zoom\n",comparisons);
+        "196608 score-mask checks and exclusive R+C-up grenade selection\n",comparisons);
     return 0;
 }

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Owned Xbox front-end tags -> original layout metadata and streamed ROM bank.
 Textures, full ASCII fonts and all original backdrop triangles retain provenance.
-No asset blobs are committed. Runtime only loads the current front-end page.
+Original disc asset blobs remain local. Small N64 artwork overrides are committed.
+Runtime only loads the current front-end page.
 """
 from pathlib import Path
 import audioop,contextlib,hashlib,io,json,math,struct,sys,wave
@@ -20,6 +21,12 @@ with (A/'extraction.log').open('w') as log,contextlib.redirect_stdout(log):
  h=open_cache(ROOT/'build/assets/halo-retail/maps/ui.map',A)
 e=h.tag_index.tag_index;paths={t.path:i for i,t in enumerate(e)}
 blob=bytearray();images=[];image_groups={};nodes=[];records={};meshes=[]
+# N64 presentation adaptations use the source texture dimensions/padding, so
+# original widget coordinates and the runtime's top-left crop stay unchanged.
+ART=ROOT/'port/n64/menu_art'
+OVERRIDES={(303,0):'n64-b.png',(307,0):'n64-a.png',
+ (512,0):'m64-join.png',(512,1):'m64-connected.png',
+ (389,0):'m64-cooperative.png',(389,1):'m64-splitscreen.png'}
 def add(data):
  while len(blob)%16:blob.append(0)
  off=len(blob);blob.extend(data);return off
@@ -34,7 +41,13 @@ def bitmap(tag):
  files.sort(key=lambda p:int(p.stem.split('__')[-1])if '__' in p.stem else 0)
  result=[]
  for frame,p in enumerate(files):
-  im=Image.open(p).convert('RGBA');im=im.resize((max(1,im.width//2),max(1,im.height//2)),Image.Resampling.LANCZOS)
+  im=Image.open(p).convert('RGBA')
+  replacement=OVERRIDES.get((tag,frame))
+  if replacement:
+   adapted=Image.open(ART/replacement).convert('RGBA')
+   assert adapted.size==im.size,(replacement,adapted.size,im.size)
+   im=adapted
+  im=im.resize((max(1,im.width//2),max(1,im.height//2)),Image.Resampling.LANCZOS)
   offset=add(im.tobytes());result.append(len(images));images.append(dict(offset=offset,w=im.width,h=im.height,tag=tag,frame=frame))
  image_groups[tag]=result;return result
 # Keep source front-end definitions, even where the current capability table
@@ -156,5 +169,5 @@ lines+=['const uint32_t bg_shell_font_offsets[2]={'+','.join(map(str,fo))+'};','
 for gs in fg:lines+=['{']+['{'+','.join(map(str,g))+'},'for g in gs]+['},']
 lines+=['};','const char *const bg_shell_map_descriptions[13]={'+','.join(cstr(s)for s in descriptions)+'};','const char *const bg_shell_type_names[26]={'+','.join(cstr(s)for s in names)+'};','const char *const bg_shell_type_descriptions[26]={'+','.join(cstr(s)for s in type_desc)+'};',f'const uint32_t bg_shell_music_loop={len(intro)};']
 (G/'frontend_data.c').write_text('\n'.join(lines)+'\n')
-report=dict(files={str(p.relative_to(ROOT)):sha(p) for p in [ROOT/'build/assets/halo-retail/maps/ui.map',ROOT/'build/assets/halo-retail/maps/bloodgulch.map',Path(__file__).resolve(),ROOT/'port/n64/asset_frontend.h',G/'frontend_data.c',*sorted(D.glob('*'))] if p.is_file()},source_map_sha256=sha(ROOT/'build/assets/halo-retail/maps/ui.map'),blob_bytes=len(blob),cameras=cameras,images=images,meshes=meshes,audio=audio,widgets=records,fonts=dict(pages=fp,ascending=fa),type_names=names,generated_sha256=sha(G/'frontend_data.c'),blob_sha256=sha(D/'shell.bin'),extractor_sha256=sha(Path(__file__)),header_sha256=sha(ROOT/'port/n64/asset_frontend.h'))
+report=dict(files={str(p.relative_to(ROOT)):sha(p) for p in [ROOT/'build/assets/halo-retail/maps/ui.map',ROOT/'build/assets/halo-retail/maps/bloodgulch.map',Path(__file__).resolve(),ROOT/'port/n64/asset_frontend.h',G/'frontend_data.c',*[ART/name for name in sorted(set(OVERRIDES.values()))],*sorted(D.glob('*'))] if p.is_file()},source_map_sha256=sha(ROOT/'build/assets/halo-retail/maps/ui.map'),blob_bytes=len(blob),cameras=cameras,images=images,meshes=meshes,audio=audio,widgets=records,fonts=dict(pages=fp,ascending=fa),type_names=names,generated_sha256=sha(G/'frontend_data.c'),blob_sha256=sha(D/'shell.bin'),extractor_sha256=sha(Path(__file__)),header_sha256=sha(ROOT/'port/n64/asset_frontend.h'))
 (G/'frontend-report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:report[k]for k in ['blob_bytes','fonts','type_names','audio']},indent=2))

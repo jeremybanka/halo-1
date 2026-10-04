@@ -143,11 +143,17 @@ static void owner_style_test(void){
     frame(2,BG_BUTTON_R|BG_BUTTON_D_UP,out);
     assert(out[2].forward==1&&!out[2].switch_weapon&&!out[2].reload&&!out[2].interact&&!out[2].zoom&&scores[2]);
     frame(2,BG_BUTTON_R|BG_BUTTON_C_UP|BG_BUTTON_D_UP,out);
-    assert(out[2].zoom&&!out[2].switch_weapon&&!out[2].reload&&!out[2].interact&&scores[2]);
+    assert(out[2].switch_grenade&&!out[2].zoom&&!out[2].switch_weapon&&!out[2].reload&&!out[2].interact&&scores[2]);
     frame(2,BG_BUTTON_R|BG_BUTTON_C_UP|BG_BUTTON_D_UP,out);
-    assert(!out[2].zoom&&!out[2].switch_weapon&&scores[2]); /* held chord has no repeat edge */
+    assert(!out[2].switch_grenade&&!out[2].zoom&&!out[2].switch_weapon&&scores[2]); /* held chord has no repeat edge */
     frame(2,BG_BUTTON_C_UP|BG_BUTTON_D_UP,out);
-    assert(!out[2].zoom&&!out[2].switch_weapon&&!scores[2]); /* releasing R does not switch */
+    assert(!out[2].switch_grenade&&!out[2].zoom&&!out[2].switch_weapon&&!scores[2]); /* releasing R does not switch */
+    frame(2,BG_BUTTON_C_RIGHT,out);
+    assert(out[2].zoom&&!out[2].switch_grenade&&!out[2].switch_weapon);
+    frame(2,BG_BUTTON_C_RIGHT,out);assert(!out[2].zoom); /* no held repeat */
+    frame(2,BG_BUTTON_R,out);
+    frame(2,BG_BUTTON_R|BG_BUTTON_C_RIGHT,out);
+    assert(out[2].zoom&&!out[2].switch_grenade&&!out[2].switch_weapon&&scores[2]);
     frame(0,BG_BUTTON_R|BG_BUTTON_D_UP,out);assert(out[0].switch_weapon&&out[0].zoom&&!out[0].reload&&!scores[0]);
     frame(0,BG_BUTTON_C_LEFT,out);assert(out[0].strafe==-1&&!out[0].reload&&!out[0].interact&&!out[0].switch_weapon);
     tap(2,BG_BUTTON_START|BG_BUTTON_R,out);all_zero(out);assert(paused&&!scores[2]);

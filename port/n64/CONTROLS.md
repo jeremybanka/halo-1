@@ -55,9 +55,9 @@ buttons on the N64 controller, including when Xbox style is selected.
 | Reload / contextual use | B | C-left | New press |
 | Switch carried weapon | R | C-up | New press |
 | Throw grenade | L | L | New press |
-| Select grenade type | D-left | C-right | New press |
+| Select grenade type | D-left | Hold R, press C-up | New press |
 | Melee | D-down | B | New press |
-| Cycle zoom | D-up | Hold R, press C-up | New press; supported weapons only |
+| Cycle zoom | D-up | C-right | New press; supported weapons only |
 | Crouch | D-right | C-down | Held |
 | View scores | — | R | Held |
 | Pause / take menu ownership / resume | Start | Start | New press |
@@ -68,7 +68,7 @@ existing contextual gameplay rules. On-screen pickup, enter and exit prompts
 say **B** for N64 and **C-LEFT** for Xbox style.
 
 In Xbox style, hold R to show scores in your own viewport without pausing the
-match. Hold R and press C-up to cycle zoom instead of switching weapons;
+match. Hold R and press C-up to switch grenade type instead of switching weapons;
 the scores remain visible while R is held. C-up by itself switches weapons.
 N64 R retains weapon switching and does not open the scores overlay.
 
@@ -106,7 +106,7 @@ held-button query and are hidden for inactive players and during menu input.
 Host tests cover all 16,384 N64 held-button masks with multiple edge masks
 and mounted/on-foot states, bit-identical legacy axes, Xbox action isolation,
 button holds versus edges, stick signs/deadzone, and independent players.
-They also check the R + C-up zoom chord, held-R scores, and unchanged N64 R.
+They also check the R + C-up grenade-selection chord, held-R scores, and unchanged N64 R.
 Menu tests cover ownership transfer, Player 1 Setup permission, simultaneous
 Start, analog recentering, input consumption and preference persistence.
 

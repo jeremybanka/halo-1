@@ -39,8 +39,8 @@ void bg_controls_map(bg_input *out,const bg_control_state *raw,
         out->reload=out->interact=(pressed&BG_BUTTON_C_LEFT)!=0;
         out->melee=(pressed&BG_BUTTON_B)!=0;
         out->switch_weapon=(pressed&BG_BUTTON_C_UP)!=0&&(held&BG_BUTTON_R)==0;
-        out->switch_grenade=(pressed&BG_BUTTON_C_RIGHT)!=0;
-        out->zoom=(pressed&BG_BUTTON_C_UP)!=0&&(held&BG_BUTTON_R)!=0;
+        out->switch_grenade=(pressed&BG_BUTTON_C_UP)!=0&&(held&BG_BUTTON_R)!=0;
+        out->zoom=(pressed&BG_BUTTON_C_RIGHT)!=0;
         out->crouch=(held&BG_BUTTON_C_DOWN)!=0;
     } else {
         out->forward=y;

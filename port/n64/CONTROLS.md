@@ -36,8 +36,8 @@ menu requires recentering a held stick before it can navigate.
 Each player's preference persists through match restart and player-count
 changes. Preferences are held in memory and **are not saved after power-off
 or restarting the emulator's game system**. Opening, navigating, transferring
-and closing the menu consume gameplay input, so the selecting A/B/R presses
-do not also jump, melee, reload or interact with the world.
+and closing the menu consume gameplay input, so menu actions do not also
+jump, melee, reload or interact with the world.
 
 ## Gameplay layouts
 
@@ -52,19 +52,25 @@ buttons on the N64 controller, including when Xbox style is selected.
 | Look up/down | C-up/down | Stick up/down | Held in N64; analog in Xbox style |
 | Jump | A | A | New press on foot |
 | Fire | Z | Z | Held; weapon rules determine repeat fire |
-| Reload / contextual use | B | R | New press |
-| Switch carried weapon | R | C-left | New press |
+| Reload / contextual use | B | C-left | New press |
+| Switch carried weapon | R | C-up | New press |
 | Throw grenade | L | L | New press |
 | Select grenade type | D-left | C-right | New press |
 | Melee | D-down | B | New press |
-| Cycle zoom | D-up | C-up | New press; supported weapons only |
+| Cycle zoom | D-up | Hold R, press C-up | New press; supported weapons only |
 | Crouch | D-right | C-down | Held |
+| View scores | — | R | Held |
 | Pause / take menu ownership / resume | Start | Start | New press |
 
 Contextual use picks up a nearby weapon, enters an available vehicle seat, or
 exits the current vehicle. The same button requests reload, retaining the
 existing contextual gameplay rules. On-screen pickup, enter and exit prompts
-say **B** for N64 and **R** for Xbox style.
+say **B** for N64 and **C-LEFT** for Xbox style.
+
+In Xbox style, hold R to show scores in your own viewport without pausing the
+match. Hold R and press C-up to cycle zoom instead of switching weapons;
+the scores remain visible while R is held. C-up by itself switches weapons.
+N64 R retains weapon switching and does not open the scores overlay.
 
 Both layouts retain the same stick scaling and deadzone: raw stick values are
 divided by 80, and each normalized axis below 0.12 in magnitude becomes zero.
@@ -94,11 +100,13 @@ it stores no player preferences. `menu.c` owns four separate choices and the
 menu's ownership/permission rules. `main.c` adapts the libdragon buttons,
 updates the menu once per poll, and clears queued gameplay edges when the
 menu consumes a poll. HUD interaction labels use cached paragraphs for both
-layouts, without rebuilding text during each draw.
+layouts, without rebuilding text during each draw. Scores use a separate
+held-button query and are hidden for inactive players and during menu input.
 
 Host tests cover all 16,384 N64 held-button masks with multiple edge masks
 and mounted/on-foot states, bit-identical legacy axes, Xbox action isolation,
 button holds versus edges, stick signs/deadzone, and independent players.
+They also check the R + C-up zoom chord, held-R scores, and unchanged N64 R.
 Menu tests cover ownership transfer, Player 1 Setup permission, simultaneous
 Start, analog recentering, input consumption and preference persistence.
 
@@ -128,7 +136,9 @@ It passes 40 checkpoints through the production input/menu path, including
 all four owners, Setup permissions, 1/2/4 player counts, style isolation,
 mixed-layout gameplay and restart persistence. Cumulative RDP validation ends
 at zero errors and warnings. Actual screenshots and the scripted recording
-are in `build/n64/controls-menu-qa/index.html`; the normal release contains
+are in `build/n64/controls-menu-scores-qa/index.html`; the normal release contains
 neither the test inputs nor the diagnostic banners. Its separate five-surface
-timing regression also retains nominal 30 Hz with zero missed deadlines;
-see [PACING.md](PACING.md) for the measured latency and memory cost.
+timing regression also retains nominal 30 Hz with zero missed deadlines.
+Holding all four score panels open has one vehicle-phase deadline miss in the
+separate stress replay. See [PACING.md](PACING.md) for both measurements,
+latency and memory cost.

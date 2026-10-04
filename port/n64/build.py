@@ -22,6 +22,7 @@ def main():
     parser.add_argument('--profile', action='store_true', help='Show N64 frame timing and memory counters')
     parser.add_argument('--benchmark', action='store_true', help='Measure one four-player replay without live debug overlays, then show frame statistics')
     parser.add_argument('--vi-benchmark', action='store_true', help='Quiet four-player replay measuring actual VI presentation only; no CPU/RDP profiling or live debug overlays')
+    parser.add_argument('--scores-benchmark', action='store_true', help='With --vi-benchmark, hold the Xbox score overlays open in all four views throughout the replay')
     parser.add_argument('--gpu-diagnostic', action='store_true', help='Serialize RSP/RDP before the HUD to diagnose queue backpressure; not a release FPS measurement')
     parser.add_argument('--guard-band4', action='store_true', help='Test Tiny3D guard-band 4 for four-player viewports; projection and scissor are unchanged')
     parser.add_argument('--paced30', action='store_true', help='Experimental four-view two-retrace FIFO presentation with a two-frame prefill; NTSC/MPAL only, ignored by frozen snapshots')
@@ -37,6 +38,8 @@ def main():
     args = parser.parse_args()
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
+    if args.scores_benchmark and not args.vi_benchmark:
+        parser.error('--scores-benchmark requires --vi-benchmark')
     args.paced30_buffers = args.paced30_buffers or 3
     if args.snapshot_tick is not None:
         args.paced30 = False
@@ -142,6 +145,7 @@ def main():
              *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
              *(['-DBG_BENCHMARK'] if args.benchmark else []),
              *(['-DBG_VI_BENCHMARK'] if args.vi_benchmark else []),
+             *(['-DBG_SCORES_BENCHMARK'] if args.scores_benchmark else []),
              *(['-DBG_GPU_DIAGNOSTIC'] if args.gpu_diagnostic else []),
              *(['-DBG_GUARDBAND4'] if args.guard_band4 else []),
              *(['-DBG_PACED30'] if args.paced30 else []),
@@ -159,6 +163,8 @@ def main():
         name += '-blam-bsp'
     if args.vi_benchmark:
         name += '-vi-benchmark'
+        if args.scores_benchmark:
+            name += '-scores'
     elif args.benchmark:
         name += '-benchmark'
         if args.gpu_diagnostic:

@@ -22,7 +22,9 @@ cartridge for the recommended four-player presentation profile. Build it with
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
 The five-surface profile holds two-retrace cadence in the measured Ares replay,
 with 130/135 ms mean/maximum input-sample-to-display latency after the menu update. The four-surface
-alternative has lower latency and one missed deadline; see [PACING.md](PACING.md).
+alternative had lower latency and one missed deadline in the preceding revision;
+it has not been remeasured for this update. Holding all four score panels open
+has one deadline miss with five surfaces; see [PACING.md](PACING.md).
 Four views start immediately. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.
 Any active player can press **Start** to pause and own the menu. Another
@@ -41,13 +43,14 @@ Slayer ends at **25 kills**, with a winner panel and announcer audio.
 | Look up/down | C-up/down | Stick up/down |
 | Jump; hold to raise the Banshee | A | A |
 | Fire primary weapon | Z | Z |
-| Reload / pick up / enter or exit a vehicle | B | R |
-| Switch carried weapon | R | C-left |
+| Reload / pick up / enter or exit a vehicle | B | C-left |
+| Switch carried weapon | R | C-up |
 | Throw grenade; hold for mounted secondary fire | L | L |
-| Cycle weapon zoom | D-up | C-up |
+| Cycle weapon zoom | D-up | Hold R, press C-up |
 | Melee | D-down | B |
 | Switch grenade type | D-left | C-right |
 | Crouch; lower the Banshee | D-right | C-down |
+| View scores | — | Hold R |
 | Pause / menu ownership / resume | Start | Start |
 
 In the menu, D-pad or stick up/down moves the highlight, **A** selects, and
@@ -56,9 +59,11 @@ player count or control style. See [CONTROLS.md](CONTROLS.md) for ownership,
 button-edge behavior and vehicle controls.
 
 Approach the Warthog's left side for the driver, right side for the front
-passenger, or rear for the gunner, then press **B** with N64 controls or **R**
+passenger, or rear for the gunner, then press **B** with N64 controls or **C-left**
 with Xbox style. The nearest available entry marker selects the seat; HUD
-interaction prompts use that player's selected button.
+interaction prompts show **B** or **C-LEFT** for that player's selected layout.
+In Xbox style, holding R shows scores in that player's view without pausing.
+R + C-up zooms instead of switching weapons; scores stay visible until R is released.
 
 The Scorpion's turn/look inputs aim its turret independently; strafe steers its
 hull (C-left/right in N64, D-left/right in Xbox style). Z fires the cannon and
@@ -195,6 +200,9 @@ poses, repeated poses, skipped poses, retrace gaps and input-sample latency.
 counters and live diagnostic text disabled. It is the preferred presentation
 timing check. These emulator results do not establish real N64 hardware speed
 or physical button-to-photon latency.
+Add `--scores-benchmark` to `--vi-benchmark` to hold the Xbox score panels open
+in all four views throughout the same replay. That separately named ROM checks
+the overlay cost; the ordinary quiet run measures gameplay with panels closed.
 `--snapshot-tick N` instead advances exactly N fixed replay ticks before
 drawing, then repeatedly renders the frozen scene/HUD without input, menu or
 FPS text. Snapshot ROMs are pixel-comparison fixtures, not performance tests;

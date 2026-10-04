@@ -8,18 +8,37 @@ The ordinary no-option build remains unpaced. The option adds `-paced30` to the 
 frozen `--snapshot-tick` builds ignore it. This is an emulator-tested profile,
 not a physical-console performance guarantee.
 
-The controls/menu revision was remeasured with five surfaces in Ares v148,
+The final controls/menu/scoreboard revision was remeasured with five surfaces in Ares v148,
 Metal, NTSC and 4 MiB. In 75.017 seconds after one second of warmup, all 2,244
 fresh displayed poses arrive two retraces apart: 1,078 combat and 1,166 vehicle
 poses. There are zero missed deadlines, duplicate displayed poses or dropped
-simulation ticks; five intermediate poses are skipped. P95 and maximum are
+simulation ticks; six intermediate poses are skipped. P95 and maximum are
 33.4 ms, with the NTSC rate displayed as 29.9 FPS. Input sample to VI is
-130/135 ms mean/maximum, ready to VI is 98/115 ms, and free heap is 683 KiB.
+130/135 ms mean/maximum, ready to VI is 98/116 ms, and free heap is 641 KiB.
 Held/SDK-ready/submitted peaks remain 4/1/4. The original menu asset bank and
 working storage remain resident during this menu-closed gameplay measurement.
-The local proof is `build/n64/controls-menu-qa/timing-result.json`, with the
+The local proof is `build/n64/controls-menu-scores-qa/timing-result.json`, with the
 captured result page and exact ROM/source hashes. This is a fresh measurement
 of the same scripted replay, not a claim about every possible match.
+
+The final Xbox C-button/scoreboard revision also measures the demanding case
+of all four held-R score panels visible during the entire replay. This run has
+2,243 fresh poses and **one missed vehicle-phase deadline**: 2,242 intervals
+are two retraces and one is four retraces (66.8 ms). Combat has 1,078 poses
+with no misses; vehicles have 1,165 poses with the one miss. There are no
+repeated displayed poses or dropped simulation ticks, and seven intermediate
+poses are skipped. Input sample to VI is 129/135 ms mean/maximum; ready to VI
+is 96/115 ms, with 640 KiB free heap and held/ready/submitted peaks of 4/1/4.
+This stress case therefore does **not** meet an uninterrupted nominal-30-Hz
+floor. The separate evidence is
+`build/n64/controls-menu-scores-qa/scores-timing-result.json`.
+
+The score renderer reuses permanent panel command blocks, retains CPU text
+until scores change, and caches the exact fixed-point glyph rectangles.
+It avoids repeated formatting, layout and scale divisions without changing
+the font pixels or submitted rectangle words. The original uncached score
+candidate had four vehicle deadline misses in the same replay; the optimized
+candidate reduces that to one. Normal gameplay timing is measured separately.
 
 In the three-surface four-view mode, completed frames wait in a two-entry FIFO
 while the third surface is scanned out. After two completed frames prefill the queue, one frame

@@ -28,7 +28,7 @@ def run(output):
 int main(void) {
     const char *legacy[]={"B EXIT","B PICK UP","B ENTER","Reloading","Overheated",
         "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3"};
-    const char *xbox[]={"R EXIT","R PICK UP","R ENTER"};
+    const char *xbox[]={"C-LEFT EXIT","C-LEFT PICK UP","C-LEFT ENTER"};
     assert(HUD_EXIT==0&&HUD_ENTER==2&&HUD_RESPAWN_0==5&&HUD_RESPAWN_3==8);
     assert(HUD_XBOX_EXIT==9&&HUD_STATUS_COUNT==12);
     for(int status=-1;status<HUD_STATUS_COUNT;status++) {
@@ -44,7 +44,7 @@ int main(void) {
      * existing paragraph slots; the next N64 player still selects B. */
     assert(control_status(HUD_ENTER,BG_CONTROLS_XBOX)==HUD_XBOX_ENTER);
     assert(control_status(HUD_ENTER,BG_CONTROLS_N64)==HUD_ENTER);
-    puts("PASS: cached B/R interaction labels; legacy status IDs/text unchanged; all statuses/styles; no per-draw layout build");
+    puts("PASS: cached B/C-LEFT interaction labels; legacy status IDs/text unchanged; all statuses/styles; no per-draw layout build");
 }
 '''
     output.mkdir(parents=True, exist_ok=True)

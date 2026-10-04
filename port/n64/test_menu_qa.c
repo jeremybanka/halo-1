@@ -11,13 +11,13 @@ int main(void){
     unsigned visits[40]={0},last_step=0;
     uint64_t first_done=0;
     const uint64_t start=1234567;
-    for(uint64_t now=start;now<=start+82000000;now+=2000){
+    for(uint64_t now=start;now<=start+90000000;now+=2000){
         bg_control_state raw[BG_PLAYERS];bg_menu_input navigation[BG_PLAYERS];
         bg_input in[BG_PLAYERS]={0};
         bg_menu_qa_input(raw,now);
         unsigned step=bg_menu_qa_step();
         assert(step<40&&(step==last_step||step==last_step+1));
-        if(step!=last_step)assert(now-start==(uint64_t)step*2000000);
+        if(step!=last_step)assert(now-start==(uint64_t)step*2000000+(step>27?8000000:0));
         last_step=step;visits[step]++;
         bg_menu_inputs(&menu,raw,navigation);
         bg_menu_result result=bg_menu_update(&menu,navigation,views);
@@ -49,9 +49,9 @@ int main(void){
             assert(result.action==BG_MENU_ACTION_NONE&&result.consumed);
         }
     }
-    assert(bg_menu_qa_done()&&first_done==start+78000000);
-    assert(restarts==1&&count_changes==3&&gameplay_polls==1000);
-    for(unsigned step=0;step<39;step++)assert(visits[step]==1000);
+    assert(bg_menu_qa_done()&&first_done==start+86000000);
+    assert(restarts==1&&count_changes==3&&gameplay_polls==5000);
+    for(unsigned step=0;step<39;step++)assert(visits[step]==(step==27?5000:1000));
     assert(visits[39]==2001); /* final PASS remains stable for four seconds */
     puts("PASS: actual menu QA, all 40 checkpoints at 2ms polls; 1/2/4 views, inactive ports, independent controls, restart and stable final PASS");
     return 0;

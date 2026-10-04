@@ -24,6 +24,7 @@ PRELUDE = r'''
 #include "menu.h"
 static bg_menu menu;
 static bool paused;
+static bool scores[4];
 static unsigned views,polls,resets,view_resets,sets,last_set;
 static unsigned reads[3][4];
 static float game_time;
@@ -77,6 +78,7 @@ static void init(unsigned count){
     memset(physical,0,sizeof(physical));memset(snapshot,0,sizeof(snapshot));
     memset(previous,0,sizeof(previous));memset(edges,0,sizeof(edges));
     memset(reads,0,sizeof(reads));memset(bg_players,0,sizeof(bg_players));
+    memset(scores,0,sizeof(scores));
     for(unsigned p=0;p<4;p++)bg_players[p].vehicle=-1;
     views=count;paused=false;polls=resets=view_resets=sets=last_set=0;game_time=27.5f;
     bg_menu_init(&menu,count);
@@ -117,6 +119,7 @@ static void adapter_test(void){
                     bg_controls_map(&expected,&raw,menu.styles[p],bg_players[p].vehicle>=0);
                 }
                 same(&actual[p],&expected);
+                assert(scores[p]==(p<count&&menu.styles[p]==BG_CONTROLS_XBOX&&logical_buttons[b]==BG_BUTTON_R));
             }
         }
         read_test();assert(!resets&&!sets&&!view_resets);
@@ -133,9 +136,25 @@ static void owner_style_test(void){
     tap(2,BG_BUTTON_D_RIGHT,out);assert(menu.styles[2]==BG_CONTROLS_XBOX);
     for(unsigned p=0;p<4;p++)if(p!=2)assert(menu.styles[p]==BG_CONTROLS_N64);
     tap(2,BG_BUTTON_START|BG_BUTTON_A|BG_BUTTON_Z,out);all_zero(out);assert(!paused);
-    frame(2,BG_BUTTON_R|BG_BUTTON_D_UP,out);
+    frame(2,BG_BUTTON_C_LEFT|BG_BUTTON_D_UP,out);
     assert(out[2].reload&&out[2].interact&&out[2].forward==1&&!out[2].switch_weapon);
-    frame(0,BG_BUTTON_R|BG_BUTTON_D_UP,out);assert(out[0].switch_weapon&&out[0].zoom&&!out[0].reload);
+    frame(2,BG_BUTTON_C_UP|BG_BUTTON_D_UP,out);
+    assert(out[2].switch_weapon&&out[2].forward==1&&!out[2].reload&&!out[2].interact&&!out[2].zoom&&!scores[2]);
+    frame(2,BG_BUTTON_R|BG_BUTTON_D_UP,out);
+    assert(out[2].forward==1&&!out[2].switch_weapon&&!out[2].reload&&!out[2].interact&&!out[2].zoom&&scores[2]);
+    frame(2,BG_BUTTON_R|BG_BUTTON_C_UP|BG_BUTTON_D_UP,out);
+    assert(out[2].zoom&&!out[2].switch_weapon&&!out[2].reload&&!out[2].interact&&scores[2]);
+    frame(2,BG_BUTTON_R|BG_BUTTON_C_UP|BG_BUTTON_D_UP,out);
+    assert(!out[2].zoom&&!out[2].switch_weapon&&scores[2]); /* held chord has no repeat edge */
+    frame(2,BG_BUTTON_C_UP|BG_BUTTON_D_UP,out);
+    assert(!out[2].zoom&&!out[2].switch_weapon&&!scores[2]); /* releasing R does not switch */
+    frame(0,BG_BUTTON_R|BG_BUTTON_D_UP,out);assert(out[0].switch_weapon&&out[0].zoom&&!out[0].reload&&!scores[0]);
+    frame(0,BG_BUTTON_C_LEFT,out);assert(out[0].strafe==-1&&!out[0].reload&&!out[0].interact&&!out[0].switch_weapon);
+    tap(2,BG_BUTTON_START|BG_BUTTON_R,out);all_zero(out);assert(paused&&!scores[2]);
+    frame(2,BG_BUTTON_R,out);all_zero(out);assert(!scores[2]);
+    frame(2,BG_BUTTON_START|BG_BUTTON_R,out);all_zero(out);assert(!paused&&!scores[2]);
+    frame(2,BG_BUTTON_R,out);assert(scores[2]);
+    frame(2,0,out);assert(!scores[2]);
     assert(!resets&&!sets&&!view_resets);
 }
 static void resume_and_latch_test(void){
@@ -206,7 +225,9 @@ def sha(path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sdk', type=Path, default=ROOT.parent/'n64-2048/.build/libdragon')
+    parser.add_argument('--out', type=Path, default=OUT, help='Proof/output directory; use a new path to retain an earlier run')
     args = parser.parse_args()
+    OUT = args.out.resolve()
     sdk_header = args.sdk/'mips64-elf/include/joypad.h'
     sdk = sdk_header.read_text()
     typedefs = []

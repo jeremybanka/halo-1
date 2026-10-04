@@ -39,6 +39,10 @@ bool bg_control_style_valid(bg_control_style style);
 const char *bg_control_style_name(bg_control_style style);
 bg_control_style bg_control_style_next(bg_control_style style);
 
+/* Presentation-only held action; call after the menu consumes its input.
+ * The Xbox zoom chord keeps scores visible until R is released. */
+bool bg_controls_show_scores(const bg_control_state *raw,bg_control_style style);
+
 /* Stateless, per-player conversion. Preferences, pause/menu handling and
  * edge latching across fixed simulation ticks remain with the caller.
  * Unknown style values safely use the original N64 layout. */

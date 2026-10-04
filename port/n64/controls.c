@@ -13,6 +13,10 @@ bg_control_style bg_control_style_next(bg_control_style style) {
     return style==BG_CONTROLS_N64?BG_CONTROLS_XBOX:BG_CONTROLS_N64;
 }
 
+bool bg_controls_show_scores(const bg_control_state *raw,bg_control_style style) {
+    return style==BG_CONTROLS_XBOX&&(raw->held&BG_BUTTON_R)!=0;
+}
+
 void bg_controls_map(bg_input *out,const bg_control_state *raw,
         bg_control_style style,bool mounted) {
     float x=raw->stick_x/80.f,y=raw->stick_y/80.f;
@@ -32,11 +36,11 @@ void bg_controls_map(bg_input *out,const bg_control_state *raw,
         out->forward=((held&BG_BUTTON_D_UP)!=0)-((held&BG_BUTTON_D_DOWN)!=0);
         out->strafe=((held&BG_BUTTON_D_RIGHT)!=0)-((held&BG_BUTTON_D_LEFT)!=0);
         out->look=y;
-        out->reload=out->interact=(pressed&BG_BUTTON_R)!=0;
+        out->reload=out->interact=(pressed&BG_BUTTON_C_LEFT)!=0;
         out->melee=(pressed&BG_BUTTON_B)!=0;
-        out->switch_weapon=(pressed&BG_BUTTON_C_LEFT)!=0;
+        out->switch_weapon=(pressed&BG_BUTTON_C_UP)!=0&&(held&BG_BUTTON_R)==0;
         out->switch_grenade=(pressed&BG_BUTTON_C_RIGHT)!=0;
-        out->zoom=(pressed&BG_BUTTON_C_UP)!=0;
+        out->zoom=(pressed&BG_BUTTON_C_UP)!=0&&(held&BG_BUTTON_R)!=0;
         out->crouch=(held&BG_BUTTON_C_DOWN)!=0;
     } else {
         out->forward=y;

@@ -68,15 +68,24 @@ void bg_menu_qa_input(bg_control_state raw[BG_PLAYERS],uint64_t now){
     memset(raw,0,sizeof(*raw)*BG_PLAYERS);edge=false;
     if(!started){started=true;deadline=now+2000000;edge=true;}
     else if(now>=deadline&&step+1<sizeof(script)/sizeof(script[0])){
-        step++;deadline=now+2000000;edge=true;
+        step++;deadline=now+(step==27?10000000:2000000);edge=true;
     }
     if(edge)raw[script[step].port].held=raw[script[step].port].pressed=script[step].button;
     /* A short actual simulation segment mixes Xbox movement/aim with N64
      * movement/aim, without direct player-state assignments. */
     if(step==27){
-        raw[0]=(bg_control_state){.held=BG_BUTTON_D_UP|BG_BUTTON_Z,.stick_x=20,.stick_y=10};
-        raw[1]=(bg_control_state){.held=BG_BUTTON_D_RIGHT,.stick_x=-20,.stick_y=-10};
-        raw[3]=(bg_control_state){.held=BG_BUTTON_C_LEFT,.stick_x=20,.stick_y=60};
+        raw[0]=(bg_control_state){.held=BG_BUTTON_D_UP|BG_BUTTON_Z|BG_BUTTON_R,
+            .pressed=edge?BG_BUTTON_C_LEFT:0,.stick_x=20,.stick_y=10};
+        raw[1]=(bg_control_state){.held=BG_BUTTON_D_RIGHT|BG_BUTTON_R,
+            .pressed=edge?BG_BUTTON_C_UP:0,.stick_x=-20,.stick_y=-10};
+        raw[2]=(bg_control_state){.pressed=edge?BG_BUTTON_C_UP:0};
+        raw[3]=(bg_control_state){.held=BG_BUTTON_C_LEFT|BG_BUTTON_R,
+            .pressed=edge?BG_BUTTON_R:0,.stick_x=20,.stick_y=60};
+        for(unsigned p=0;p<BG_PLAYERS;p++)raw[p].held|=raw[p].pressed;
+        assert(bg_controls_show_scores(&raw[0],BG_CONTROLS_XBOX));
+        assert(bg_controls_show_scores(&raw[1],BG_CONTROLS_XBOX));
+        assert(!bg_controls_show_scores(&raw[2],BG_CONTROLS_XBOX));
+        assert(!bg_controls_show_scores(&raw[3],BG_CONTROLS_N64));
     }
 }
 static bool input_empty(const bg_input *in){
@@ -98,6 +107,10 @@ void bg_menu_qa_check(const bg_menu *m,unsigned views,const bg_menu_result *r,
         assert(!r->consumed&&in[0].forward==1&&in[0].fire&&in[0].turn<0&&in[0].look>0);
         assert(in[1].forward==0&&in[1].strafe==1&&in[1].turn>0&&in[1].look<0);
         assert(in[3].forward==.75f&&in[3].strafe==-1&&in[3].turn<0&&in[3].look==0);
+        assert(in[0].reload==edge&&in[0].interact==edge&&!in[0].switch_weapon&&!in[0].zoom);
+        assert(in[1].zoom==edge&&!in[1].switch_weapon&&!in[1].reload);
+        assert(in[2].switch_weapon==edge&&!in[2].zoom&&!in[2].reload);
+        assert(in[3].switch_weapon==edge&&!in[3].zoom&&!in[3].reload);
     }
     if(step+1==sizeof(script)/sizeof(script[0]))complete=true;
 }

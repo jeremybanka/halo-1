@@ -33,7 +33,7 @@ enum { HUD_EXIT, HUD_PICKUP, HUD_ENTER, HUD_RELOAD, HUD_OVERHEAT,
 static const char *const status_strings[HUD_STATUS_COUNT]={
     "B EXIT","B PICK UP","B ENTER","Reloading","Overheated",
     "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3",
-    "R EXIT","R PICK UP","R ENTER"};
+    "C-LEFT EXIT","C-LEFT PICK UP","C-LEFT ENTER"};
 /* These labels have fixed font, width and alignment. Lay them out once instead
  * of allocating and formatting the same paragraph in each player view. */
 static rdpq_paragraph_t *status_layouts[2][HUD_STATUS_COUNT];

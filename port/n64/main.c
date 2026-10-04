@@ -108,6 +108,7 @@ static unsigned slot,views=4,triangles,fps;
 static bg_menu menu;
 #ifndef BG_SNAPSHOT_TICK
 static bool paused;
+static bool scores[BG_PLAYERS];
 #endif
 static float game_time;
 static int16_t triangle_lists[20][64] __attribute__((aligned(16)));
@@ -587,14 +588,21 @@ static bool input(bg_input in[4]){
 #ifdef BG_MENU_QA
     bg_menu_qa_input(raw,get_ticks_us());
 #endif
+#ifdef BG_SCORES_BENCHMARK
+    /* A separately named replay measures all four live score overlays. */
+    for(unsigned i=0;i<4;i++)raw[i]=(bg_control_state){.held=BG_BUTTON_R};
+#endif
     bg_menu_inputs(&menu,raw,navigation);
     bg_menu_result result=bg_menu_update(&menu,navigation,views);
     paused=menu.open;
     if(result.action==BG_MENU_ACTION_RESTART){bg_reset();game_time=0;reset_view_state();}
     if(result.action==BG_MENU_ACTION_PLAYER_COUNT){views=result.player_count;bg_set_players(views);}
     memset(in,0,sizeof(bg_input)*4);
-    if(!result.consumed)for(unsigned i=0;i<views;i++)
+    memset(scores,0,sizeof(scores));
+    if(!result.consumed)for(unsigned i=0;i<views;i++){
         bg_controls_map(&in[i],&raw[i],menu.styles[i],bg_players[i].vehicle>=0);
+        scores[i]=bg_controls_show_scores(&raw[i],menu.styles[i]);
+    }
 #ifdef BG_MENU_QA
     bg_menu_qa_check(&menu,views,&result,in);
 #endif
@@ -1361,6 +1369,9 @@ int main(void){
     bg_fp_ammo_init();
     rdpq_text_register_font(1,rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
     bg_menu_init(&menu,views);
+#ifdef BG_SCORES_BENCHMARK
+    for(unsigned p=0;p<4;p++)menu.styles[p]=BG_CONTROLS_XBOX;
+#endif
 #ifndef BG_SNAPSHOT_TICK
     bg_menu_draw_init();
 #endif
@@ -1527,6 +1538,12 @@ int main(void){
             T3DViewport*vp=&viewports[slot][p];
             bg_hud_draw(p,vp->offset[0],vp->offset[1],vp->size[0],vp->size[1],menu.styles[p]);
         }
+#ifndef BG_SNAPSHOT_TICK
+        for(unsigned p=0;p<views;p++)if(scores[p]){
+            T3DViewport*vp=&viewports[slot][p];
+            bg_scores_draw(p,vp->offset[0],vp->offset[1],vp->size[0],vp->size[1]);
+        }
+#endif
 #ifdef BG_PROFILE
         hud_us=get_ticks_us()-hud_begin;
 #endif

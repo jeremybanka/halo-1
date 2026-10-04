@@ -6,6 +6,14 @@
 #include "controls.h"
 #include "menu.h"
 #include "menu_draw.h"
+#include "frontend.h"
+#include "frontend_draw.h"
+#ifdef BG_FRONTEND_QA
+#include "frontend_qa.h"
+#endif
+#if !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+#define BG_FRONTEND
+#endif
 #ifdef BG_MENU_QA
 #include "menu_qa.h"
 #endif
@@ -106,6 +114,13 @@ static rspq_syncpoint_t fences[BG_FRAME_SLOTS];
 static bool pending[BG_FRAME_SLOTS];
 static unsigned slot,views=4,triangles,fps;
 static bg_menu menu;
+#ifdef BG_FRONTEND
+static bg_frontend front;
+static uint64_t match_ended;
+static bool front_active(void){return front.page!=BG_FRONT_PLAY;}
+#else
+static bool front_active(void){return false;}
+#endif
 #ifndef BG_SNAPSHOT_TICK
 static bool paused;
 static bool scores[BG_PLAYERS];
@@ -369,6 +384,7 @@ static unsigned pickup_model(unsigned w){
         w==BG_PICK_OVERSHIELD?BG_M_OVERSHIELD:BG_M_CAMOUFLAGE;
 }
 static void tint_team(T3DVertPacked*vertices,unsigned count,const uint8_t*masks,unsigned player){
+    player=bg_player_profiles[player];
     for(unsigned i=0;i<count;i++){
         uint32_t*rgba=t3d_vertbuffer_get_color(vertices,i);
         unsigned r=*rgba>>24,g=(*rgba>>16)&255,b=(*rgba>>8)&255,mask=masks[i];
@@ -585,6 +601,9 @@ static bool input(bg_input in[4]){
         raw[i]=(bg_control_state){.stick_x=stick.stick_x,.stick_y=stick.stick_y,
             .held=control_buttons(held),.pressed=control_buttons(pressed)};
     }
+#ifdef BG_FRONTEND_QA
+    bg_front_qa_input(&front,raw,get_ticks_us());
+#endif
 #ifdef BG_MENU_QA
     bg_menu_qa_input(raw,get_ticks_us());
 #endif
@@ -592,10 +611,46 @@ static bool input(bg_input in[4]){
     /* A separately named replay measures all four live score overlays. */
     for(unsigned i=0;i<4;i++)raw[i]=(bg_control_state){.held=BG_BUTTON_R};
 #endif
+#ifdef BG_FRONTEND
+    if(front_active()){
+        bg_front_action action=bg_front_update(&front,raw,get_ticks_us());
+        bg_sound_front_effect(front.sound);
+        memset(in,0,sizeof(bg_input)*4);memset(scores,0,sizeof(scores));
+        if(action==BG_FRONT_START_MATCH){
+            bg_front_draw_release();views=front.count;bg_set_players(views);bg_set_score_limit(15);
+            bg_reset();game_time=0;match_ended=0;reset_view_state();
+            menu.player_count=views;menu.open=false;menu.shell_session=true;
+            const bg_model_asset *spartan=&bg_model_assets[BG_M_SPARTAN];
+            for(unsigned p=0;p<views;p++){
+                bg_player_profiles[p]=front.profile[front.ports[p]];
+                menu.styles[p]=front.styles[bg_player_profiles[p]];
+                for(unsigned s=0;s<BG_FRAME_SLOTS;s++){
+                    memcpy(armor[s][p],spartan->vertices,((spartan->vertex_count+1)&~1u)*16);
+                    tint_team(armor[s][p],spartan->vertex_count,bg_spartan_team_mask,p);
+                    memcpy(armor_lod[s][p],bg_spartan_lod.vertices,((bg_spartan_lod.vertex_count+1)&~1u)*16);
+                    tint_team(armor_lod[s][p],bg_spartan_lod.vertex_count,bg_spartan_lod_team_mask,p);
+                    firstperson_weapon[s][p]=-1;
+                }
+            }
+            bg_sound_frontend(false);
+        }else if(action==BG_FRONT_RESUME_MATCH){bg_front_draw_release();menu.open=false;}
+        else if(action==BG_FRONT_LEAVE_MATCH){menu.open=false;bg_sound_frontend(true);}
+        paused=front_active();return true;
+    }
+    bg_front_map_controls(&front,raw,raw);
+#endif
     bg_menu_inputs(&menu,raw,navigation);
     bg_menu_result result=bg_menu_update(&menu,navigation,views);
     paused=menu.open;
-    if(result.action==BG_MENU_ACTION_RESTART){bg_reset();game_time=0;reset_view_state();}
+#ifdef BG_FRONTEND
+    for(unsigned p=0;p<views;p++)front.styles[front.profile[front.ports[p]]]=menu.styles[p];
+    if(result.action==BG_MENU_ACTION_QUIT){bg_front_quit(&front);paused=true;}
+#endif
+    if(result.action==BG_MENU_ACTION_RESTART){bg_reset();game_time=0;reset_view_state();
+#ifdef BG_FRONTEND
+        match_ended=0;
+#endif
+    }
     if(result.action==BG_MENU_ACTION_PLAYER_COUNT){views=result.player_count;bg_set_players(views);}
     memset(in,0,sizeof(bg_input)*4);
     memset(scores,0,sizeof(scores));
@@ -626,13 +681,13 @@ static surface_t*paced_acquire(blam_clock*clock,uint64_t*previous,
                 EDGE(jump);EDGE(reload);EDGE(switch_weapon);EDGE(grenade);EDGE(switch_grenade);EDGE(interact);EDGE(melee);EDGE(zoom);
 #undef EDGE
             }
-            presentation_mode(views==4);last_poll=now;
+            presentation_mode(views>=3&&!front_active());last_poll=now;
         }
         clock->paused=paused;
         dropped_ticks+=bg_paced_clock_accumulate(clock,now-*previous,&pending_ticks);*previous=now;
         /* Wait BEFORE acquiring: a repeated simulation pose never locks a
          * display surface. Paused menus may redraw on a wall-time permit. */
-        bool redraw=views!=4||pending_ticks||*first||(paused&&now>=*ui_deadline);
+        bool redraw=views<3||pending_ticks||*first||(paused&&now>=*ui_deadline);
 #ifdef BG_PRESENT_TRACK
         /* Drain old SDK-ready/in-flight frames before fresh paced prefill.
          * Input, clock accumulation and audio above/below continue normally. */
@@ -897,7 +952,7 @@ static void prepare_frame(void){
     for(unsigned p=0;p<views;p++)prepare_player_bounds(p);
     for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active)prepare_vehicle(i);
     prepare_pickup_bounds();
-    if(views==4){
+    if(views>=3){
         for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active&&vehicle_micro_available[bg_vehicles[i].kind])
             bg_micro_sphere_from_bounds(&vehicle_micro_spheres[i],&vehicle_bounds[i]);
         for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].active&&pickup_micro_available[pickup_model(bg_pickups[i].weapon)])
@@ -939,7 +994,7 @@ static void update_effects(float dt){
     }
 }
 static void prepare_view(unsigned p){
-    int w=views==4?160:320,h=views==1?240:120,x=views==4?(p%2)*160:0,y=views==1?0:(views==4?p/2:p)*120;
+    int w=views>=3?160:320,h=views==1?240:120,x=views>=3?(p%2)*160:0,y=views==1?0:(views>=3?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
     float head=player->crouched?.4f:.62f;
     T3DVec3 eye={{player->pos[0]*BG_SCALE,(player->pos[1]+head)*BG_SCALE,player->pos[2]*BG_SCALE}};
@@ -977,7 +1032,7 @@ static void prepare_view(unsigned p){
 #ifdef BG_GUARDBAND4
     /* Tiny3D supports factors 1–4. Enlarge only the clipping guard band;
      * projection, viewport scissor and full triangle clipping stay active. */
-    vp->guardBandScale=views==4?4:2;
+    vp->guardBandScale=views>=3?4:2;
 #endif
     float fov=views==2?.72f:1.08f;
     if(player->health>0&&player->zoom)fov/=player->weapon==BG_W_SNIPER?(player->zoom==2?10:2):2;
@@ -994,7 +1049,7 @@ static void prepare_view(unsigned p){
         bool personal=q->vehicle<0||q->seat==2||(q->seat==1&&bg_vehicles[q->vehicle].kind==BG_V_SCORPION);
         bool held=(distance<=16||player->zoom)&&q->health>0&&personal;
         if(visible_bounds(vp,&body_bounds[j])){
-            unsigned lod=distance>(views==4?4.f:16.f)&&player->zoom==0;
+            unsigned lod=distance>(views>=3?4.f:16.f)&&player->zoom==0;
             body_lods[p][j]=lod+1;wanted_lods[j]|=1u<<lod;
         }
         if(held&&visible_bounds(vp,&held_bounds[j])){held_masks[p]|=1u<<j;wanted_held|=1u<<j;}
@@ -1144,16 +1199,18 @@ static void draw_menu(void){
     bg_menu_draw(&menu);
 }
 #endif
+#ifndef BG_FRONTEND
 static void draw_result(void){
     fill(66,45,188,146,RGBA32(12,27,56,255));fill(66,45,188,2,RGBA32(114,176,233,255));
     rdpq_set_mode_standard();rdpq_text_print(NULL,1,124,64,"GAME OVER");
     rdpq_text_printf(NULL,1,112,80,"PLAYER %d WINS",bg_match_winner()+1);
     for(unsigned p=0;p<views;p++){
-        fill(83,90+p*17,5,9,colors[p]);rdpq_set_mode_standard();
+        fill(83,90+p*17,5,9,colors[bg_player_profiles[p]]);rdpq_set_mode_standard();
         rdpq_text_printf(NULL,1,96,98+p*17,"PLAYER %u       %2d",p+1,bg_players[p].score);
     }
     rdpq_text_print(NULL,1,90,178,"START FOR MATCH OPTIONS");
 }
+#endif
 #ifdef BG_BENCHMARK
 static void benchmark_page(surface_t*screen,bool completed){
     rdpq_attach(screen,NULL);rdpq_set_mode_standard();
@@ -1376,6 +1433,10 @@ int main(void){
     bg_menu_draw_init();
 #endif
     surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_reset();bg_set_players(views);bg_sound_init();
+#ifdef BG_FRONTEND
+    assertf(dfs_init(DFS_DEFAULT_LOCATION)==DFS_ESUCCESS,"Front-end filesystem");
+    bg_front_init(&front);paused=true;bg_sound_frontend(true);
+#endif
 #ifdef BG_SNAPSHOT_TICK
     /* No rendering or wall-clock scheduling during this advance. Presentation
      * state follows every tick, including recoil timestamps, explosions and
@@ -1463,6 +1524,9 @@ int main(void){
 #ifdef BG_SHOWCASE
             bg_showcase_input(in,game_time);views=bg_showcase_views();
 #endif
+#ifdef BG_FRONTEND_QA
+            bg_front_qa_tick(in,game_time);
+#endif
             bg_clear_events();bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;
 #ifdef BG_SHOWCASE
             bg_showcase_observe();
@@ -1484,6 +1548,34 @@ int main(void){
 #ifdef BG_PROFILE
         sim_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
 #endif
+#ifdef BG_FRONTEND
+        if(!front_active()&&bg_match_finished()){
+            if(!match_ended)match_ended=now;
+            if(now-match_ended>=2500000){
+                int final_scores[4];for(unsigned p=0;p<4;p++)final_scores[p]=bg_players[p].score;
+                bg_front_results(&front,final_scores,bg_match_winner());front.statistics=*bg_match_stats();menu.open=false;paused=true;bg_sound_frontend(true);
+            }
+        }
+        if(front_active()){
+#ifdef BG_PACED30
+            presentation_mode(false);
+#endif
+            rdpq_attach(screen,&depth);rdpq_clear_z(ZBUF_MAX);bg_front_draw(&front,now);pump_audio();
+#ifdef BG_FRONTEND_QA
+            rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND %u/%u%s",bg_front_qa_step()+1,bg_front_qa_steps(),bg_front_qa_done()?" PASS":"");
+#ifdef RDPQ_VALIDATE
+            rdpq_text_printf(NULL,1,4,226,"RDP %u ERRORS %u WARNINGS",validation_errors,validation_warnings);
+            if(validation_errors||validation_warnings)rdpq_text_print(NULL,1,4,215,validation_message);
+#endif
+#endif
+#ifdef BG_PACED30
+            frame_present(screen,0);
+#else
+            rdpq_detach_show();
+#endif
+            continue;
+        }
+#endif
         if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();
 #ifdef BG_PROFILE
         wait_us+=get_ticks_us()-profile_start;profile_start=get_ticks_us();
@@ -1495,6 +1587,7 @@ int main(void){
 #ifdef BG_PROFILE
         uint64_t attach_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
 #endif
+        if(views==3)rdpq_clear(RGBA32(0,0,0,255));
         prepare_frame();
 #ifdef BG_PROFILE
         prep_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
@@ -1549,9 +1642,12 @@ int main(void){
 #endif
         rdpq_set_scissor(0,0,320,240);
         if(views>1)fill(0,119,320,2,RGBA32(0,0,0,255));
-        if(views==4)fill(159,0,2,240,RGBA32(0,0,0,255));
+        if(views>=3)fill(159,0,2,240,RGBA32(0,0,0,255));
 #if defined(BG_DEMO) && !defined(BG_VI_MEASURE) && !defined(BG_SNAPSHOT_TICK)
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,116,118,"REPLAY %u FPS",fps);
+#endif
+#ifdef BG_FRONTEND_QA
+        rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
 #endif
 #ifdef BG_SHOWCASE
         fill(50,222,220,16,RGBA32(8,19,37,255));rdpq_set_mode_standard();
@@ -1576,7 +1672,9 @@ int main(void){
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"RDP %u ERRORS %u WARNINGS",validation_errors,validation_warnings);
         if(validation_errors||validation_warnings)rdpq_text_print(NULL,1,4,225,validation_message);
 #endif
+#ifndef BG_FRONTEND
         if(bg_match_finished())draw_result();
+#endif
 #ifndef BG_SNAPSHOT_TICK
         if(paused)draw_menu();
 #endif

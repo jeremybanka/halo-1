@@ -7,7 +7,7 @@ typedef enum { BG_MENU_ROOT, BG_MENU_SETUP, BG_MENU_CONTROLS } bg_menu_page;
 enum { BG_MENU_RESUME, BG_MENU_SETUP_ROW, BG_MENU_CONTROLS_ROW };
 enum { BG_MENU_PLAYERS_ROW, BG_MENU_RESTART_ROW };
 typedef enum {
-    BG_MENU_ACTION_NONE, BG_MENU_ACTION_RESTART, BG_MENU_ACTION_PLAYER_COUNT
+    BG_MENU_ACTION_NONE, BG_MENU_ACTION_RESTART, BG_MENU_ACTION_PLAYER_COUNT, BG_MENU_ACTION_QUIT
 } bg_menu_action;
 
 typedef struct {
@@ -18,7 +18,7 @@ typedef struct {
 } bg_menu_input;
 
 typedef struct {
-    bool open;
+    bool open,shell_session;
     unsigned owner,row,player_count;
     bg_menu_page page;
     bg_control_style styles[BG_PLAYERS];

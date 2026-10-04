@@ -248,6 +248,25 @@ int main(void){
     bg_player finished[4];memcpy(finished,bg_players,sizeof(finished));float end_time=bg_match_time();
     in[0].forward=1;ticks(120);assert(memcmp(finished,bg_players,sizeof(finished))==0&&bg_match_time()==end_time);
     bg_reset();assert(!bg_match_finished()&&bg_match_time()==0&&bg_players[0].score==0);
+    /* The retail Slayer preset uses 15 kills and reports actual statistics. */
+    bg_set_score_limit(15);duel();equip(BG_W_PISTOL);
+    bg_players[0].score=14;bg_players[1].shield=0;in[0].fire=true;ticks(1);
+    assert(bg_match_finished()&&bg_players[0].score==15);
+    assert(bg_match_stats()->kills[0]==1&&bg_match_stats()->deaths[1]==1);
+    bg_reset();assert(bg_score_limit()==15&&!bg_match_finished());
+    const bg_match_statistics empty_statistics={0};
+    assert(!memcmp(bg_match_stats(),&empty_statistics,sizeof(empty_statistics)));
+    /* Two real melee hits from different attackers award the contributor an
+     * assist. Respawning clears that victim's damage history. */
+    duel();bg_players[1].shield=0;in[0].melee=true;ticks(1);in[0].melee=false;
+    assert(bg_players[1].health==15);
+    memcpy(bg_players[2].pos,bg_players[0].pos,12);bg_players[2].yaw=bg_players[2].pitch=0;
+    bg_players[0].pos[2]+=5;in[2].melee=true;ticks(1);in[2].melee=false;
+    assert(bg_match_stats()->kills[2]==1&&bg_match_stats()->assists[0]==1&&bg_match_stats()->deaths[1]==1);
+    ticks(100);memcpy(bg_players[1].pos,bg_players[2].pos,12);bg_players[1].pos[0]+=.8f;
+    bg_players[1].shield=0;bg_players[1].health=80;in[2].melee=true;ticks(1);
+    assert(bg_match_stats()->kills[2]==2&&bg_match_stats()->assists[0]==1);
+    bg_set_score_limit(25);
     /* Consecutive real kills announce double/triple kills and a five-kill spree. */
     duel();equip(BG_W_PISTOL);unsigned announcement_mask=0;
     for(unsigned kill=0;kill<5;kill++){

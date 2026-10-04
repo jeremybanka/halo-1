@@ -59,6 +59,8 @@ typedef struct { bg_event_kind kind; int player,weapon; float pos[3],amount; } b
 extern const bg_teleporter bg_teleporters[2];
 extern const unsigned bg_teleporter_count;
 extern bg_player bg_players[BG_PLAYERS];
+/* Profile identity is independent of physical controller and viewport. */
+extern unsigned bg_player_profiles[BG_PLAYERS];
 extern bg_vehicle bg_vehicles[BG_MAX_VEHICLES];
 /* Live records use original Blam object headers and its movable memory pool.
  * A pointer is valid until a later allocation/tick; reacquire it by slot. */
@@ -68,6 +70,8 @@ extern bg_pickup bg_pickups[BG_MAX_PICKUPS];
 extern bg_event bg_events[BG_MAX_EVENTS];
 extern unsigned bg_vehicle_count,bg_pickup_count,bg_event_count;
 extern const bg_weapon_def bg_weapon_defs[BG_WEAPON_COUNT];
+typedef struct {int kills[4],deaths[4],assists[4];} bg_match_statistics;
+const bg_match_statistics *bg_match_stats(void);
 void bg_reset(void);
 void bg_set_players(unsigned count);
 unsigned bg_player_count(void);
@@ -75,6 +79,7 @@ void bg_clear_events(void);
 bool bg_match_finished(void);
 int bg_match_winner(void);
 unsigned bg_score_limit(void);
+void bg_set_score_limit(unsigned value);
 float bg_match_time(void);
 void bg_tick(const bg_input input[BG_PLAYERS],float dt);
 float bg_floor(float x,float z,float ceiling);

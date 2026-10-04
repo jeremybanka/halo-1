@@ -6,7 +6,7 @@
 
 /* Independent transcription of the relevant original compute_window_bounds
  * and render_camera_build_frustum_bounds operations. The shipping helper
- * does not call this reference. This port supports 1, 2 or 4 views. */
+ * does not call this reference. This port supports 1, 2, 3 or 4 views. */
 static void source_reference(unsigned views,unsigned player,float *x,float *y,
     float *projection_x,float *projection_y)
 {
@@ -37,13 +37,14 @@ static void source_reference(unsigned views,unsigned player,float *x,float *y,
 
 int main(void)
 {
-    const unsigned layouts[]={1,2,4};
-    const float expected[3][4][2]={{{160,120}},{{159,68},{159,172}},
+    const unsigned layouts[]={1,2,3,4};
+    const float expected[4][4][2]={{{160,120}},{{159,68},{159,172}},
+        {{91,68},{229,68},{91,172}},
         {{91,68},{229,68},{91,172},{229,172}}};
     unsigned projected=0;
-    for(unsigned l=0;l<3;l++)for(unsigned p=0;p<layouts[l];p++){
-        unsigned views=layouts[l],columns=views==4?2:1;
-        float width=views==4?160:320,height=views==1?240:120;
+    for(unsigned l=0;l<4;l++)for(unsigned p=0;p<layouts[l];p++){
+        unsigned views=layouts[l],columns=views>=3?2:1;
+        float width=views>=3?160:320,height=views==1?240:120;
         float x=(p%columns)*width,y=(p/columns)*height,cx,cy,rx,ry,px,py;
         source_reference(views,p,&rx,&ry,&px,&py);
         bg_hud_aim_point(views,p,x,y,width,height,&cx,&cy);
@@ -80,5 +81,5 @@ int main(void)
         assert(fabsf(ax-(17+2*(cx-x)))<.0001f);
         assert(fabsf(ay-(23+2*(cy-y)))<.0001f);
     }
-    printf("PASS: original safe-window centers, seven viewports, 10 zoom scales, %u forward rays and fixed projection rounding\n",projected);
+    printf("PASS: original safe-window centers, ten viewports, 10 zoom scales, %u forward rays and fixed projection rounding\n",projected);
 }

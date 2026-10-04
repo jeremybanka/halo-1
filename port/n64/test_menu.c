@@ -186,7 +186,20 @@ static void analog_test(void){
     bg_menu_update(&m,in,4);assert(m.row==BG_MENU_RESUME); /* D-pad priority */
 }
 
+static void shell_setup_test(void){
+    bg_menu m;bg_menu_init(&m,3);m.shell_session=true;
+    open_menu(&m,3,0);press(&m,3,0,BG_BUTTON_D_DOWN);press(&m,3,0,BG_BUTTON_A);
+    assert(m.page==BG_MENU_SETUP&&m.row==0);
+    bg_menu_result r=press(&m,3,0,BG_BUTTON_D_RIGHT);
+    assert(r.action==BG_MENU_ACTION_NONE&&m.player_count==3);
+    r=press(&m,3,0,BG_BUTTON_A);assert(r.consumed&&r.action==BG_MENU_ACTION_RESTART&&!m.open);
+    open_menu(&m,3,0);press(&m,3,0,BG_BUTTON_D_DOWN);press(&m,3,0,BG_BUTTON_A);
+    press(&m,3,0,BG_BUTTON_D_DOWN);r=press(&m,3,0,BG_BUTTON_A);
+    assert(r.consumed&&r.action==BG_MENU_ACTION_QUIT&&!m.open&&m.player_count==3);
+    open_menu(&m,3,2);press(&m,3,2,BG_BUTTON_D_DOWN);assert(m.row==BG_MENU_CONTROLS_ROW);
+}
 int main(void){
+    shell_setup_test();
     transitions_test();ownership_test();simultaneous_start_test();
     count_and_preferences_test();analog_test();
     puts("PASS: menu ownership, setup permissions, independent preferences, input consumption, count cycling, simultaneous Start and analog rearm");

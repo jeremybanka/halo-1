@@ -25,15 +25,21 @@ with 130/135 ms mean/maximum input-sample-to-display latency after the menu upda
 alternative had lower latency and one missed deadline in the preceding revision;
 it has not been remeasured for this update. Holding all four score panels open
 has one deadline miss with five surfaces; see [PACING.md](PACING.md).
-Four views start immediately. Assign Gamepads to controller ports 1–4 in ares,
+The original-style front end opens first. Follow **Multiplayer → Split Screen →
+Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
+three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.
 Any active player can press **Start** to pause and own the menu. Another
 player's Start transfers ownership; the current owner's Start resumes.
-**Setup** is enabled only for Player 1 and selects one, two or four players
-or restarts the match. **Controls** changes only the menu owner's layout.
+**Setup** is enabled only for Player 1 and offers Restart Match or Quit Game.
+**Controls** changes only the menu owner's layout. Player count is set by joining
+controllers in the front end.
 Every player starts with **N64** controls. Each player's choice survives match
 restarts and player-count changes, but is not saved across power cycles.
-Slayer ends at **25 kills**, with a winner panel and announcer audio.
+The front-end Slayer preset ends at **15 kills**, followed by the original
+Postgame Carnage Report and return to map selection. Debug replays retain their
+25-kill default. See [FRONTEND.md](FRONTEND.md) for the menu tree, source
+provenance, verification, and current limitations.
 
 | Action | N64 (unchanged default) | Xbox style |
 | --- | --- | --- |

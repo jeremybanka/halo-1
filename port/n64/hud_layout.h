@@ -11,7 +11,7 @@
 static inline void bg_hud_aim_point(unsigned views,unsigned player,
     float x,float y,float width,float height,float *aim_x,float *aim_y)
 {
-    unsigned columns=views==4?2:1,rows=views==1?1:2;
+    unsigned columns=views>=3?2:1,rows=views==1?1:2;
     unsigned column=player%columns,row=player/columns;
     unsigned frame_width=544/columns,frame_height=408/rows;
     unsigned inset=views==1?0:4;

@@ -8,7 +8,7 @@ static void disarm_sticks(bg_menu *m){
 
 void bg_menu_init(bg_menu *m,unsigned count){
     memset(m,0,sizeof(*m));
-    m->player_count=(count==1||count==2||count==4)?count:4;
+    m->player_count=(count>=1&&count<=4)?count:4;
     for(unsigned p=0;p<BG_PLAYERS;p++)m->styles[p]=BG_CONTROLS_N64;
 }
 
@@ -94,7 +94,9 @@ bg_menu_result bg_menu_update(bg_menu *m,const bg_menu_input in[BG_PLAYERS],
         if(m->row==BG_MENU_RESUME)m->open=false;
         else {m->page=m->row==BG_MENU_SETUP_ROW?BG_MENU_SETUP:BG_MENU_CONTROLS;m->row=0;}
     }else if(m->page==BG_MENU_SETUP){
-        if(m->row==BG_MENU_PLAYERS_ROW&&(horizontal||select)){
+        if(m->shell_session){
+            if(select){result.action=m->row==0?BG_MENU_ACTION_RESTART:BG_MENU_ACTION_QUIT;m->open=false;root_page(m,BG_MENU_RESUME);}
+        }else if(m->row==BG_MENU_PLAYERS_ROW&&(horizontal||select)){
             m->player_count=cycle_count(m->player_count,horizontal?horizontal:1);
             result.action=BG_MENU_ACTION_PLAYER_COUNT;result.player_count=m->player_count;
         }else if(m->row==BG_MENU_RESTART_ROW&&select){

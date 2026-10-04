@@ -38,9 +38,15 @@ static uint32_t random_state=0xCE064;
 static float match_time,last_kill_time[BG_PLAYERS];
 static unsigned kill_chain[BG_PLAYERS],kill_spree[BG_PLAYERS];
 static int match_winner=-1;
+static bg_match_statistics statistics;
+unsigned bg_player_profiles[BG_PLAYERS]={0,1,2,3};
+static float damage_history[4][4];
+const bg_match_statistics *bg_match_stats(void){return &statistics;}
 bool bg_match_finished(void){return match_winner>=0;}
 int bg_match_winner(void){return match_winner;}
-unsigned bg_score_limit(void){return 25;}
+static unsigned score_limit=25;
+unsigned bg_score_limit(void){return score_limit;}
+void bg_set_score_limit(unsigned value){score_limit=value?value:25;}
 float bg_match_time(void){return match_time;}
 static float clamp(float v,float a,float b){return v<a?a:v>b?b:v;}
 static float dot(const float a[3],const float b[3]){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
@@ -277,6 +283,7 @@ bool bg_give_weapon(unsigned player,bg_weapon weapon){
 }
 static void spawn(unsigned player){
     bg_player*p=&bg_players[player];int score=p->score;
+    memset(damage_history[player],0,sizeof(damage_history[player]));
     unsigned start=(spawn_cycle*13+player*5)%bg_spawn_count,index=start;
     for(unsigned i=0;i<bg_spawn_count;i++){
         unsigned j=(start+i)%bg_spawn_count;if(bg_spawns[j].team==(int)(player%2)){index=j;break;}
@@ -309,6 +316,7 @@ int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw){
 }
 #include "scenario.inc"
 void bg_reset(void){
+    memset(&statistics,0,sizeof(statistics));memset(damage_history,0,sizeof(damage_history));
     memset(bg_players,0,sizeof(bg_players));memset(bg_vehicles,0,sizeof(bg_vehicles));
     blam_objects_init(&projectile_store,projectile_headers,BG_MAX_PROJECTILES,&projectile_arena,sizeof(projectile_arena));
     memset(bg_pickups,0,sizeof(bg_pickups));
@@ -343,7 +351,7 @@ static void eject(unsigned player){
 static void kill(unsigned victim,int owner){
     bg_player*p=&bg_players[victim];if(p->health<=0)return;
     if(p->vehicle>=0)eject(victim);
-    p->health=0;p->shield=0;p->respawn=3;p->zoom=0;
+    p->health=0;p->shield=0;p->respawn=3;p->zoom=0;statistics.deaths[victim]++;
     p->needles=0;p->needle_timer=0;p->needle_owner=-1;
     p->animation=BG_ANIM_DIE;p->anim_time=0;
     kill_chain[victim]=kill_spree[victim]=0;
@@ -352,7 +360,11 @@ static void kill(unsigned victim,int owner){
         bg_player*k=&bg_players[owner];
         if(owner==(int)victim)k->score--;
         else{
-            k->score++;kill_spree[owner]++;
+            k->score++;kill_spree[owner]++;statistics.kills[owner]++;
+            /* Original FFA assist threshold: other attackers contributing
+             * more than 40 percent of the credited killer's damage. */
+            float threshold=damage_history[victim][owner]*.4f;
+            for(unsigned q=0;q<active_players;q++)if(q!=victim&&q!=(unsigned)owner&&threshold>0&&damage_history[victim][q]>threshold)statistics.assists[q]++;
             kill_chain[owner]=match_time-last_kill_time[owner]<=4?kill_chain[owner]+1:1;
             last_kill_time[owner]=match_time;
             if(kill_chain[owner]==2)event(BG_EVENT_DOUBLE_KILL,owner,k->weapon,k->pos,2);
@@ -366,6 +378,7 @@ static void kill(unsigned victim,int owner){
 }
 static void damage_player(unsigned victim,int owner,float damage,bool plasma,bool headshot){
     bg_player*p=&bg_players[victim];if(bg_match_finished()||p->health<=0||damage<=0)return;
+    if(owner>=0&&owner<(int)active_players&&owner!=(int)victim)damage_history[victim][owner]+=damage;
     p->shield_delay=6;p->hurt=.65f;p->zoom=0;p->charge=0;
     float shield_damage=damage*(plasma?1.6f:1);
     if(p->shield>0){float absorb=fminf(p->shield,shield_damage);p->shield-=absorb;damage-=absorb/(plasma?1.6f:1);}

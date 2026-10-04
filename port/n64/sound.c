@@ -4,6 +4,8 @@
 #include "game.h"
 #include "asset_models.h"
 #include "sound.h"
+#include "asset_frontend.h"
+#include <stdlib.h>
 
 /* Bounded software mixer: eight effects and four vehicle engines. Samples are
  * the supplied Xbox ADPCM decoded offline to signed 8-bit PCM, never synthesized.
@@ -13,6 +15,52 @@ static voice voices[14];
 static unsigned replacement;
 static int rate;
 static float footsteps[4], shield_sound[4];
+static FILE *title_music;
+static int8_t music_buffer[4096];
+static unsigned music_at,music_count,music_fraction;
+static bg_audio_asset menu_effects[4];
+void bg_sound_frontend(bool active){
+    if(active==(title_music!=NULL))return;
+    memset(voices,0,sizeof(voices));
+    if(active){
+        title_music=fopen("rom:/music.s8","rb");assertf(title_music,"Missing title music");
+        music_at=music_count=music_fraction=0;
+        static const char *const paths[]={"rom:/cursor.s8","rom:/forward.s8","rom:/back.s8","rom:/countdown.s8"};
+        for(unsigned i=0;i<4;i++){
+            FILE *f=fopen(paths[i],"rb");assertf(f,"Missing menu sound");
+            fseek(f,0,SEEK_END);unsigned n=ftell(f);rewind(f);
+            int8_t *samples=malloc(n);assertf(samples,"Menu sound RAM");
+            assertf(fread(samples,1,n,f)==n,"Menu sound read");fclose(f);
+            menu_effects[i]=(bg_audio_asset){samples,n,11025,false};
+        }
+    }else{
+        fclose(title_music);title_music=NULL;
+        for(unsigned i=0;i<4;i++){free((void*)menu_effects[i].samples);menu_effects[i]=(bg_audio_asset){0};}
+        bg_sound_announce(BG_S_SLAYER);
+        /* The regular update starts vehicle effects after the new match. */
+        voices[13]=(voice){.asset=&bg_audio_assets[BG_S_AMBIENCE],.step=((uint32_t)bg_audio_assets[BG_S_AMBIENCE].rate<<16)/rate,.left=9,.right=9,.loop=true};
+    }
+}
+void bg_sound_front_effect(unsigned effect){
+    if(!title_music||!effect||effect>4)return;
+    const bg_audio_asset *a=&menu_effects[effect-1];
+    voices[0]=(voice){.asset=a,.step=((uint32_t)a->rate<<16)/rate,.left=96,.right=96};
+}
+static void mix_title(int16_t *out,unsigned count){
+    if(!title_music)return;
+    unsigned step=(11025u<<16)/rate;
+    for(unsigned f=0;f<count;f++){
+        if(music_at>=music_count){
+            music_count=fread(music_buffer,1,sizeof(music_buffer),title_music);music_at=0;
+            if(!music_count){fseek(title_music,bg_shell_music_loop,SEEK_SET);music_count=fread(music_buffer,1,sizeof(music_buffer),title_music);}
+            assertf(music_count,"Title music loop read");
+        }
+        int sample=music_buffer[music_at]*70;
+        for(unsigned c=0;c<2;c++){int value=out[f*2+c]+sample;out[f*2+c]=value>32767?32767:value< -32768?-32768:value;}
+        music_fraction+=step;music_at+=music_fraction>>16;music_fraction&=65535;
+    }
+}
+
 static void play(unsigned channel,unsigned sound,int volume,int pan,bool loop) {
     if(sound>=BG_S_COUNT || !bg_audio_assets[sound].count)return;
     voice*v=&voices[channel];v->asset=&bg_audio_assets[sound];v->frame=v->fraction=0;
@@ -86,7 +134,7 @@ void bg_sound_update(void) {
 void bg_sound_pump(void) {
     while(audio_can_write()){
         int16_t*out=audio_write_begin();int count=audio_get_buffer_length();
-        bg_sound_mix(voices,14,out,(unsigned)count);
+        bg_sound_mix(voices,14,out,(unsigned)count);mix_title(out,(unsigned)count);
         audio_write_end();
     }
 }

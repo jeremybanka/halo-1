@@ -19,16 +19,16 @@ static surface_t atlases[BG_MENU_FONT_COUNT][MAX_FONT_PAGES],panel[9];
 static letter letters[TEXT_CAPACITY];
 static unsigned letter_count;
 static bool initialized;
-enum { SCORE_LAYOUTS=7, SCORE_HEADER_LETTERS=24, SCORE_GLYPHS=104 };
+enum { SCORE_LAYOUTS=10, SCORE_HEADER_LETTERS=24, SCORE_GLYPHS=104 };
 typedef struct {
     rspq_block_t *panel;
     float x,y,w,h,scale;
     unsigned header_count,glyph_count,order[BG_PLAYERS];
     int scores[BG_PLAYERS];
-    bool text_valid;
+    bool text_valid; unsigned profile_key;
     letter glyphs[SCORE_GLYPHS];
 } score_layout;
-/* One permanent block per supported count/owner pair (1 + 2 + 4). The
+/* One permanent block per supported count/owner pair (1 + 2 + 3 + 4). The
  * referenced panel/font pixels and cached glyph pointers never move or change.
  * Blocks are never freed while queued display work might still refer to them. */
 static score_layout score_layouts[SCORE_LAYOUTS];
@@ -149,6 +149,13 @@ static void root_page(const bg_menu *m){
     text(BG_MENU_FONT_SMALL,35,216,.68f,white,"A SELECT     B / START RESUME");
 }
 static void setup_page(const bg_menu *m){
+    if(m->shell_session){
+        selection(82,m->row==0);selection(125,m->row==1);
+        text(BG_MENU_FONT_LARGE,42,101,.92f,m->row==0?white:blue,"RESTART MATCH");
+        text(BG_MENU_FONT_LARGE,42,144,.92f,m->row==1?white:blue,"QUIT GAME");
+        text(BG_MENU_FONT_SMALL,35,195,.70f,soft,m->row==0?"RESET SCORES AND RESPAWN EVERYONE":"RETURN TO THE MAIN MENU");
+        text(BG_MENU_FONT_SMALL,35,216,.66f,white,"A SELECT    B BACK");return;
+    }
     selection(82,m->row==BG_MENU_PLAYERS_ROW);selection(125,m->row==BG_MENU_RESTART_ROW);
     text(BG_MENU_FONT_LARGE,42,101,.92f,m->row==BG_MENU_PLAYERS_ROW?white:blue,"PLAYERS");
     char count[12];snprintf(count,sizeof(count),"< %u >",m->player_count);
@@ -158,7 +165,7 @@ static void setup_page(const bg_menu *m){
     text(BG_MENU_FONT_SMALL,35,195,.70f,soft,m->row==BG_MENU_PLAYERS_ROW?"CHOOSE 1, 2 OR 4 PLAYERS":"RESET SCORES AND RESPAWN EVERYONE");
     text(BG_MENU_FONT_SMALL,35,216,.66f,white,"LEFT / RIGHT CHANGE    A SELECT    B BACK");
 }
-static void controls_page(const bg_menu *m){
+static void controls_page(const bg_menu *m,bool frontend){
     static const char *const n64[][2]={
         {"STICK","MOVE FORWARD / BACK + TURN"},{"C LEFT / RIGHT","STRAFE"},
         {"C UP / DOWN","LOOK UP / DOWN"},{"A / Z / L","JUMP / FIRE / GRENADE"},
@@ -181,10 +188,10 @@ static void controls_page(const bg_menu *m){
         text(BG_MENU_FONT_SMALL,133,105+12*i,.66f,soft,rows[i][1]);
     }
     text(BG_MENU_FONT_SMALL,35,203,.56f,soft,"VEHICLES: L ALT FIRE. BANSHEE: A UP, CROUCH DOWN");
-    text(BG_MENU_FONT_SMALL,35,217,.64f,white,"LEFT / RIGHT CHANGE    B BACK    START RESUME");
+    text(BG_MENU_FONT_SMALL,35,217,.64f,white,frontend?"LEFT / RIGHT CHANGE    B BACK":"LEFT / RIGHT CHANGE    B BACK    START RESUME");
 }
 static void prepare_score_layout(unsigned count,unsigned owner,int x,int y,int width,int height){
-    score_layout *layout=&score_layouts[count-1+owner];
+    score_layout *layout=&score_layouts[count*(count-1)/2+owner];
     assert(!layout->panel);
     letter_count=0;
     float bw=152,bh=50+14*count,scale=1.6f;
@@ -232,15 +239,15 @@ void bg_menu_draw_init(void){
     }
     /* Record immutable panels before gameplay begins. No block is executed
      * here, and no first held-R frame allocates or records display commands. */
-    for(unsigned count=1;count<=4;count*=2)for(unsigned owner=0;owner<count;owner++){
-        int w=count==4?160:320,h=count==1?240:120;
-        int x=count==4?(int)(owner%2)*160:0;
-        int y=count==1?0:(int)(count==4?owner/2:owner)*120;
+    for(unsigned count=1;count<=4;count++)for(unsigned owner=0;owner<count;owner++){
+        int w=count>=3?160:320,h=count==1?240:120;
+        int x=count>=3?(int)(owner%2)*160:0;
+        int y=count==1?0:(int)(count>=3?owner/2:owner)*120;
         prepare_score_layout(count,owner,x,y,w,h);
     }
     letter_count=0;initialized=true;
 }
-void bg_menu_draw(const bg_menu *m){
+static void draw_menu_profile(const bg_menu *m,unsigned profile,bool frontend){
     if(!m->open)return;
     assert(initialized&&m->owner<BG_PLAYERS&&m->page<=BG_MENU_CONTROLS);
     letter_count=0;rdpq_sync_pipe();rdpq_mode_push();rdpq_mode_begin();
@@ -248,18 +255,23 @@ void bg_menu_draw(const bg_menu *m){
     rdpq_mode_zbuf(false,false);rdpq_mode_antialias(AA_NONE);rdpq_mode_filter(FILTER_BILINEAR);
     rdpq_mode_end();rdpq_set_scissor(0,0,320,240);
     background();
-    const char *title=m->page==BG_MENU_ROOT?"PAUSED":m->page==BG_MENU_SETUP?"SETUP":"CONTROLS";
-    text(BG_MENU_FONT_LARGE,34,40,1.05f,white,title);
-    char owner[16];snprintf(owner,sizeof(owner),"PLAYER %u",m->owner+1);
+    const char *title=frontend?"CONTROLLER SETUP":m->page==BG_MENU_ROOT?"PAUSED":m->page==BG_MENU_SETUP?"SETUP":"CONTROLS";
+    text(BG_MENU_FONT_LARGE,34,40,frontend?.80f:1.05f,white,title);
+    char owner[16];snprintf(owner,sizeof(owner),"PLAYER %u",profile+1);
     text(BG_MENU_FONT_SMALL,286-text_width(BG_MENU_FONT_SMALL,owner,.72f),38,.72f,blue,owner);
     if(m->page==BG_MENU_ROOT)root_page(m);
     else if(m->page==BG_MENU_SETUP)setup_page(m);
-    else controls_page(m);
+    else controls_page(m,frontend);
     flush_text();rdpq_mode_pop();
 }
 
+void bg_menu_draw(const bg_menu*m){draw_menu_profile(m,bg_player_profiles[m->owner],false);}
+void bg_menu_draw_profile(const bg_menu*m,unsigned profile){draw_menu_profile(m,profile,true);}
+
 static void update_score_text(score_layout *layout,unsigned count,unsigned owner){
     bool changed=!layout->text_valid;
+    unsigned profile_key=0;for(unsigned p=0;p<count;p++)profile_key|=bg_player_profiles[p]<<(2*p);
+    if(layout->profile_key!=profile_key){changed=true;layout->profile_key=profile_key;}
     for(unsigned p=0;p<count;p++)if(layout->scores[p]!=bg_players[p].score)changed=true;
     if(!changed)return;
     for(unsigned p=0;p<count;p++){
@@ -280,7 +292,7 @@ static void update_score_text(score_layout *layout,unsigned count,unsigned owner
         if(row&&layout->scores[p]!=layout->scores[layout->order[row-1]])rank=row+1;
         snprintf(value,sizeof(value),"%u",rank);
         text(BG_MENU_FONT_SMALL,bx+8*scale,line,.7f*scale,mine?white:soft,value);
-        snprintf(value,sizeof(value),"PLAYER %u",p+1);
+        snprintf(value,sizeof(value),"PLAYER %u",bg_player_profiles[p]+1);
         text(BG_MENU_FONT_SMALL,bx+27*scale,line,.7f*scale,mine?white:soft,value);
         snprintf(value,sizeof(value),"%d",layout->scores[p]);
         text(BG_MENU_FONT_SMALL,bx+bw-8*scale-text_width(BG_MENU_FONT_SMALL,value,.7f*scale),
@@ -299,13 +311,13 @@ static void update_score_text(score_layout *layout,unsigned count,unsigned owner
 void bg_scores_draw(unsigned owner,int x,int y,int width,int height){
     unsigned count=bg_player_count();
     assert(initialized&&owner<count&&count<=BG_PLAYERS);
-    assert(count==1||count==2||count==4);
-    /* count-1+owner maps 1/2/4 views to distinct cache slots. Assert the entire
+    assert(count>=1&&count<=4);
+    /* The triangular index maps 1/2/3/4 views to distinct cache slots. Assert the entire
      * viewport key, so a future layout cannot silently reuse wrong commands. */
-    assert(width==(count==4?160:320)&&height==(count==1?240:120));
-    assert(x==(count==4?(int)(owner%2)*160:0));
-    assert(y==(count==1?0:(int)(count==4?owner/2:owner)*120));
-    score_layout *layout=&score_layouts[count-1+owner];
+    assert(width==(count>=3?160:320)&&height==(count==1?240:120));
+    assert(x==(count>=3?(int)(owner%2)*160:0));
+    assert(y==(count==1?0:(int)(count>=3?owner/2:owner)*120));
+    score_layout *layout=&score_layouts[count*(count-1)/2+owner];
     /* Original split-screen score text ranks players and brightens the viewer's
      * row. Keep those cues; report actual match score, which includes suicides. */
     static const color_t player_colors[BG_PLAYERS]={
@@ -323,7 +335,7 @@ void bg_scores_draw(unsigned owner,int x,int y,int width,int height){
     for(unsigned row=0;row<count;row++){
         unsigned p=layout->order[row];float line=by+(49+14*row)*scale;
         if(p==owner)rectangle(bx+5*scale,line-10*scale,bw-10*scale,13*scale,RGBA32(40,150,255,48));
-        rectangle(bx+21*scale,line-7*scale,3*scale,7*scale,player_colors[p]);
+        rectangle(bx+21*scale,line-7*scale,3*scale,7*scale,player_colors[bg_player_profiles[p]]);
     }
     flush_text_from(layout->glyphs,layout->glyph_count);
     rdpq_mode_pop();rdpq_set_scissor(0,0,320,240);

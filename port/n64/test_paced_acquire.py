@@ -15,7 +15,8 @@ typedef struct {int id;} surface_t;
 static surface_t screen;
 static uint64_t fake_now,available_at,frame_sample_us;
 static unsigned scenario,views,inputs,pumps,acquired,paced_dropped_ticks;
-static bool paused,edge_sent,zoom_sent,presentation;
+static bool paused,edge_sent,zoom_sent,presentation,shell;
+static bool front_active(void){return shell;}
 #ifdef BG_PRESENT_TRACK
 static volatile bg_present30_tracker present_tracker;
 #endif
@@ -35,6 +36,7 @@ static bool input(bg_input in[4]){
     bool was_paused=paused;inputs++;memset(in,0,sizeof(bg_input)*4);
     if(scenario==3)paused=fake_now>=10000&&fake_now<210000;
     if(scenario==4&&fake_now>=20000)views=2;
+    if(scenario==6&&fake_now>=20000)shell=paused=true;
     if(fake_now>=5000&&!edge_sent){edge_sent=true;in[0].reload=true;}
     if(fake_now>=11000&&!zoom_sent){zoom_sent=true;in[0].zoom=true;}
     in[0].forward=.75f;in[0].fire=true;
@@ -44,7 +46,7 @@ static bool input(bg_input in[4]){
 '''
 TEST = r'''
 static void run(unsigned kind){
-    scenario=kind;fake_now=1;views=4;paused=kind==2;
+    scenario=kind;fake_now=1;views=kind==7?3:4;paused=kind==2;shell=false;
     inputs=pumps=acquired=paced_dropped_ticks=0;edge_sent=zoom_sent=false;
 #ifdef BG_PRESENT_TRACK
     present_tracker=(bg_present30_tracker){0};
@@ -53,12 +55,12 @@ static void run(unsigned kind){
     available_at=(kind==1||kind==3)?350001:0;
     blam_clock clock;blam_clock_reset(&clock);
     bg_input latch[4]={{0}},in[4]={{0}};
-    uint64_t previous=1,ui_deadline=kind==2?50000:UINT64_MAX;
+    uint64_t previous=1,ui_deadline=(kind==2||kind==6)?50000:UINT64_MAX;
     unsigned ticks=99;bool first=false;
     assert(paced_acquire(&clock,&previous,latch,in,&ticks,&first,&ui_deadline)==&screen);
     assert(acquired==1&&pumps&&inputs>1&&frame_sample_us<=fake_now);
     assert(ticks<=7&&clock.ticks==ticks);
-    if(kind==0){
+    if(kind==0||kind==7){
         assert(ticks==1&&fake_now>=33333&&fake_now<35000);
         assert(in[0].reload&&in[0].zoom&&in[0].fire&&latch[0].reload&&latch[0].zoom);
         assert(presentation&&!paced_dropped_ticks);
@@ -70,6 +72,9 @@ static void run(unsigned kind){
     }else if(kind==3){
         assert(!paused&&ticks>=3&&ticks<=4&&!paced_dropped_ticks);
         assert(!in[0].reload&&!in[0].zoom&&in[0].fire);
+    }else if(kind==6){
+        assert(shell&&paused&&!presentation&&ticks==0&&fake_now>=50000);
+        assert(!in[0].fire&&!latch[0].reload&&!latch[0].zoom);
     }else if(kind==4){
         assert(views==2&&!presentation&&ticks==0&&fake_now>=20000&&fake_now<22000);
         assert(latch[0].reload&&latch[0].zoom); /* consumed only by a future tick */
@@ -81,11 +86,11 @@ static void run(unsigned kind){
     }
 }
 int main(void){
-    for(unsigned i=0;i<5;i++)run(i);
+    for(unsigned i=0;i<5;i++)run(i);run(6);run(7);
 #ifdef BG_PRESENT_TRACK
     run(5);
 #endif
-    puts("Actual paced_acquire: fresh-pose gate, input edges, 350ms stall cap, paused UI, resume and 4->2 view transition pass.");
+    puts("Actual paced_acquire: fresh-pose gate, input edges, 350ms stall cap, paused UI, resume 3/4-player pacing, shell transition and 4->2 view transition pass.");
 }
 '''
 

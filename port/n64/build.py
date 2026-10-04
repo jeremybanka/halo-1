@@ -35,6 +35,7 @@ def main():
     mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')
     mode.add_argument('--snapshot-tick', type=int, help='QA only: fast-forward exactly N fixed replay ticks, then redraw the frozen four-player scene without overlays')
     mode.add_argument('--menu-qa', action='store_true', help='QA only: script raw controller inputs through the real pause menu and verify all four owners, styles, and setup permissions')
+    mode.add_argument('--frontend-qa', type=int, choices=[3,4], help='Script the original front-end flow and a staged 15-kill match, using three or four controllers')
     args = parser.parse_args()
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
@@ -50,8 +51,8 @@ def main():
             parser.error('--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds')
     if args.gpu_diagnostic and not args.benchmark:
         parser.error('--gpu-diagnostic requires --benchmark')
-    if args.menu_qa and (args.benchmark or args.vi_benchmark or args.profile):
-        parser.error('--menu-qa cannot combine with timing or profiling modes')
+    if (args.menu_qa or args.frontend_qa) and (args.benchmark or args.vi_benchmark or args.profile):
+        parser.error('Menu QA cannot combine with timing or profiling modes')
     if args.vi_benchmark:
         if args.benchmark or args.profile or args.validate or args.gpu_diagnostic or args.showcase:
             parser.error('--vi-benchmark is a quiet four-player replay and cannot combine with benchmark/profile/validation/diagnostic/showcase modes')
@@ -95,6 +96,16 @@ def main():
         path = ROOT/name
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             parser.error('Stale menu bank; regenerate with port/n64/extract_menu_assets.py')
+    front_report = out/'generated/frontend-report.json'
+    if not front_report.exists():
+        parser.error('Extract the original front end first: port/n64/extract_frontend.py')
+    front_files = json.loads(front_report.read_text()).get('files', {})
+    if not front_files:
+        parser.error('Missing front-end provenance; run port/n64/extract_frontend.py')
+    for name, expected in front_files.items():
+        path = ROOT/name
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            parser.error('Stale front-end bank; regenerate with port/n64/extract_frontend.py: '+name)
     if not (sdk/'bin/mips64-elf-gcc').exists() or not (tiny/'build/libt3d.a').exists():
         parser.error('Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D')
 
@@ -104,7 +115,7 @@ def main():
 
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
-    sources = ['main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    sources = ['main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
     sdk_extra_sources = []
     if args.rspq_buffer_kib:
         sdk_source = (args.libdragon_source or sdk.parent/'libdragon-src').resolve()
@@ -115,7 +126,9 @@ def main():
         sources.append('showcase.c')
     if args.menu_qa:
         sources.append('menu_qa.c')
-    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    if args.frontend_qa:
+        sources.append('frontend_qa.c')
+    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -140,6 +153,7 @@ def main():
              *(['-DBG_DEMO'] if args.demo else []),
              *(['-DBG_SHOWCASE='+str(SHOWCASES.index(args.showcase))] if args.showcase else []),
              *(['-DBG_MENU_QA'] if args.menu_qa else []),
+             *(['-DBG_FRONTEND_QA', '-DBG_FRONTEND_QA_PLAYERS='+str(args.frontend_qa)] if args.frontend_qa else []),
              *(['-DBG_SNAPSHOT_TICK='+str(args.snapshot_tick)+'u'] if args.snapshot_tick is not None else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
              *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
@@ -159,6 +173,8 @@ def main():
         name += '-snapshot-'+str(args.snapshot_tick)
     if args.menu_qa:
         name += '-menu-qa'
+    if args.frontend_qa:
+        name += '-frontend-qa'+str(args.frontend_qa)
     if args.blam_bsp:
         name += '-blam-bsp'
     if args.vi_benchmark:
@@ -193,8 +209,9 @@ def main():
     run([sdk/'bin/mips64-elf-strip', '-s', stripped])
     run([sdk/'bin/n64elfcompress', '-o', out, '-c', '1', stripped])
     rom = elf.with_suffix('.z64')
+    run([sdk/'bin/mkdfs', out/'frontend.dfs', out/'frontend-files'])
     run([sdk/'bin/n64tool', '--title', 'HALO BLOOD GULCH', '--toc', '--output', rom,
-         '--align', '256', stripped, '--align', '8', sym])
+         '--align', '256', stripped, '--align', '8', sym, '--align', '16', out/'frontend.dfs'])
     run([sdk/'bin/ed64romconfig', '--savetype', 'none', '--regionfree',
          '--controller1', 'n64', '--controller2', 'n64', '--controller3', 'n64', '--controller4', 'n64', rom])
     print(f'Built {rom} ({rom.stat().st_size:,} bytes)')

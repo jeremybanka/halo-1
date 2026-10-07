@@ -76,8 +76,8 @@ def prepare():
     assert before in s;s=s.replace(before,'\tassert(physics->radius <= 0.0f);')
     changes.append('All four exported retail tags select the new solver; fail rather than substitute unsupported legacy tags')
    if name=='compute_ground_plane':
-    s=s.replace('struct collision_feature_list features;', 'static struct collision_feature_list features;')
-    changes.append('Single-threaded non-recursive scratch moved from N64 stack to BSS')
+    s=s.replace('struct collision_feature_list features;', 'struct collision_feature_list *features = &vehicle_workspace->features;').replace('&features','features')
+    changes.append('Single-threaded non-recursive scratch uses match-only workspace instead of N64 stack')
    if name=='physics_compute_vehicle_collision':
     (OUT/'vehicle_pair_reference.c').write_text(adapt(s.replace(name,name+'_reference')))
     before='\tshort mass_point0_index;'

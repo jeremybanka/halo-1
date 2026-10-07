@@ -79,6 +79,18 @@ feature construction and contact tests remain active. Segment queries use
 original plane and polygon tests through this adapter, rather than the complete
 BSP service; 30,000 test sweeps agree with a separately compiled original BSP
 traversal, but this is not exhaustive equivalence for every initial-solid case.
+The 369,488-byte big-endian geometry/BVH bank loads from the ROM filesystem in
+seven allocations during gameplay. It and the temporary contact workspace are
+released while the front end is open; the native per-vehicle state survives a
+menu round trip. First-person weapon animation buffers (79,104 bytes) are also
+allocated only during gameplay and released after the RSP finishes using them.
+Large front-end images use separately allocated 32-row strips with one overlap
+row at each internal boundary, preserving bilinear filtering while avoiding a
+single 307 KiB allocation in a fragmented heap. This lets menu textures reuse
+gameplay memory without changing their pixels. Host tests
+compare every packed scalar bit-for-bit with the compiler's typed geometry
+arrays, and target assertions verify each binary stride. Physics tags and
+solver code remain resident.
 Blood Gulch has no water volumes. AI driving, native biped contacts, original
 object ownership/partitioning and other maps are outside this boundary.
 
@@ -110,19 +122,23 @@ The 2026-10-07 Ares 148 run used **4 MiB**, NTSC, five display buffers and the
 
 | Scene | Displayed FPS | P95 interval | Maximum interval |
 | --- | ---: | ---: | ---: |
-| Complete replay | 28.9 | 33.4 ms | 234.0 ms |
-| Vehicle section | 28.6 | 33.4 ms | 66.8 ms |
+| Complete replay | 28.9 | 33.4 ms | 334.2 ms |
+| Vehicle section | 28.7 | 33.4 ms | 66.8 ms |
 
-There were 49 vehicle-section intervals longer than two refreshes, so the
+There were 45 vehicle-section intervals longer than two refreshes, so the
 four-player 30 FPS target is **not met**. Mean input-sample-to-display latency
-was 114 ms and live free heap was 118 KiB. The release ELF contains 2,011,964
-text bytes, 349,968 data bytes and 220,704 BSS bytes; this excludes dynamic
-allocations. Measurements, ROM hashes, screenshots and new Banshee/Warthog
+was 115 ms and live free heap was 109 KiB after the residency change. The release
+ELF contains 1,644,044 text bytes, 350,000 data bytes and
+153,632 BSS bytes; this excludes dynamic allocations, including the match-only
+physics bank/workspace. Measurements, ROM hashes, screenshots and new Banshee/Warthog
 recordings are in `build/n64/vehicle-physics-audit/`. The scripted recordings
 use normal game inputs after staging the encounter; they are not performance
 proof. Earlier performance reports elsewhere in this document predate the
 vehicle solver integration. A separate 101-second validation capture reported
-zero RDP errors and warnings through combat and the four-vehicle replay.
+zero RDP errors and warnings through combat and the four-vehicle replay. The
+final 192-second four-player front-end capture passed all 37 navigation checks,
+a normal 15-kill match, results and return to the main menu with zero RDP errors
+or warnings; the results screen retained 62 KiB of free heap.
 
 Original animation and HUD assets do not make their playback/rendering code the
 original engine. The offline overlay baker follows `overlay_animation_apply`:

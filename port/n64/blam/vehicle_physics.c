@@ -1,11 +1,25 @@
 /* Native CE solvers with bounded object, tag, and Blood Gulch world adapters. */
 #include "vehicle_physics.h"
 #include "vehicle_private.h"
+#include <stdlib.h>
+#ifdef N64
+#include <libdragon.h>
+#endif
 static struct vehicle_datum native[BG_MAX_VEHICLES];
 static float body_radius[BG_VEHICLE_COUNT];
 static float vehicle_steering[BG_MAX_VEHICLES];
-static struct mass_point_datum contact[22];
-static struct powered_mass_point_datum power[2];
+struct vehicle_workspace {
+ struct mass_point_datum contact[22];
+ struct powered_mass_point_datum power[2];
+ struct collision_feature_list features;
+ uint8_t stamps[2][8192];
+};
+#ifdef N64
+static struct vehicle_workspace *vehicle_workspace;
+#else
+static struct vehicle_workspace host_workspace;
+static struct vehicle_workspace *vehicle_workspace=&host_workspace;
+#endif
 static const real_vector3d zero3={.n={0,0,0}},up3={.n={0,0,1}},down3={.n={0,0,-1}},forward3={.n={1,0,0}};
 static const real_vector2d zero2={.n={0,0}};
 static const real_quaternion identityq={.v={.n={0,0,0}},.w=1};
@@ -39,9 +53,42 @@ static void physics_compute_unit_collisions(int32_t i);
 #define global_projection3d_mappings vehicle_projection3d_mappings
 #include "vehicle_original.c"
 
+/* Typed floats/topology have exactly the same big-endian representation as
+ * the prior static N64 arrays. Only their residency changes at menu boundaries. */
+#ifdef N64
+static void *world_blocks[7];
+static bool world_loaded;
+static void world_load(void){
+ if(world_loaded)return;
+ vehicle_workspace=calloc(1,sizeof(*vehicle_workspace));assertf(vehicle_workspace,"Vehicle workspace RAM");
+ FILE*f=fopen("rom:/vehicle-world.bin","rb");assertf(f,"Vehicle world bank");
+ for(unsigned i=0;i<7;i++){
+  unsigned end=i<6?bg_vehicle_world_layout[i+1][0]:bg_vehicle_world_bytes;
+  unsigned size=end-bg_vehicle_world_layout[i][0];
+  world_blocks[i]=malloc(size);assertf(world_blocks[i],"Vehicle world RAM block %u (%u bytes)",i,size);
+  assertf(fread(world_blocks[i],1,size,f)==size,"Vehicle world read");
+ }
+ fclose(f);
+ bg_vehicle_bsp=(struct collision_bsp){.bsp3d={.planes={bg_vehicle_world_layout[0][1],world_blocks[0],NULL}},
+  .surfaces={bg_vehicle_world_layout[1][1],world_blocks[1],NULL},.edges={bg_vehicle_world_layout[2][1],world_blocks[2],NULL},
+  .vertices={bg_vehicle_world_layout[3][1],world_blocks[3],NULL}};
+ bg_vehicle_bvh=world_blocks[4];bg_vehicle_surface_bounds=world_blocks[5];bg_vehicle_surface_indices=world_blocks[6];world_loaded=true;
+}
+void bg_vehicle_world_release(void){
+ if(!world_loaded)return;
+ for(unsigned i=0;i<7;i++){free(world_blocks[i]);world_blocks[i]=NULL;}
+ free(vehicle_workspace);vehicle_workspace=NULL;
+ world_loaded=false;memset(&bg_vehicle_bsp,0,sizeof(bg_vehicle_bsp));
+ bg_vehicle_bvh=NULL;bg_vehicle_surface_bounds=NULL;bg_vehicle_surface_indices=NULL;
+}
+#else
+static void world_load(void){}
+void bg_vehicle_world_release(void){}
+#endif
+
 /* The BVH only selects candidates; all contacts use original feature tests. */
-static uint8_t stamps[2][8192],stamp;
-static unsigned next_stamp(void){if(++stamp==0){memset(stamps,0,sizeof(stamps));stamp=1;}return stamp;}
+static uint8_t stamp;
+static unsigned next_stamp(void){if(++stamp==0){memset(vehicle_workspace->stamps,0,sizeof(vehicle_workspace->stamps));stamp=1;}return stamp;}
 struct surface_query {uint16_t stack[32],pending,first,remaining;int32_t bounds[6];};
 static void query_begin(struct surface_query*q,const float lo[3],const float hi[3]){
  q->pending=1;q->stack[0]=0;q->remaining=0;
@@ -72,11 +119,11 @@ static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3
    do{
     const struct collision_edge*ed=TAG_BLOCK_GET_ELEMENT(&b->edges,e,struct collision_edge);int side=ed->surface_indices[1]==(int)si;
     assert(e>=0&&e<8192);
-    if(stamps[0][e]!=query){stamps[0][e]=query;
+    if(vehicle_workspace->stamps[0][e]!=query){vehicle_workspace->stamps[0][e]=query;
      if(ed->surface_indices[0]>=0&&ed->surface_indices[1]>=0)collision_features_from_edge(b,e,NULL,height,width,NONE,out);
     }
     int vi=ed->vertex_indices[side];assert(vi>=0&&vi<8192);
-    if(stamps[1][vi]!=query){stamps[1][vi]=query;
+    if(vehicle_workspace->stamps[1][vi]!=query){vehicle_workspace->stamps[1][vi]=query;
      const struct collision_vertex*v=TAG_BLOCK_GET_ELEMENT(&b->vertices,vi,struct collision_vertex);
      if(distance_squared3d(p,&v->point)<=radius*radius)collision_features_from_vertex(b,vi,NULL,height,width,NONE,out);
     }
@@ -134,6 +181,7 @@ static void publish(unsigned i){
  memcpy(published[i],v->pos,12);published[i][3]=v->yaw;published[i][4]=v->pitch;v->physics_valid=true;
 }
 void bg_vehicle_physics_prepare(void){
+ world_load();
  for(unsigned i=0;i<bg_vehicle_count;i++){
   bg_vehicle*v=&bg_vehicles[i];if(!v->active)continue;
   if(v->physics_valid&&native[i].definition_index==v->kind&&!memcmp(v->pos,published[i],12)&&v->yaw==published[i][3]&&v->pitch==published[i][4])continue;
@@ -188,14 +236,14 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
  vehicle_control_update(i);
  if(!TEST_FLAG(n->object.flags,_object_at_rest_bit)){
   /* physics_compute_new clears the active contact records itself. */
-  memset(power,0,sizeof(power));
+  memset(vehicle_workspace->power,0,sizeof(vehicle_workspace->power));
   switch(v->kind){
-   case BG_V_WARTHOG:update_human_jeep_physics(i,contact,power);break;
-   case BG_V_GHOST:update_alien_scout_physics(i,vehicle_steering[i],power,contact);break;
-   case BG_V_SCORPION:update_human_tank_physics(i,contact,power);break;
-   case BG_V_BANSHEE:update_alien_fighter_physics_new(i,power,contact);break;
+   case BG_V_WARTHOG:update_human_jeep_physics(i,vehicle_workspace->contact,vehicle_workspace->power);break;
+   case BG_V_GHOST:update_alien_scout_physics(i,vehicle_steering[i],vehicle_workspace->power,vehicle_workspace->contact);break;
+   case BG_V_SCORPION:update_human_tank_physics(i,vehicle_workspace->contact,vehicle_workspace->power);break;
+   case BG_V_BANSHEE:update_alien_fighter_physics_new(i,vehicle_workspace->power,vehicle_workspace->contact);break;
   }
-  suspension_update(i);compute_airborne_ticks(i,contact,power);
+  suspension_update(i);compute_airborne_ticks(i,vehicle_workspace->contact,vehicle_workspace->power);
   if(TEST_FLAG(n->object.flags,_object_at_rest_bit))n->vehicle.stop_time=15;
   if(d->vehicle_type==_vehicle_type_alien_fighter){
    if(bg_vehicle_floor!=0&&n->object.position.z<bg_vehicle_floor)n->object.translational_velocity.k+=((bg_vehicle_floor-n->object.position.z)*.015625f-n->object.translational_velocity.k*.0625f)*n->unit.seat_power[0];

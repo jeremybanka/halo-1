@@ -10,7 +10,9 @@
 
 /* Source widget coordinates remain in the Xbox 640x480 space. Only the
  * final raster transform halves them. ROM pixels are resident for one page. */
-typedef struct { unsigned id; surface_t surface; } cached_image;
+/* Large pages use independent strips to avoid requiring a contiguous 307 KiB
+ * allocation after a match. One overlap row preserves bilinear edges. */
+typedef struct { unsigned id,count,width,height; surface_t *slices; } cached_image;
 static cached_image cache[32];
 static unsigned cache_count;
 static uint64_t cache_key=UINT64_MAX;
@@ -30,7 +32,10 @@ static void read_bank(void *out,unsigned offset,unsigned length){
     if(!((uintptr_t)out&0x20000000))data_cache_hit_writeback(out,length);
 }
 static void clear_cache(void){
-    for(unsigned i=0;i<cache_count;i++)surface_free(&cache[i].surface);
+    for(unsigned i=0;i<cache_count;i++){
+        for(unsigned j=0;j<cache[i].count;j++)surface_free(&cache[i].slices[j]);
+        free(cache[i].slices);
+    }
     cache_count=0;cache_key=UINT64_MAX;
 }
 void bg_front_draw_release(void){
@@ -65,28 +70,42 @@ static const bg_shell_node *node(unsigned tag){
     for(unsigned n=0;n<bg_shell_node_count;n++)if(bg_shell_nodes[n].tag==tag)return &bg_shell_nodes[n];
     assertf(false,"Unknown front-end widget %u",tag);return NULL;
 }
-static surface_t *picture(unsigned tag,unsigned frame,unsigned width,unsigned height){
+static cached_image *picture(unsigned tag,unsigned frame,unsigned width,unsigned height){
     unsigned id=~0u;
     for(unsigned n=0;n<bg_shell_image_count;n++)if(bg_shell_images[n].tag==tag&&bg_shell_images[n].frame==frame){id=n;break;}
     if(id==~0u&&frame)return picture(tag,0,width,height);
     assertf(id!=~0u,"Missing front-end picture %u/%u",tag,frame);
-    for(unsigned i=0;i<cache_count;i++)if(cache[i].id==id)return &cache[i].surface;
+    for(unsigned i=0;i<cache_count;i++)if(cache[i].id==id)return &cache[i];
     assertf(cache_count<32,"Front-end page image capacity");
     const bg_shell_image *im=&bg_shell_images[id];cached_image *c=&cache[cache_count++];
     width=width<im->w?width:im->w;height=height<im->h?height:im->h;
-    c->id=id;c->surface=surface_alloc(FMT_RGBA32,width,height);
-    assertf(c->surface.buffer,"Front-end page texture RAM");
-    for(unsigned y=0;y<height;y++)read_bank((uint8_t*)c->surface.buffer+y*width*4,im->offset+y*im->w*4,width*4);
-    return &c->surface;
+    c->id=id;c->width=width;c->height=height;
+    c->count=width*height*4>65536?(height+31)/32:1;
+    c->slices=calloc(c->count,sizeof(*c->slices));assertf(c->slices,"Front-end texture descriptors");
+    for(unsigned n=0;n<c->count;n++){
+        unsigned first=c->count==1?0:n*32-(n!=0);
+        unsigned end=c->count==1?height:(height<(n+1)*32+1?height:(n+1)*32+1);
+        surface_t *slice=&c->slices[n];*slice=surface_alloc(FMT_RGBA32,width,end-first);
+        assertf(slice->buffer,"Front-end page texture RAM");
+        for(unsigned y=first;y<end;y++)read_bank((uint8_t*)slice->buffer+(y-first)*width*4,im->offset+y*im->w*4,width*4);
+    }
+    return c;
 }
 static void bitmap(unsigned tag,unsigned frame,float x,float y,float w,float h,unsigned alpha){
-    surface_t *s=picture(tag,frame,(unsigned)ceilf(w*.5f),(unsigned)ceilf(h*.5f));
-    float sw=fminf(w*.5f,s->width),sh=fminf(h*.5f,s->height);
+    cached_image *c=picture(tag,frame,(unsigned)ceilf(w*.5f),(unsigned)ceilf(h*.5f));
+    float sw=fminf(w*.5f,c->width),sh=fminf(h*.5f,c->height);
+    float sx=w*.5f/sw,sy=h*.5f/sh;
     rdpq_set_mode_standard();rdpq_mode_alphacompare(0);rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
     rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);rdpq_set_prim_color(RGBA32(255,255,255,alpha));
-    rdpq_tex_blit(s,x*.5f,y*.5f,&(rdpq_blitparms_t){.width=sw,.height=sh,
-        .scale_x=w*.5f/sw,.scale_y=h*.5f/sh,.filtering=true});
+    for(unsigned n=0;n<c->count;n++){
+        unsigned first=c->count==1?0:n*32-(n!=0);
+        if(c->count>1)rdpq_set_scissor(0,y*.5f+n*32*sy,320,y*.5f+(c->height<(n+1)*32?c->height:(n+1)*32)*sy);
+        rdpq_tex_blit(&c->slices[n],x*.5f,y*.5f+first*sy,&(rdpq_blitparms_t){.width=sw,
+            .height=c->count==1?sh:c->slices[n].height,.scale_x=sx,.scale_y=sy,.filtering=true});
+    }
+    if(c->count>1)rdpq_set_scissor(0,0,320,240);
 }
+
 static void art(unsigned tag,unsigned frame,int dx,int dy,unsigned alpha){
     const bg_shell_node*n=node(tag);
     if(n->bitmap>=0)bitmap(n->bitmap,frame,n->x+dx,n->y+dy,n->w,n->h,alpha);

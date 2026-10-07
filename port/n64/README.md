@@ -23,7 +23,7 @@ cartridge for the recommended four-player presentation profile. Build it with
 `build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
 The original vehicle solvers add CPU cost: the latest quiet four-player Ares
-replay measured **28.9 displayed FPS overall / 28.6 during vehicles**, with
+replay measured **28.9 displayed FPS overall / 28.7 during vehicles**, with
 four-refresh vehicle stalls. The 30 FPS target is not yet met. Earlier pacing
 results in [PACING.md](PACING.md) and below predate this physics change and must
 not be used as current performance claims. The latest audit and recordings live

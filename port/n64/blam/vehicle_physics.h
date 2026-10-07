@@ -3,6 +3,8 @@
 #include "game.h"
 /* All input/output use the demake's coordinates and seconds. The retained
  * solver operates exclusively in original Halo XYZ and 30 Hz tick units. */
+/* Release match-only world geometry while the front end owns the heap. */
+void bg_vehicle_world_release(void);
 void bg_vehicle_physics_prepare(void);
 void bg_vehicle_physics_step(unsigned index,const bg_input *input);
 

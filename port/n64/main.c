@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "blam/vehicle_physics.h"
 #include "controls.h"
 #include "menu.h"
 #include "menu_draw.h"
@@ -117,6 +118,7 @@ static bg_menu menu;
 #ifdef BG_FRONTEND
 static bg_frontend front;
 static uint64_t match_ended;
+static void firstperson_buffers_release(void);
 static bool front_active(void){return front.page!=BG_FRONT_PLAY;}
 #else
 static bool front_active(void){return false;}
@@ -562,9 +564,6 @@ static void init_scene(void){
         memcpy(armor_lod[s][p],bg_spartan_lod.vertices,lod_bytes);
         tint_team(armor_lod[s][p],bg_spartan_lod.vertex_count,bg_spartan_lod_team_mask,p);
         armor_lod_blocks[s][p]=record_model(&bg_spartan_lod,armor_lod[s][p]);
-        firstperson[s][p]=malloc_uncached(bg_fp_max_vertices*16);
-        assertf(firstperson[s][p],"First-person buffer allocation");
-        firstperson_weapon[s][p]=-1;
         viewports[s][p]=t3d_viewport_create();
     }
     static const int16_t points[6][3]={{0,32,0},{0,-32,0},{32,0,0},{0,0,32},{-32,0,0},{0,0,-32}};
@@ -634,7 +633,7 @@ static bool input(bg_input in[4]){
             }
             bg_sound_frontend(false);
         }else if(action==BG_FRONT_RESUME_MATCH){bg_front_draw_release();menu.open=false;}
-        else if(action==BG_FRONT_LEAVE_MATCH){menu.open=false;bg_sound_frontend(true);}
+        else if(action==BG_FRONT_LEAVE_MATCH){menu.open=false;bg_vehicle_world_release();firstperson_buffers_release();bg_sound_frontend(true);}
         paused=front_active();return true;
     }
     bg_front_map_controls(&front,raw,raw);
@@ -908,6 +907,27 @@ static void prepare_pickup_bounds(void){
         bg_bounds_quantize(&pickup_bounds[i],&box);
     }
 }
+/* Segment-based weapon commands do not retain these addresses. Keep their
+ * 79 KiB animation workspace out of the full-screen menu texture peak. */
+static void firstperson_buffers_load(void){
+    if(firstperson[0][0])return;
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
+        firstperson[s][p]=malloc_uncached(bg_fp_max_vertices*16);
+        assertf(firstperson[s][p],"First-person buffer allocation");
+        firstperson_weapon[s][p]=-1;
+    }
+}
+#ifdef BG_FRONTEND
+static void firstperson_buffers_release(void){
+    if(!firstperson[0][0])return;
+    /* The RSP consumes vertices; the RDP only retains transformed triangles. */
+    rspq_wait();
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
+        free_uncached(firstperson[s][p]);firstperson[s][p]=NULL;
+        firstperson_weapon[s][p]=-1;
+    }
+}
+#endif
 static void animate_firstperson(unsigned p){
     if(p>=views)return;
     bg_player*player=&bg_players[p];unsigned w=player->weapon;
@@ -1457,9 +1477,9 @@ int main(void){
     bg_menu_draw_init();
 #endif
     surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_reset();bg_set_players(views);bg_sound_init();
+    assertf(dfs_init(DFS_DEFAULT_LOCATION)==DFS_ESUCCESS,"Game filesystem");
 #ifdef BG_FRONTEND
-    assertf(dfs_init(DFS_DEFAULT_LOCATION)==DFS_ESUCCESS,"Front-end filesystem");
-    bg_front_init(&front);paused=true;bg_sound_frontend(true);
+    bg_front_init(&front);paused=true;bg_vehicle_world_release();firstperson_buffers_release();bg_sound_frontend(true);
 #endif
 #ifdef BG_SNAPSHOT_TICK
     /* No rendering or wall-clock scheduling during this advance. Presentation
@@ -1577,16 +1597,18 @@ int main(void){
             if(!match_ended)match_ended=now;
             if(now-match_ended>=2500000){
                 int final_scores[4];for(unsigned p=0;p<4;p++)final_scores[p]=bg_players[p].score;
-                bg_front_results(&front,final_scores,bg_match_winner());front.statistics=*bg_match_stats();menu.open=false;paused=true;bg_sound_frontend(true);
+                bg_front_results(&front,final_scores,bg_match_winner());front.statistics=*bg_match_stats();menu.open=false;paused=true;bg_vehicle_world_release();firstperson_buffers_release();bg_sound_frontend(true);
             }
         }
         if(front_active()){
 #ifdef BG_PACED30
             presentation_mode(false);
 #endif
+            bg_vehicle_world_release();
             rdpq_attach(screen,&depth);rdpq_clear_z(ZBUF_MAX);bg_front_draw(&front,now);pump_audio();
 #ifdef BG_FRONTEND_QA
-            rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND %u/%u%s",bg_front_qa_step()+1,bg_front_qa_steps(),bg_front_qa_done()?" PASS":"");
+            sys_get_heap_stats(&heap);rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"LIVE HEAP %uK",(heap.total-heap.used)/1024);
+            rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND %u/%u%s",bg_front_qa_step()+1,bg_front_qa_steps(),bg_front_qa_done()?" PASS":"");
 #ifdef RDPQ_VALIDATE
             rdpq_text_printf(NULL,1,4,226,"RDP %u ERRORS %u WARNINGS",validation_errors,validation_warnings);
             if(validation_errors||validation_warnings)rdpq_text_print(NULL,1,4,215,validation_message);
@@ -1600,6 +1622,7 @@ int main(void){
             continue;
         }
 #endif
+        firstperson_buffers_load();
         if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();
 #ifdef BG_PROFILE
         wait_us+=get_ticks_us()-profile_start;profile_start=get_ticks_us();
@@ -1671,7 +1694,8 @@ int main(void){
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,116,118,"REPLAY %u FPS",fps);
 #endif
 #ifdef BG_FRONTEND_QA
-        rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
+        sys_get_heap_stats(&heap);rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"LIVE HEAP %uK",(heap.total-heap.used)/1024);
+        rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
 #endif
 #ifdef BG_SHOWCASE
         fill(50,222,220,16,RGBA32(8,19,37,255));rdpq_set_mode_standard();

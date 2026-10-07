@@ -4,7 +4,7 @@
 Only the world broad phase is replaced by a BVH. Original face/edge/vertex
 features and material responses are retained; no render LOD is used for physics.
 """
-import contextlib,hashlib,json,math,sys
+import contextlib,hashlib,json,math,struct,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3];OUT=ROOT/'build/n64/generated'
 sys.path.insert(0,str(Path(__file__).parent/'tags'))
@@ -68,9 +68,10 @@ def export():
  for i,s in enumerate(data['surfaces']):
   material=materials[s[-1]] if s[-1]>=0 else -1;assert -1<=material<33
   data['surfaces'][i]=(*s[:-1],material)
+ geometry_start=len(lines)
  for name,ctype in [('planes','real_plane3d'),('surfaces','struct collision_surface'),('edges','struct collision_edge'),('vertices','struct collision_vertex')]:
   lines += [f'static const {ctype} vehicle_{name}[]={{']+[row(name,r)+',' for r in data[name]]+['};']
- lines+=['#define BLOCK(n) {sizeof(vehicle_##n)/sizeof(vehicle_##n[0]),vehicle_##n,0}','const struct collision_bsp bg_vehicle_bsp={{{0,0,0},BLOCK(planes)},BLOCK(surfaces),BLOCK(edges),BLOCK(vertices)};','#undef BLOCK']
+ lines+=['#define BLOCK(n) {sizeof(vehicle_##n)/sizeof(vehicle_##n[0]),vehicle_##n,0}','struct collision_bsp bg_vehicle_bsp={{{0,0,0},BLOCK(planes)},BLOCK(surfaces),BLOCK(edges),BLOCK(vertices)};','#undef BLOCK']
  # A balanced surface BVH keeps broad-phase work logarithmic without storing
  # Xbox BSP ownership/connectivity arrays. All leaves reference original faces.
  bounds=[]
@@ -93,9 +94,32 @@ def export():
    right=build(ids[middle:],depth+1);tree[index]=(box,right,0)
   return index
  build(list(range(len(bounds))));assert max_depth<31 and len(tree)<32768
- lines+=['const int16_t bg_vehicle_surface_bounds[][6]={'+','.join('{'+','.join(map(str,b))+'}' for b in bounds)+'};']
- lines+=['const struct vehicle_bvh_node bg_vehicle_bvh[]={'+','.join('{{'+','.join(map(str,b))+'},'+str(first)+','+str(count)+'}' for b,first,count in tree)+'};','const uint16_t bg_vehicle_surface_indices[]={'+','.join(map(str,indices))+'};']
+ lines+=['static const int16_t vehicle_surface_bounds[][6]={'+','.join('{'+','.join(map(str,b))+'}' for b in bounds)+'};']
+ lines+=['static const struct vehicle_bvh_node vehicle_bvh[]={'+','.join('{{'+','.join(map(str,b))+'},'+str(first)+','+str(count)+'}' for b,first,count in tree)+'};','static const uint16_t vehicle_surface_indices[]={'+','.join(map(str,indices))+'};']
+ # The same lossless bank is resident only during matches on N64. The front
+ # end reuses its heap space; host tests keep typed C arrays as an endian oracle.
+ lines+=['const struct vehicle_bvh_node *bg_vehicle_bvh=vehicle_bvh;',
+  'const uint16_t *bg_vehicle_surface_indices=vehicle_surface_indices;',
+  'const int16_t (*bg_vehicle_surface_bounds)[6]=vehicle_surface_bounds;']
+ blob=bytearray();layout=[]
+ blocks=[(data['planes'],'4f'),(data['surfaces'],'2iBBh'),(data['edges'],'6h'),(data['vertices'],'3fi'),
+  ([(*b,first,count) for b,first,count in tree],'6h2H'),(bounds,'6h'),([(i,) for i in indices],'H')]
+ for values,fmt in blocks:
+  assert len(blob)%4==0
+  layout.append((len(blob),len(values)))
+  for value in values:
+   packed=struct.pack('>'+fmt,*value)
+   assert tuple(struct.unpack('>'+fmt,packed))==tuple(value)
+   blob.extend(packed)
+ bank=ROOT/'build/n64/frontend-files/vehicle-world.bin';bank.parent.mkdir(parents=True,exist_ok=True);bank.write_bytes(blob)
+ lines=lines[:geometry_start]+['#ifndef N64']+lines[geometry_start:]+['#else',
+  'struct collision_bsp bg_vehicle_bsp;',
+  'const struct vehicle_bvh_node *bg_vehicle_bvh;',
+  'const uint16_t *bg_vehicle_surface_indices;',
+  'const int16_t (*bg_vehicle_surface_bounds)[6];','#endif',
+  'const unsigned bg_vehicle_world_bytes='+str(len(blob))+';',
+  'const unsigned bg_vehicle_world_layout[7][2]={'+','.join('{'+str(o)+','+str(n)+'}' for o,n in layout)+'};']
  out=OUT/'vehicle_data.c';out.write_text('\n'.join(lines)+'\n')
- record=dict(vehicles=report,bvh_nodes=len(tree),bvh_depth=max_depth,surface_count=len(indices),source_maps=g.sources,files={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__),ROOT/'port/n64/blam/vehicle_private.h',out]})
+ record=dict(world_bank_bytes=len(blob),world_bank_sha256=hashlib.sha256(blob).hexdigest(),vehicles=report,bvh_nodes=len(tree),bvh_depth=max_depth,surface_count=len(indices),source_maps=g.sources,files={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__),ROOT/'port/n64/blam/vehicle_private.h',out]})
  (OUT/'vehicle-report.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record['vehicles'],indent=2))
 if __name__=='__main__':export()

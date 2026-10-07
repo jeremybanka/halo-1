@@ -19,6 +19,29 @@ static void check_axes(const bg_vehicle*v){
 static void step(unsigned count,bg_input in){for(unsigned i=0;i<count;i++){bg_vehicle_physics_step(0,&in);check_axes(bg_vehicles);}}
 static uint32_t random_seed=0xC064;
 static float random_float(float lo,float hi){random_seed=random_seed*1664525u+1013904223u;return lo+(hi-lo)*(random_seed>>8)*(1.f/16777216);}
+static void test_world_bank(void){
+ /* Independently compare every packed scalar against the compiler's typed
+  * arrays. This catches offset/stride/endianness drift in the N64-only loader. */
+ const void*blocks[]={bg_vehicle_bsp.bsp3d.planes.address,bg_vehicle_bsp.surfaces.address,
+  bg_vehicle_bsp.edges.address,bg_vehicle_bsp.vertices.address,bg_vehicle_bvh,
+  bg_vehicle_surface_bounds,bg_vehicle_surface_indices};
+ static const unsigned widths[7][8]={{4,4,4,4},{4,4,1,1,2},{2,2,2,2,2,2},
+  {4,4,4,4},{2,2,2,2,2,2,2,2},{2,2,2,2,2,2},{2}};
+ FILE*f=fopen("build/n64/frontend-files/vehicle-world.bin","rb");assert(f);
+ for(unsigned b=0;b<7;b++){
+  assert((unsigned)ftell(f)==bg_vehicle_world_layout[b][0]);const uint8_t*p=blocks[b];
+  for(unsigned row=0;row<bg_vehicle_world_layout[b][1];row++)for(unsigned col=0;col<8&&widths[b][col];col++){
+   unsigned width=widths[b][col];uint32_t got=0,want=0;
+   for(unsigned j=0;j<width;j++){int byte=fgetc(f);assert(byte!=EOF);got=(got<<8)|(unsigned)byte;}
+   if(width==4)memcpy(&want,p,4);
+   else if(width==2){uint16_t v;memcpy(&v,p,2);want=v;}
+   else want=*p;
+   assert(got==want);p+=width;
+  }
+ }
+ assert((unsigned)ftell(f)==bg_vehicle_world_bytes&&fgetc(f)==EOF);fclose(f);
+ printf("N64 world bank: %u bytes match typed source geometry bit-for-bit\n",bg_vehicle_world_bytes);
+}
 static void test_pair_equivalence(void){
  unsigned collisions=0;
  for(unsigned j=0;j<5000;j++){
@@ -71,6 +94,7 @@ int main(void){
  _Static_assert(sizeof(struct mass_point_definition)==128,"Xbox mass-point stride");
  _Static_assert(sizeof(struct physics_mass_point_definition)==128,"vehicle mass-point view");
  _Static_assert(sizeof(struct powered_mass_point_definition)==128,"Xbox powered-point stride");
+ test_world_bank();
  test_segments();
  test_pair_equivalence();
  for(int kind=0;kind<4;kind++){

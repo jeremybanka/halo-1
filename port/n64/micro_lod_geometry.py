@@ -8,7 +8,7 @@ import numpy as np
 
 
 def hull(points):
-    """Triangulate supporting planes, with inward winding for CULL_FRONT."""
+    """Triangulate supporting planes, with outward winding for CULL_BACK."""
     points = np.asarray(points, dtype=float)
     if len(points) < 4 or np.linalg.matrix_rank(points-points[0], tol=1e-12) < 3:
         raise ValueError('Support hull requires non-coplanar source geometry')
@@ -41,7 +41,7 @@ def hull(points):
         angles = np.arctan2((face_points-center) @ up, (face_points-center) @ right)
         order = ids[np.argsort(angles)]
         for i in range(1, len(order)-1):
-            faces.append([int(order[0]), int(order[i+1]), int(order[i])])
+            faces.append([int(order[0]), int(order[i]), int(order[i+1])])
         planes.append(np.r_[normal, distance])
     if not planes:
         raise ValueError('No valid supporting planes')

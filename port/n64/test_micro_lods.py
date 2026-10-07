@@ -7,7 +7,7 @@ from micro_lod_geometry import hull, restore_materials, support_hull
 
 
 class MicroGeometryTests(unittest.TestCase):
-    def test_hull_is_closed_inward_and_uses_only_source_points(self):
+    def test_hull_is_closed_outward_and_uses_only_source_points(self):
         points = np.array([(x, y, z) for x in (-1., 1.) for y in (-1., 1.) for z in (-1., 1.)])
         faces, _ = hull(points)
         mesh = {'positions': [points[i].tolist() for f in faces for i in f],
@@ -18,7 +18,7 @@ class MicroGeometryTests(unittest.TestCase):
         self.assertEqual(result['triangle_count'], 12)
         triangles = np.array(result['positions']).reshape(-1, 3, 3)
         normals = np.cross(triangles[:, 1]-triangles[:, 0], triangles[:, 2]-triangles[:, 0])
-        self.assertTrue(np.all(np.einsum('ij,ij->i', normals, triangles.mean(1)) < 0))
+        self.assertTrue(np.all(np.einsum('ij,ij->i', normals, triangles.mean(1)) > 0))
         edges = {}
         for face in triangles:
             for i in range(3):

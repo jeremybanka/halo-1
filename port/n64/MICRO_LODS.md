@@ -107,7 +107,7 @@ from the existing 59 rows and the near-model 0.03 IoU budget.
 
 CPU rendering is two-sided and does not emulate N64 coverage antialiasing or
 clipping precision. Hulls therefore also require an explicit winding check:
-closed edge incidence, inward normals for the current `CULL_FRONT` path, and
+closed edge incidence, outward normals for the model `CULL_BACK` path, and
 one-sided native comparisons. Actual target snapshot pairs, advancing graphics
 validation and a quiet full replay are separate acceptance requirements.
 

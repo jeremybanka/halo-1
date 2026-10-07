@@ -36,7 +36,10 @@ def main():
     mode.add_argument('--snapshot-tick', type=int, help='QA only: fast-forward exactly N fixed replay ticks, then redraw the frozen four-player scene without overlays')
     mode.add_argument('--menu-qa', action='store_true', help='QA only: script raw controller inputs through the real pause menu and verify all four owners, styles, and setup permissions')
     mode.add_argument('--frontend-qa', type=int, choices=[3,4], help='Script the original front-end flow and a staged 15-kill match, using three or four controllers')
+    mode.add_argument('--model-qa', action='store_true', help='Render fixed multi-angle model and occlusion fixtures; not a timing run')
     args = parser.parse_args()
+    if args.model_qa and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
+        parser.error('--model-qa uses unpaced frozen scenes, not performance measurement')
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
     if args.scores_benchmark and not args.vi_benchmark:
@@ -157,6 +160,7 @@ def main():
              *(['-DBG_MENU_QA'] if args.menu_qa else []),
              *(['-DBG_FRONTEND_QA', '-DBG_FRONTEND_QA_PLAYERS='+str(args.frontend_qa)] if args.frontend_qa else []),
              *(['-DBG_SNAPSHOT_TICK='+str(args.snapshot_tick)+'u'] if args.snapshot_tick is not None else []),
+             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.model_qa else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
              *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
              *(['-DBG_BENCHMARK'] if args.benchmark else []),
@@ -174,6 +178,8 @@ def main():
     name = 'halo-blood-gulch-showcase-'+args.showcase if args.showcase else 'halo-blood-gulch-replay' if args.demo else 'halo-blood-gulch'
     if args.snapshot_tick is not None:
         name += '-snapshot-'+str(args.snapshot_tick)
+    if args.model_qa:
+        name += '-model-qa'
     if args.menu_qa:
         name += '-menu-qa'
     if args.frontend_qa:

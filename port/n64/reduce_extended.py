@@ -282,6 +282,9 @@ def reduce_extended(source,output,budget_file=None,refine_approved=None):
         for key,frames in zip(('animations','animations_lod'),lod_frames):
             out[key][name]={'frames':frames,'duration':clip['duration'],'tag_name':clip['tag_name']}
         out['weapon_attachment'][name]={'poses':attachment,'duration':clip['duration']}
+    if budget.get('occlusion_closures'):
+        from geometry_closures import apply_closures
+        apply_closures(out,scene)
     Path(output).write_text(json.dumps(out))
     bpy.data.libraries.write(str(Path(output).with_suffix('.blend')),{scene})
     for area in bpy.context.screen.areas if bpy.context.screen else []:

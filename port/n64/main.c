@@ -51,7 +51,7 @@
 #endif
 #ifdef BG_SNAPSHOT_TICK
 #include "replay_snapshot.h"
-#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK) || defined(BG_SHOWCASE) || defined(BG_PROFILE) || defined(RDPQ_VALIDATE)
+#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK) || defined(BG_SHOWCASE) || defined(BG_PROFILE) || (defined(RDPQ_VALIDATE) && !defined(BG_MODEL_QA))
 #error "Snapshot QA requires an overlay-free build without benchmark/showcase/profile/validation"
 #endif
 #endif
@@ -121,7 +121,7 @@ static uint64_t match_ended;
 static void firstperson_buffers_release(void);
 static bool front_active(void){return front.page!=BG_FRONT_PLAY;}
 #else
-static bool front_active(void){return false;}
+static inline bool front_active(void){return false;}
 #endif
 #ifndef BG_SNAPSHOT_TICK
 static bool paused;
@@ -567,7 +567,7 @@ static void init_scene(void){
         viewports[s][p]=t3d_viewport_create();
     }
     static const int16_t points[6][3]={{0,32,0},{0,-32,0},{32,0,0},{0,0,32},{-32,0,0},{0,0,-32}};
-    static const uint8_t indices[24]={0,2,3,0,3,4,0,4,5,0,5,2,1,3,2,1,4,3,1,5,4,1,2,5};
+    static const uint8_t indices[24]={0,3,2,0,4,3,0,5,4,0,2,5,1,2,3,1,3,4,1,4,5,1,5,2};
     const uint32_t hues[7]={0x54d9ffff,0xf15cffff,0xffd38aff,0x818977ff,0x76abffff,0xffbc50ff,0xff9836ff};
     for(unsigned k=0;k<7;k++){
         for(unsigned i=0;i<24;i++){
@@ -1037,6 +1037,9 @@ static void update_effects(float dt){
         explosions[j].kind=(bg_explosion_kind)bg_events[i].weapon;
     }
 }
+#ifdef BG_MODEL_QA
+#include "model_qa.h"
+#endif
 static void prepare_view(unsigned p){
     int w=views>=3?160:320,h=views==1?240:120,x=views>=3?(p%2)*160:0,y=views==1?0:(views>=3?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
@@ -1072,6 +1075,9 @@ static void prepare_view(unsigned p){
         for(unsigned a=0;a<3;a++){eye.v[a]=(origin[a]+directions[direction][a]*distance)*BG_SCALE;target.v[a]=player->pos[a]*BG_SCALE;}
         target.v[1]+=.3f*BG_SCALE;
     }
+#ifdef BG_MODEL_QA
+    model_qa_camera(p,&eye,&target);
+#endif
     T3DViewport*vp=&viewports[slot][p];t3d_viewport_set_area(vp,x,y,w,h);
 #ifdef BG_GUARDBAND4
     /* Tiny3D supports factors 1–4. Enlarge only the clipping guard band;
@@ -1087,7 +1093,10 @@ static void prepare_view(unsigned p){
     view_eyes[p]=eye;held_masks[p]=0;
     for(unsigned j=0;j<views;j++){
         bg_player*q=&bg_players[j];body_lods[p][j]=0;
-        if((j==p&&player->vehicle<0&&player->health>0)||q->invisibility>0)continue;
+        if(q->invisibility>0)continue;
+#ifndef BG_MODEL_QA
+        if(j==p&&player->vehicle<0&&player->health>0)continue;
+#endif
         if(q->vehicle>=0&&bg_vehicles[q->vehicle].kind==BG_V_BANSHEE)continue;
         float distance=0;for(unsigned a=0;a<3;a++){float d=q->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
         bool personal=q->vehicle<0||q->seat==2||(q->seat==1&&bg_vehicles[q->vehicle].kind==BG_V_SCORPION);
@@ -1133,7 +1142,8 @@ static void draw_view(unsigned p){
         submitted_vertices+=(c->count+1)&~1u;
 #endif
     }
-    rdpq_mode_combiner(RDPQ_COMBINER_SHADE);t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_FRONT);
+    /* Extracted model faces are outward-wound. Terrain uses its own winding. */
+    rdpq_mode_combiner(RDPQ_COMBINER_SHADE);t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
     /* Every object matrix below is already in world space, including vehicle
      * parts, held weapons and first person. Reserve one sibling stack entry:
      * matrix_set(...,true) always multiplies the unchanged camera entry below
@@ -1214,11 +1224,18 @@ static void draw_view(unsigned p){
     animation_before=animation_us;
     category_triangles[4]+=triangles-before;before=triangles;
 #endif
-    if(player->health>0&&player->vehicle<0&&!player->zoom){
+    if(player->health>0&&player->vehicle<0&&!player->zoom
+#ifdef BG_MODEL_QA
+       &&model_qa_page>=3&&model_qa_page<=5
+#endif
+    ){
         ensure_firstperson_animation(p);
         float pos[3]={eye.v[0]/BG_SCALE,eye.v[1]/BG_SCALE+sinf(player->gait)*.007f,eye.v[2]/BG_SCALE};
         matrix(&guns[slot][p],BG_SCALE/BG_FP_SCALE,player->yaw,player->pitch,pos);data_cache_hit_writeback(&guns[slot][p],sizeof(T3DMat4FP));
-        t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_CULL_FRONT);rdpq_mode_zbuf(false,false);
+        /* Clear only this viewport's depth so the gun stays in front of the world,
+         * while its own surfaces and hands still occlude each other. */
+        rdpq_clear_z(ZBUF_MAX);
+        t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);rdpq_mode_zbuf(true,true);
         t3d_segment_set(T3D_SEGMENT_1,firstperson[slot][p]);
         t3d_matrix_set(&guns[slot][p],true);rspq_block_run(firstperson_blocks[player->weapon]);triangles+=bg_fp_models[player->weapon].triangle_count;
 #ifdef BG_PROFILE
@@ -1526,6 +1543,9 @@ int main(void){
         wait_us=get_ticks_us()-profile_start;profile_start=get_ticks_us();
 #endif
         uint64_t now=get_ticks_us();
+#ifdef BG_MODEL_QA
+        model_qa_stage(now);
+#endif
 #ifndef BG_SNAPSHOT_TICK
 #ifdef BG_VI_BENCHMARK
         /* Only the actual VI observer measures this run. No CPU/RDP cadence,
@@ -1696,6 +1716,9 @@ int main(void){
 #ifdef BG_FRONTEND_QA
         sys_get_heap_stats(&heap);rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"LIVE HEAP %uK",(heap.total-heap.used)/1024);
         rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
+#endif
+#ifdef BG_MODEL_QA
+        rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"MODEL QA %u: %s",model_qa_page,model_qa_labels[model_qa_page]);
 #endif
 #ifdef BG_SHOWCASE
         fill(50,222,220,16,RGBA32(8,19,37,255));rdpq_set_mode_standard();

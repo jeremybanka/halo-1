@@ -26,7 +26,7 @@ typedef struct { void *pixels; int format,width,height,stride; } surface_t;
 enum { FMT_RGBA16=2,
  BG_AR_AMMO_TEXTURE_WIDTH=100, BG_AR_AMMO_TEXTURE_HEIGHT=16,
  RDPQ_COMBINER_TEX=1, TLUT_NONE=0, FILTER_BILINEAR=2, TILE0=0,
- T3D_FLAG_TEXTURED=1,T3D_FLAG_CULL_BACK=2,T3D_FLAG_SHADED=4,T3D_FLAG_CULL_FRONT=8 };
+ T3D_FLAG_TEXTURED=1,T3D_FLAG_CULL_BACK=2,T3D_FLAG_SHADED=4,T3D_FLAG_CULL_FRONT=8,T3D_FLAG_DEPTH=16 };
 static uint16_t bg_ar_ammo_texture[1600];
 typedef struct { unsigned kind; uintptr_t pointer; int a,b; } command;
 typedef struct { command commands[40]; unsigned count; bool pipe_tracking; } rspq_block_t;
@@ -57,6 +57,7 @@ static void rdpq_mode_alphacompare(int v){mode(6,v);}
 static void rdpq_mode_tlut(int v){mode(7,v);}
 static void rdpq_mode_filter(int v){mode(8,v);}
 static void rdpq_mode_persp(bool v){mode(9,v);}
+static void rdpq_mode_zbuf(bool read,bool write){mode(20,(read?1:0)|(write?2:0));}
 static void rdpq_mode_end(void){mode(10,0);}
 static void rdpq_tex_upload(int tile,surface_t*s,void*p){assert(!p&&s->pixels==bg_ar_ammo_texture);cpu_calls++;emit((command){.kind=11,.pointer=(uintptr_t)s->pixels,.a=tile,.b=s->stride});}
 static void t3d_state_set_drawflags(int f){cpu_calls++;emit((command){.kind=12,.a=f});}
@@ -83,12 +84,15 @@ int main(void){
         tracked=true;trace_count=cpu_calls=0;unsigned old_runs=runs;bg_fp_ammo_draw(slot,player);
         assert(runs==old_runs+1&&cpu_calls==0&&!tracked&&trace_count==count);
         assert(!memcmp(expected,trace,count*sizeof(*trace)));
-        unsigned loads=0,syncs=0;
+        unsigned loads=0,syncs=0;bool depth_bypassed=false;
         for(unsigned i=0;i<count;i++){
+            if(trace[i].cmd.kind==20)depth_bypassed=trace[i].cmd.a==0;
+            if(trace[i].cmd.kind==15)assert(depth_bypassed);
             if(trace[i].cmd.kind==14){loads++;assert(trace[i].cmd.pointer==(uintptr_t)digits[slot][player]&&trace[i].cmd.b==8&&trace[i].vertex_contents);}
             syncs+=trace[i].cmd.kind==19;
         }
-        assert(loads==1&&syncs==2);cases++;
+        assert(loads==1&&syncs==2);
+        assert(trace[count-1].cmd.kind==12 && (trace[count-1].cmd.a&T3D_FLAG_DEPTH) && (trace[count-1].cmd.a&T3D_FLAG_CULL_BACK));cases++;
     }
     printf("PASS: %u exact direct/replayed traces; 8 unique slot/player buffers; updated bytes read on replay; setup calls %u->0 plus one block run; 2 PIPE syncs retained\n",cases,direct_calls);
 }

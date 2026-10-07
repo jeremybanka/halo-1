@@ -63,11 +63,12 @@ static void draw_counter(unsigned slot,unsigned player) {
     rdpq_mode_tlut(TLUT_NONE);
     rdpq_mode_filter(FILTER_BILINEAR);
     rdpq_mode_persp(true);
+    /* Coplanar luminous digit overlay: deliberately bypass weapon depth. */
+    rdpq_mode_zbuf(false,false);
     rdpq_mode_end();
     rdpq_tex_upload(TILE0,&texture,NULL);
-    /* Original numeric shader planes face opposite the general FP bank's
-     * triangle convention. Positive emitted normal dot eye is their screen
-     * face; CULL_BACK retains it and hides the back during reload turns. */
+    /* Outward numeric shader planes share the model winding convention.
+     * CULL_BACK hides their reverse face during reload turns. */
     t3d_state_set_drawflags(T3D_FLAG_TEXTURED|T3D_FLAG_CULL_BACK);
     t3d_matrix_push(&precision_matrix);
     t3d_vert_load(digits[slot][player],0,8);
@@ -79,7 +80,7 @@ static void draw_counter(unsigned slot,unsigned player) {
      * mode_pop restores SET_COMBINE/SET_OTHER_MODES. */
     rdpq_sync_pipe();
     rdpq_mode_pop();
-    t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_CULL_FRONT);
+    t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
 }
 
 void bg_fp_ammo_draw(unsigned slot,unsigned player) {

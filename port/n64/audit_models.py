@@ -193,13 +193,16 @@ def matching_bounds(meshes,direction):
     xy=np.stack((points@right,points@up),axis=-1);low=xy.min(axis=0);high=xy.max(axis=0);mid=(low+high)/2
     return right*mid[0]+up*mid[1],np.maximum(high-low,1e-5)
 
-def render(mesh,bounds,direction,width=224,height=184,pixel_span=None):
+def render(mesh,bounds,direction,width=224,height=184,pixel_span=None,cull="back"):
     center,span=bounds;look,right,up=camera_basis(direction)
     relative=mesh.p-center;scale=pixel_span/max(span) if pixel_span is not None else min(width/span[0],height/span[1])*.80
     screen=np.stack((relative@right*scale+width/2,-relative@up*scale+height/2),axis=-1);depth=relative@look
     rgb=np.broadcast_to(BG,(height,width,3)).copy();zbuf=np.full((height,width),-np.inf);mask=np.zeros((height,width),bool)
     lightdir=np.array((.25,.83,.49))
     for ti,(t,d) in enumerate(zip(screen,depth)):
+        normal=np.cross(mesh.p[ti,1]-mesh.p[ti,0],mesh.p[ti,2]-mesh.p[ti,0])
+        facing=normal@look
+        if (cull=="back" and facing<=0) or (cull=="front" and facing>=0):continue
         x0=max(0,int(np.floor(t[:,0].min())));x1=min(width-1,int(np.ceil(t[:,0].max())))
         y0=max(0,int(np.floor(t[:,1].min())));y1=min(height-1,int(np.ceil(t[:,1].max())))
         if x1<x0 or y1<y0:continue
@@ -355,7 +358,7 @@ def audit(args):
     for rel,digest in {**hashes,**texture_hashes}.items():
         if hashlib.sha256((ROOT/rel).read_bytes()).hexdigest()!=digest:
             raise RuntimeError(f'Audit input changed during rendering: {rel}. Regenerate from stable packed assets.')
-    manifest={'comparison_mode':'performance' if args.performance else 'quality','baseline_label':baseline_label,'revision_label':revision_label,'reference_is_legacy_low_lod':legacy,'renderer':'orthographic CPU barycentric z-buffer; no backface culling; exact packed vertex RGB; fixed neutral source lighting',
+    manifest={'comparison_mode':'performance' if args.performance else 'quality','baseline_label':baseline_label,'revision_label':revision_label,'reference_is_legacy_low_lod':legacy,'renderer':'orthographic CPU barycentric z-buffer; outward faces with backface culling; exact packed vertex RGB; fixed neutral source lighting',
               'angles':[a for a,_ in ANGLES],'viewport_preview':[160,120],'distance_preview_extent_pixels':[48,24],'new_pickup_lod_extent_pixels':[12,8],'color_metric':'Mean absolute RGB deviation on overlapping silhouettes; 8x8 block means. Lower is better; not a perceptual recognition score.',
               'texture_inputs':texture_hashes,'inputs':hashes,'revised_is_frozen_baseline':hashlib.sha256((before/'models_data.c').read_bytes()).digest()==hashlib.sha256((generated/'models_data.c').read_bytes()).digest() and hashlib.sha256((before/'firstperson_data.c').read_bytes()).digest()==hashlib.sha256((generated/'firstperson_data.c').read_bytes()).digest(),'results':results,'elapsed_seconds':time.monotonic()-started}
     if (before/'firstperson-report.json').exists() and (generated/'firstperson-report.json').exists():
@@ -631,7 +634,7 @@ def write_html(output,manifest):
     parts=['<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blood Gulch model audit</title>',
            '<style>body{background:#111923;color:#dce6f2;font:15px system-ui;margin:32px auto;max-width:1200px;padding:0 20px}a{color:#84c9ff}p{line-height:1.6}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}td,th{padding:9px;border-bottom:1px solid #314153;text-align:left}img{max-width:100%;height:auto;background:#161d27}summary{cursor:pointer;padding:14px;font-size:17px}details{border:1px solid #314153;margin:16px 0;border-radius:8px;padding:8px}.warning{background:#47341e;padding:14px}.up{color:#93dfb2}.down{color:#ffb09d}nav a{display:inline-block;margin:8px}code{color:#addbff}</style>',
            '<h1>Blood Gulch model comparison</h1><p>Original highest-detail source geometry and diffuse maps, the frozen pre-revision N64 build, and the current packed N64 build. Within each angle, all three models share scale, pose, camera, and background; framing fits the combined projected bounds to 80% of the panel. Packed colors include their original baked lighting; the source uses the same neutral light direction. These are offline model diagnostics, not screenshots of the Xbox renderer or ares.</p>',
-           '<p>Source surfaces use the full diffuse textures when available; native flat color proxies represent complex meter and glass materials. Xbox environment mapping, specular, emissive, and transparency effects are not reconstructed. Original Xbox multipurpose blue masks tint Spartan armor; first-person change-color C uses player-one red for a matching source/revised comparison. The before column retains its packed material colors and uses player-one red if that build exported an armor mask; older unmasked first-person builds remain untinted. Geometry is rendered from both sides so winding does not hide silhouette defects. The 160×120 strips rasterize at a four-player viewport size and enlarge using nearest neighbor; the fit-to-model camera helps inspect detail and does not imply every model is that large during gameplay. Additional 48-pixel and 24-pixel maximum-extent strips show detail loss when models occupy smaller parts of that viewport; these are screen-size probes, not calibrated in-game distances.</p>']
+           '<p>Source surfaces use the full diffuse textures when available; native flat color proxies represent complex meter and glass materials. Xbox environment mapping, specular, emissive, and transparency effects are not reconstructed. Original Xbox multipurpose blue masks tint Spartan armor; first-person change-color C uses player-one red for a matching source/revised comparison. The before column retains its packed material colors and uses player-one red if that build exported an armor mask; older unmasked first-person builds remain untinted. Geometry uses outward-facing triangles and backface culling, matching the corrected native model path. The earlier two-sided audit could conceal reversed culling and open surfaces. The 160×120 strips rasterize at a four-player viewport size and enlarge using nearest neighbor; the fit-to-model camera helps inspect detail and does not imply every model is that large during gameplay. Additional 48-pixel and 24-pixel maximum-extent strips show detail loss when models occupy smaller parts of that viewport; these are screen-size probes, not calibrated in-game distances.</p>']
     if performance:
         parts[2]=parts[2].replace('the frozen pre-revision N64 build, and the current packed N64 build', 'the approved quality N64 build, and the optimized N64 build')
     if manifest.get('revised_is_frozen_baseline'):parts.append('<p class="warning">IN PROGRESS: the revised pack has not been generated. The right column still duplicates the frozen build and is not a completed revision.</p>')

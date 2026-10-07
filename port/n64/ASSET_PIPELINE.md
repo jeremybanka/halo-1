@@ -119,8 +119,8 @@ and one/two-player views retain their finer paths. All selected quantized micro
 vertices remain inside their original far AABB.
 
 The two support-hull assets, shotgun and frag, deliberately fill small recesses
-at this tiny size. Their facets have the inward winding required by the current
-`CULL_FRONT` path, verified by closed edge incidence, normals and one-sided
+at this tiny size. Their facets have the outward winding required by the model
+`CULL_BACK` path, verified by closed edge incidence, normals and one-sided
 native comparisons. Warthog rear lamps retain all eight original directed
 material-3 triangles. The other reductions preserve the chosen body/color cues;
 weaker Needler, Ghost and Banshee candidates were rejected. Exact target image
@@ -334,3 +334,7 @@ above 33.33 ms. To refresh this evidence without rerendering model images:
 build/n64-python/bin/python port/n64/audit_models.py --performance --html-only \
   --output build/n64/performance-audit
 ```
+
+The model winding/depth contract and selective Blender boundary closures are
+documented in [OCCLUSION.md](OCCLUSION.md). The current offline audit culls back
+faces; older two-sided reports do not prove native occlusion correctness.

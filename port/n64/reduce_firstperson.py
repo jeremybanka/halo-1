@@ -40,7 +40,7 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
     from mathutils import Quaternion, Vector
 
     data = json.loads(Path(source).read_text())
-    if performance_profile:hand_budget=200;hand_topology='continuous'
+    if performance_profile:hand_budget=200;hand_topology='connected'
     scene = bpy.data.scenes.new('Halo N64 - First person')
     if bpy.context.window:
         bpy.context.window.scene = scene
@@ -65,6 +65,9 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
         labels = {}
         for i, node in enumerate(model['nodes']):
             name = node['name']
+            if hand_topology=='connected':
+                labels[i]='left hand' if 'frame l ' in name else 'right hand'
+                continue
             # Keep each whole finger connected while retaining its interpolated
             # weights at all three source joints.
             labels[i] = re.sub(r'\s*(low|mid|tip)$', '', name)
@@ -116,12 +119,13 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
     hand_obj, hand_tris, hand_weights, hand_report = reduce_geometry(
         scene, hands, 'Xbox hands', hand_budget,
         part_importance=importance_for(hands, True), bone_labels=anatomy_labels(hands),
-        partition_colors=False, protect_boundaries=boundary_strength, project_surface=True)
+        partition_colors=False, protect_boundaries=boundary_strength,
+        project_surface=hand_topology!='connected', partition_materials=hand_topology!='connected')
     hand_obj.hide_set(True)
     hand_inverse = [m.inverted() for m in globals_for(
         hands['nodes'], [n['parent'] for n in hands['nodes']])]
     result = {'weapons':{}, 'hand_triangle_count':len(hand_tris),
-              'reduction_report':{'hands':hand_report},
+              'reduction_report':{'hands':hand_report}, 'hand_topology':hand_topology,
               'reference_note':data.get('reference_note', ''),
               'reduction_profile':'performance' if performance_profile else 'quality-or-custom'}
     limits = {'idle':4, 'fire':4, 'reload':8, 'melee':6}
@@ -214,7 +218,7 @@ if __name__ == '__main__':
     parser.add_argument('--hand-budget', type=int, default=220)
     parser.add_argument('--boundary-strength', type=float, default=0)
     parser.add_argument('--budget-file',type=Path,help='Optional JSON weapon-name to triangle-budget overrides')
-    parser.add_argument('--hand-topology',choices=('anatomy','continuous'),default='anatomy')
+    parser.add_argument('--hand-topology',choices=('anatomy','continuous','connected'),default='anatomy')
     parser.add_argument('--needle-min',type=int,default=8,help='Minimum triangles per original needle component; each of the 16 crystals is retained')
     parser.add_argument('--cosmetic-min',type=int,help='Optional minimum for tiny static cosmetic components')
     parser.add_argument('--feature-minima',type=Path,help='Optional JSON per-weapon feature allocation rules')

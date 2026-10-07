@@ -11,14 +11,19 @@ from collections import defaultdict
 
 
 def reduce_geometry(scene, model, name, target, part_importance=None, bone_labels=None,
-                    partition_colors=True, protect_boundaries=False, project_surface=True):
+                    partition_colors=True, protect_boundaries=False, project_surface=True,
+                    partition_materials=True):
     """Return scene object, triangles, skinned vertices and allocation report.
 
     ``part_importance`` returns a weight or ``{'weight': n, 'min': triangles}``.
     ``protect_boundaries`` is a soft influence in [0,1] (True means .75).
     ``project_surface`` True resamples the source surface/UV/skin; 'outside'
     repairs only AABB outliers and retains interpolated UV/skin; False uses the
-    collapse result. Original per-material source boundaries remain auditable.
+    collapse result. Set ``partition_materials=False`` to collapse connected
+    geometry across shader borders while retaining per-face materials and loop
+    UVs. Pair it with common bone labels and ``partition_colors=False`` to
+    avoid cracks in continuous skinned surfaces. Mixed-material partitions pass
+    material -1 to ``part_importance`` and retain that sentinel in the report.
     """
     import bpy
     from mathutils import Vector,interpolate
@@ -67,10 +72,10 @@ def reduce_geometry(scene, model, name, target, part_importance=None, bone_label
             if b>=0 and w>0:influence[labels.get(b,str(b))]+=w
         return max(influence,key=influence.get) if influence else 'static'
     # Position welding is only for connectivity and geometry; per-loop UVs
-    # retain texture seams. Separate bones/materials/color regions cannot merge.
+    # retain texture seams. Only explicitly selected partitions stay separate.
     geometric=[tuple(round(v,6) for v in p) for p in points]
     groups=defaultdict(list)
-    for fi in range(len(faces)):groups[(materials[fi],face_bone(fi),face_region(fi))].append(fi)
+    for fi in range(len(faces)):groups[(materials[fi] if partition_materials else -1,face_bone(fi),face_region(fi))].append(fi)
     vertex_partitions=defaultdict(set)
     for key,indices in groups.items():
         for fi in indices:
@@ -124,6 +129,12 @@ def reduce_geometry(scene, model, name, target, part_importance=None, bone_label
                 local.append(vert_lookup[key])
             local_faces.append(local)
         mesh=bpy.data.meshes.new(name+' part');mesh.from_pydata([points[i] for i in source_indices],[],local_faces)
+        if not partition_materials:
+            # Shared geometry across material borders keeps armor/rubber seams
+            # connected while loop UVs and per-face shader IDs stay distinct.
+            for mi in range(max(materials,default=0)+1):
+                mesh.materials.append(bpy.data.materials.get('Reduction material '+str(mi)) or bpy.data.materials.new('Reduction material '+str(mi)))
+            for poly,fi in zip(mesh.polygons,c['faces']):poly.material_index=materials[fi]
         source_surface=BVHTree.FromPolygons([points[i] for i in source_indices],local_faces,all_triangles=True)
         uv=mesh.uv_layers.new(name='Source diffuse')
         for poly,fi in zip(mesh.polygons,c['faces']):
@@ -184,7 +195,7 @@ def reduce_geometry(scene, model, name, target, part_importance=None, bone_label
             skin=[]
             for vi,p in zip(tri.vertices,xyz):
                 values=projected_skin[vi];skin.append(values);weighted.append((Vector(p),values))
-            tris.append({'p':xyz,'uv':coords,'material':c['material'],
+            tris.append({'p':xyz,'uv':coords,'material':c['material'] if partition_materials else reduced.polygons[tri.polygon_index].material_index,
                          'weights':skin,'part':ci})
         boundary_displacement=max((min((v-points[source_indices[i]]).length for v in projected)
                                    for i in boundary),default=0)

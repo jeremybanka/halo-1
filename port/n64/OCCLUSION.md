@@ -42,7 +42,9 @@ libraries stay under ignored `build/`.
 ## Reproduction
 
 Run the normal asset pipeline from `ASSET_PIPELINE.md`, including world
-reduction/packing and micro generation/packing. First-person banks are unchanged.
+reduction/packing and micro generation/packing. This initial repair left the
+first-person banks unchanged; the subsequent shared-hand reduction repair and
+remaining-weapon audit are documented in [WEAPON_OCCLUSION.md](WEAPON_OCCLUSION.md).
 The closure integration tests need Blender Python; they can run through Blender
 MCP with `unittest.defaultTestLoader.loadTestsFromModule(test_geometry_closures)`.
 

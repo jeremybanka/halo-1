@@ -8,6 +8,7 @@ static const char *const model_qa_labels[]={
     "SPARTAN NEAR", "SPARTAN FAR", "SCORPION OCCLUSION",
     "PISTOLS / ROCKET / AR", "RELOAD POSE", "MELEE POSE",
     "WORLD WEAPONS", "OTHER VEHICLES"};
+static bool model_qa_firstperson(void){return model_qa_page>=3&&model_qa_page<=5;}
 static void model_qa_stage(uint64_t now){
     static uint64_t started;static unsigned previous=~0u;
     if(!started)started=now;

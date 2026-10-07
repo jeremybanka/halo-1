@@ -216,7 +216,7 @@ def pack(assets, output):
               'needler_bytes': len(needle['values'])+2*len(needle['indices'])+2*len(needle['vertices']),
               'inputs': {str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs},
               'generated_sha256': hashlib.sha256((output/'firstperson_ammo_data.c').read_bytes()).hexdigest(),
-              'note': 'Native 21-state overlay applied to all 16 rigid crystal components; fully folded crystals collapse because FP depth is disabled. Partial/full positions remain original. Reload timing normalizes to the demake duration and predicts loaded+reserve. Original additive numeric shader is an opaque dark-backed texture on an enlarged physical panel.'}
+              'note': 'Native 21-state overlay applied to all 16 rigid crystal components; fully folded crystals collapse to suppress their residual projected tips. Partial/full positions remain original. Reload timing normalizes to the demake duration and predicts loaded+reserve. Original additive numeric shader is an opaque dark-backed texture on an enlarged physical panel.'}
     (output/'firstperson-ammo-report.json').write_text(json.dumps(report, indent=2)+'\n')
     print(json.dumps({k: v for k, v in report.items() if k not in ('needler', 'inputs')}, indent=2))
     return ar, needle, report

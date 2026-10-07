@@ -16,6 +16,9 @@ for floor queries and raycasts.
 [BLAM_STATUS.md](BLAM_STATUS.md) records the concrete compile/link/memory audit
 and remaining engine work.
 
+The remaining-weapon model audit and connected first-person hand repair are
+documented in [WEAPON_OCCLUSION.md](WEAPON_OCCLUSION.md).
+
 ## Play
 
 Load `build/n64/halo-blood-gulch-paced30-buffers5.z64` in ares as a Nintendo 64
@@ -23,11 +26,12 @@ cartridge for the recommended four-player presentation profile. Build it with
 `build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
 The original vehicle solvers add CPU cost: the latest quiet four-player Ares
-replay measured **28.9 displayed FPS overall / 28.7 during vehicles**, with
+replay measured **29.1 displayed FPS overall / 28.9 during vehicles**, with
 four-refresh vehicle stalls. The 30 FPS target is not yet met. Earlier pacing
 results in [PACING.md](PACING.md) and below predate this physics change and must
-not be used as current performance claims. The latest audit and recordings live
-in `build/n64/vehicle-physics-audit/`.
+not be used as current performance claims. The latest model audit and timing recordings live
+in `build/n64/weapon-occlusion-audit/`; the solver audit remains in
+`build/n64/vehicle-physics-audit/`.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,

@@ -1038,7 +1038,11 @@ static void update_effects(float dt){
     }
 }
 #ifdef BG_MODEL_QA
+#ifdef BG_WEAPON_QA
+#include "weapon_qa.h"
+#else
 #include "model_qa.h"
+#endif
 #endif
 static void prepare_view(unsigned p){
     int w=views>=3?160:320,h=views==1?240:120,x=views>=3?(p%2)*160:0,y=views==1?0:(views>=3?p/2:p)*120;
@@ -1226,7 +1230,7 @@ static void draw_view(unsigned p){
 #endif
     if(player->health>0&&player->vehicle<0&&!player->zoom
 #ifdef BG_MODEL_QA
-       &&model_qa_page>=3&&model_qa_page<=5
+       &&model_qa_firstperson()
 #endif
     ){
         ensure_firstperson_animation(p);

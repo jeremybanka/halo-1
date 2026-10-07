@@ -1,11 +1,12 @@
 # Blam engine integration on N64
 
 The complete Blam engine is **not running on N64**. The running game now uses
-original Blam object storage, in addition to the source-derived clock, random
-and quaternion routines. The optional **8 MiB `--blam-bsp` build** also uses the
+original Blam object storage and all four original vehicle drive solvers, in
+addition to the source-derived clock, random and quaternion routines. The optional
+**8 MiB `--blam-bsp` build** also uses the
 original Blood Gulch collision BSP and original traversal functions for terrain
-rays and floor queries. Weapon, unit and vehicle behavior, wall pushing,
-rendering and audio mixing still use the demake implementations.
+rays and floor queries. Weapons, bipeds, vehicle weapons/seats/damage selection,
+wall pushing, rendering and audio mixing still use demake implementations.
 
 ## Code actually used by the game
 
@@ -18,8 +19,9 @@ rendering and audio mixing still use the demake implementations.
 | Movable object memory | `source/memory/memory_pool.c` | Actual original source allocates/frees live projectile payloads and compacts holes while updating stable header references. |
 | Object header creation/deletion | `source/objects/objects.c` | Exact `object_header_new` and `object_header_delete` functions connect the data array to the movable pool. Payloads remain demake projectile records, not native `projectile_datum` records. |
 | BSP segment traversal, 8 MiB profile | `source/physics/collision_bsp.c`, `source/physics/bsp2d.c`, `source/math/real_math.h` | Complete original traversal/polygon/projection functions operate on the original map's eight collision arrays. Terrain shots, projectile obstruction, explosion occlusion and floor queries use this path. Wall pushing still uses the reduced triangle grid. |
+| Vehicle dynamics, every ROM profile | `source/units/vehicles.c`, `source/physics/physics.c`, `source/physics/collision_features.c` | Original Warthog, Ghost, Scorpion and Banshee drive functions, control block, rigid-body integration, mass-point contact/friction, vehicle-pair forces and flip torque. A bounded world adapter supplies original map geometry through a conservative BVH. |
 
-`blam/prepare_core.py` and `blam/prepare_collision.py` generate build copies from
+`blam/prepare_core.py`, `blam/prepare_collision.py` and `blam/prepare_vehicle.py` generate build copies from
 these repository sources. Original files stay unchanged. Each generated source
 manifest records its input SHA-256 and bounded adaptations; generated source and
 game data stay in ignored `build/n64/`.
@@ -39,6 +41,88 @@ original definitions. The bank is **666,372 bytes plus its 96-byte root**;
 planes and positions preserve their exact source float32 values. Conversion
 between Halo XYZ and the demake's coordinate system occurs at the game boundary.
 This profile requires an Expansion Pak and has a separate ROM filename.
+
+## Original vehicle solver boundary
+
+The vehicle source is the repository's reconstructed Xbox **build 2342**, not
+a byte-exact reconstruction of the supplied retail Rev 2 executable. Native
+vehicle parameters come from the user's retail `bloodgulch` cache and the `a30`
+Banshee. All four physics tags have `radius = -1`, selecting the original **new
+mass-point solver**. Unsupported legacy-solver tags fail export rather than
+silently falling back to demake movement.
+
+| Vehicle | Original drive routine | Mass points | Mass |
+| --- | --- | ---: | ---: |
+| Warthog | `update_human_jeep_physics` | 15 | 5,000 |
+| Ghost | `update_alien_scout_physics` | 5 | 2,000 |
+| Scorpion | `update_human_tank_physics` | 18 | 20,000 |
+| Banshee | `update_alien_fighter_physics_new` | 22 | 4,000 |
+
+`blam/prepare_vehicle.py` retains 96 functions/blocks, including their math
+dependencies. Original force/contact/integration equations are not retuned for
+the demake. Vehicle-pair tests hoist invariant transforms and conservatively
+reject separated contact AABBs; 5,000 differential cases match the untouched
+source routine bit-for-bit, including forces, torques and wake flags. The adapter translates coordinates and center of mass, feeds the
+existing fixed 30 Hz tick, and converts velocities between units/tick and
+units/second. Camera aim is a desired heading: it no longer directly rotates the
+chassis. Banshee pitch controls flight direction; jump requests the original
+brake behavior. The renderer and seats consume the full forward/up basis, so
+body roll is visible and passengers follow it. Original suspension ray/channel
+smoothing drives the reduced wheel rig; its neutral visual offset is an
+approximation, not the original complete animation graph.
+
+The default 4 MiB profile retains all 4,916 collision faces, 7,650 edges and
+2,704 vertices for vehicle physics. Positions and planes retain original float32
+values. Edge indices use lossless int16 storage; outward-rounded bounds and a
+2,047-node BVH only reject distant candidates. Original sphere/cylinder/prism
+feature construction and contact tests remain active. Segment queries use
+original plane and polygon tests through this adapter, rather than the complete
+BSP service; 30,000 test sweeps agree with a separately compiled original BSP
+traversal, but this is not exhaustive equivalence for every initial-solid case.
+Blood Gulch has no water volumes. AI driving, native biped contacts, original
+object ownership/partitioning and other maps are outside this boundary.
+
+Explosion kicks retain the original damage-aftermath acceleration arithmetic
+and `vehicle_accelerate` angular response. Explosion radius, occlusion and health
+damage selection still belong to the demake. Its shared cannon projectile kind
+currently uses the Scorpion effect for both tank shells and Banshee bombs.
+Flipped-vehicle interaction uses the original approach-dependent flip torque.
+
+Reproduce the host regression suite after exporting the normal ROM assets:
+
+```sh
+build/n64-python/bin/python port/n64/blam/test_vehicle.py
+build/n64-python/bin/python port/n64/test_vehicle_pose_cache.py
+build/n64-python/bin/python port/n64/test_vehicle_culling.py
+build/n64-python/bin/python port/n64/test_hud_controls.py
+```
+
+The first command regenerates source/data, runs ASan/UBSan against the independent
+BSP oracle, and exercises all four drives, steering inertia, airborne momentum,
+landing rebound, rollover, flip torque, grenade kicks, vehicle-pair wakeup and
+the game/replay/six-showcase integration suites. Render tests compare cached and
+uncached matrices and conservative bounds across rolled bodies and suspension
+travel. These checks do not establish original Xbox playfeel parity or N64 frame
+rate; those require emulator/hardware playtesting separately.
+
+The 2026-10-07 Ares 148 run used **4 MiB**, NTSC, five display buffers and the
+16 KiB RSP queue. The quiet VI observer measured 75.05 seconds after warmup:
+
+| Scene | Displayed FPS | P95 interval | Maximum interval |
+| --- | ---: | ---: | ---: |
+| Complete replay | 28.9 | 33.4 ms | 234.0 ms |
+| Vehicle section | 28.6 | 33.4 ms | 66.8 ms |
+
+There were 49 vehicle-section intervals longer than two refreshes, so the
+four-player 30 FPS target is **not met**. Mean input-sample-to-display latency
+was 114 ms and live free heap was 118 KiB. The release ELF contains 2,011,964
+text bytes, 349,968 data bytes and 220,704 BSS bytes; this excludes dynamic
+allocations. Measurements, ROM hashes, screenshots and new Banshee/Warthog
+recordings are in `build/n64/vehicle-physics-audit/`. The scripted recordings
+use normal game inputs after staging the encounter; they are not performance
+proof. Earlier performance reports elsewhere in this document predate the
+vehicle solver integration. A separate 101-second validation capture reported
+zero RDP errors and warnings through combat and the four-vehicle replay.
 
 Original animation and HUD assets do not make their playback/rendering code the
 original engine. The offline overlay baker follows `overlay_animation_apply`:
@@ -120,7 +204,8 @@ collision vitality, animation and node matrices, BSP reconnects and attachments.
 Replacing its model index with a reduced renderer ID cannot satisfy those
 requirements. Full integration still needs native model/skeleton/collision-model
 and animation metadata bound to the reduced geometry, a complete native tag
-loader, original per-object `unit_update`/weapon/projectile/vehicle behavior and
+loader, original per-object `unit_update`/weapon/projectile behavior, the remaining
+vehicle damage/effect/presentation orchestration and
 its damage/effect/sound dependencies, and N64 render/audio/platform backends.
 The original `units_update` function alone only resets timers; linking that
 function would not constitute a unit simulation port. Original multiplayer

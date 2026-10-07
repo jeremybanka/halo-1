@@ -7,7 +7,9 @@ animation, HUD and audio data. The Windows/desktop build is separate.
 This is a playable N64 implementation, **not a complete port of Blam**.
 Original Blam data arrays, object-header allocation and movable memory pools
 now store live projectiles. Source-derived timing, deterministic random and
-hand-attachment quaternion interpolation also run in the game. Rendering and
+hand-attachment quaternion interpolation also run in the game. All four vehicle
+drive routines and the shared mass-point rigid-body solver now run from the
+reconstructed original source, using retail physics tags. Rendering and
 most gameplay still use reduced N64 systems. An optional 8 MiB build uses the
 original Blam BSP traversal and the complete Blood Gulch collision topology
 for floor queries and raycasts.
@@ -20,11 +22,12 @@ Load `build/n64/halo-blood-gulch-paced30-buffers5.z64` in ares as a Nintendo 64
 cartridge for the recommended four-player presentation profile. Build it with
 `build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
-The five-surface profile holds two-retrace cadence in the measured Ares replay,
-with 130/135 ms mean/maximum input-sample-to-display latency after the menu update. The four-surface
-alternative had lower latency and one missed deadline in the preceding revision;
-it has not been remeasured for this update. Holding all four score panels open
-has one deadline miss with five surfaces; see [PACING.md](PACING.md).
+The original vehicle solvers add CPU cost: the latest quiet four-player Ares
+replay measured **28.9 displayed FPS overall / 28.6 during vehicles**, with
+four-refresh vehicle stalls. The 30 FPS target is not yet met. Earlier pacing
+results in [PACING.md](PACING.md) and below predate this physics change and must
+not be used as current performance claims. The latest audit and recordings live
+in `build/n64/vehicle-physics-audit/`.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,
@@ -45,9 +48,9 @@ provenance, verification, and current limitations.
 | --- | --- | --- |
 | Walk / drive forward and backward | Stick up/down | D-up/down |
 | Turn / aim horizontally | Stick left/right | Stick left/right |
-| Strafe / steer the Scorpion hull | C-left/right | D-left/right |
+| Strafe / slide the Ghost | C-left/right | D-left/right |
 | Look up/down | C-up/down | Stick up/down |
-| Jump; hold to raise the Banshee | A | A |
+| Jump on foot / brake in a vehicle | A | A |
 | Fire primary weapon | Z | Z |
 | Reload / pick up / enter or exit a vehicle | B | C-left |
 | Switch carried weapon | R | C-up |
@@ -55,7 +58,7 @@ provenance, verification, and current limitations.
 | Cycle weapon zoom | D-up | C-right |
 | Melee | D-down | B |
 | Switch grenade type | D-left | Hold R, press C-up |
-| Crouch; lower the Banshee | D-right | C-down |
+| Crouch / vehicle crouch modifier | D-right | C-down |
 | View scores | — | Hold R |
 | Pause / menu ownership / resume | Start | Start |
 
@@ -71,8 +74,8 @@ interaction prompts show **B** or **C-LEFT** for that player's selected layout.
 In Xbox style, holding R shows scores in that player's view without pausing.
 R + C-up switches grenade type instead of switching weapons; scores stay visible until R is released.
 
-The Scorpion's turn/look inputs aim its turret independently; strafe steers its
-hull (C-left/right in N64, D-left/right in Xbox style). Z fires the cannon and
+Aim sets the vehicle's desired heading; the chassis responds through its
+original solver. The moving Scorpion steers toward turret aim. Z fires its cannon and
 L fires the machine gun. The Warthog has a driver,
 independent turret gunner and passenger. Ghost and Banshee have forward plasma
 weapons; the Banshee's L fires its secondary projectile. The tank also carries
@@ -324,27 +327,8 @@ build/n64-python/bin/python port/n64/audit_models.py
 ```
 
 ```sh
-python3 port/n64/blam/prepare_core.py
-clang -std=c17 -O1 -g -Wall -Wextra -Werror \
-  -fsanitize=address,undefined -Iport/n64 -Ibuild/n64/blam-core \
-  -Wno-multichar -Wno-unused-function -fno-strict-aliasing -fwrapv \
-  port/n64/test_game.c port/n64/game.c port/n64/blam/runtime.c \
-  port/n64/blam/core.c build/n64/generated/collision_data.c -lm -o build/n64/test-game
-build/n64/test-game
-clang -std=c17 -O1 -g -Wall -Wextra -Werror \
-  -fsanitize=address,undefined -Iport/n64 -Ibuild/n64/blam-core \
-  -Wno-multichar -Wno-unused-function -fno-strict-aliasing -fwrapv \
-  port/n64/test_replay.c port/n64/replay.c port/n64/game.c \
-  port/n64/blam/runtime.c port/n64/blam/core.c build/n64/generated/collision_data.c \
-  -lm -o build/n64/test-replay
-build/n64/test-replay
-clang -std=c17 -O1 -g -Wall -Wextra -Werror \
-  -fsanitize=address,undefined -Iport/n64 -Ibuild/n64/blam-core \
-  -Wno-multichar -Wno-unused-function -fno-strict-aliasing -fwrapv \
-  port/n64/test_showcase.c port/n64/showcase.c port/n64/game.c \
-  port/n64/blam/runtime.c port/n64/blam/core.c build/n64/generated/collision_data.c \
-  -lm -o build/n64/test-showcase
-build/n64/test-showcase
+# Regenerates vehicle/core/BSP data, then runs native/game/replay/showcase sanitizers.
+build/n64-python/bin/python port/n64/blam/test_vehicle.py
 cc -std=c17 -O2 -Wall -Wextra -Werror -ffp-contract=off \
   port/n64/blam/test_runtime.c port/n64/blam/runtime.c -lm \
   -o build/n64/test_blam_runtime
@@ -472,8 +456,9 @@ scenes are gameplay evidence; the separate four-view benchmark measures timing.
 ## Remaining limits
 
 This remains a demake, not Xbox gameplay parity or the complete original
-engine. Vehicle physics, material damage, homing, collision and effect systems
-are simplified. Animation is sampled from a subset of source clips; there is
+engine. Vehicle dynamics use the original reconstructed solvers with bounded
+world services; material damage, homing, biped collision and effect systems
+remain simplified. Animation is sampled from a subset of source clips; there is
 no complete animation graph, ragdoll or inverse kinematics. The coarse bases,
 solid-color sky, flat model shading and reduced effects remain visible.
 There is no campaign, networking, bots, CTF/ball objective rules, saved games,

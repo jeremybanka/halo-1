@@ -187,7 +187,7 @@ static void controls_page(const bg_menu *m,bool frontend){
         text(BG_MENU_FONT_SMALL,35,105+12*i,.70f,white,rows[i][0]);
         text(BG_MENU_FONT_SMALL,133,105+12*i,.66f,soft,rows[i][1]);
     }
-    text(BG_MENU_FONT_SMALL,35,203,.56f,soft,"VEHICLES: L ALT FIRE. BANSHEE: A UP, CROUCH DOWN");
+    text(BG_MENU_FONT_SMALL,35,203,.56f,soft,"VEHICLES: L ALT FIRE. AIM TO STEER. A BRAKE");
     text(BG_MENU_FONT_SMALL,35,217,.64f,white,frontend?"LEFT / RIGHT CHANGE    B BACK":"LEFT / RIGHT CHANGE    B BACK    START RESUME");
 }
 static void prepare_score_layout(unsigned count,unsigned owner,int x,int y,int width,int height){

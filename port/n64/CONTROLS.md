@@ -79,15 +79,17 @@ layout adds aim inversion or a different sensitivity.
 
 ## Vehicles
 
-Forward/backward input drives the vehicle. Turn input steers the Warthog,
-Ghost and Banshee; the Scorpion instead uses it to aim its turret, with look
-input raising or lowering the cannon and strafe input steering the hull.
-That hull control is C-left/right in N64 and D-left/right in Xbox style.
+Forward/backward input drives the vehicle. Aim supplies the original solver's
+desired facing direction; it does not directly rotate the chassis. The moving
+Scorpion hull steers toward turret aim, and the Ghost uses strafe for lateral
+motion. Banshee pitch controls climbing/diving. A requests the original vehicle
+brake behavior, not a vertical lift command. Crouch feeds the original modifier;
+it is not a separate Banshee descent command.
 
-Hold A to raise the Banshee and hold crouch to descend: D-right in N64 or
-C-down in Xbox style. Z fires the mounted primary weapon. Hold L for mounted
-secondary fire where available: the Scorpion's machine gun and the Banshee's
-secondary projectile. The Warthog gunner aims independently of the driver.
+Z fires the mounted primary weapon. Hold L for mounted secondary fire where
+available: the Scorpion's machine gun and the Banshee's secondary projectile.
+The Warthog gunner aims independently of the driver. An overturned vehicle offers
+FLIP using the contextual-use button and applies the original flip torque.
 
 For the Warthog, approach the left side to drive, the right side to ride in
 the front passenger seat, or the rear to use the gunner seat, then press your
@@ -131,7 +133,7 @@ python3 port/n64/test_paced_acquire.py
 These tests establish input and menu behavior. They are not evidence of
 physical-controller latency or a new presentation-timing result.
 
-The final Ares test ROM uses `--menu-qa --validate --paced30 --paced30-buffers 5`.
+The menu revision's Ares test ROM uses `--menu-qa --validate --paced30 --paced30-buffers 5`.
 It passes 40 checkpoints through the production input/menu path, including
 all four owners, Setup permissions, 1/2/4 player counts, style isolation,
 mixed-layout gameplay and restart persistence. Cumulative RDP validation ends
@@ -142,3 +144,7 @@ timing regression also retains nominal 30 Hz with zero missed deadlines.
 Holding all four score panels open has one vehicle-phase deadline miss in the
 separate stress replay. See [PACING.md](PACING.md) for both measurements,
 latency and memory cost.
+
+Those timing results predate the original vehicle solver integration. Current
+four-player timing and the remaining 30 FPS shortfall are recorded in
+[BLAM_STATUS.md](BLAM_STATUS.md).

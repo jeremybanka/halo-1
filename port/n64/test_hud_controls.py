@@ -30,13 +30,14 @@ int main(void) {
         "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3"};
     const char *xbox[]={"C-LEFT EXIT","C-LEFT PICK UP","C-LEFT ENTER"};
     assert(HUD_EXIT==0&&HUD_ENTER==2&&HUD_RESPAWN_0==5&&HUD_RESPAWN_3==8);
-    assert(HUD_XBOX_EXIT==9&&HUD_STATUS_COUNT==12);
+    assert(HUD_XBOX_EXIT==9&&HUD_STATUS_COUNT==14);
     for(int status=-1;status<HUD_STATUS_COUNT;status++) {
         assert(control_status(status,BG_CONTROLS_N64)==status);
         assert(control_status(status,(bg_control_style)-1)==status);
         assert(control_status(status,BG_CONTROLS_COUNT)==status);
         int result=control_status(status,BG_CONTROLS_XBOX);
         if(status>=0&&status<3)assert(strcmp(status_strings[result],xbox[status])==0);
+        else if(status==HUD_FLIP)assert(result==HUD_XBOX_FLIP);
         else assert(result==status);
         if(status>=0&&status<9)assert(strcmp(status_strings[status],legacy[status])==0);
     }

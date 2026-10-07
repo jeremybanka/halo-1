@@ -29,11 +29,11 @@ static unsigned blit_count;
 static uint16_t blit_heads[BG_H_COUNT],blit_next[192];
 enum { HUD_EXIT, HUD_PICKUP, HUD_ENTER, HUD_RELOAD, HUD_OVERHEAT,
        HUD_RESPAWN_0, HUD_RESPAWN_1, HUD_RESPAWN_2, HUD_RESPAWN_3,
-       HUD_XBOX_EXIT, HUD_XBOX_PICKUP, HUD_XBOX_ENTER, HUD_STATUS_COUNT };
+       HUD_XBOX_EXIT, HUD_XBOX_PICKUP, HUD_XBOX_ENTER, HUD_FLIP, HUD_XBOX_FLIP, HUD_STATUS_COUNT };
 static const char *const status_strings[HUD_STATUS_COUNT]={
     "B EXIT","B PICK UP","B ENTER","Reloading","Overheated",
     "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3",
-    "C-LEFT EXIT","C-LEFT PICK UP","C-LEFT ENTER"};
+    "C-LEFT EXIT","C-LEFT PICK UP","C-LEFT ENTER","B FLIP","C-LEFT FLIP"};
 /* These labels have fixed font, width and alignment. Lay them out once instead
  * of allocating and formatting the same paragraph in each player view. */
 static rdpq_paragraph_t *status_layouts[2][HUD_STATUS_COUNT];
@@ -58,6 +58,7 @@ static const int vehicle_reticles[BG_VEHICLE_COUNT] = {
 static int control_status(int status,bg_control_style style) {
     if(style==BG_CONTROLS_XBOX&&status>=HUD_EXIT&&status<=HUD_ENTER)
         return HUD_XBOX_EXIT+status-HUD_EXIT;
+    if(style==BG_CONTROLS_XBOX&&status==HUD_FLIP)return HUD_XBOX_FLIP;
     return status;
 }
 
@@ -221,6 +222,7 @@ static int interaction(const bg_player *p) {
     for (unsigned i=0;i<bg_vehicle_count;i++) {
         const bg_vehicle *v=&bg_vehicles[i];
         if (!v->active||distance_squared(p->pos,v->pos)>=4.f) continue;
+        if(v->physics_valid&&v->up[1]<.2f)return HUD_FLIP;
         int seats=v->kind==BG_V_WARTHOG||v->kind==BG_V_SCORPION?3:1;
         for (int s=0;s<seats;s++) if (v->occupants[s]<0) return HUD_ENTER;
     }

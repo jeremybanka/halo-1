@@ -115,7 +115,9 @@ def main():
 
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
-    sources = ['main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py'])
+    run([sys.executable, ROOT/'port/n64/blam/export_vehicle.py'])
+    sources = ['blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
     sdk_extra_sources = []
     if args.rspq_buffer_kib:
         sdk_source = (args.libdragon_source or sdk.parent/'libdragon-src').resolve()
@@ -128,7 +130,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -145,7 +147,7 @@ def main():
              '-Wall', '-Wextra', '-Werror',
              *(['-ftrivial-auto-var-init=pattern'] if args.validate else []),
              '-I'+str(sdk/'mips64-elf/include'), '-I'+str(tiny/'src'), '-I'+str(ROOT/'port/n64'),
-             '-I'+str(out/'blam-core'),
+             '-I'+str(out/'blam-core'), '-I'+str(out/'blam-vehicle'),
              *(['-I'+str(sdk_source/'src'), '-I'+str(sdk_source/'src/rspq'),
                 '-ftrivial-auto-var-init=pattern', '-Wno-unused-parameter',
                 '-Wno-override-init', '-Wno-sign-compare'] if source.name == 'rspq_override.c' else []),
@@ -166,6 +168,7 @@ def main():
              *([f'-DBG_PACED30_BUFFERS={args.paced30_buffers}'] if args.paced30_buffers > 3 else []),
              *(['-DBG_BLAM_BSP'] if args.blam_bsp else []),
              *(['-fno-fast-math', '-ffp-contract=off'] if source.name == 'runtime.c' else []),
+             *(['-fno-fast-math', '-ffp-contract=off', '-fno-strict-aliasing', '-fwrapv', '-Wno-unused-parameter', '-Wno-unused-function', '-Wno-unused-variable', '-Wno-incompatible-pointer-types', '-Wno-sign-compare'] if source.name == 'vehicle_physics.c' else []),
              *(['-fno-fast-math', '-ffp-contract=off', '-fno-strict-aliasing'] if source.name == 'collision.c' else []),
              *(['-Wno-multichar', '-Wno-unused-function', '-fno-strict-aliasing', '-fwrapv'] if source.name == 'core.c' else [])])
     name = 'halo-blood-gulch-showcase-'+args.showcase if args.showcase else 'halo-blood-gulch-replay' if args.demo else 'halo-blood-gulch'

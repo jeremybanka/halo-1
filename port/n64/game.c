@@ -1,3 +1,4 @@
+#include "blam/vehicle_physics.h"
 #include "game.h"
 #include "blam/runtime.h"
 #include "blam/core.h"
@@ -338,9 +339,7 @@ void bg_vehicle_seat_position(const bg_vehicle*v,unsigned seat,bool entry,float 
             local[0]=-.5f+c*x+s*z;local[2]=-s*x+c*z;
         }
     }
-    float cp=cosf(v->pitch),sp=sinf(v->pitch),x=local[0]*cp-local[1]*sp,y=local[0]*sp+local[1]*cp;
-    float c=cosf(v->yaw),s=sinf(v->yaw);
-    out[0]=v->pos[0]+c*x+s*local[2];out[1]=v->pos[1]+y;out[2]=v->pos[2]-s*x+c*local[2];
+    bg_vehicle_transform(v,local,out);
 }
 static void eject(unsigned player){
     bg_player*p=&bg_players[player];if(p->vehicle<0)return;bg_vehicle*v=&bg_vehicles[p->vehicle];
@@ -406,7 +405,7 @@ static void explode(const float pos[3],int owner,float damage,float radius,bg_pr
         damage_player(i,owner,damage*(1-length/radius),false,false);p->vy+=2*(1-length/radius);
     }
     for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active){
-        float length=sqrtf(distance2(pos,bg_vehicles[i].pos));if(length<radius+1)damage_vehicle(i,owner,damage*(1-length/(radius+1)));
+        float length=sqrtf(distance2(pos,bg_vehicles[i].pos));if(length<radius+1){bg_vehicle_physics_explosion(i,pos,kind);damage_vehicle(i,owner,damage*(1-length/(radius+1)));}
     }
 }
 static int target_ray(unsigned owner,const float origin[3],const float dir[3],float *nearest,bool *head){
@@ -558,13 +557,19 @@ static void interact(unsigned player){
     for(unsigned i=0;i<bg_vehicle_count;i++){
         bg_vehicle*v=&bg_vehicles[i];if(!v->active)continue;float d=distance2(p->pos,v->pos);
         if(d>=4.f)continue;
+        if(v->physics_valid&&v->up[1]<.2f){
+            if(d<nearest){vehicle=i;seat=-1;nearest=d;}
+            continue;
+        }
         int seats=v->kind==BG_V_WARTHOG||v->kind==BG_V_SCORPION?3:1;
         for(int s=0;s<seats;s++)if(v->occupants[s]<0){
             float entry[3];bg_vehicle_seat_position(v,s,true,entry);float seat_distance=distance2(p->pos,entry);
             if(seat_distance<nearest){vehicle=i;seat=s;nearest=seat_distance;}
         }
     }
-    if(vehicle>=0){bg_vehicle*v=&bg_vehicles[vehicle];v->occupants[seat]=player;p->vehicle=vehicle;p->seat=seat;
+    if(vehicle>=0){bg_vehicle*v=&bg_vehicles[vehicle];
+        if(v->physics_valid&&v->up[1]<.2f){bg_vehicle_physics_flip(vehicle,p->pos);p->interact_cooldown=.5f;return;}
+        v->occupants[seat]=player;p->vehicle=vehicle;p->seat=seat;
         p->zoom=0;p->reload=0;p->interact_cooldown=.5f;p->animation=BG_ANIM_DRIVE;p->anim_time=0;
         memcpy(p->pos,v->pos,sizeof(p->pos));p->pos[1]+=.3f;event(BG_EVENT_ENTER,player,v->kind,p->pos,seat);}
 }
@@ -575,35 +580,15 @@ static void melee(unsigned index){
     event(BG_EVENT_MELEE,index,p->weapon,p->pos,1);
 }
 static void update_vehicles(const bg_input inputs[BG_PLAYERS],float dt){
+    bg_vehicle_physics_prepare();
     for(unsigned i=0;i<bg_vehicle_count;i++){
         bg_vehicle*v=&bg_vehicles[i];v->cooldown=fmaxf(0,v->cooldown-dt);v->flash=fmaxf(0,v->flash-dt);v->secondary_cooldown=fmaxf(0,v->secondary_cooldown-dt);
         if(!v->active){v->respawn-=dt;if(v->respawn<=0){v->active=true;v->health=v->kind==BG_V_SCORPION?800:400;
-            memcpy(v->pos,v->home,sizeof(v->pos));v->yaw=v->home_yaw;v->pitch=0;memset(v->velocity,0,sizeof(v->velocity));}continue;}
+            memcpy(v->pos,v->home,sizeof(v->pos));v->yaw=v->home_yaw;v->pitch=0;v->physics_valid=false;memset(v->velocity,0,sizeof(v->velocity));memset(v->angular_velocity,0,sizeof(v->angular_velocity));}continue;}
         for(int seat=0;seat<3;seat++)if(v->occupants[seat]>=(int)active_players)eject(v->occupants[seat]);
         int driver=v->occupants[0];const bg_input*in=driver>=0?&inputs[driver]:NULL;
-        float maxspeed=v->kind==BG_V_SCORPION?3.5f:v->kind==BG_V_BANSHEE?9:v->kind==BG_V_GHOST?7:8;
-        float wanted=in?in->forward*maxspeed:0;
-        v->speed+=clamp(wanted-v->speed,-dt*5,dt*5);
-        float old[3];memcpy(old,v->pos,sizeof(old));
-        if(in){v->yaw+=(v->kind==BG_V_SCORPION?in->strafe:in->turn)*dt*(v->kind==BG_V_SCORPION?.65f:1.25f);
-            if(v->kind==BG_V_BANSHEE)v->pitch=clamp(v->pitch+in->look*dt,-.8f,.8f);}
-        float side=in&&v->kind==BG_V_GHOST?in->strafe*3:0;
-        v->velocity[0]=cosf(v->yaw)*v->speed+sinf(v->yaw)*side;
-        v->velocity[2]=-sinf(v->yaw)*v->speed+cosf(v->yaw)*side;
-        if(v->kind==BG_V_BANSHEE&&in){v->velocity[1]=sinf(v->pitch)*fabsf(v->speed)+(in->jump?3:0)-(in->crouch?3:0);}
-        else v->velocity[1]-=4.8f*dt;
-        float travel[3]={v->velocity[0]*dt,0,v->velocity[2]*dt},len=sqrtf(dot(travel,travel));
-        if(len>.001f){float dir[3];for(int a=0;a<3;a++)dir[a]=travel[a]/len;
-            float start[3]={v->pos[0],v->pos[1]+.5f,v->pos[2]},radius=v->kind==BG_V_SCORPION?.95f:.6f;
-            if(bg_raycast(start,dir,len+radius)<len+radius){v->speed*=.2f;travel[0]=travel[2]=0;}}
-        v->pos[0]+=travel[0];v->pos[2]+=travel[2];v->pos[1]+=v->velocity[1]*dt;
-        float floor=bg_floor(v->pos[0],v->pos[2],fmaxf(old[1],v->pos[1])+.5f),hover=v->kind==BG_V_GHOST?.18f:.03f;
-        if(floor>-999&&v->pos[1]<floor+hover){v->pos[1]=floor+hover;v->velocity[1]=0;}
-        if(v->kind!=BG_V_BANSHEE){
-            float nose=bg_floor(v->pos[0]+cosf(v->yaw)*.7f,v->pos[2]-sinf(v->yaw)*.7f,v->pos[1]+.6f);
-            float tail=bg_floor(v->pos[0]-cosf(v->yaw)*.7f,v->pos[2]+sinf(v->yaw)*.7f,v->pos[1]+.6f);
-            if(nose>-999&&tail>-999)v->pitch+=(atan2f(nose-tail,1.4f)-v->pitch)*dt*4;
-        }
+        float maxspeed=v->kind==BG_V_SCORPION?3.5f:v->kind==BG_V_BANSHEE?9:v->kind==BG_V_GHOST?7:7.65f;
+        bg_vehicle_physics_step(i,in);
         if(v->pos[1]<-8||cell(v->pos[0],v->pos[2])<0){damage_vehicle(i,driver,10000);continue;}
         v->engine_phase+=dt*(1+fabsf(v->speed));
         if(v->engine_phase>12){v->engine_phase-=12;if(driver>=0)event(BG_EVENT_ENGINE,driver,v->kind,v->pos,fabsf(v->speed)/maxspeed);}
@@ -613,7 +598,6 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS],float dt){
             bg_player*p=&bg_players[v->occupants[seat]];
             if(v->kind==BG_V_WARTHOG&&seat==1)v->turret_yaw=p->yaw-v->yaw;
             bg_vehicle_seat_position(v,seat,false,p->pos);
-            if(seat==0&&v->kind!=BG_V_SCORPION){p->yaw=v->yaw;p->pitch=v->kind==BG_V_BANSHEE?v->pitch:p->pitch;}
             if((v->kind==BG_V_SCORPION&&seat==0)||(v->kind==BG_V_WARTHOG&&seat==1)){v->turret_yaw=p->yaw-v->yaw;v->turret_pitch=p->pitch;}
             p->vy=0;p->grounded=true;p->animation=BG_ANIM_DRIVE;
             bool mounted=(v->kind==BG_V_WARTHOG&&seat==1)||(v->kind!=BG_V_WARTHOG&&seat==0);

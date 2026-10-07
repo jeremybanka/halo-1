@@ -61,6 +61,9 @@ int main(void){
         unsigned i=trial%BG_MAX_VEHICLES;slot=trial%BG_FRAME_SLOTS;
         bg_vehicle*v=&bg_vehicles[i];v->kind=trial%4;
         for(unsigned a=0;a<3;a++)v->pos[a]=uniform(-80,80);
+        v->physics_valid=(trial%2)==0;float roll=uniform(-3.15f,3.15f);
+        v->forward[0]=1;v->forward[1]=v->forward[2]=0;v->up[0]=0;v->up[1]=cosf(roll);v->up[2]=sinf(roll);
+        v->steering=uniform(-.5,.5);for(unsigned a=0;a<8;a++)v->suspension[a]=uniform(-.3,-.1);
         v->yaw=uniform(-3.15f,3.15f);v->pitch=uniform(-3.15f,3.15f);
         v->turret_yaw=uniform(-3.15f,3.15f);v->turret_pitch=uniform(-3.15f,3.15f);
         /* Large and negative phases include long sessions and reverse travel.

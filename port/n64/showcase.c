@@ -74,8 +74,9 @@ void bg_showcase_input(bg_input input[BG_PLAYERS],float seconds){
         if(seconds>=2&&bg_players[0].vehicle<0){input[0].interact=true;return;}
         if(bg_players[0].vehicle>=0&&seconds>=3&&seconds<20){
             bg_vehicle*v=&bg_vehicles[bg_players[0].vehicle];float altitude=v->pos[1]-floor_at(v->pos[0],v->pos[2]);
-            input[0].forward=.5f;input[0].turn=.45f;input[0].jump=altitude<3;input[0].crouch=altitude>4;
-            input[0].look=-bg_players[0].pitch*2;input[0].fire=seconds>9&&seconds<10;
+            input[0].forward=.7f;input[0].turn=.28f;
+            float pitch=clamp((4-altitude)*.25f-.26f,-.65f,.45f);
+            input[0].look=clamp((pitch-bg_players[0].pitch)*2,-1,1);input[0].fire=seconds>9&&seconds<10;
         }
     }else if(scenario==BG_SHOWCASE_WARTHOG_PASSENGER){
         for(unsigned p=0;p<2;p++)if(seconds>=2&&bg_players[p].vehicle<0)input[p].interact=true;

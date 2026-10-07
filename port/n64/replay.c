@@ -42,7 +42,7 @@ static void start_vehicles(void){
         if(vehicle_for[p]<0)continue;
         bg_vehicle*v=&bg_vehicles[vehicle_for[p]];
         v->pos[0]=locations[p][0];v->pos[2]=locations[p][1];v->pos[1]=ground(v->pos[0],v->pos[2])+(p==BG_V_GHOST?.18f:0);
-        v->yaw=yaw[p];v->pitch=v->speed=0;memset(v->velocity,0,sizeof(v->velocity));
+        v->yaw=yaw[p];v->pitch=v->speed=0;v->physics_valid=false;memset(v->angular_velocity,0,sizeof(v->angular_velocity));memset(v->velocity,0,sizeof(v->velocity));
         memcpy(v->home,v->pos,sizeof(v->home));v->home_yaw=v->yaw;
         if(bg_players[p].health>0){
             float entry[3];bg_vehicle_seat_position(v,0,true,entry);
@@ -110,18 +110,18 @@ static void driving_input(bg_input input[BG_PLAYERS],float t){
         }
         if(v->kind==BG_V_WARTHOG&&q->seat==0&&t>9){in->forward=0;in->turn=0;continue;}
         /* Each controller follows a different orbit; altitude remains under
-         * the ordinary Banshee jump/crouch and pitch controls. */
+         * the original Banshee desired-facing control. */
         float theta=t*.22f+p*REPLAY_PI*.5f;
         float radius=p==BG_V_SCORPION?4:6;
         float waypoint_x=center[0]+cosf(theta)*radius,waypoint_z=center[1]+sinf(theta)*radius;
         float desired=atan2f(-(waypoint_z-v->pos[2]),waypoint_x-v->pos[0]);
-        float error=angle_delta(desired,v->yaw);
+        float error=angle_delta(desired,q->yaw);
         in->turn=clamp(error*1.6f,-1,1);in->forward=fabsf(error)>1?.2f:.5f;
         if(p==BG_V_GHOST)in->strafe=sinf(t*.7f)*.3f;
         if(p==BG_V_BANSHEE){
             float floor=ground(v->pos[0],v->pos[2]);
-            in->jump=v->pos[1]<floor+1.6f;in->crouch=v->pos[1]>floor+3;
-            in->look=-q->pitch*2;
+            float pitch=clamp((floor+2.5f-v->pos[1])*.2f-.26f,-.65f,.45f);
+            in->look=clamp((pitch-q->pitch)*2,-1,1);
         }else in->look=-q->pitch*2;
         if(p==BG_V_SCORPION){in->strafe=in->turn;bg_player*target=&bg_players[3];
             aim_at(q,in,target->pos[0],target->pos[1]+.4f,target->pos[2]);}

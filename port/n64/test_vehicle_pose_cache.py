@@ -51,12 +51,11 @@ static outputs all_outputs[2],*state;
 #define vehicle_bounds state->bounds
 #define vehicle_part_bounds state->part_bounds
 '''
-# The miss path must remain exactly the earlier uncached implementation.
-baseline=OUT/'main-before.c'
-if baseline.exists():assert function(main,'compute_vehicle_pose')==function(baseline.read_text(),'prepare_vehicle')
+# Cached and uncached paths use the same current full rigid-body pose.
 c=pre+assets[assets.index('enum { BG_PART_BODY'):assets.index('extern const bg_vehicle_rig')]
 for name in ('parts_warthog','parts_ghost','parts_scorpion','parts_banshee','bg_vehicle_rigs','bg_vehicle_lod_bounds'):
  c+='\n'+declaration(bank,name)
+c+='\nconst bg_bounds bg_vehicle_micro_gate_bounds[4]='+declaration((ROOT/'build/n64/generated/micro_data.c').read_text(),'bg_vehicle_micro_gate_bounds').split('=',1)[1]
 for source,result,name,args in (
  (math,'void','t3d_mat4_from_srt_euler','T3DMat4*mat,const float scale[3],const float rot[3],const float translate[3]'),
  (header,'void','t3d_mat4_mul','T3DMat4*matRes,const T3DMat4*matA,const T3DMat4*matB'),
@@ -66,7 +65,7 @@ for source,result,name,args in (
  (main,'void','prepare_vehicle','unsigned i')):
  c+=f'\nstatic {result} {name}({args}){{{function(source,name)}}}\n'
 c+=r'''
-typedef struct {uint32_t words[9];} pose_key;
+typedef struct {uint32_t words[BG_VEHICLE_POSE_WORDS];} pose_key;
 static unsigned hits,misses,copies,reuses,checked;
 static uint64_t copy_bytes;
 static pose_key key_for(unsigned i){
@@ -117,6 +116,9 @@ int main(void){
   if(trial%7==0){bg_reset();memset(wheel_rotation,0,sizeof(wheel_rotation));}
   if(trial%3==0){
    v->kind=rnd()%4;for(unsigned a=0;a<3;a++)v->pos[a]=uniform(-80,80);
+   v->physics_valid=(trial%2)==0;
+   float angle=uniform(-3,3);v->forward[0]=1;v->forward[1]=v->forward[2]=0;v->up[0]=0;v->up[1]=cosf(angle);v->up[2]=sinf(angle);
+   v->steering=uniform(-.5,.5);for(unsigned a=0;a<8;a++)v->suspension[a]=uniform(-.3,-.1);
    v->yaw=uniform(-4,4);v->pitch=uniform(-4,4);v->turret_yaw=uniform(-4,4);v->turret_pitch=uniform(-4,4);wheel_rotation[i]=uniform(-100000,100000);
   }
   if(trial%13==0){v->active=false;continue;}v->active=true;
@@ -129,7 +131,7 @@ int main(void){
 }
 '''
 (OUT/'probe.c').write_text(c)
-cmd=['clang','-std=c17','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-Wno-multichar','-Wno-unused-function','-fno-strict-aliasing','-fwrapv','-Iport/n64','-Ibuild/n64/blam-core',str(OUT/'probe.c'),'port/n64/game.c','port/n64/replay.c','port/n64/blam/runtime.c','port/n64/blam/core.c','build/n64/generated/collision_data.c','-lm','-o',str(OUT/'probe')]
+cmd=['clang','-std=c17','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-Wno-multichar','-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-incompatible-pointer-types','-Ibuild/n64/blam-vehicle','-fno-strict-aliasing','-fwrapv','-Iport/n64','-Ibuild/n64/blam-core',str(OUT/'probe.c'),'port/n64/game.c','port/n64/replay.c','port/n64/blam/runtime.c','port/n64/blam/core.c','port/n64/blam/vehicle_physics.c','build/n64/generated/vehicle_data.c','build/n64/generated/collision_data.c','-lm','-o',str(OUT/'probe')]
 subprocess.run(cmd,check=True)
 p=subprocess.run([str(OUT/'probe')],capture_output=True,text=True);print(p.stdout+p.stderr);(OUT/'probe.log').write_text(p.stdout+p.stderr);assert p.returncode==0
 results={}

@@ -778,6 +778,14 @@ static void prepare_player_bounds(unsigned p){
     T3DMat4*body=&body_matrices[p];
     t3d_mat4_from_srt_euler(body,(float[]){size,size,size},(float[]){0,-body_yaw,-body_pitch},
         (float[]){player->pos[0]*BG_SCALE,player->pos[1]*BG_SCALE,player->pos[2]*BG_SCALE});
+    if(player->health>0&&player->vehicle>=0){
+        const bg_vehicle*v=&bg_vehicles[player->vehicle];
+        if(v->physics_valid){
+            const float*f=v->forward,*u=v->up;float r[3]={f[1]*u[2]-f[2]*u[1],f[2]*u[0]-f[0]*u[2],f[0]*u[1]-f[1]*u[0]};
+            float relative=v->kind==BG_V_WARTHOG&&player->seat==1?v->turret_yaw:0,c=cosf(relative),s=sinf(relative);
+            for(unsigned a=0;a<3;a++){body->m[0][a]=(f[a]*c-r[a]*s)*size;body->m[1][a]=u[a]*size;body->m[2][a]=(f[a]*s+r[a]*c)*size;}
+        }
+    }
     bg_bounds box;bg_bounds_transform(&box,&bg_body_cull_bounds[clip],body->m,BG_SCALE);
     bg_bounds_quantize(&body_bounds[p],&box);
     /* Any normalized hand quaternion keeps a weapon within its origin sphere.
@@ -826,6 +834,11 @@ static void compute_vehicle_pose(unsigned i){
     float model_scale=BG_SCALE/BG_OBJECT_SCALE;
     T3DMat4 base,yaw;t3d_mat4_from_srt_euler(&base,(float[]){model_scale,model_scale,model_scale},(float[]){0,-v->yaw,-v->pitch},
         (float[]){v->pos[0]*BG_SCALE,v->pos[1]*BG_SCALE,v->pos[2]*BG_SCALE});
+    if(v->physics_valid){
+        const float*f=v->forward,*u=v->up;
+        float right[3]={f[1]*u[2]-f[2]*u[1],f[2]*u[0]-f[0]*u[2],f[0]*u[1]-f[1]*u[0]};
+        for(unsigned a=0;a<3;a++){base.m[0][a]=f[a]*model_scale;base.m[1][a]=u[a]*model_scale;base.m[2][a]=right[a]*model_scale;}
+    }
     t3d_mat4_to_fixed_3x4(&vehicle_matrices[slot][i],&base);
     bg_bounds combined;
     bg_bounds_transform(&combined,&bg_vehicle_micro_gate_bounds[v->kind],base.m,BG_OBJECT_SCALE);
@@ -835,7 +848,18 @@ static void compute_vehicle_pose(unsigned i){
         if(part->kind==BG_PART_BODY)world=base;
         else {
             if(part->kind==BG_PART_TURRET)local=yaw;
-            else if(part->kind==BG_PART_WHEEL)pivot_rotation(&local,part->pivot,0,-wheel_rotation[i]);
+            else if(part->kind==BG_PART_WHEEL){
+                /* Wheels rotate about their axle (local Z), then steer with
+                 * the original opposite front/rear powered contact groups. */
+                T3DMat4 spin,steer;
+                pivot_rotation(&spin,part->pivot,0,-wheel_rotation[i]);
+                float angle=v->physics_valid?v->steering*(part->pivot[0]>0?1:-1):0;
+                pivot_rotation(&steer,part->pivot,angle,0);t3d_mat4_mul(&local,&steer,&spin);
+                if(v->physics_valid&&v->kind==BG_V_WARTHOG){
+                    unsigned channel=part->pivot[0]>0?(part->pivot[2]<0?2:3):(part->pivot[2]<0?0:1);
+                    local.m[3][1]+=(v->suspension[channel]+.22f)*BG_OBJECT_SCALE;
+                }
+            }
             else{
                 T3DMat4 pitch;pivot_rotation(&pitch,part->pivot,0,v->turret_pitch-v->pitch);
                 t3d_mat4_mul(&local,&yaw,&pitch);
@@ -852,7 +876,7 @@ static void compute_vehicle_pose(unsigned i){
     bg_bounds_quantize(&vehicle_bounds[i],&combined);
 }
 static void prepare_vehicle(unsigned i){
-    bg_vehicle_pose_cache*cache=&vehicle_pose_cache[i];uint32_t key[9];
+    bg_vehicle_pose_cache*cache=&vehicle_pose_cache[i];uint32_t key[BG_VEHICLE_POSE_WORDS];
     bg_vehicle_pose_key(key,&bg_vehicles[i],&wheel_rotation[i]);
     if(cache->valid&&!memcmp(cache->key,key,sizeof(key))){
         if(!(cache->slot_mask&(1u<<slot))){
@@ -983,7 +1007,7 @@ static void prepare_frame(void){
 }
 static void update_effects(float dt){
     if(bg_match_time()<=dt+.00001f)reset_view_state();
-    for(unsigned i=0;i<bg_vehicle_count;i++)wheel_rotation[i]=fmodf(wheel_rotation[i]+bg_vehicles[i].speed*dt/.18f,6.2831853f);
+    for(unsigned i=0;i<bg_vehicle_count;i++)wheel_rotation[i]=bg_vehicles[i].wheel_phase;
     for(unsigned i=0;i<12;i++)explosions[i].life=fmaxf(0,explosions[i].life-dt);
     for(unsigned i=0;i<bg_event_count;i++)if(bg_events[i].kind==BG_EVENT_FIRE&&bg_events[i].player>=0&&bg_events[i].player<4)
         fired_at[bg_events[i].player]=game_time;

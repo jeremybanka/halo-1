@@ -47,6 +47,8 @@ typedef struct {
 } bg_input;
 typedef struct {
     float pos[3],yaw,pitch,velocity[3],speed,cooldown,flash,respawn,engine_phase;
+    float forward[3],up[3],angular_velocity[3],steering,wheel_phase,suspension[8];
+    bool physics_valid;
     float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch; int kind,health,occupants[3]; bool active;
 } bg_vehicle;
 typedef struct {

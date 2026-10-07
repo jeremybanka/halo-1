@@ -198,7 +198,7 @@ int main(void){
         bg_vehicle_seat_position(v,i,true,bg_players[i].pos);
         in[i].interact=true;ticks(1);in[i].interact=false;assert(bg_players[i].vehicle==0&&bg_players[i].seat==i);
     }
-    memcpy(start,v->pos,12);in[0].forward=1;in[1].fire=true;ticks(45);
+    memcpy(start,v->pos,12);bg_players[0].yaw=v->yaw;in[0].forward=1;in[1].fire=true;ticks(60);
     assert(distance(start,v->pos)>1&&v->speed>2&&bg_players[1].ammo==60);
     assert(bg_players[0].vehicle==bg_players[1].vehicle&&bg_players[2].vehicle==0);
     in[0].interact=true;ticks(1);in[0].interact=false;assert(bg_players[0].vehicle==-1&&v->occupants[0]==-1);
@@ -207,7 +207,7 @@ int main(void){
         memset(in,0,sizeof(in));bg_reset();bg_pickup_count=0;
         unsigned j=0;while(j<bg_vehicle_count&&bg_vehicles[j].kind!=kind)j++;assert(j<bg_vehicle_count);v=&bg_vehicles[j];
         bg_vehicle_seat_position(v,0,true,bg_players[0].pos);in[0].interact=true;ticks(1);in[0].interact=false;
-        assert(bg_players[0].vehicle==(int)j&&bg_players[0].seat==0);memcpy(start,v->pos,12);in[0].forward=1;in[0].jump=kind==BG_V_BANSHEE;ticks(45);
+        assert(bg_players[0].vehicle==(int)j&&bg_players[0].seat==0);memcpy(start,v->pos,12);in[0].forward=1;bg_players[0].yaw=v->yaw;bg_players[0].pitch=kind==BG_V_BANSHEE?.35f:0;ticks(60);
         assert(distance(start,v->pos)>.5f);if(kind==BG_V_BANSHEE)assert(v->pos[1]>start[1]+1);
         if(kind==BG_V_SCORPION){
             bg_clear_events();in[0].fire=true;in[0].secondary_fire=true;bg_tick(in,1.f/30);
@@ -215,9 +215,12 @@ int main(void){
             for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_FIRE){
                 cannon|=bg_events[e].weapon==BG_W_ROCKET;machine_gun|=bg_events[e].weapon==BG_W_AR;}
             assert(cannon&&machine_gun&&v->cooldown>2&&v->secondary_cooldown>0);
-            in[0]=(bg_input){.turn=1};float hull_yaw=v->yaw;ticks(10);
-            assert(fabsf(v->yaw-hull_yaw)<.0001f&&fabsf(v->turret_yaw)>.3f);
-            in[0]=(bg_input){.strafe=1};ticks(10);assert(v->yaw>hull_yaw+.1f);
+            /* Camera aim and chassis orientation are independent; the
+             * original tread forces turn the moving hull toward that aim. */
+            in[0]=(bg_input){.forward=1,.turn=1};float hull_yaw=v->yaw;ticks(1);
+            assert(fabsf(v->yaw-hull_yaw)<.1f);
+            ticks(9);assert(fabsf(bg_players[0].yaw-v->yaw)>.1f);
+
         }
     }
     /* Inactive players cannot take bullets and are ejected from vehicles. */

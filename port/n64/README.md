@@ -111,10 +111,12 @@ exits with a short re-entry cooldown.
   jumping, throwing, death and separate Warthog driver, passenger and gunner
   poses. Warthog wheels and mounted
   weapon parts move; tank hull and turret aim separately.
-- Original HUD artwork, digits, shield/health bars, grenade icons, vehicle
-  reticles and multiplayer radar opacity. Pistol/sniper zoom adds reduced
-  original split-screen masks, sniper markings and 2×/10× labels. Layout is
-  adapted to the N64 viewports.
+- Compact cyan pixel HUD: upright 4×6 type, flatter shield/health bars,
+  grenade silhouettes, and all 60 individual AR rounds in three rows.
+  Original weapon/vehicle reticle silhouettes are point sampled; the original
+  multiplayer motion sensor retains its artwork, opacity, size and placement.
+  Pistol/sniper zoom uses reduced original masks and sniper markings with
+  native 2×/10× labels. See [HUD_PIXELS.md](HUD_PIXELS.md).
   Reticles and aiming projection use the original Xbox title-safe centers,
   including the split-screen offsets; see [RETICLE_LAYOUT.md](RETICLE_LAYOUT.md).
 - Original decoded shots, reloads, explosions, engines, footsteps, player
@@ -473,8 +475,8 @@ remain simplified. Animation is sampled from a subset of source clips; there is
 no complete animation graph, ragdoll or inverse kinematics. The coarse bases,
 solid-color sky, flat model shading and reduced effects remain visible.
 There is no campaign, networking, bots, CTF/ball objective rules, saved games,
-or full Xbox shader/lightmap pipeline. HUD art is original, but menus and status
-text remain simplified. Scope masks use alpha darkening instead of the Xbox
+or full Xbox shader/lightmap pipeline. HUD counters and status text use native
+pixel artwork alongside original radar/reticle assets. Scope masks use alpha darkening instead of the Xbox
 convolution/blur effect, and sniper night vision is not implemented. The PC-only
 flamethrower is retained in development source data but its resident model,
 animation and audio arrays are omitted by default. Both asset packers accept

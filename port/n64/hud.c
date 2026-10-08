@@ -4,18 +4,12 @@
 #include <libdragon.h>
 #include <math.h>
 
-/* Xbox bitmaps retain their silhouette, glyphs and weapon-specific reticles.
- * Rendering scales the original art to the N64 viewport, without new borders
- * or player labels across the view. Font1 is used only for status messages. */
+/* Original motion sensor and scopes; native pixel art for compact counters
+ * and meters. The immutable IA4 bank is uploaded once per player view. */
 static surface_t images[BG_H_COUNT];
 static surface_t scope_images[BG_SCOPE_COUNT];
-/* The source digits use a one-bit alpha silhouette. An IA4 atlas preserves
- * that silhouette in 800 bytes and lets every HUD number share one upload. */
-static uint8_t digit_pixels[16*100/2] __attribute__((aligned(16)));
-static surface_t digit_atlas;
-typedef struct { unsigned value; int places; float x,y,scale; bool warning; } hud_number;
-static hud_number numbers[8];
-static unsigned number_count;
+#include "hud_pixels.h"
+static surface_t pixel_atlas;
 static int current_combiner,current_filter;
 /* Static sprite geometry/texture uploads do not depend on health, ammo or
  * tint. Replaying these RDP blocks avoids repeating the large-sprite tiler
@@ -31,12 +25,9 @@ enum { HUD_EXIT, HUD_PICKUP, HUD_ENTER, HUD_RELOAD, HUD_OVERHEAT,
        HUD_RESPAWN_0, HUD_RESPAWN_1, HUD_RESPAWN_2, HUD_RESPAWN_3,
        HUD_XBOX_EXIT, HUD_XBOX_PICKUP, HUD_XBOX_ENTER, HUD_FLIP, HUD_XBOX_FLIP, HUD_STATUS_COUNT };
 static const char *const status_strings[HUD_STATUS_COUNT]={
-    "B EXIT","B PICK UP","B ENTER","Reloading","Overheated",
-    "Respawn in 0","Respawn in 1","Respawn in 2","Respawn in 3",
+    "B EXIT","B PICK UP","B ENTER","RELOADING","OVERHEATED",
+    "RESPAWN IN 0","RESPAWN IN 1","RESPAWN IN 2","RESPAWN IN 3",
     "C-LEFT EXIT","C-LEFT PICK UP","C-LEFT ENTER","B FLIP","C-LEFT FLIP"};
-/* These labels have fixed font, width and alignment. Lay them out once instead
- * of allocating and formatting the same paragraph in each player view. */
-static rdpq_paragraph_t *status_layouts[2][HUD_STATUS_COUNT];
 static const color_t blue = {105,166,236,255};
 static const color_t bright = {149,207,255,255};
 static const color_t red = {248,63,58,255};
@@ -45,11 +36,6 @@ static const unsigned reticles[BG_WEAPON_COUNT] = {
     BG_H_RETICLE_AR, BG_H_RETICLE_PISTOL, BG_H_RETICLE_PLASMA_PISTOL,
     BG_H_RETICLE_PLASMA_RIFLE, BG_H_RETICLE_NEEDLER, BG_H_RETICLE_SHOTGUN,
     BG_H_RETICLE_SNIPER, BG_H_RETICLE_ROCKET, BG_H_RETICLE_AR
-};
-static const unsigned magazines[BG_WEAPON_COUNT] = {
-    BG_H_AMMO_AR, BG_H_AMMO_PISTOL, BG_H_AMMO_AR, BG_H_AMMO_AR,
-    BG_H_AMMO_NEEDLER, BG_H_AMMO_SHOTGUN, BG_H_AMMO_SNIPER,
-    BG_H_AMMO_ROCKET, BG_H_AMMO_AR
 };
 static const int vehicle_reticles[BG_VEHICLE_COUNT] = {
     BG_H_RETICLE_WARTHOG, BG_H_RETICLE_GHOST, BG_H_RETICLE_SCORPION, BG_H_RETICLE_BANSHEE
@@ -91,6 +77,9 @@ static void mode(color_t tint) {
 static void blit_picture(unsigned id,float x,float y,float scale) {
     const bg_hud_image *im=&bg_hud_images[id];
     x+=im->x*scale;y+=im->y*scale;
+    bool point=(id>=BG_H_RETICLE_AR&&id<=BG_H_RETICLE_ROCKET)||
+        (id>=BG_H_RETICLE_WARTHOG&&id<=BG_H_RETICLE_BANSHEE);
+    if(point){x=roundf(x);y=roundf(y);set_filter(true);}
     /* Moving radar blips are deliberately uncached: their positions can fill
      * an unbounded number of entries. Full caches fall back to ordinary blits. */
     if (id!=BG_H_BLIP) {
@@ -109,14 +98,14 @@ static void blit_picture(unsigned id,float x,float y,float scale) {
             *b=(hud_blit){.id=id,.x=x,.y=y,.scale=scale};
             rspq_block_begin();
             rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
-                .scale_x=scale,.scale_y=scale,.filtering=true});
+                .scale_x=scale,.scale_y=scale,.filtering=!point});
             b->block=rspq_block_end();
             blit_next[i]=0;*link=i+1;
             rspq_block_run(b->block);return;
         }
     }
     rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
-        .scale_x=scale,.scale_y=scale,.filtering=true});
+        .scale_x=scale,.scale_y=scale,.filtering=!point});
 }
 
 static void picture(unsigned id, float x, float y, float scale, color_t tint) {
@@ -124,60 +113,109 @@ static void picture(unsigned id, float x, float y, float scale, color_t tint) {
     mode(tint);blit_picture(id,x,y,scale);
 }
 
-static void meter(unsigned id, float x, float y, float scale, float amount, color_t tint) {
-    amount=fminf(fmaxf(amount,0.f),1.f);
-    picture(id,x,y,scale,muted);
-    if (amount<=0.f) return;
-    const bg_hud_image *im=&bg_hud_images[id];
-    int width=(int)ceilf(im->w*amount)-im->x;
-    if(width<=0)return;
-    mode(tint);
-    if(width>=im->tex_w) { blit_picture(id,x,y,scale);return; }
-    rdpq_tex_blit(&images[id],x+im->x*scale,y+im->y*scale,&(rdpq_blitparms_t){
-        .width=width,.scale_x=scale,.scale_y=scale,.filtering=true});
-}
-
-static void number(unsigned value, int places, float x, float y, float scale, color_t tint) {
-    /* The Xbox18x12 digit cell has only an11x10 ink region. Scaling all its
-     * transparent padding down made the four-player digits about4px high.
-     * Preserve the original glyph but keep its ink at least6.5px high and
-     * sample sharply, with a one-pixel navy shadow for sky/terrain contrast. */
-    if (number_count<sizeof(numbers)/sizeof(numbers[0]))
-        numbers[number_count++]=(hud_number){value,places,x,y,fmaxf(scale*1.6f,.65f),tint.r==red.r};
-}
-
-static void draw_numbers(void) {
-    set_filter(true);set_combiner(1);
-    rdpq_tex_upload(TILE0,&digit_atlas,NULL);
-    /* All shadows, then all foregrounds: only one texture load per viewport,
-     * and two color changes for a HUD without warning digits. */
-    for (int shadow=1;shadow>=0;shadow--) {
-        int last_color=-1;
-        for (unsigned n=0;n<number_count;n++) {
-            const hud_number *num=&numbers[n];
-            int color=shadow?2:num->warning;
-            if (color!=last_color) {
-                rdpq_set_prim_color(shadow?RGBA32(3,10,25,200):
-                    num->warning?red:RGBA32(137,209,255,255));
-                last_color=color;
-            }
-            unsigned divisor=1;
-            for (int i=1;i<num->places;i++) divisor*=10;
-            float gx=num->x;
-            for (int i=0;i<num->places;i++) {
-                unsigned digit=(num->value/divisor)%10;
-                float px=roundf(gx)+shadow,py=roundf(num->y)+shadow;
-                rdpq_texture_rectangle_scaled(TILE0,px,py,px+11*num->scale,py+10*num->scale,
-                    0,digit*10,11,digit*10+10);
-                gx+=12*num->scale;divisor/=10;
-            }
-        }
-    }
-}
-
 static void pixel(int x,int y,int w,int h,color_t c) {
     set_combiner(2);rdpq_set_prim_color(c);
     rdpq_fill_rectangle(x,y,x+w,y+h);
+}
+
+/* This bank stays resident through all counters, bars and labels in a view. */
+static const color_t hud_cyan={100,220,255,255};
+static const color_t hud_dim={25,62,77,255};
+static const color_t hud_shadow={3,13,22,235};
+static void hud_sprite(int u,int v,int w,int h,int x,int y,color_t color){
+    if(w<=0||h<=0)return;
+    set_combiner(1);rdpq_set_prim_color(color);
+    rdpq_texture_rectangle(TILE0,x,y,x+w,y+h,u,v);
+}
+static int hud_text_width(const char *text){return (int)strlen(text)*5-1;}
+static void hud_text(const char *text,int x,int y,color_t color){
+    set_combiner(1);
+    for(int shadow=1;shadow>=0;shadow--){
+        rdpq_set_prim_color(shadow?hud_shadow:color);
+        for(unsigned i=0;text[i];i++){
+            int glyph=hud_glyph(text[i]);if(glyph<0)continue;
+            int px=x+i*5+shadow,py=y+shadow;
+            rdpq_texture_rectangle(TILE0,px,py,px+4,py+6,(glyph%10)*6,(glyph/10)*8);
+        }
+    }
+}
+static void hud_number(int value,int x,int y,unsigned places,color_t color){
+    char text[16];unsigned at=sizeof(text)-1;
+    unsigned magnitude=value<0?0u-(unsigned)value:(unsigned)value;
+    text[at]=0;
+    do {text[--at]='0'+magnitude%10;magnitude/=10;}while(magnitude);
+    while(sizeof(text)-1-at<places&&at>1)text[--at]='0';
+    if(value<0)text[--at]='-';
+    hud_text(text+at,x,y,color);
+}
+static void hud_vitals(const bg_player *p,int x,int y){
+    /* A one-pixel step at either end echoes Halo without its long diagonals. */
+    hud_sprite(0,72,46,7,x+1,y+1,hud_shadow);
+    hud_sprite(0,72,46,7,x,y,p->shield<=0?red:hud_cyan);
+    pixel(x+2,y+2,42,3,hud_dim);
+    int fill=(int)ceilf(fminf(fmaxf(p->shield,0),100)*.42f);
+    if(fill)pixel(x+2,y+2,fill,3,hud_cyan);
+    if(p->shield>100){
+        fill=(int)ceilf(fminf(p->shield-100,100)*.42f);
+        pixel(x+2,y+2,fill,3,RGBA32(248,221,104,255));
+    }
+    /* Eight upright health cells, aligned to the shield's right edge. */
+    hud_sprite(0,67,31,3,x+14,y+9,hud_shadow);
+    hud_sprite(0,67,31,3,x+13,y+8,hud_dim);
+    int cells=(int)ceilf(fminf(fmaxf(p->health,0),100)*.08f);
+    if(cells)hud_sprite(0,67,cells*4-1,3,x+13,y+8,
+        p->health<=33?red:p->health<=67?RGBA32(255,217,65,255):hud_cyan);
+}
+static void hud_ammunition(const bg_player *p,unsigned weapon,int x,int y){
+    const bg_weapon_def *def=&bg_weapon_defs[weapon];
+    color_t tint=p->overheated?red:hud_cyan;
+    hud_sprite(40,32,19,10,x+1,y+1,hud_shadow);
+    hud_sprite(40,32,19,10,x,y,hud_cyan);
+    hud_number(p->ammo<0?0:p->ammo,x+2,y+2,def->energy?3:2,tint);
+    for(int i=0;i<2;i++){
+        int gx=x+23+i*14;
+        hud_sprite(42+i*8,45,6,7,gx+1,y+2,hud_shadow);
+        hud_sprite(42+i*8,45,6,7,gx,y+1,p->grenade_kind==i?hud_cyan:hud_dim);
+        hud_number(p->grenades[i],gx+7,y+2,1,p->grenade_kind==i?hud_cyan:hud_dim);
+    }
+    int my=y+12,ammo=p->ammo;
+    if(ammo<0)ammo=0;
+    if(ammo>def->magazine)ammo=def->magazine;
+    if(def->energy){
+        /* Battery digits above; heat grows toward the right independently. */
+        pixel(x,my,39,4,hud_shadow);pixel(x+1,my+1,37,2,hud_dim);
+        int heat=(int)ceilf(fminf(fmaxf(p->heat,0),1)*37);
+        if(heat)pixel(x+1,my+1,heat,2,p->heat>.75f?red:hud_cyan);
+        hud_text("HEAT",x,my+6,p->overheated?red:hud_cyan);
+        return;
+    }
+    if(weapon==BG_W_AR){
+        hud_sprite(0,32,39,11,x+1,my+1,hud_shadow);
+        hud_sprite(0,32,39,11,x,my,hud_dim);
+        /* Twenty columns, each with three rounds: deplete right to left,
+         * then bottom to top within a column, as in the source ammo meter.
+         * A partial column still represents exactly one or two rounds. */
+        int columns=ammo/3,remainder=ammo%3;
+        if(columns)hud_sprite(0,32,columns*2-1,11,x,my,hud_cyan);
+        if(remainder)hud_sprite(columns*2,32,1,remainder*4-1,x+columns*2,my,hud_cyan);
+        hud_number(p->reserve<0?0:p->reserve,x,my+13,3,hud_cyan);
+    }else if(def->magazine>20){
+        pixel(x,my,39,4,hud_shadow);pixel(x+1,my+1,37,2,hud_dim);
+        int fill=(ammo*37+def->magazine-1)/def->magazine;
+        if(fill)pixel(x+1,my+1,fill,2,hud_cyan);
+        hud_number(p->reserve<0?0:p->reserve,x,my+7,3,hud_cyan);
+    }else{
+        int v=44,step=3,w=2,count=def->magazine;
+        if(weapon==BG_W_NEEDLER){v=50;step=2;w=1;}
+        else if(weapon==BG_W_SNIPER){v=55;step=10;w=8;}
+        else if(weapon==BG_W_ROCKET){v=61;step=21;w=18;}
+        int full=(count-1)*step+w,filled=ammo?(ammo-1)*step+w:0;
+        if(filled>full)filled=full;
+        hud_sprite(0,v,full,5,x+1,my+1,hud_shadow);
+        hud_sprite(0,v,full,5,x,my,hud_dim);
+        if(filled)hud_sprite(0,v,filled,5,x,my,hud_cyan);
+        hud_number(p->reserve<0?0:p->reserve,x,my+7,3,hud_cyan);
+    }
 }
 
 static void radar(unsigned p, int x, int y, float scale) {
@@ -272,11 +310,7 @@ static void scope_marks(const bg_player *p,float cx,float cy,int height) {
                 &(rdpq_blitparms_t){.scale_x=size,.scale_y=size,.filtering=true});
         }
     }
-    unsigned id=p->weapon==BG_W_SNIPER&&p->zoom==2?BG_H_ZOOM_10X:BG_H_ZOOM_2X;
-    const bg_hud_image *im=&bg_hud_images[id];
-    float ox=p->weapon==BG_W_PISTOL?(split?33.5f:52.5f):(split?23.75f:75.f);
-    float oy=p->weapon==BG_W_PISTOL?(split?33.5f:52.5f):(split?15.f:52.f);
-    picture(id,cx+ox-im->w*.25f,cy+oy-im->h*.25f,.5f,bright);
+
 }
 
 void bg_hud_init(void) {
@@ -290,24 +324,9 @@ void bg_hud_init(void) {
         scope_images[i]=surface_make((void *)im->pixels,FMT_I8,im->w,im->h,im->stride);
         data_cache_hit_writeback((void *)im->pixels,im->stride*im->h);
     }
-    for (unsigned d=0;d<10;d++) {
-        const bg_hud_image *im=&bg_hud_images[BG_H_DIGIT_0+d];
-        for (unsigned y=0;y<10;y++) for (unsigned x=0;x<11;x++) {
-            unsigned pixel=(d*10+y)*16+x;
-            if (im->pixels[(y+1)*im->w+x+4]&1)
-                digit_pixels[pixel/2]|=x&1?0x0f:0xf0;
-        }
-    }
-    digit_atlas=surface_make(digit_pixels,FMT_IA4,16,100,8);
-    data_cache_hit_writeback(digit_pixels,sizeof(digit_pixels));
-    rdpq_font_t *font=(rdpq_font_t *)rdpq_text_get_font(1);
-    rdpq_font_style(font,7,&(rdpq_fontstyle_t){.color=bright});
-    rdpq_font_style(font,8,&(rdpq_fontstyle_t){.color=red});
-    for(unsigned split=0;split<2;split++)for(unsigned i=0;i<HUD_STATUS_COUNT;i++) {
-        const rdpq_textparms_t text={.style_id=7,.width=split?150:302,.align=ALIGN_CENTER};
-        int length=(int)strlen(status_strings[i]);
-        status_layouts[split][i]=rdpq_paragraph_build(&text,1,status_strings[i],&length);
-    }
+    hud_pixels_init();
+    pixel_atlas=surface_make(hud_pixels,FMT_IA4,HUD_PIXEL_W,HUD_PIXEL_H,HUD_PIXEL_W/2);
+    data_cache_hit_writeback(hud_pixels,sizeof(hud_pixels));
 }
 
 void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_style style) {
@@ -321,7 +340,7 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
     float aim_x,aim_y;
     unsigned views=height>=240?1:width<200?4:2;
     bg_hud_aim_point(views,index,x,y,width,height,&aim_x,&aim_y);
-    number_count=0;current_combiner=current_filter=-1;
+    current_combiner=current_filter=-1;
     rdpq_mode_begin();
     rdpq_set_mode_standard();
     rdpq_mode_zbuf(false,false);rdpq_mode_persp(false);rdpq_mode_tlut(TLUT_NONE);
@@ -330,74 +349,50 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
     rdpq_set_scissor(x,y,x+width,y+height);
     if (scoped(p)) scope_mask(p,x,y,width,height,aim_x,aim_y);
 
-    /* Shields and segmented health retain the sloped Xbox backgrounds. */
-    /* cyborg_mp tag anchors: background(-7,1), meter(0,0), health(29,11). */
-    float shield_x=x+width-margin-bg_hud_images[BG_H_SHIELD_METER].w*scale;
-    float shield_y=y+margin;
-    picture(BG_H_SHIELD_BG,shield_x-7*scale,shield_y+scale,scale,blue);
-    color_t shield=p->shield<=0?red:p->shield>100?RGBA32(248,221,104,255):bright;
-    meter(BG_H_SHIELD_METER,shield_x,shield_y,scale,p->shield/100.f,shield);
-    meter(BG_H_HEALTH_METER,shield_x+29*scale,shield_y+11*scale,scale,
-        p->health/100.f,p->health<=33?red:p->health<=67?RGBA32(255,217,65,255):bright);
-
-    /* Original slanted digits, with ink sized for the N64 display. */
-    if (personal) {
-    float ammo_x=x+margin,ammo_y=y+margin;
-    picture(BG_H_AMMO_BG,ammo_x,ammo_y,scale,blue);
-    unsigned ammo=(unsigned)(p->ammo<0?0:p->ammo);
-    number(ammo,3,ammo_x+3*scale,ammo_y+2*scale,scale,p->overheated?red:bright);
-    float ammo_meter_y=ammo_y+17*scale+3;
-    const bg_weapon_def *def=&bg_weapon_defs[weapon];
-    float fraction=def->energy?1.f-p->heat:(float)p->ammo/fmaxf(def->magazine,1);
-    meter(magazines[weapon],ammo_x,ammo_meter_y,scale,fraction,p->overheated?red:blue);
-    if (!def->energy) number((unsigned)(p->reserve<0?0:p->reserve),3,ammo_x,ammo_meter_y+bg_hud_images[magazines[weapon]].h*scale+2,scale*.8f,blue);
-    /* The frag/plasma outlines are the original grenade-HUD sprites. */
-    float grenade_x=ammo_x+59*scale,grenade_y=ammo_y+2*scale;
-    picture(BG_H_GRENADE_FRAG,grenade_x,grenade_y,scale,p->grenade_kind==0?bright:muted);
-    number((unsigned)p->grenades[0],1,grenade_x+13*scale,grenade_y,scale,blue);
-    grenade_x+=31*scale;
-    picture(BG_H_GRENADE_PLASMA,grenade_x,grenade_y,scale,p->grenade_kind==1?bright:muted);
-    number((unsigned)p->grenades[1],1,grenade_x+17*scale,grenade_y,scale,blue);
-    }
-
     if (p->health>0) {
         if (scoped(p)) scope_marks(p,aim_x,aim_y,height);
-        float reticle_scale=scale;
+        float reticle_scale=scale*.85f;
         int id=reticles[weapon];
         if (!personal) id=vehicle->kind==BG_V_WARTHOG&&p->seat==0?-1:
             vehicle_reticles[vehicle->kind];
         if (id>=0) {
             const bg_hud_image *reticle=&bg_hud_images[id];
             picture(id,aim_x-reticle->w*reticle_scale*.5f,
-                aim_y-reticle->h*reticle_scale*.5f,reticle_scale,bright);
+                aim_y-reticle->h*reticle_scale*.5f,reticle_scale,hud_cyan);
         }
         if (!p->zoom) radar(index,x+margin,y+height-margin-bg_hud_images[BG_H_MOTION_BG].h*scale,scale);
     }
 
-    /* Compact multiplayer score: Xbox blue tally in the lower-right corner. */
-    int score=p->score;
-    float score_x=x+width-margin-36*scale,score_y=y+height-margin-12*scale;
-    if (score<0) pixel(score_x-4,score_y+3,3,1,blue);
-    number((unsigned)(score<0?-score:score),2,score_x,score_y,scale,bright);
-    draw_numbers();
-    rdpq_set_mode_standard();
-    int status=-1,status_y=y+height-8;
+    /* Pixel HUD: all coordinates and glyph extents are native integers. */
+    set_filter(true);set_combiner(1);
+    rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
+    int left=x+margin,top=y+margin,right=x+width-margin;
+    hud_vitals(p,right-46,top);
+    if(personal)hud_ammunition(p,weapon,left,top);
+    hud_number(p->score,right-(p->score<0?15:10),y+height-margin-6,2,hud_cyan);
+    if(scoped(p)){
+        int ox=p->weapon==BG_W_PISTOL?(height<200?34:53):(height<200?24:75);
+        int oy=p->weapon==BG_W_PISTOL?(height<200?34:53):(height<200?15:52);
+        hud_text(p->weapon==BG_W_SNIPER&&p->zoom==2?"10X":"2X",
+            (int)roundf(aim_x)+ox-5,(int)roundf(aim_y)+oy-3,hud_cyan);
+    }
+    int status=-1,status_y=y+height-margin-6;
     if (p->health<=0) {
         int seconds=(int)ceilf(p->respawn);
+        status_y=y+height/2+8;
         if(seconds>=0&&seconds<=3)status=HUD_RESPAWN_0+seconds;
         else {
-            const rdpq_textparms_t text={.style_id=7,.width=width-2*margin,.align=ALIGN_CENTER};
-            rdpq_text_printf(&text,1,x+margin,y+height/2+12,"Respawn in %d",seconds);
+            char label[32];snprintf(label,sizeof(label),"RESPAWN IN %d",seconds);
+            hud_text(label,x+(width-hud_text_width(label))/2,status_y,hud_cyan);
         }
-        status_y=y+height/2+12;
-    } else if (personal&&p->reload>0) {
-        status=HUD_RELOAD;
-    } else if (personal&&p->overheated) {
-        status=HUD_OVERHEAT;
-    } else {
-        status=interaction(p);
-    }
+    } else if (personal&&p->reload>0) status=HUD_RELOAD;
+    else if (personal&&p->overheated) status=HUD_OVERHEAT;
+    else status=interaction(p);
     status=control_status(status,style);
-    if(status>=0)rdpq_paragraph_render(status_layouts[width<200][status],x+margin,status_y);
+    if(status>=0){
+        const char *label=status_strings[status];
+        hud_text(label,x+(width-hud_text_width(label))/2,status_y,
+            status==HUD_OVERHEAT?red:hud_cyan);
+    }
     rdpq_set_mode_standard();
 }

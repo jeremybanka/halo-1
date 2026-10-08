@@ -1113,7 +1113,9 @@ static void update_effects(float dt){
     }
 }
 #ifdef BG_MODEL_QA
-#if defined(BG_GROUND_QA)
+#if defined(BG_HUD_QA)
+#include "hud_qa.h"
+#elif defined(BG_GROUND_QA)
 #include "ground_qa.h"
 #elif defined(BG_GEOMETRY_QA)
 #include "geometry_qa.h"

@@ -276,7 +276,7 @@ static void interaction_label(const bg_player*p,char *out,unsigned size){
     const char*vehicles[]={"WARTHOG","GHOST","SCORPION","BANSHEE"};
     out[0]=0;
     if(target.kind==BG_USE_PICKUP)snprintf(out,size,"PICK UP");
-    else if(target.kind==BG_USE_EXIT)snprintf(out,size,"EXIT %s",vehicles[bg_vehicles[target.object].kind]);
+    /* Exit remains available through use, without a persistent HUD hint. */
     else if(target.kind==BG_USE_FLIP)snprintf(out,size,"FLIP %s",vehicles[bg_vehicles[target.object].kind]);
     else if(target.kind==BG_USE_ENTER){
         const bg_vehicle*v=&bg_vehicles[target.object];

@@ -20,17 +20,19 @@ control and weapons become available after boarding finishes.
 
 ## Pixel button prompts and flipping
 
-Pickup, seat, exit and flip prompts use native-size cyan button icons with
+Pickup, seat and flip prompts use native-size cyan button icons with
 integer coordinates and point sampling. There is no separator dash. A circular
 B represents N64 use; the Xbox layout shows the four-button C cluster with its
 left button filled. Weapon pickups retain the word HOLD. Vehicle prompts name
 the vehicle or seat, including FLIP WARTHOG, FLIP GHOST and FLIP BANSHEE.
+There is no persistent exit hint while seated. Use still exits immediately
+with B (N64 controls) or C-left (Xbox controls), including the exit animation.
 
 `hud_buttons.h` supplies the complete reusable set: A/B circles, mirrored L/R
 shoulders, a symmetric Z shoulder, four C-direction clusters, Start and D-pad.
 Its immutable IA4 atlas occupies 1,536 bytes and uploads only when an interaction
-prompt is present. The QA contact sheet additionally draws all icons; it is not
-part of the release HUD. The icon combiner preserves intensity as well as alpha,
+prompt is present. The gallery shows the complete icon set separately from
+gameplay captures. The icon combiner preserves intensity as well as alpha,
 so inactive C buttons and letter/arrow cutouts remain distinct.
 
 The original flip torque was already present. Its use gate now matches the

@@ -1079,18 +1079,19 @@ static void animate_firstperson(unsigned p){
     if(player->weapon_ready>0)bg_interaction_pose(output,&bg_ready_poses[w],bg_ready_times[w]-player->weapon_ready,false);
     else animate_mesh(output,a,f0,f1,fraction);
     bg_fx_pose(p,w,clip,f0,f1,fraction);
-    if(w==BG_W_SNIPER){
+    const bg_fp_detail_asset*detail=&bg_fp_details[w];
+    if(detail->vertices){
         T3DVertPacked *scope=scope_vertices[slot][p];
-        const int16_t (*a)[3]=bg_scope_poses[bg_scope_offsets[clip]+f0];
-        const int16_t (*b)[3]=bg_scope_poses[bg_scope_offsets[clip]+f1];
-        for(unsigned v=0;v<12;v++){
+        const int16_t (*a)[3]=&detail->poses[(detail->offsets[clip]+f0)*detail->vertices];
+        const int16_t (*b)[3]=&detail->poses[(detail->offsets[clip]+f1)*detail->vertices];
+        for(unsigned v=0;v<detail->vertices;v++){
             int16_t*point=t3d_vertbuffer_get_pos(scope,v);
             for(unsigned axis=0;axis<3;axis++)point[axis]=a[v][axis]+(((int)b[v][axis]-a[v][axis])*fraction>>8);
-            *t3d_vertbuffer_get_color(scope,v)=bg_scope_colors[v];
+            *t3d_vertbuffer_get_color(scope,v)=detail->colors[v];
         }
         if(player->weapon_ready>0){
-            int16_t points[12][3];bg_interaction_points(points,&bg_ready_scope,bg_ready_times[w]-player->weapon_ready);
-            for(unsigned v=0;v<12;v++)memcpy(t3d_vertbuffer_get_pos(scope,v),points[v],sizeof(points[v]));
+            int16_t points[12][3];bg_interaction_points(points,w==BG_W_SNIPER?&bg_ready_scope:&bg_ready_plasma[w==BG_W_PLASMA_RIFLE],bg_ready_times[w]-player->weapon_ready);
+            for(unsigned v=0;v<detail->vertices;v++)memcpy(t3d_vertbuffer_get_pos(scope,v),points[v],sizeof(points[v]));
         }
         data_cache_hit_writeback(scope,sizeof(scope_vertices[slot][p]));
     }
@@ -1192,6 +1193,8 @@ static void update_effects(float dt){
 #include "ground_qa.h"
 #elif defined(BG_GEOMETRY_QA)
 #include "geometry_qa.h"
+#elif defined(BG_PLASMA_QA)
+#include "plasma_qa.h"
 #elif defined(BG_WEAPON_QA)
 #include "weapon_qa.h"
 #else
@@ -1495,17 +1498,19 @@ static void draw_view(unsigned p){
             submitted_vertices+=8;
 #endif
         }
-        if(player->weapon==BG_W_SNIPER){
-            /* Exact source display topology, with finer coordinates and real
+        const bg_fp_detail_asset*detail=&bg_fp_details[player->weapon];
+        if(detail->vertices){
+            /* Thin weapon display topology, with finer coordinates and real
              * depth testing. It remains occluded by the gun/hands in motion. */
             matrix(&scope_matrices[slot][p],BG_SCALE/4096.f,player->yaw,player->pitch,pos);
             data_cache_hit_writeback(&scope_matrices[slot][p],sizeof(T3DMat4FP));
             t3d_matrix_set(&scope_matrices[slot][p],true);
-            t3d_vert_load(scope_vertices[slot][p],0,12);
-            for(unsigned v=0;v<12;v+=3)t3d_tri_draw(v,v+1,v+2);
-            t3d_tri_sync();triangles+=4;
+            t3d_vert_load(scope_vertices[slot][p],0,(detail->vertices+1)&~1u);
+            for(unsigned v=0;v<detail->triangles*3;v+=3)
+                t3d_tri_draw(detail->indices[v],detail->indices[v+1],detail->indices[v+2]);
+            t3d_tri_sync();triangles+=detail->triangles;
 #ifdef BG_PROFILE
-            submitted_vertices+=12;
+            submitted_vertices+=detail->vertices;
 #endif
         }
         unsigned flash_triangles=bg_fx_draw_weapon(p,&guns[slot][p],BG_FP_SCALE,true,game_time);

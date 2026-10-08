@@ -8,7 +8,7 @@ import contextlib, hashlib, json, math, struct
 from pathlib import Path
 import numpy as np
 from pack_assets import position, floats
-from pack_firstperson import prepare_model
+from pack_firstperson import prepare_model, split_details
 from pack_fp_ammo import globals_for, overlay_states, prepare_ar
 from extract_extended import MODEL_PATHS
 ROOT=Path(__file__).resolve().parents[2]
@@ -148,7 +148,7 @@ def run():
                 frames.append([[p[0],-p[2],p[1]] for p in points])
             pair.append(emit(frames,c['duration'],4096))
         hatches.append(pair)
-    ready=[];readytimes=[];fp_report={};needle_defs=[];needle_indices=[];ar_def=scope_def=None
+    ready=[];readytimes=[];fp_report={};needle_defs=[];needle_indices=[];ar_def=scope_def=None;plasma_defs=[]
     for name,w in fp['weapons'].items():
         if name=='flamethrower':continue
         original=fpraw['weapons'][name];g=meta(h,'model_animations',MODEL_PATHS[name].rsplit('\\',1)[0]+r'\fp\fp')
@@ -172,11 +172,11 @@ def run():
             return [sum((skins[part][b]@p)*weight for b,weight in weights)[:3].tolist() for part,weights,p in corners]
         frames=[skin_fp(s) for s in c['frames']]
         mesh_source=w
-        if name=='sniper':
-            mats={i for i,n in enumerate(w['material_names']) if n.endswith((' screen',' subscreen'))}
-            screen=[i for i,t in enumerate(w['triangles']) if t['material'] in mats];keep=[i for i in range(len(w['triangles'])) if i not in screen]
-            scope_def=emit([[p for i in screen for p in f[i*3:i*3+3]] for f in frames],c['duration'],4096)
-            mesh_source={**w,'triangles':[w['triangles'][i] for i in keep], 'clips':{n:{**v,'frames':[[p for i in keep for p in f[i*3:i*3+3]] for f in v['frames']]} for n,v in w['clips'].items()}}
+        if name in ('sniper','plasma_pistol','plasma_rifle'):
+            mesh_source,keep,sources,_=split_details(w,name)
+            detail=emit([[f[i] for i in sources] for f in frames],c['duration'],4096)
+            if name=='sniper':scope_def=detail
+            else:plasma_defs.append(detail)
             frames_for_mesh=[[p for i in keep for p in f[i*3:i*3+3]] for f in frames]
         else:frames_for_mesh=frames
         mesh,_,_=prepare_model(mesh_source,name)
@@ -208,7 +208,7 @@ def run():
     lines.append('const bg_rom_pose bg_locomotion_grips[6]={'+','.join(init(d) for d in locomotion_grips)+'};')
     lines.append('const bg_rom_pose bg_hatch_poses[2][2]={'+','.join('{'+','.join(init(d) for d in pair)+'}' for pair in hatches)+'};')
     lines.append('const bg_rom_pose bg_seat_poses[][3][2]={'+','.join('{'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in group)+'}' for group in groups)+'};')
-    for symbol,ds in [('bg_ready_poses',ready),('bg_ready_needles',needle_defs),('bg_seat_grips',grips),('bg_body_ready_poses',body_ready_poses)]:lines.append('const bg_rom_pose '+symbol+'['+str(len(ds))+']={'+','.join(init(d) for d in ds)+'};')
+    for symbol,ds in [('bg_ready_plasma',plasma_defs),('bg_ready_poses',ready),('bg_ready_needles',needle_defs),('bg_seat_grips',grips),('bg_body_ready_poses',body_ready_poses)]:lines.append('const bg_rom_pose '+symbol+'['+str(len(ds))+']={'+','.join(init(d) for d in ds)+'};')
     for symbol,d in [('bg_ready_ar_digits',ar_def),('bg_ready_scope',scope_def),('bg_body_ready_grip',ready_grip)]:lines.append('const bg_rom_pose '+symbol+'='+init(d)+';')
     lines.append('const uint16_t bg_ready_needle_vertices[]={'+','.join(map(str,needle_indices))+'};')
     lines.append(f'const unsigned bg_interaction_scratch_bytes={scratch};')

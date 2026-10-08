@@ -361,6 +361,10 @@ records the weapon/effect/particle/bitmap chain and rejects stale dependencies
 at build time. See [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md) for the bounded runtime
 and live four-player verification fixture.
 
+Plasma meter alpha masks use small geometry proxies, with high-precision poses
+sharing the sniper display workspace. See [PLASMA_METERS.md](PLASMA_METERS.md)
+for the raised pistol U, inset rifle strip, rebuild commands and comparisons.
+
 Run `build/n64-python/bin/python port/n64/extract_vehicle_visuals.py` to pack the owned b40 damaged Ghost/Banshee permutations and death-effect sprites. The build validates the extraction hashes. The world packer restores bright yellow, un-tinted visor panels in the original low-detail Spartan meshes; see [VEHICLE_DESTRUCTION.md](VEHICLE_DESTRUCTION.md).
 
 Ground textures retain the original grass/sand mask through an offline diffuse

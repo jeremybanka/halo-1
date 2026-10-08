@@ -15,6 +15,7 @@ extern const bg_rom_pose bg_seat_poses[][3][2];
 extern const bg_rom_pose bg_body_ready_poses[2],bg_body_ready_grip;
 extern const bg_rom_pose bg_seat_grips[],bg_hatch_poses[2][2];
 extern const bg_rom_pose bg_ready_poses[9],bg_ready_ar_digits,bg_ready_scope,bg_ready_needles[21];
+extern const bg_rom_pose bg_ready_plasma[2];
 extern const uint16_t bg_ready_needle_vertices[];
 extern const unsigned bg_interaction_scratch_bytes;
 void bg_interaction_render_init(void);

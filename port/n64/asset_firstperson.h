@@ -12,8 +12,13 @@ enum { BG_FP_IDLE, BG_FP_FIRE, BG_FP_RELOAD, BG_FP_MELEE, BG_FP_CLIPS };
 extern const bg_model_asset bg_fp_models[BG_FP_WEAPONS];
 extern const uint8_t *const bg_fp_team_masks[BG_FP_WEAPONS];
 extern const bg_anim_asset bg_fp_animations[BG_FP_WEAPONS][BG_FP_CLIPS];
-/* The scope uses the same clip/frame clock, with 1/4096-unit coordinates. */
-extern const int16_t bg_scope_poses[][12][3];
-extern const uint16_t bg_scope_offsets[4];
-extern const uint32_t bg_scope_colors[12];
+/* Tiny high-precision displays reuse the sniper's twelve-vertex workspace. */
+typedef struct {
+ const int16_t (*poses)[3];
+ const uint16_t *offsets;
+ const uint32_t *colors;
+ const uint8_t *indices;
+ uint8_t vertices,triangles;
+} bg_fp_detail_asset;
+extern const bg_fp_detail_asset bg_fp_details[BG_FP_WEAPONS];
 #endif

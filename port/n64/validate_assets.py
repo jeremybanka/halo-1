@@ -56,6 +56,15 @@ def validate_firstperson(fp,report,text,preview=None):
  for name,expected_count in report['vertices'].items():
   tolerance=model_color_tolerance('firstperson',name)
   weapon=fp['weapons'][name];prefix='fp_'+name
+  # Thin displays are emitted separately at 1/4096 precision. Decode and
+  # validate the remaining full mesh independently of the packer's splitter.
+  if name in ('sniper','plasma_pistol','plasma_rifle'):
+   mats={i for i,n in enumerate(weapon['material_names']) if
+         (name=='sniper' and n.endswith((' screen',' subscreen'))) or
+         (name!='sniper' and weapon['material_types'][i]=='shader_transparent_meter')}
+   keep=[i for i,t in enumerate(weapon['triangles']) if t['material'] not in mats]
+   weapon={**weapon,'triangles':[weapon['triangles'][i] for i in keep],
+           'clips':{n:{**c,'frames':[[p for i in keep for p in f[3*i:3*i+3]] for f in c['frames']]} for n,c in weapon['clips'].items()}}
   body=re.search(r'static T3DVertPacked '+prefix+r'\[\].*?=\{(.*?)\n\};',text,re.S);assert body,name
   vertices=[];colors=[]
   for item in pair.findall(body[1]):
@@ -91,7 +100,8 @@ def validate_firstperson(fp,report,text,preview=None):
   for clipname,clip in weapon['clips'].items():
    count=validate_animation(text,prefix+'_'+clipname,clip,256,corners,len(vertices))
    total+=count;animation_bytes+=count
- assert animation_bytes==report['animation_bytes'] and total==report['total_bytes']
+ detail_bytes=sum(d['bytes'] for d in report.get('details',{'sniper':report['scope']}).values())
+ assert animation_bytes==report['animation_bytes'] and total+detail_bytes==report['total_bytes']
  assert total==sum(report[k] for k in ('vertex_bytes','team_mask_bytes','index_bytes','batch_bytes','animation_bytes'))
  maximum=re.search(r'bg_fp_max_vertices=(\d+);',text);assert maximum
  assert int(maximum[1])==max(report['vertices'].values())
@@ -205,6 +215,17 @@ def validate_cull_bounds(reduced,report,text,positions):
 
 
 def main():
+ import argparse
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument('--firstperson-only',action='store_true',help='Decode first-person banks independently of unrelated world/HUD contracts')
+ args=parser.parse_args()
+ if args.firstperson_only:
+  root=Path('build/n64');g=root/'generated'
+  validate_firstperson(json.loads((root/'assets/firstperson-reduced.json').read_text()),
+                       json.loads((g/'firstperson-report.json').read_text()),
+                       (g/'firstperson_data.c').read_text(),json.loads((g/'firstperson-preview.json').read_text()))
+  print('All eight first-person body banks, indices, colors, masks and animation endpoints pass')
+  return
  root=Path('build/n64');raw=json.loads((root/'assets/extended-raw.json').read_text())
  reduced=json.loads((root/'assets/extended-reduced.json').read_text())
  fp=json.loads((root/'assets/firstperson-reduced.json').read_text())

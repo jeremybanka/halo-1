@@ -222,7 +222,11 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
             packed[key] = (hands.get(key, [None] * len(hands['textures'])) +
                            gun.get(key, [None] * len(gun['textures'])))
         result['weapons'][name] = packed
+    from plasma_meters import repair_meters, blender_review
+    repair_meters(result, data)
+    blender_review(result, scene)
     Path(output).write_text(json.dumps(result))
+    for layer in scene.view_layers:layer.update()
     bpy.data.libraries.write(str(Path(output).with_suffix('.blend')), {scene})
     print(json.dumps({name:{'hands':w['hand_triangle_count'], 'gun':w['gun_triangle_count']}
                       for name, w in result['weapons'].items()}, indent=2))

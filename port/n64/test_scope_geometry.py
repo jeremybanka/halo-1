@@ -18,8 +18,10 @@ class ScopeGeometry(unittest.TestCase):
         triangles=[i for i,t in enumerate(weapon['triangles']) if t['material'] in materials]
         self.assertEqual(len(triangles),4)
         text=GENERATED.read_text()
-        encoded=re.search(r'bg_scope_poses\[\]\[12\]\[3\]=(.*?);',text).group(1)
+        encoded=re.search(r'bg_scope_poses\[\]\[\d+\]\[3\]=(.*?);',text).group(1)
         poses=np.array(json.loads(encoded.replace('{','[').replace('}',']')))
+        indices=[int(n) for n in re.search(r'bg_scope_indices\[\]=\{(.*?)\}',text).group(1).split(',')]
+        poses=poses[:,indices,:]
         offsets=[int(n) for n in re.search(r'bg_scope_offsets\[4\]=\{(.*?)\}',text).group(1).split(',')]
         checked=0
         for offset,clip in zip(offsets,weapon['clips'].values()):

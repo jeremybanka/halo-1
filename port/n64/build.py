@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+from setup_assets import connect_assets
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOWCASES = ['banshee', 'frag-double-kill', 'warthog-passenger', 'shotgun-kill',
@@ -80,6 +81,7 @@ def main():
             parser.error('--benchmark is a four-player replay measurement and cannot combine with --showcase or --validate')
         args.demo = True
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
+    connect_assets(required=False)
     out = ROOT/'build/n64'
     out.mkdir(parents=True, exist_ok=True)
     sky_report = out/'generated/sky-report.json'

@@ -1,6 +1,12 @@
 # Xbox asset conversion
 
-All raw game data, intermediate Blender scenes and generated C remain in ignored `build/n64/`. The source disc supplied by the user is required. The generated ROM is not a substitute for that source data.
+The current reduced meshes, Blender scenes, textures and generated banks are
+versioned in the private `halo64-assets` submodule. `setup_assets.py` connects
+its `assets/`, `generated/` and `frontend-files/` directories to the established
+`build/n64/` paths. Original map caches and historical audit candidates remain
+in the local iCloud archive. See [BACKUPS.md](BACKUPS.md). The source disc supplied
+by the user is required for extraction. The generated ROM is not a substitute
+for that source data.
 
 The base map extraction/reduction instructions are in `README.md`. The expanded multiplayer assets use the same Python 3.11 environment with Reclaimer 2.11.2, Pillow and NumPy:
 
@@ -88,7 +94,7 @@ derived from the current source-based far meshes by the tracked
 uses an isolated factory-startup Blender process and records source/helper
 hashes plus Blender, Python and NumPy versions. The reviewed recipe reproduced
 all twelve selected position/RGB/material payloads exactly; generated game data
-remains ignored.
+is versioned privately.
 
 Run this stage after the normal extended pack, and rerun it whenever that far
 bank, its colors or the recipe changes:
@@ -292,7 +298,7 @@ Keep the pre-change raw/reduced JSON and generated model C files in `build/n64/m
 build/n64-python/bin/python port/n64/audit_models.py
 ```
 
-The report records SHA-256 provenance for source, prior, revised, packed and texture inputs. Its silhouette overlap and color-error metrics complement visual review; they do not measure human recognition. Reference renders use neutral diagnostic lighting and simplified glass/meter materials, not the Xbox renderer. They intentionally disable backface culling to expose holes and therefore do not replace emulator checks. At 24 pixels, dark team armor and thin gun features remain difficult to read; small markings, the health-pack cross and fine tread detail are still lost. All generated comparison images and original game data remain local and ignored by Git.
+The report records SHA-256 provenance for source, prior, revised, packed and texture inputs. Its silhouette overlap and color-error metrics complement visual review; they do not measure human recognition. Reference renders use neutral diagnostic lighting and simplified glass/meter materials, not the Xbox renderer. They intentionally disable backface culling to expose holes and therefore do not replace emulator checks. At 24 pixels, dark team armor and thin gun features remain difficult to read; small markings, the health-pack cross and fine tread detail are still lost. Comparison images and historical candidates remain in the local iCloud archive; current derived banks are versioned privately.
 
 The performance report also includes 13 new distant pickup entries, for 59
 displayed entries in total. Their 12/8-pixel strips compare the new distant mesh

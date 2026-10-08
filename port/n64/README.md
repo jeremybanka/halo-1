@@ -145,8 +145,12 @@ recommended ROM; older six-showcase recordings retain their original provenance.
 
 ## Build
 
-Run from the repository root. Assets and ROMs remain in ignored `build/n64/`;
-only conversion and runtime source are tracked.
+Run from the repository root. The current customized asset bank is pinned by
+the private `halo64-assets` submodule. Initialize it with
+`git submodule update --init halo64-assets`, then run
+`python3 port/n64/setup_assets.py`. The build connects these banks automatically.
+ROMs and audit output remain in ignored `build/n64/`. See [BACKUPS.md](BACKUPS.md)
+for the private asset workflow and the local iCloud archive.
 
 Requirements: Python **3.11** with `requirements.txt`, Blender 5.2.2,
 libdragon with MIPS GCC 16.2, built Tiny3D, and the supplied Xbox USA Rev 2 disc.
@@ -489,7 +493,8 @@ animation and audio arrays are omitted by default. Both asset packers accept
 
 Source `bloodgulch.map` SHA-256:
 `50fe52406f075d975e24100a65b26ff696458023dd3509878953052ab0ef858f`.
-Neither derived game assets nor generated ROMs are committed. The user's
+Derived game assets are committed only in the private `halo64-assets` submodule;
+generated ROMs remain in the local iCloud archive. The user's
 `n64-3d-splitscreen` project informed rendering and split-view buffer management.
 
 Yellow visor compensation and source-based vehicle explosions/wrecks are documented in [VEHICLE_DESTRUCTION.md](VEHICLE_DESTRUCTION.md).

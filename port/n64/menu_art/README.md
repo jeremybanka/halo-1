@@ -1,7 +1,8 @@
 # N64 menu artwork
 
 The shell retains the Xbox widget positions and texture dimensions. These six
-small RGBA PNGs replace the A/B legends, the two controller sprites used by the
+small RGBA PNGs, stored in the private `halo64-assets/menu_art/` bank and
+referenced here by relative symlinks, replace the A/B legends, the two controller sprites used by the
 join/pregame screens, and the Split Screen / Cooperative Play illustrations. Extraction
 downsamples them by two exactly like the original bitmaps. Their hashes are
 included in `frontend-report.json`; changing an asset requires regenerating the
@@ -23,7 +24,7 @@ The built-in imagegen tool produced the buttons and illustration (not the
 controller photographs). Only mechanical alpha-bound crops, resizing, and
 transparent texture-sheet packing were applied afterward. The source photograph
 and full-size generation outputs are retained locally under the build audit and
-Codex generated-images directories; these final game assets are self-contained.
+Codex generated-images directories; these final game assets are backed up privately alongside the other asset banks.
 
 ## Final generation prompts
 

@@ -38,8 +38,9 @@ def main():
     mode.add_argument('--frontend-qa', type=int, choices=[3,4], help='Script the original front-end flow and a staged 15-kill match, using three or four controllers')
     mode.add_argument('--model-qa', action='store_true', help='Render fixed multi-angle model and occlusion fixtures; not a timing run')
     mode.add_argument('--weapon-qa', action='store_true', help='Render remaining Xbox weapons in four poses and four world views')
+    mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
     args = parser.parse_args()
-    if (args.model_qa or args.weapon_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
+    if (args.model_qa or args.weapon_qa or args.geometry_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Model/weapon QA uses unpaced frozen scenes, not performance measurement')
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
@@ -161,8 +162,9 @@ def main():
              *(['-DBG_MENU_QA'] if args.menu_qa else []),
              *(['-DBG_FRONTEND_QA', '-DBG_FRONTEND_QA_PLAYERS='+str(args.frontend_qa)] if args.frontend_qa else []),
              *(['-DBG_SNAPSHOT_TICK='+str(args.snapshot_tick)+'u'] if args.snapshot_tick is not None else []),
-             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.model_qa or args.weapon_qa else []),
+             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.model_qa or args.weapon_qa or args.geometry_qa else []),
              *(['-DBG_WEAPON_QA'] if args.weapon_qa else []),
+             *(['-DBG_GEOMETRY_QA'] if args.geometry_qa else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
              *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
              *(['-DBG_BENCHMARK'] if args.benchmark else []),
@@ -184,6 +186,8 @@ def main():
         name += '-model-qa'
     if args.weapon_qa:
         name += '-weapon-qa'
+    if args.geometry_qa:
+        name += '-geometry-qa'
     if args.menu_qa:
         name += '-menu-qa'
     if args.frontend_qa:

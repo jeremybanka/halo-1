@@ -30,8 +30,29 @@ def pack(source,out,pc_extras=False):
  lines=['/* Generated owned Xbox first-person assets; do not commit. */','#include "asset_firstperson.h"'];sizes={};total=0;animation_packing={};animation_bytes=0;previews={};meshes={}
  aliases={} if pc_extras else {'flamethrower':'ar'}
  packed={name:w for name,w in data['weapons'].items() if name not in aliases}
+ # Keep the tiny sniper display in its own high-precision pose bank. Its
+ # source height is ~one unit in the normal byte-compressed animation bank,
+ # so interpolation can collapse an edge even after separating the surfaces.
+ sniper=packed['sniper']
+ screen_materials={i for i,n in enumerate(sniper['material_names']) if n.endswith((' screen',' subscreen'))}
+ screen=[i for i,t in enumerate(sniper['triangles']) if t['material'] in screen_materials]
+ assert len(screen)==4
+ keep=[i for i in range(len(sniper['triangles'])) if i not in screen]
+ packed['sniper']={**sniper,'triangles':[sniper['triangles'][i] for i in keep],
+                   'clips':{n:{**c,'frames':[[p for i in keep for p in f[i*3:i*3+3]] for f in c['frames']]} for n,c in sniper['clips'].items()}}
+ images=load_images(sniper['textures']);scope_colors=[c for i in screen for c in bake_triangle(sniper['triangles'][i],images,sniper,firstperson=True)]
+ scope_poses=[];scope_offsets=[]
+ for clip in sniper['clips'].values():
+  scope_offsets.append(len(scope_poses))
+  for frame in clip['frames']:
+   scope_poses.append([[round(v*4096) for v in position(p,(0,0,0))] for i in screen for p in frame[i*3:i*3+3]])
+ assert all(-32768<=v<=32767 for f in scope_poses for p in f for v in p)
  def xyz(v):return '{'+','.join(map(str,v))+'}'
  def rgba(rgb):return (rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255
+ lines.append('const uint32_t bg_scope_colors[12]={'+','.join(f'0x{rgba(c):08x}' for c in scope_colors)+'};')
+ lines.append('const uint16_t bg_scope_offsets[4]={'+','.join(map(str,scope_offsets))+'};')
+ lines.append('const int16_t bg_scope_poses[][12][3]={'+','.join('{'+','.join(xyz(p) for p in f)+'}' for f in scope_poses)+'};')
+ scope_bytes=len(scope_poses)*12*6+12*4+4*2;total+=scope_bytes
  for name,w in packed.items():
   mesh,clips,previews[name]=prepare_model(w,name);meshes[name]=mesh
   verts=mesh['vertices'];team_mask=[v[2] for v in verts]
@@ -65,6 +86,7 @@ def pack(source,out,pc_extras=False):
          'vertex_bytes':sum(sizes.values())*16,'team_mask_bytes':sum(sizes.values()),
          'index_bytes':sum(len(m['indices'])*2 for m in meshes.values()),'batch_bytes':sum(len(m['batches'])*8 for m in meshes.values()),
          'color_weld_tolerance':MODEL_COLOR_TOLERANCE,'material_boundaries_preserved':True,'total_bytes':total,'position_scale':256,'animation_bytes':animation_bytes,'animation_uncompressed_bytes':sum(p['uncompressed_bytes'] for p in animation_packing.values()),'pc_extras':pc_extras,'aliases':aliases,
+         'scope':{'triangles':4,'scale':4096,'bytes':scope_bytes,'frames':len(scope_poses)},
          'color_weld_tolerances':{name:model_color_tolerance('firstperson',name) for name in sizes},
          'clips':{n:{c:a['tag_name'] for c,a in w['clips'].items()} for n,w in packed.items()}}
  (out/'firstperson-report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

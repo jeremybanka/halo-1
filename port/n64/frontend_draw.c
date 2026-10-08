@@ -178,7 +178,9 @@ static void backdrop(uint64_t now,bg_front_page page){
     T3DVec3 eye={{current[0]*32,current[2]*32,-current[1]*32}};
     T3DVec3 target={{eye.v[0]+cp*cy,eye.v[1]+sp,eye.v[2]-cp*sy}};
     T3DVec3 up={{-sp*cy*cr+sy*sr,cp*cr,sp*sy*cr+cy*sr}};
-    t3d_viewport_set_projection(&viewport,2*atanf(tanf(current[6]*.5f)*.75f),1.f,18000.f);
+    /* The closest source menu camera is over 13 units from the ring. A
+     * four-unit near plane gives its closely spaced shells better Z precision. */
+    t3d_viewport_set_projection(&viewport,2*atanf(tanf(current[6]*.5f)*.75f),4.f,18000.f);
     t3d_viewport_look_at(&viewport,&eye,&target,&up);
     t3d_viewport_attach(&viewport);rdpq_clear(RGBA32(0,0,0,255));t3d_frame_start();
     t3d_light_set_ambient((uint8_t[]){255,255,255,255});t3d_light_set_count(0);
@@ -186,8 +188,10 @@ static void backdrop(uint64_t now,bg_front_page page){
     for(unsigned m=0;m<bg_shell_mesh_count;m++){
         rdpq_sync_pipe();rdpq_sync_tile();rdpq_sync_load();
         const bg_shell_mesh*mesh=&bg_shell_meshes[m];
-        t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_TEXTURED|(m>=4?T3D_FLAG_DEPTH:0));
-        rdpq_mode_zbuf(m>=4,m>=4);rdpq_mode_blender(mesh->alpha?RDPQ_BLENDER_MULTIPLY:0);
+        bool depth=mesh->flags&BG_SHELL_DEPTH;
+        t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_TEXTURED|T3D_FLAG_CULL_BACK|(depth?T3D_FLAG_DEPTH:0));
+        rdpq_mode_zbuf(depth,depth&&!(mesh->flags&BG_SHELL_DECAL));
+        rdpq_mode_blender(mesh->flags&BG_SHELL_BLEND?RDPQ_BLENDER_MULTIPLY:0);
         rdpq_sync_pipe();rdpq_sync_load();
         rdpq_tex_upload(TILE0,&mesh_textures[m],&(rdpq_texparms_t){.s.repeats=REPEAT_INFINITE,.t.repeats=REPEAT_INFINITE});
         unsigned count=mesh->count/3*3;

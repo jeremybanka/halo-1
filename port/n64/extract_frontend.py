@@ -93,10 +93,26 @@ for tag in [2,16]:
   tex_tag=source_tags.get(s.shader.id&65535,refs[0]if refs else 6)
   bitmap(tex_tag);src=next(p for p in A.glob('bitmap-'+str(tex_tag)+'*.png'))
   im=Image.open(src).convert('RGBA').resize((32,32),Image.Resampling.BOX)
+  shader_id=s.shader.id&65535
+  flags=2 if tag==16 else 0
+  if shader_id in (7,9):flags|=1 # Original alpha-blended planets.
+  if shader_id==11:
+   # RDP additive blending wraps on overflow. A luminance-derived alpha
+   # approximates this additive galaxy over the dark sky without black quads.
+   pixels=[]
+   for r,g,b,a in im.getdata():
+    peak=max(r,g,b);pixels.append((round(r*255/peak),round(g*255/peak),round(b*255/peak),round(a*peak/255)) if peak else (0,0,0,0))
+   im.putdata(pixels);flags|=1
+  if shader_id==25:
+   # The source grayscale multiply decal becomes black with inverse alpha:
+   # dst * gray == black * (1-gray) + dst * gray. White is neutral, not opaque.
+   im.putdata([(0,0,0,255-r) for r,g,b,a in im.getdata()]);flags|=1|4
   image_id=len(images);images.append(dict(offset=add(im.tobytes()),w=32,h=32,tag=tex_tag,frame=65535))
   verts=[]
   for tri in model.tris:
    if tri.shader!=material:continue
+   corners=[model.verts[vi] for vi in (tri.v0,tri.v1,tri.v2)]
+   uv_origin=[math.floor(min(v.tex_u for v in corners)),math.floor(min(1-v.tex_v for v in corners))]
    for vi in [tri.v0,tri.v1,tri.v2]:
     v=model.verts[vi];x,y,z=v.pos_x/100,v.pos_y/100,v.pos_z/100
     if tag==2:x/=100;y/=100;z/=100
@@ -106,14 +122,16 @@ for tag in [2,16]:
      a=-math.pi*24/180;x,y=x*math.cos(a)-y*math.sin(a),x*math.sin(a)+y*math.cos(a)
      x+=12.3;y-=1.8;z+=15.5
     pos=[round(x*32),round(z*32),round(-y*32)];assert all(-32768<=n<=32767 for n in pos)
-    uv=[round(v.tex_u*32*32),round((1-v.tex_v)*32*32)]
-    # RDP texture coordinates are signed16; wrapping by whole tile periods retains sampling.
-    uv=[((n+32768)%65536)-32768 for n in uv];verts.append((pos,uv))
+    # Wrap the whole triangle by one common tile origin. Independently
+    # wrapping corners changes interpolation across the signed16 boundary.
+    uv=[round((v.tex_u-uv_origin[0])*1024),round((1-v.tex_v-uv_origin[1])*1024)]
+    assert all(-32768<=n<=32767 for n in uv)
+    verts.append((pos,uv))
   if len(verts)%2:verts.append(verts[-1])
   data=bytearray()
   for j in range(0,len(verts),2):
    a,b=verts[j:j+2];data+=struct.pack('>3hH3hHII4h',*a[0],0,*b[0],0,0xffffffff,0xffffffff,*a[1],*b[1])
-  meshes.append(dict(offset=add(data),count=len(verts),image=image_id,alpha=int(material==2 and tag==16),source=e[tag].path,triangles=sum(t.shader==material for t in model.tris)))
+  meshes.append(dict(offset=add(data),count=len(verts),image=image_id,flags=flags,source=e[tag].path,triangles=sum(t.shader==material for t in model.tris)))
 # Original menu effects and the title track, stored in ROM and read on demand.
 audio={}
 for name,tag in [('back',892),('forward',893),('cursor',977),('reject',978),('music-in',980),('music-loop',981)]:
@@ -164,7 +182,7 @@ for n in nodes:
  t,l,b,r=n['bounds'];color=sum(n['rgba'][i]<<(24-8*i)for i in range(4))
  lines.append('{'+','.join(map(str,[n['tag'],l,t,r-l,b-t,n['bitmap'],n['font'],n['align'],n['text_x'],n['text_y']]))+f',0x{color:08x},'+cstr(n['text'])+'},')
 lines+=['};',f'const unsigned bg_shell_node_count={len(nodes)};','const bg_shell_mesh bg_shell_meshes[]={']
-lines+=['{'+','.join(str(m[k])for k in ['offset','count','image','alpha'])+'},'for m in meshes]+['};',f'const unsigned bg_shell_mesh_count={len(meshes)};']
+lines+=['{'+','.join(str(m[k])for k in ['offset','count','image','flags'])+'},'for m in meshes]+['};',f'const unsigned bg_shell_mesh_count={len(meshes)};']
 lines+=['const uint32_t bg_shell_font_offsets[2]={'+','.join(map(str,fo))+'};','const uint8_t bg_shell_font_pages[2]={'+','.join(map(str,fp))+'};','const uint8_t bg_shell_font_ascending[2]={'+','.join(map(str,fa))+'};','const bg_menu_glyph bg_shell_glyphs[2][95]={']
 for gs in fg:lines+=['{']+['{'+','.join(map(str,g))+'},'for g in gs]+['},']
 lines+=['};','const char *const bg_shell_map_descriptions[13]={'+','.join(cstr(s)for s in descriptions)+'};','const char *const bg_shell_type_names[26]={'+','.join(cstr(s)for s in names)+'};','const char *const bg_shell_type_descriptions[26]={'+','.join(cstr(s)for s in type_desc)+'};',f'const uint32_t bg_shell_music_loop={len(intro)};']

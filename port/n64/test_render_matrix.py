@@ -43,7 +43,7 @@ def check_source(main, sdk):
         assert helper.count('t3d_matrix_set(matrix,true);') == 1
         assert 't3d_matrix_pop' not in helper and 't3d_matrix_push' not in helper
     calls = re.findall(r't3d_matrix_set\(([^;]+)\);', source)
-    assert len(calls) == 8
+    assert len(calls) == 9
     assert all(c.endswith(',true') for c in calls), 'Each draw must multiply the camera below it'
     # All non-helper sets remain within the single sibling scope.
     assert view.count('t3d_matrix_set(') == len(calls) - 2

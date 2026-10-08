@@ -134,10 +134,23 @@ def pack(source, output):
             for x in range(bounds[0][0],bounds[0][1]+1):cells[z*GRID+x].append(i)
     indices=[i for cell in cells for i in cell]
     if len(indices)>65535:raise ValueError('Collision grid index capacity exceeded')
+    # Share byte-identical emitted float corners, without quantizing/moving a
+    # single collision surface. This pays for the original base architecture.
+    collision_vertices=[];collision_lookup={};collision_faces=[]
+    for tri in collision:
+        face=[]
+        for p in tri:
+            key=floats(p)
+            if key not in collision_lookup:
+                collision_lookup[key]=len(collision_vertices);collision_vertices.append(key)
+            face.append(collision_lookup[key])
+        collision_faces.append(face)
     lines=['/* Generated from local game data. Do not commit. */','#include "world.h"',
            f'const unsigned bg_collision_count={len(collision)};',
+           'static const float collision_vertices[][3]={',
+           ',\n'.join(collision_vertices),'};',
            'const bg_triangle bg_collision[]={']
-    for tri in collision:lines.append('{ {'+','.join(floats(p) for p in tri)+'} },')
+    for face in collision_faces:lines.append('{{'+','.join(f'collision_vertices[{v}]' for v in face)+'}},')
     lines+=['};',f'const float bg_grid_origin[2]={floats(lo)}, bg_grid_size[2]={floats(size)};',
             'const bg_cell bg_grid[BG_GRID*BG_GRID]={']
     offset=0
@@ -149,12 +162,15 @@ def pack(source, output):
     lines+=['};',f'const unsigned bg_spawn_count={len(data["spawns"])};']
     (output/'collision_data.c').write_text('\n'.join(lines)+'\n')
     report={'source_sha256':data['source_sha256'],'original_triangles':data['original_triangles'],
+            'architecture_triangles':data.get('architecture_triangles',0),
             'render_triangles':len(collision),'chunks':len(chunks),'world_vertex_bytes':world_vertices*16,
             'world_unique_vertices':sum(c[1] for c in chunks),'world_corner_count':len(collision)*3,
             'world_index_bytes':len(terrain_indices)*2,
             'world_color_max_delta':8,'world_uv_period':UV_PERIOD,'world_max_batch_indices':max(c[5] for c in chunks),
             'textures':len(data['materials']),'texture_bytes':len(data['materials'])*2048,
-            'collision_bytes':len(collision)*36+len(indices)*2+GRID*GRID*4,
+            'collision_bytes':len(collision)*12+len(collision_vertices)*12+len(indices)*2+GRID*GRID*4,
+            'collision_shared_vertices':len(collision_vertices),
+            'collision_corner_bytes_saved':len(collision)*24-len(collision_vertices)*12,
             'collision_max_cell':max(map(len,cells)),
             'spartan_triangles':model_ranges['spartan'][1]//3,'rifle_triangles':model_ranges['rifle'][1]//3}
     (output/'asset-report.json').write_text(json.dumps(report,indent=2)+'\n')

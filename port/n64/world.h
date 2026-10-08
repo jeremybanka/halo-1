@@ -4,7 +4,9 @@
 
 #define BG_SCALE 32.0f
 #define BG_GRID 24
-typedef struct { float p[3][3]; } bg_triangle;
+/* Shared immutable float corners retain the exact collision coordinates.
+ * Three 32-bit pointers replace nine repeated floats on the N64. */
+typedef struct { const float *p[3]; } bg_triangle;
 typedef struct { uint16_t first, count; } bg_cell;
 typedef struct { float pos[3], yaw; int team; } bg_spawn;
 typedef struct {

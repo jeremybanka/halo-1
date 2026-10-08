@@ -166,6 +166,23 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
             for i in omitted:
                 report['parts'][i]['triangles']=0
                 report['parts'][i]['omitted_reason']='interior additive plane under opaque N64 crystal proxy'
+        if name=='sniper':
+            # The source screen sits on the housing's rear plane. At the N64
+            # animation bank's 1/256-unit precision, rounding can put either
+            # surface in front. Lift the two display surfaces 1.5 coordinate
+            # steps toward the player in bind space, before skinning every pose.
+            screen_materials={i for i,n in enumerate(gun['material_names']) if n.endswith((' screen',' subscreen'))}
+            shift=1.5/256
+            moved=set()
+            for i,tri in enumerate(gun_tris):
+                if tri['material'] not in screen_materials:continue
+                for p in tri['p']:p[0]-=shift
+                for p,weights in gun_weights[i*3:i*3+3]:
+                    # Weighted points may be shared by adjacent corners.
+                    if id(p) not in moved:p.x-=shift;moved.add(id(p))
+            vertices={v for face in obj.data.polygons if face.material_index in screen_materials for v in face.vertices}
+            for v in vertices:obj.data.vertices[v].co.x-=shift
+            report['display_separation']=shift
         obj.location = (index * .5, 0, 0)
         result['reduction_report'][name] = report
         gun_inverse = [m.inverted() for m in globals_for(

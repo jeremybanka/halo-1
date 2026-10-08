@@ -108,6 +108,9 @@ static bg_cull_bounds vehicle_part_bounds[BG_MAX_VEHICLES][7];
 static float wheel_rotation[BG_MAX_VEHICLES];
 static bg_vehicle_pose_cache vehicle_pose_cache[BG_MAX_VEHICLES];
 static T3DViewport viewports[BG_FRAME_SLOTS][4] __attribute__((aligned(16)));
+static T3DViewport gun_viewports[BG_FRAME_SLOTS][4] __attribute__((aligned(16)));
+static T3DVertPacked scope_vertices[BG_FRAME_SLOTS][4][6] __attribute__((aligned(16)));
+static T3DMat4FP scope_matrices[BG_FRAME_SLOTS][4];
 static T3DMat4FP transforms[BG_FRAME_SLOTS][4], guns[BG_FRAME_SLOTS][4], vehicle_matrices[BG_FRAME_SLOTS][BG_MAX_VEHICLES],
     pickup_matrices[BG_FRAME_SLOTS][BG_MAX_PICKUPS], projectile_matrices[BG_FRAME_SLOTS][BG_MAX_PROJECTILES], explosion_matrices[BG_FRAME_SLOTS][12];
 static T3DMat4FP held_matrices[BG_FRAME_SLOTS][4];
@@ -119,6 +122,8 @@ static bg_menu menu;
 static bg_frontend front;
 static uint64_t match_ended;
 static void firstperson_buffers_release(void);
+static void body_buffers_load(void);
+static void body_buffers_release(void);
 static bool front_active(void){return front.page!=BG_FRONT_PLAY;}
 #else
 static inline bool front_active(void){return false;}
@@ -534,7 +539,6 @@ static void init_scene(void){
         vehicle_micro_vertex_loads[m]=model_load_count(a,a->vertex_count,0,a->batch_count);
 #endif
     }
-    const bg_model_asset*spartan=&bg_model_assets[BG_M_SPARTAN];
     prepare_model(&bg_spartan_lod);
     for(unsigned weapon=0;weapon<BG_FP_WEAPONS;weapon++){
         const bg_model_asset*a=&bg_fp_models[weapon];prepare_model(a);
@@ -553,17 +557,7 @@ static void init_scene(void){
         const bg_model_asset*a=&bg_fp_models[weapon];fp_vertex_loads[weapon]=model_load_count(a,a->vertex_count,0,a->batch_count);
     }
 #endif
-    unsigned bytes=((spartan->vertex_count+1)/2)*sizeof(T3DVertPacked);
     for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
-        armor[s][p]=malloc_uncached(bytes);assertf(armor[s][p],"Spartan buffer allocation");
-        memcpy(armor[s][p],spartan->vertices,bytes);
-        tint_team(armor[s][p],spartan->vertex_count,bg_spartan_team_mask,p);
-        player_blocks[s][p]=record_model(spartan,armor[s][p]);
-        unsigned lod_bytes=((bg_spartan_lod.vertex_count+1)&~1u)*16;
-        armor_lod[s][p]=malloc_uncached(lod_bytes);assertf(armor_lod[s][p],"Spartan LOD allocation");
-        memcpy(armor_lod[s][p],bg_spartan_lod.vertices,lod_bytes);
-        tint_team(armor_lod[s][p],bg_spartan_lod.vertex_count,bg_spartan_lod_team_mask,p);
-        armor_lod_blocks[s][p]=record_model(&bg_spartan_lod,armor_lod[s][p]);
         viewports[s][p]=t3d_viewport_create();
     }
     static const int16_t points[6][3]={{0,32,0},{0,-32,0},{32,0,0},{0,0,32},{-32,0,0},{0,0,-32}};
@@ -618,6 +612,7 @@ static bool input(bg_input in[4]){
         if(action==BG_FRONT_START_MATCH){
             bg_front_draw_release();views=front.count;bg_set_players(views);bg_set_score_limit(15);
             bg_reset();game_time=0;match_ended=0;reset_view_state();
+            body_buffers_load();
             menu.player_count=views;menu.open=false;menu.shell_session=true;
             const bg_model_asset *spartan=&bg_model_assets[BG_M_SPARTAN];
             for(unsigned p=0;p<views;p++){
@@ -633,7 +628,7 @@ static bool input(bg_input in[4]){
             }
             bg_sound_frontend(false);
         }else if(action==BG_FRONT_RESUME_MATCH){bg_front_draw_release();menu.open=false;}
-        else if(action==BG_FRONT_LEAVE_MATCH){menu.open=false;bg_vehicle_world_release();firstperson_buffers_release();bg_sound_frontend(true);}
+        else if(action==BG_FRONT_LEAVE_MATCH){menu.open=false;bg_vehicle_world_release();firstperson_buffers_release();body_buffers_release();bg_sound_frontend(true);}
         paused=front_active();return true;
     }
     bg_front_map_controls(&front,raw,raw);
@@ -643,7 +638,12 @@ static bool input(bg_input in[4]){
     paused=menu.open;
 #ifdef BG_FRONTEND
     for(unsigned p=0;p<views;p++)front.styles[front.profile[front.ports[p]]]=menu.styles[p];
-    if(result.action==BG_MENU_ACTION_QUIT){bg_front_quit(&front);paused=true;}
+    if(result.action==BG_MENU_ACTION_QUIT){
+        /* The full-screen confirmation needs its backdrop bank. Simulation
+         * state survives; resume lazily recreates these render-only buffers. */
+        firstperson_buffers_release();body_buffers_release();
+        bg_front_quit(&front);paused=true;
+    }
 #endif
     if(result.action==BG_MENU_ACTION_RESTART){bg_reset();game_time=0;reset_view_state();
 #ifdef BG_FRONTEND
@@ -907,8 +907,40 @@ static void prepare_pickup_bounds(void){
         bg_bounds_quantize(&pickup_bounds[i],&box);
     }
 }
+/* Body commands retain their vertex addresses; allocate and release together. */
+static void body_buffers_load(void){
+    if(armor[0][0])return;
+    const bg_model_asset*spartan=&bg_model_assets[BG_M_SPARTAN];
+    unsigned bytes=((spartan->vertex_count+1)&~1u)*16;
+    unsigned lod_bytes=((bg_spartan_lod.vertex_count+1)&~1u)*16;
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
+        armor[s][p]=malloc_uncached(bytes);assertf(armor[s][p],"Spartan buffer allocation");
+        memcpy(armor[s][p],spartan->vertices,bytes);
+        tint_team(armor[s][p],spartan->vertex_count,bg_spartan_team_mask,p);
+        player_blocks[s][p]=record_model(spartan,armor[s][p]);
+        armor_lod[s][p]=malloc_uncached(lod_bytes);assertf(armor_lod[s][p],"Spartan LOD allocation");
+        memcpy(armor_lod[s][p],bg_spartan_lod.vertices,lod_bytes);
+        tint_team(armor_lod[s][p],bg_spartan_lod.vertex_count,bg_spartan_lod_team_mask,p);
+        armor_lod_blocks[s][p]=record_model(&bg_spartan_lod,armor_lod[s][p]);
+    }
+}
+#ifdef BG_FRONTEND
+static void body_buffers_release(void){
+    if(!armor[0][0])return;
+    /* Full-screen menus never draw gameplay bodies. The recorded blocks own
+     * their vertex addresses, so fence and release both together; rebuild on
+     * match entry. In-match pause/resume keeps this allocation intact. */
+    rspq_wait();
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
+        rspq_block_free(player_blocks[s][p]);player_blocks[s][p]=NULL;
+        rspq_block_free(armor_lod_blocks[s][p]);armor_lod_blocks[s][p]=NULL;
+        free_uncached(armor[s][p]);armor[s][p]=NULL;
+        free_uncached(armor_lod[s][p]);armor_lod[s][p]=NULL;
+    }
+}
+#endif
 /* Segment-based weapon commands do not retain these addresses. Keep their
- * 79 KiB animation workspace out of the full-screen menu texture peak. */
+ * animation workspace out of the full-screen menu texture peak. */
 static void firstperson_buffers_load(void){
     if(firstperson[0][0])return;
     for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
@@ -958,6 +990,17 @@ static void animate_firstperson(unsigned p){
     if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
     float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
     animate_mesh(output,a,f0,f1,fraction);
+    if(w==BG_W_SNIPER){
+        T3DVertPacked *scope=scope_vertices[slot][p];
+        const int16_t (*a)[3]=bg_scope_poses[bg_scope_offsets[clip]+f0];
+        const int16_t (*b)[3]=bg_scope_poses[bg_scope_offsets[clip]+f1];
+        for(unsigned v=0;v<12;v++){
+            int16_t*point=t3d_vertbuffer_get_pos(scope,v);
+            for(unsigned axis=0;axis<3;axis++)point[axis]=a[v][axis]+(((int)b[v][axis]-a[v][axis])*fraction>>8);
+            *t3d_vertbuffer_get_color(scope,v)=bg_scope_colors[v];
+        }
+        data_cache_hit_writeback(scope,sizeof(scope_vertices[slot][p]));
+    }
     bg_fp_ammo_prepare(slot,p,w,clip,f0,f1,fraction,player->ammo,player->reserve,
         player->reload>0?seconds:-1,output);
 }
@@ -1038,7 +1081,9 @@ static void update_effects(float dt){
     }
 }
 #ifdef BG_MODEL_QA
-#ifdef BG_WEAPON_QA
+#if defined(BG_GEOMETRY_QA)
+#include "geometry_qa.h"
+#elif defined(BG_WEAPON_QA)
 #include "weapon_qa.h"
 #else
 #include "model_qa.h"
@@ -1094,6 +1139,12 @@ static void prepare_view(unsigned p){
     bg_hud_aim_projection(vp->matProj.m,views,p);
     t3d_viewport_look_at(vp,&eye,&target,&(T3DVec3){{0,1,0}});
     bg_visibility_side_planes((float (*)[4])vp->viewFrustum.planes,vp->matCamProj.m,w,h);
+    /* Camera-space arms cross the world's near plane. Give the foreground
+     * its own projection and depth range, while preserving FOV and aim offset.
+     * Separate slot storage keeps queued RSP camera matrices immutable. */
+    T3DViewport *gun_vp=&gun_viewports[slot][p];*gun_vp=*vp;
+    t3d_viewport_set_projection(gun_vp,fov,.125f,128.f);
+    bg_hud_aim_projection(gun_vp->matProj.m,views,p);
     view_eyes[p]=eye;held_masks[p]=0;
     for(unsigned j=0;j<views;j++){
         bg_player*q=&bg_players[j];body_lods[p][j]=0;
@@ -1239,6 +1290,7 @@ static void draw_view(unsigned p){
         /* Clear only this viewport's depth so the gun stays in front of the world,
          * while its own surfaces and hands still occlude each other. */
         rdpq_clear_z(ZBUF_MAX);
+        t3d_viewport_attach(&gun_viewports[slot][p]);
         t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);rdpq_mode_zbuf(true,true);
         t3d_segment_set(T3D_SEGMENT_1,firstperson[slot][p]);
         t3d_matrix_set(&guns[slot][p],true);rspq_block_run(firstperson_blocks[player->weapon]);triangles+=bg_fp_models[player->weapon].triangle_count;
@@ -1249,6 +1301,19 @@ static void draw_view(unsigned p){
             bg_fp_ammo_draw(slot,p);triangles+=4;
 #ifdef BG_PROFILE
             submitted_vertices+=8;
+#endif
+        }
+        if(player->weapon==BG_W_SNIPER){
+            /* Exact source display topology, with finer coordinates and real
+             * depth testing. It remains occluded by the gun/hands in motion. */
+            matrix(&scope_matrices[slot][p],BG_SCALE/4096.f,player->yaw,player->pitch,pos);
+            data_cache_hit_writeback(&scope_matrices[slot][p],sizeof(T3DMat4FP));
+            t3d_matrix_set(&scope_matrices[slot][p],true);
+            t3d_vert_load(scope_vertices[slot][p],0,12);
+            for(unsigned v=0;v<12;v+=3)t3d_tri_draw(v,v+1,v+2);
+            t3d_tri_sync();triangles+=4;
+#ifdef BG_PROFILE
+            submitted_vertices+=12;
 #endif
         }
     }
@@ -1621,7 +1686,7 @@ int main(void){
             if(!match_ended)match_ended=now;
             if(now-match_ended>=2500000){
                 int final_scores[4];for(unsigned p=0;p<4;p++)final_scores[p]=bg_players[p].score;
-                bg_front_results(&front,final_scores,bg_match_winner());front.statistics=*bg_match_stats();menu.open=false;paused=true;bg_vehicle_world_release();firstperson_buffers_release();bg_sound_frontend(true);
+                bg_front_results(&front,final_scores,bg_match_winner());front.statistics=*bg_match_stats();menu.open=false;paused=true;bg_vehicle_world_release();firstperson_buffers_release();body_buffers_release();bg_sound_frontend(true);
             }
         }
         if(front_active()){
@@ -1646,7 +1711,7 @@ int main(void){
             continue;
         }
 #endif
-        firstperson_buffers_load();
+        body_buffers_load();firstperson_buffers_load();
         if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();
 #ifdef BG_PROFILE
         wait_us+=get_ticks_us()-profile_start;profile_start=get_ticks_us();

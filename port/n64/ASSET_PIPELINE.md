@@ -338,3 +338,12 @@ build/n64-python/bin/python port/n64/audit_models.py --performance --html-only \
 The model winding/depth contract and selective Blender boundary closures are
 documented in [OCCLUSION.md](OCCLUSION.md). The current offline audit culls back
 faces; older two-sided reports do not prove native occlusion correctness.
+
+Blood Gulch reduction preserves all 1,688 source architecture triangles and
+their UVs, reducing only landscape with open boundary vertices pinned. The
+collision packer shares identical emitted float corners without changing
+their coordinates. The first-person packer also separates the sniper's four
+thin display faces into a 1/4096-unit animated bank; the main weapon banks
+remain at 1/256-unit precision. See [GEOMETRY_REPAIRS.md](GEOMETRY_REPAIRS.md)
+for source-preservation, collision and interpolation checks and emulator
+comparisons.

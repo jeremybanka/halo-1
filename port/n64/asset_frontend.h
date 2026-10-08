@@ -7,7 +7,8 @@ typedef struct {
  uint16_t tag; int16_t x,y,w,h,bitmap; uint8_t font,align;
  int16_t text_x,text_y; uint32_t rgba; const char *text;
 } bg_shell_node;
-typedef struct { uint32_t offset; uint16_t count,image; uint8_t alpha; } bg_shell_mesh;
+enum { BG_SHELL_BLEND=1, BG_SHELL_DEPTH=2, BG_SHELL_DECAL=4 };
+typedef struct { uint32_t offset; uint16_t count,image; uint8_t flags; } bg_shell_mesh;
 extern const float bg_shell_cameras[15][7];
 extern const bg_shell_image bg_shell_images[];
 extern const unsigned bg_shell_image_count;

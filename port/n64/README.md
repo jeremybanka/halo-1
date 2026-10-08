@@ -17,7 +17,9 @@ for floor queries and raycasts.
 and remaining engine work.
 
 The remaining-weapon model audit and connected first-person hand repair are
-documented in [WEAPON_OCCLUSION.md](WEAPON_OCCLUSION.md).
+documented in [WEAPON_OCCLUSION.md](WEAPON_OCCLUSION.md). Menu backdrop, sniper
+display, first-person sleeves and original base geometry repairs are covered
+in [GEOMETRY_REPAIRS.md](GEOMETRY_REPAIRS.md).
 
 ## Play
 
@@ -256,21 +258,22 @@ Build these ROMs serially because the compiler object directory is shared.
 
 | Resource | Budget |
 | --- | ---: |
-| Blood Gulch BSP | 5,503 → 1,870 triangles |
+| Blood Gulch BSP | 5,503 → 3,023 triangles; all 1,688 original architecture triangles retained |
 | Spartan | 310 nearby / 127 distant triangles |
-| First-person gun + hands | 384–519 triangles per weapon; 191 shared hand triangles |
+| First-person gun + hands | 391–526 triangles per Xbox weapon; 198 shared hand triangles |
+| Sniper display | Four existing triangles use a separate 1,640-byte bank at 1/4096-unit precision |
 | On-weapon AR counter | +4 triangles / +8 transformed vertices per visible AR |
 | World weapons | 140–274 nearby triangles; separate distant pickup/held models |
 | Vehicles | 242–380 nearby / 134–210 distant triangles, including part padding |
 | Grenades | 62 frag / 48 plasma triangles |
-| Model animation storage | 336,038 bytes after exact motion-track sharing and indexed vertices; ammo supplement below |
-| World / first-person model vertices | 4,964 / 4,264; 147,648 vertex bytes combined, excluding the separate micro bank |
+| Model animation storage | 289,000 bytes after exact motion-track sharing and indexed vertices; scope and ammo supplements listed separately |
+| World / first-person model vertices | 5,032 / 4,372; 150,464 vertex bytes combined, excluding the separate micro and scope banks |
 | Ammunition display assets | 3,200-byte AR atlas + 1,056-byte panel animation + 18,128-byte Needler overlay = 22,384 bytes |
 | AR counter runtime | 1,024 bytes of mutable digit buffers; eight cached command blocks |
 | World materials | 17 × 32×32 RGBA16 |
-| World vertex/index storage | 51,584 / 11,752 bytes |
+| World vertex/index storage | 79,648 / 18,736 bytes |
 | Conservative model bounds | 1,444 bytes; near/far unions and per-clip/part metadata |
-| Collision mesh and grid | 80,506 bytes |
+| Collision mesh and grid | 72,238 bytes with shared float vertices |
 | Color/depth buffers | 921,600 bytes with five color surfaces + depth; 768,000 with four; 614,400 for the ordinary triple-buffer build |
 | Gameplay objects | fixed player/vehicle pools; bounded Blam arena for 48 projectiles; no per-tick system-heap allocation |
 | Audio | 11,025 Hz source PCM, 22,050 Hz stereo output; 14 bounded voices |

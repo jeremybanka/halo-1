@@ -35,7 +35,11 @@ def reduce_assets(source, output):
         materials.append(mat)
 
     vertices, faces, uv, face_materials = [], [], [], []
+    architecture = {i for i, m in enumerate(data['materials'])
+                    if m['name'].split('\\')[-1] not in
+                    ('cap_cliff01b', 'beavercreek boulder', 'blood ground')}
     for group in data['groups']:
+        if group['material'] in architecture:continue
         start = len(vertices)
         vertices.extend(group['vertices'])
         uv.extend(group['uv'])
@@ -58,9 +62,17 @@ def reduce_assets(source, output):
     mesh.update()
     terrain = bpy.data.objects.new('Blood Gulch - N64 environment', mesh)
     scene.collection.objects.link(terrain)
+    # Pin the open BSP/architecture joins. Reducing across a base/ground seam
+    # moves the ground away from the original ramp, exposing the sky below it.
+    bm=bmesh.new();bm.from_mesh(mesh);bm.verts.ensure_lookup_table()
+    boundary={v.index for e in bm.edges if e.is_boundary for v in e.verts};bm.free()
+    group=terrain.vertex_groups.new(name='Landscape interior')
+    group.add([v.index for v in mesh.vertices if v.index not in boundary],1,'REPLACE')
     modifier = terrain.modifiers.new('N64 environment triangle budget', 'DECIMATE')
     modifier.decimate_type = 'COLLAPSE'
-    modifier.ratio = 0.34
+    modifier.ratio = 0.35
+    modifier.vertex_group=group.name
+    modifier.vertex_group_factor=1000
     modifier.use_collapse_triangulate = True
 
     def evaluated(obj):
@@ -80,8 +92,24 @@ def reduce_assets(source, output):
         evaluated_obj.to_mesh_clear()
         return triangles
 
+    # Preserve the shipped BSP architecture verbatim. Its doors, ramp lips,
+    # roof openings and interior floors are collision surfaces, not distant
+    # landscape. Reduce the landscape separately, with its joins pinned.
+    reduced = evaluated(terrain)
+    key=lambda p:tuple(round(v,4) for v in p)
+    pinned={key(mesh.vertices[i].co) for i in boundary}
+    if pinned-{key(p) for t in reduced for p in t['p']}:
+        raise ValueError('Landscape reduction displaced an original BSP boundary')
+    preserved = [{'p':[group['vertices'][i] for i in face],
+                  'uv':[group['uv'][i] for i in face], 'material':group['material']}
+                 for group in data['groups'] if group['material'] in architecture
+                 for face in group['faces']]
     result = {'source_sha256': data['source_sha256'], 'original_triangles': data['bsp_triangles'],
-              'materials': data['materials'], 'triangles': evaluated(terrain),
+              'architecture_triangles':len(preserved),
+              'architecture_materials':sorted(architecture),
+              'landscape_boundary_vertices':len(pinned),
+              'materials': data['materials'],
+              'triangles': [t for t in reduced if t['material'] not in architecture] + preserved,
               'spawns': data['spawns'], 'flags': data['flags'], 'models': {}}
     for name, model in data['models'].items():
         mesh = bpy.data.meshes.new('Halo ' + name)
@@ -97,6 +125,18 @@ def reduce_assets(source, output):
         result['models'][name] = evaluated(obj)
         obj.hide_set(True)
     output.write_text(json.dumps(result))
+    # The review scene must show exactly the exported hybrid, not the modifier.
+    terrain.hide_set(True)
+    preview = bpy.data.meshes.new('Preserved architecture and reduced landscape')
+    preview.from_pydata([p for t in result['triangles'] for p in t['p']], [],
+                        [(i*3,i*3+1,i*3+2) for i in range(len(result['triangles']))])
+    for mat in materials: preview.materials.append(mat)
+    layer = preview.uv_layers.new(name='Halo diffuse UV')
+    for polygon, tri in zip(preview.polygons, result['triangles']):
+        polygon.material_index = tri['material']
+        for loop, (u,v) in zip(polygon.loop_indices, tri['uv']):layer.data[loop].uv=(u,1-v)
+    terrain = bpy.data.objects.new('Blood Gulch - exact architecture', preview)
+    scene.collection.objects.link(terrain)
     scene.view_layers[0].objects.active = terrain
     terrain.select_set(True, view_layer=scene.view_layers[0])
     for area in bpy.context.screen.areas if bpy.context.screen else []:

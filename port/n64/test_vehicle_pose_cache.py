@@ -56,6 +56,7 @@ c=pre+assets[assets.index('enum { BG_PART_BODY'):assets.index('extern const bg_v
 for name in ('parts_warthog','parts_ghost','parts_scorpion','parts_banshee','bg_vehicle_rigs','bg_vehicle_lod_bounds'):
  c+='\n'+declaration(bank,name)
 c+='\nconst bg_bounds bg_vehicle_micro_gate_bounds[4]='+declaration((ROOT/'build/n64/generated/micro_data.c').read_text(),'bg_vehicle_micro_gate_bounds').split('=',1)[1]
+c+='\n'+declaration((ROOT/'build/n64/generated/vehicle_visuals_data.c').read_text(),'bg_covenant_wreck_bounds')
 for source,result,name,args in (
  (math,'void','t3d_mat4_from_srt_euler','T3DMat4*mat,const float scale[3],const float rot[3],const float translate[3]'),
  (header,'void','t3d_mat4_mul','T3DMat4*matRes,const T3DMat4*matA,const T3DMat4*matB'),
@@ -121,10 +122,11 @@ int main(void){
    v->steering=uniform(-.5,.5);for(unsigned a=0;a<8;a++)v->suspension[a]=uniform(-.3,-.1);
    v->yaw=uniform(-4,4);v->pitch=uniform(-4,4);v->turret_yaw=uniform(-4,4);v->turret_pitch=uniform(-4,4);wheel_rotation[i]=uniform(-100000,100000);
   }
-  if(trial%13==0){v->active=false;continue;}v->active=true;
+  v->active=trial%13!=0; /* Include dead/live transitions with the same pose. */
   compare(i);slot^=1;compare(i);compare(i);slot^=1;compare(i);
  }
  report("varied");
+ bg_vehicles[0].active=true;pose_key live=key_for(0);bg_vehicles[0].active=false;pose_key dead=key_for(0);assert(memcmp(&live,&dead,sizeof(live)));
  /* Float comparison would equate these; exact bit keys must not. */
  bg_vehicles[0].yaw=0.f;pose_key plus=key_for(0);bg_vehicles[0].yaw=-0.f;pose_key minus=key_for(0);assert(memcmp(&plus,&minus,sizeof(plus)));
  printf("PASS: %u exact cached/uncached matrix and bounds comparisons; independent output banks; signed-zero keys.\n",checked);

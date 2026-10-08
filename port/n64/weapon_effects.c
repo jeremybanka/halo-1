@@ -3,18 +3,27 @@
 #include <string.h>
 bg_fx_shot bg_fx_shots[4];
 bg_fx_trail bg_fx_trails[BG_FX_TRAILS];
-static unsigned next_trail;
+bg_fx_vehicle_burst bg_fx_vehicle_bursts[4];
+static unsigned next_trail,next_burst;
 void bg_fx_reset(void){
     memset(bg_fx_shots,0,sizeof(bg_fx_shots));memset(bg_fx_trails,0,sizeof(bg_fx_trails));next_trail=0;
     for(unsigned p=0;p<4;p++){bg_fx_shots[p].age=100;bg_fx_shots[p].weapon=-1;}
+    memset(bg_fx_vehicle_bursts,0,sizeof(bg_fx_vehicle_bursts));next_burst=0;
+    for(unsigned i=0;i<4;i++)bg_fx_vehicle_bursts[i].age=100;
 }
 void bg_fx_update(float dt){
+    for(unsigned i=0;i<4;i++)bg_fx_vehicle_bursts[i].age=fminf(100,bg_fx_vehicle_bursts[i].age+dt);
     for(unsigned p=0;p<4;p++)bg_fx_shots[p].age=fminf(100,bg_fx_shots[p].age+dt);
     for(unsigned i=0;i<BG_FX_TRAILS;i++)if(bg_fx_trails[i].active){
         bg_fx_trails[i].age+=dt;if(bg_fx_trails[i].age>=BG_FX_TRAIL_LIFE)bg_fx_trails[i].active=false;
     }
     for(unsigned i=0;i<bg_event_count;i++){
-        const bg_event*e=&bg_events[i];if(e->kind!=BG_EVENT_FIRE||e->player<0||e->player>=4||e->weapon<0||e->weapon>=BG_WEAPON_COUNT)continue;
+        const bg_event*e=&bg_events[i];
+        if(e->kind==BG_EVENT_VEHICLE_DESTROYED){
+            bg_fx_vehicle_burst*b=&bg_fx_vehicle_bursts[next_burst++%4];
+            memcpy(b->origin,e->pos,sizeof(b->origin));b->age=0;b->kind=e->weapon;b->vehicle=(int)e->amount;
+        }
+        if(e->kind!=BG_EVENT_FIRE||e->player<0||e->player>=4||e->weapon<0||e->weapon>=BG_WEAPON_COUNT)continue;
         /* Mounted guns have their own muzzle rigs; never attach their event to
          * the infantry weapon a driver happened to have before boarding. */
         if(bg_players[e->player].vehicle>=0)continue;

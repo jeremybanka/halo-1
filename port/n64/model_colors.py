@@ -9,6 +9,12 @@ from PIL import Image
 from pack_assets import normal, position
 
 
+def is_visor(model, material):
+    metadata = model.get('material_metadata', [])
+    return (material < len(metadata) and metadata[material].get('path') ==
+            r'characters\cyborg\shaders\visor')
+
+
 def load_images(paths):
     return [Image.open(path).convert('RGBA') if path else None for path in paths]
 
@@ -42,6 +48,10 @@ def bake_triangle(tri, images, model, firstperson=False):
             any(len(c)!=2 or any(not math.isfinite(v) for v in c) for c in tri['uv']))):
         raise ValueError('Invalid source-derived diffuse UV samples')
     material = tri['material']
+    # Compensate for the missing Xbox reflection shader and tiny split-screen
+    # footprint. Keep the complete source visor region bright yellow.
+    if is_visor(model, material):
+        return [[255, 224, 18] for _ in range(3)]
     image = images[material] if material < len(images) else None
     overrides = model.get('material_overrides', [])
     fallbacks = model.get('material_colors', [])

@@ -393,7 +393,8 @@ static void damage_vehicle(unsigned index,int owner,float amount){
     bg_vehicle*v=&bg_vehicles[index];if(bg_match_finished()||!v->active)return;v->health-=(int)amount;
     if(v->health>0)return;
     for(int seat=0;seat<3;seat++)if(v->occupants[seat]>=0)kill(v->occupants[seat],owner);
-    v->active=false;v->respawn=20;v->speed=0;event(BG_EVENT_EXPLOSION,owner,BG_EXPLOSION_NORMAL,v->pos,2);
+    v->active=false;v->respawn=20;v->wreck_time=BG_WRECK_LIFE;v->speed=0;
+    event(BG_EVENT_VEHICLE_DESTROYED,owner,v->kind,v->pos,(float)index);
 }
 static void explode(const float pos[3],int owner,float damage,float radius,bg_projectile_kind kind){
     event(BG_EVENT_EXPLOSION,owner,kind==BG_P_NEEDLE?BG_EXPLOSION_NEEDLER:
@@ -594,7 +595,9 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS],float dt){
     bg_vehicle_physics_prepare();
     for(unsigned i=0;i<bg_vehicle_count;i++){
         bg_vehicle*v=&bg_vehicles[i];v->cooldown=fmaxf(0,v->cooldown-dt);v->flash=fmaxf(0,v->flash-dt);v->secondary_cooldown=fmaxf(0,v->secondary_cooldown-dt);
-        if(!v->active){v->respawn-=dt;if(v->respawn<=0){v->active=true;v->health=v->kind==BG_V_SCORPION?800:400;
+        if(!v->active){
+            if(v->wreck_time>0){bg_vehicle_physics_wreck(i);v->wreck_time=fmaxf(0,v->wreck_time-dt);}
+            v->respawn-=dt;if(v->respawn<=0){v->active=true;v->wreck_time=0;v->health=v->kind==BG_V_SCORPION?800:400;
             memcpy(v->pos,v->home,sizeof(v->pos));v->yaw=v->home_yaw;v->pitch=0;v->physics_valid=false;memset(v->velocity,0,sizeof(v->velocity));memset(v->angular_velocity,0,sizeof(v->angular_velocity));}continue;}
         for(int seat=0;seat<3;seat++)if(v->occupants[seat]>=(int)active_players)eject(v->occupants[seat]);
         int driver=v->occupants[0];const bg_input*in=driver>=0?&inputs[driver]:NULL;

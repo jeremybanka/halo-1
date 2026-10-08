@@ -7,6 +7,7 @@
 void bg_vehicle_world_release(void);
 void bg_vehicle_physics_prepare(void);
 void bg_vehicle_physics_step(unsigned index,const bg_input *input);
+void bg_vehicle_physics_wreck(unsigned index);
 
 void bg_vehicle_physics_explosion(unsigned index,const float origin[3],int projectile_kind);
 void bg_vehicle_physics_flip(unsigned index,const float player_position[3]);

@@ -16,7 +16,7 @@ typedef struct {
 
 static inline void bg_vehicle_pose_key(uint32_t key[BG_VEHICLE_POSE_WORDS],const bg_vehicle*v,const float*wheel){
     _Static_assert(sizeof(float)==4,"Vehicle pose keys require 32-bit floats");
-    key[0]=(uint32_t)v->kind;
+    key[0]=(uint32_t)v->kind|((uint32_t)!v->active<<8);
     memcpy(key+1,v->pos,12);
     memcpy(key+4,&v->yaw,4);memcpy(key+5,&v->pitch,4);
     memcpy(key+6,&v->turret_yaw,4);memcpy(key+7,&v->turret_pitch,4);

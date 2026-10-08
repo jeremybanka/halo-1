@@ -15,6 +15,8 @@ typedef struct {float start[3],end[3],muzzle[3],age;bool active;} bg_fx_trail;
 typedef struct {float age;int weapon;unsigned sequence;bool charged;} bg_fx_shot;
 extern bg_fx_shot bg_fx_shots[4];
 extern bg_fx_trail bg_fx_trails[BG_FX_TRAILS];
+typedef struct {float origin[3],age;int vehicle,kind;} bg_fx_vehicle_burst;
+extern bg_fx_vehicle_burst bg_fx_vehicle_bursts[4];
 void bg_fx_reset(void);
 void bg_fx_update(float dt);
 float bg_fx_flash(unsigned player);

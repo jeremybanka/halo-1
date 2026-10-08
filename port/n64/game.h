@@ -19,7 +19,8 @@ typedef enum { BG_EVENT_FIRE, BG_EVENT_RELOAD, BG_EVENT_JUMP, BG_EVENT_LAND,
     BG_EVENT_HURT, BG_EVENT_DIE, BG_EVENT_RESPAWN, BG_EVENT_EXPLOSION,
     BG_EVENT_PICKUP, BG_EVENT_EMPTY, BG_EVENT_MELEE, BG_EVENT_ENTER,
     BG_EVENT_EXIT, BG_EVENT_ENGINE, BG_EVENT_SHIELD, BG_EVENT_GRENADE,
-    BG_EVENT_GAME_OVER, BG_EVENT_DOUBLE_KILL, BG_EVENT_TRIPLE_KILL, BG_EVENT_KILLING_SPREE, BG_EVENT_TELEPORTER, BG_EVENT_NEEDLE_HIT, BG_EVENT_SUPERCOMBINE } bg_event_kind;
+    BG_EVENT_GAME_OVER, BG_EVENT_DOUBLE_KILL, BG_EVENT_TRIPLE_KILL, BG_EVENT_KILLING_SPREE, BG_EVENT_TELEPORTER, BG_EVENT_NEEDLE_HIT, BG_EVENT_SUPERCOMBINE,
+    BG_EVENT_VEHICLE_DESTROYED } bg_event_kind;
 typedef enum { BG_P_PLASMA, BG_P_NEEDLE, BG_P_ROCKET, BG_P_FRAG,
     BG_P_PLASMA_GRENADE, BG_P_CANNON, BG_P_FLAME } bg_projectile_kind;
 /* BG_EVENT_EXPLOSION stores this presentation type in event.weapon. */
@@ -47,10 +48,14 @@ typedef struct {
 } bg_input;
 typedef struct {
     float pos[3],yaw,pitch,velocity[3],speed,cooldown,flash,respawn,engine_phase;
+    float wreck_time; /* Unpowered, non-boardable body; last two seconds blink. */
     float forward[3],up[3],angular_velocity[3],steering,wheel_phase,suspension[8];
     bool physics_valid;
     float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch; int kind,health,occupants[3]; bool active;
 } bg_vehicle;
+#define BG_WRECK_LIFE 12.f
+static inline bool bg_vehicle_body_present(const bg_vehicle*v){return v->active||v->wreck_time>0;}
+static inline bool bg_vehicle_body_visible(const bg_vehicle*v){return v->active||(v->wreck_time>0&&(v->wreck_time>2||((unsigned)(v->wreck_time*4)&1)));}
 typedef struct {
     float pos[3],velocity[3],life,damage,radius; int kind,owner,attached;
     float attached_offset[3]; bool active;

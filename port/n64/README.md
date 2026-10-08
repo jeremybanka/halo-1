@@ -482,3 +482,5 @@ Source `bloodgulch.map` SHA-256:
 `50fe52406f075d975e24100a65b26ff696458023dd3509878953052ab0ef858f`.
 Neither derived game assets nor generated ROMs are committed. The user's
 `n64-3d-splitscreen` project informed rendering and split-view buffer management.
+
+Yellow visor compensation and source-based vehicle explosions/wrecks are documented in [VEHICLE_DESTRUCTION.md](VEHICLE_DESTRUCTION.md).

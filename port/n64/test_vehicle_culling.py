@@ -156,6 +156,7 @@ def run(root, sdk, generated, out):
                  'bg_vehicle_rigs','bg_vehicle_lod_bounds'):
         c += '\n' + declaration(bank, name)
     c += '\n' + declaration(micro_bank, 'bg_vehicle_micro_gate_bounds')
+    c += '\n' + declaration((root/'build/n64/generated/vehicle_visuals_data.c').read_text(), 'bg_covenant_wreck_bounds')
     for source, result, name, args in (
         (math,'void','t3d_mat4_from_srt_euler','T3DMat4 *mat,const float scale[3],const float rot[3],const float translate[3]'),
         (header,'void','t3d_mat4_mul','T3DMat4 *matRes,const T3DMat4 *matA,const T3DMat4 *matB'),

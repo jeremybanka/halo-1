@@ -12,7 +12,7 @@
 #ifdef BG_FRONTEND_QA
 #include "frontend_qa.h"
 #endif
-#if !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+#if !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
 #define BG_FRONTEND
 #endif
 #ifdef BG_MENU_QA
@@ -23,6 +23,7 @@
 #include "firstperson_ammo.h"
 #include "weapon_effects.h"
 #include "weapon_effects_draw.h"
+#include "vehicle_visuals.h"
 #include "render_animation.h"
 #include "render_lod.h"
 #include "asset_micro.h"
@@ -36,6 +37,9 @@
 #include "replay.h"
 #ifdef BG_EFFECTS_QA
 #include "effects_qa.h"
+#endif
+#ifdef BG_DESTRUCTION_QA
+#include "destruction_qa.h"
 #endif
 #ifndef BG_PACED30_BUFFERS
 #define BG_PACED30_BUFFERS 3
@@ -103,6 +107,7 @@ static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static float fired_at[4]={-100,-100,-100,-100};
 static rspq_block_t *world_blocks[512], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT], *particle_blocks[7];
 static rspq_block_t *vehicle_lods[4];
+static rspq_block_t *covenant_wreck_blocks[2];
 static rspq_block_t *pickup_lod_blocks[BG_M_COUNT];
 static rspq_block_t *vehicle_micro_blocks[4],*pickup_micro_blocks[BG_M_COUNT];
 static bg_micro_sphere vehicle_micro_spheres[BG_MAX_VEHICLES],pickup_micro_spheres[BG_MAX_PICKUPS];
@@ -544,6 +549,10 @@ static void init_scene(void){
         vehicle_micro_vertex_loads[m]=model_load_count(a,a->vertex_count,0,a->batch_count);
 #endif
     }
+    for(unsigned m=0;m<2;m++){
+        const bg_model_asset*a=&bg_covenant_wrecks[m];prepare_model(a);
+        covenant_wreck_blocks[m]=record_model(a,a->vertices);
+    }
     prepare_model(&bg_spartan_lod);
     for(unsigned weapon=0;weapon<BG_FP_WEAPONS;weapon++){
         const bg_model_asset*a=&bg_fp_models[weapon];prepare_model(a);
@@ -847,6 +856,10 @@ static void compute_vehicle_pose(unsigned i){
     t3d_mat4_to_fixed_3x4(&vehicle_matrices[slot][i],&base);
     bg_bounds combined;
     bg_bounds_transform(&combined,&bg_vehicle_micro_gate_bounds[v->kind],base.m,BG_OBJECT_SCALE);
+    if(!v->active&&(v->kind==BG_V_GHOST||v->kind==BG_V_BANSHEE)){
+        bg_bounds wreck;bg_bounds_transform(&wreck,&bg_covenant_wreck_bounds[v->kind==BG_V_BANSHEE],base.m,BG_OBJECT_SCALE);
+        bg_bounds_union(&combined,&wreck);
+    }
     pivot_rotation(&yaw,rig->turret_pivot,v->turret_yaw,0);
     for(unsigned j=0;j<rig->count;j++){
         const bg_vehicle_part*part=&rig->parts[j];T3DMat4 local,world;
@@ -1044,10 +1057,10 @@ static void prepare_frame(void){
     /* Matrix construction precedes visibility so culling uses the exact pose
      * later submitted, once per frame rather than once per viewport. */
     for(unsigned p=0;p<views;p++)prepare_player_bounds(p);
-    for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active)prepare_vehicle(i);
+    for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicle_body_present(&bg_vehicles[i]))prepare_vehicle(i);
     prepare_pickup_bounds();
     if(views>=3){
-        for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicles[i].active&&vehicle_micro_available[bg_vehicles[i].kind])
+        for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicle_body_present(&bg_vehicles[i])&&vehicle_micro_available[bg_vehicles[i].kind])
             bg_micro_sphere_from_bounds(&vehicle_micro_spheres[i],&vehicle_bounds[i]);
         for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].active&&pickup_micro_available[pickup_model(bg_pickups[i].weapon)])
             bg_micro_sphere_from_bounds(&pickup_micro_spheres[i],&pickup_bounds[i]);
@@ -1083,6 +1096,15 @@ static void update_effects(float dt){
     for(unsigned i=0;i<bg_event_count;i++)if(bg_events[i].kind==BG_EVENT_FIRE&&bg_events[i].player>=0&&bg_events[i].player<4)
         fired_at[bg_events[i].player]=game_time;
     for(unsigned i=0;i<bg_event_count;i++)if(bg_events[i].kind==BG_EVENT_EXPLOSION){
+        /* One lethal hit produces a rocket/grenade impact and a vehicle death
+         * event. Let the source vehicle fireburst replace the overlapping old
+         * polygon blast, without altering damage or either gameplay event. */
+        bool vehicle_burst=false;
+        for(unsigned k=0;k<bg_event_count;k++)if(bg_events[k].kind==BG_EVENT_VEHICLE_DESTROYED&&bg_events[k].player==bg_events[i].player){
+            float distance=0;for(unsigned a=0;a<3;a++){float d=bg_events[k].pos[a]-bg_events[i].pos[a];distance+=d*d;}
+            if(distance<9){vehicle_burst=true;break;}
+        }
+        if(vehicle_burst)continue;
         unsigned j=explosion_next++%12;memcpy(explosions[j].pos,bg_events[i].pos,12);
         explosions[j].life=.35f;explosions[j].radius=bg_events[i].amount*.4f;
         explosions[j].kind=(bg_explosion_kind)bg_events[i].weapon;
@@ -1172,7 +1194,7 @@ static void prepare_view(unsigned p){
     }
     for(unsigned i=0;i<bg_vehicle_count;i++){
         const bg_vehicle*v=&bg_vehicles[i];vehicle_view_lods[p][i]=0;
-        if(!v->active||!visible_bounds(vp,&vehicle_bounds[i]))continue;
+        if(!bg_vehicle_body_visible(v)||!visible_bounds(vp,&vehicle_bounds[i]))continue;
         float distance=0;for(unsigned a=0;a<3;a++){float d=v->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
         unsigned lod=distance>36&&player->zoom==0;
         if(lod&&vehicle_micro_available[v->kind]&&bg_micro_lod_below(&vehicle_micro_spheres[i],vp->matCamera.m,vp->matProj.m,
@@ -1222,6 +1244,21 @@ static void draw_view(unsigned p){
 #endif
     for(unsigned i=0;i<bg_vehicle_count;i++)if(vehicle_view_lods[p][i]){
         bg_vehicle*v=&bg_vehicles[i];
+        bool wreck=!v->active;
+        if(wreck){
+            rdpq_sync_pipe();rdpq_set_prim_color(RGBA32(75,70,66,255));
+            rdpq_mode_combiner(RDPQ_COMBINER1((SHADE,0,PRIM,0),(0,0,0,1)));
+        }
+        if(wreck&&(v->kind==BG_V_GHOST||v->kind==BG_V_BANSHEE)&&vehicle_view_lods[p][i]<3){
+            unsigned m=v->kind==BG_V_BANSHEE;
+            /* Burned source shaders already supply the correct diffuse colors. */
+            rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
+            t3d_matrix_set(&vehicle_matrices[slot][i],true);rspq_block_run(covenant_wreck_blocks[m]);
+            triangles+=bg_covenant_wrecks[m].triangle_count;
+#ifdef BG_PROFILE
+            submitted_vertices+=model_load_count(&bg_covenant_wrecks[m],bg_covenant_wrecks[m].vertex_count,0,bg_covenant_wrecks[m].batch_count);
+#endif
+        }else
         if(vehicle_view_lods[p][i]>=2){
             bool micro=vehicle_view_lods[p][i]==3;
             t3d_matrix_set(&vehicle_matrices[slot][i],true);rspq_block_run(micro?vehicle_micro_blocks[v->kind]:vehicle_lods[v->kind]);
@@ -1240,6 +1277,7 @@ static void draw_view(unsigned p){
 #endif
             }
         }
+        if(wreck){rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);}
     }
 #ifdef BG_PROFILE
     category_triangles[1]+=triangles-before;before=triangles;
@@ -1286,6 +1324,7 @@ static void draw_view(unsigned p){
     unsigned fx_triangles=bg_fx_draw_trails(game_time);
     for(unsigned j=0;j<views;j++)if(held_masks[p]&(1u<<j))
         fx_triangles+=bg_fx_draw_weapon(j,&held_matrices[slot][j],BG_OBJECT_SCALE,false,game_time);
+    fx_triangles+=bg_fx_draw_vehicle_destruction();
     triangles+=fx_triangles;
 #ifdef BG_PROFILE
     submitted_vertices+=fx_triangles*2;
@@ -1296,6 +1335,9 @@ static void draw_view(unsigned p){
     category_triangles[4]+=triangles-before;before=triangles;
 #endif
     if(player->health>0&&player->vehicle<0&&!player->zoom
+#ifdef BG_DESTRUCTION_QA
+       &&false /* Inspection cameras omit the viewmodel, preserving world effects. */
+#endif
 #ifdef BG_MODEL_QA
        &&model_qa_firstperson()
 #endif
@@ -1685,6 +1727,9 @@ int main(void){
 #ifdef BG_EFFECTS_QA
             bg_effects_qa_input(in,game_time);views=4;bg_set_players(4);
 #endif
+#ifdef BG_DESTRUCTION_QA
+            bg_destruction_qa_input(in,game_time);views=4;bg_set_players(4);
+#endif
             bg_clear_events();bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;
 #ifdef BG_SHOWCASE
             bg_showcase_observe();
@@ -1810,6 +1855,9 @@ int main(void){
 #ifdef BG_FRONTEND_QA
         sys_get_heap_stats(&heap);rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"LIVE HEAP %uK",(heap.total-heap.used)/1024);
         rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
+#endif
+#ifdef BG_DESTRUCTION_QA
+        rdpq_set_mode_standard();rdpq_text_print(NULL,1,4,237,bg_destruction_qa_label());
 #endif
 #ifdef BG_EFFECTS_QA
         rdpq_set_mode_standard();rdpq_text_print(NULL,1,4,237,bg_effects_qa_label());

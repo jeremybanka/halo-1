@@ -6,7 +6,7 @@ from pack_assets import position, floats
 from extract_extended import MODEL_PATHS, AUDIO_TAGS, ANIM_NAMES
 from vehicle_parts import VEHICLES, split_vehicle
 from pack_animation import emit_clip, clip_initializer
-from model_colors import load_images, bake_triangle, bake_team_mask
+from model_colors import load_images, bake_triangle, bake_team_mask, is_visor
 from pack_mesh import indexed_mesh, emit_batches, trajectory_keys, remap_clip, MODEL_COLOR_TOLERANCE, model_color_tolerance
 import pack_bounds
 
@@ -14,6 +14,17 @@ import pack_bounds
 def pack(source,out,pc_extras=False):
  data=json.loads(source.read_text());out.mkdir(parents=True,exist_ok=True)
  raw=json.loads((source.parent/'extended-raw.json').read_text());rigs={}
+ # Original low/superlow Spartan LODs merge the visor into the armor shader.
+ # Recover those broad face panels using the highest source visor's bounds.
+ spartan=raw['models']['spartan']
+ visor_material=next(i for i in range(len(spartan['material_metadata'])) if is_visor(spartan,i))
+ visor_points=[spartan['vertices'][v] for face,material in zip(spartan['faces'],spartan['materials']) if material==visor_material for v in face]
+ visor_bounds=[[fn(p[a] for p in visor_points) for a in range(3)] for fn in (min,max)]
+ for model in (data['models']['spartan'],data['spartan_lod']):
+  for tri in model['triangles']:
+   center=[sum(p[a] for p in tri['p'])/3 for a in range(3)]
+   if all(visor_bounds[0][a]<=center[a]<=visor_bounds[1][a] for a in range(3)):
+    tri['material']=visor_material
  for name in VEHICLES:
   data['models'][name],rigs[name]=split_vehicle(name,data['models'][name],raw['models'][name])
  def rgba(rgb):return (rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255
@@ -35,7 +46,7 @@ def pack(source,out,pc_extras=False):
   for tri in model['triangles']:
    points=[position(p,(0,0,0)) for p in tri['p']]
    colors=bake_triangle(tri,images,model)
-   team_mask.extend(bake_team_mask(tri,masks,channels))
+   team_mask.extend([0,0,0] if is_visor(model,tri['material']) else bake_team_mask(tri,masks,channels))
    for p,rgb in zip(points,colors):
     if name in ('overshield','overshield_pickup_lod'):rgb=[238,92,52]
     if name in ('camouflage','camouflage_pickup_lod'):rgb=[57,151,234]

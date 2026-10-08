@@ -4,6 +4,7 @@
 #include <string.h>
 #include "weapon_effects.h"
 #include "weapon_effects_draw.h"
+#include "vehicle_visuals.h"
 #define FX_QUADS 32
 #define FX_SCALE 256.f
 /* Separate storage per fenced slot and camera: drawing the next split must
@@ -12,11 +13,12 @@ static T3DVertPacked vertices[2][4][FX_QUADS*2] __attribute__((aligned(16)));
 static T3DMat4FP matrices[2][4];
 static surface_t textures[16];
 static float fp_markers[4][2][3],eye_pos[3],right[3],up[3];
-static unsigned frame_slot,view,used,bound;
+static unsigned frame_slot,view,used,bound,limit;
 static float pixel_width;
 void bg_fx_draw_init(void){
-    assertf(bg_fx_texture_count<=16,"Effect texture table capacity");
+    assertf(bg_fx_texture_count+5<=16,"Effect texture table capacity");
     for(unsigned i=0;i<bg_fx_texture_count;i++)textures[i]=surface_make_linear((void*)bg_fx_textures[i],FMT_RGBA32,16,16);
+    for(unsigned i=0;i<5;i++)textures[bg_fx_texture_count+i]=surface_make_linear((void*)bg_vehicle_fx_textures[i],FMT_RGBA32,16,16);
 }
 void bg_fx_pose(unsigned player,unsigned weapon,unsigned clip,unsigned f0,unsigned f1,int fraction){
     const int16_t (*a)[3]=bg_fx_marker_poses[bg_fx_marker_offsets[weapon][clip]+f0];
@@ -24,7 +26,7 @@ void bg_fx_pose(unsigned player,unsigned weapon,unsigned clip,unsigned f0,unsign
     for(unsigned m=0;m<2;m++)for(unsigned k=0;k<3;k++)fp_markers[player][m][k]=(a[m][k]+(b[m][k]-a[m][k])*(fraction/256.f))/4096.f;
 }
 void bg_fx_draw_begin(unsigned slot,unsigned p,const T3DViewport*vp,const T3DVec3*eye){
-    frame_slot=slot;view=p;used=0;bound=~0u;
+    frame_slot=slot;view=p;used=0;bound=~0u;limit=FX_QUADS;
     pixel_width=1.f/(vp->size[1]*fabsf(vp->matProj.m[1][1]));
     for(unsigned a=0;a<3;a++){eye_pos[a]=eye->v[a]/BG_SCALE;right[a]=vp->matCamera.m[a][0];up[a]=vp->matCamera.m[a][1];}
     t3d_mat4fp_from_srt_euler(&matrices[slot][p],(float[]){BG_SCALE/FX_SCALE,BG_SCALE/FX_SCALE,BG_SCALE/FX_SCALE},(float[]){0,0,0},eye->v);
@@ -43,7 +45,7 @@ static void restore(void){
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
 }
 static bool quad(float points[4][3],unsigned texture,uint32_t color){
-    if(used==FX_QUADS)return false;
+    if(used>=limit)return false;
     T3DVertPacked*v=&vertices[frame_slot][view][used*2];
     for(unsigned i=0;i<4;i++)for(unsigned a=0;a<3;a++){
         float value=(points[i][a]-eye_pos[a])*FX_SCALE;
@@ -128,4 +130,50 @@ unsigned bg_fx_draw_trails(float time){
     }
     if(drawing)restore();
     return (used-before)*2;
+}
+unsigned bg_fx_draw_vehicle_destruction(void){
+    unsigned before=used;bool drawing=false;limit=FX_QUADS-4;/* Reserve first-person feedback. */
+    for(unsigned i=0;i<4&&used<limit;i++){
+        const bg_fx_vehicle_burst*b=&bg_fx_vehicle_bursts[i];float t=b->age;
+        if(t>=8||b->vehicle<0||b->vehicle>=(int)bg_vehicle_count)continue;
+        const bg_vehicle*v=&bg_vehicles[b->vehicle];if(v->active||v->wreck_time<=0)continue;
+        float distance=0;for(unsigned a=0;a<3;a++){float d=v->pos[a]-eye_pos[a];distance+=d*d;}
+        if(distance>60*60)continue;
+        if(!drawing){mode();drawing=true;}
+        float size=b->kind==BG_V_SCORPION?1.4f:b->kind==BG_V_GHOST?.8f:1.f;
+        unsigned base=bg_fx_texture_count;float center[3];memcpy(center,b->origin,sizeof(center));center[1]+=.3f;
+        /* The source shared Covenant death effect uses warm fire, gray smoke,
+         * blue metal panels and sustained flame/sparks (not a green orb). */
+        if(t<1.1f){
+            float radius=size*(.6f+1.5f*t),alpha=fminf(1,(1.1f-t)*2);
+            sprite(center,radius,radius,base+BG_VFX_FIRE,tint((uint8_t[]){255,221,140},alpha),t*3);
+            for(unsigned j=0;j<2;j++){
+                float lobe[3]={center[0]+(j?1:-1)*radius*.45f,center[1]+radius*.4f,center[2]+(j?-.3f:.3f)*radius};
+                sprite(lobe,radius*.65f,radius*.75f,base+BG_VFX_FIRE,tint((uint8_t[]){255,181,104},alpha*.85f),t*-4+j);
+            }
+            if(t<.2f)sprite(center,size*1.2f,size*1.2f,bg_fx_glow_texture,tint((uint8_t[]){255,249,220},1-t/.2f),0);
+        }
+        if(t<1.65f){
+            for(unsigned j=0;j<3;j++){
+                float angle=j*2.094395f+i*.7f,point[3]={center[0]+cosf(angle)*t*2.5f,center[1]+t*(2.4f+j*.4f)-2.5f*t*t,center[2]+sinf(angle)*t*2.5f};
+                float r=.11f*size;bool alien=b->kind==BG_V_GHOST||b->kind==BG_V_BANSHEE;
+                sprite(point,r,r*.7f,base+BG_VFX_PANEL,tint(alien?(uint8_t[]){66,80,112}:(uint8_t[]){90,80,61},fminf(1,(1.65f-t)*3)),t*(j%2?-8:11));
+            }
+        }
+        memcpy(center,v->pos,sizeof(center));center[1]+=.25f;
+        if(t<3){
+            float pulse=.85f+.15f*sinf(t*21+i),r=size*(.3f+.1f*pulse);
+            sprite(center,r,r*1.7f,base+BG_VFX_FLAME,tint((uint8_t[]){255,207,130},fminf(1,3-t)),sinf(t*7)*.1f);
+            float spark[3]={center[0]+.2f*sinf(t*8),center[1]+fmodf(t*2,1.1f),center[2]};
+            sprite(spark,.045f,.17f,base+BG_VFX_SPARK,tint((uint8_t[]){255,226,167},fminf(1,3-t)),.2f);
+        }
+        /* Two analytically advected puffs replace dozens of source particles. */
+        for(unsigned j=0;j<2;j++){
+            float phase=fmodf(t+j*1.2f,2.4f),alpha=fminf(1,phase*4)*(1-phase/2.4f)*fminf(1,8-t)*.65f;
+            float point[3]={center[0]+phase*.15f,center[1]+phase*.8f,center[2]+j*.18f};
+            float r=size*(.3f+phase*.28f);
+            sprite(point,r,r,base+BG_VFX_SMOKE,tint((uint8_t[]){67,65,63},alpha),phase*.3f+j);
+        }
+    }
+    limit=FX_QUADS;if(drawing)restore();return (used-before)*2;
 }

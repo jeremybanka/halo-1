@@ -40,6 +40,7 @@ def main():
     mode.add_argument('--weapon-qa', action='store_true', help='Render remaining Xbox weapons in four poses and four world views')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
     mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
+    mode.add_argument('--destruction-qa', action='store_true', help='Script four-angle vehicle destruction, wreck settling, blinking and respawn')
     args = parser.parse_args()
     if (args.model_qa or args.weapon_qa or args.geometry_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Model/weapon QA uses unpaced frozen scenes, not performance measurement')
@@ -57,7 +58,7 @@ def main():
             parser.error('--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds')
     if args.gpu_diagnostic and not args.benchmark:
         parser.error('--gpu-diagnostic requires --benchmark')
-    if (args.menu_qa or args.frontend_qa or args.effects_qa) and (args.benchmark or args.vi_benchmark or args.profile):
+    if (args.menu_qa or args.frontend_qa or args.effects_qa or args.destruction_qa) and (args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Scripted menu/effects QA cannot combine with timing or profiling modes')
     if args.vi_benchmark:
         if args.benchmark or args.profile or args.validate or args.gpu_diagnostic or args.showcase:
@@ -127,6 +128,14 @@ def main():
         if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
             parser.error('Stale weapon effects bank; rerun port/n64/extract_weapon_effects.py: '+name)
 
+    vehicle_report = out/'generated/vehicle-visuals-report.json'
+    if not vehicle_report.exists():
+        parser.error('Extract vehicle destruction visuals first: port/n64/extract_vehicle_visuals.py')
+    vehicle_fx = json.loads(vehicle_report.read_text())
+    for name, expected in {**vehicle_fx['inputs'], 'build/n64/generated/vehicle_visuals_data.c':vehicle_fx['generated_sha256']}.items():
+        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
+            parser.error('Stale vehicle destruction bank; rerun port/n64/extract_vehicle_visuals.py: '+name)
+
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
     run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py'])
@@ -134,6 +143,8 @@ def main():
     sources = ['weapon_effects.c', 'weapon_effects_draw.c', 'blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
     if args.effects_qa:
         sources.append('effects_qa.c')
+    if args.destruction_qa:
+        sources.append('destruction_qa.c')
     sdk_extra_sources = []
     if args.rspq_buffer_kib:
         sdk_source = (args.libdragon_source or sdk.parent/'libdragon-src').resolve()
@@ -146,7 +157,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -177,6 +188,7 @@ def main():
              *(['-DBG_WEAPON_QA'] if args.weapon_qa else []),
              *(['-DBG_GEOMETRY_QA'] if args.geometry_qa else []),
              *(['-DBG_EFFECTS_QA'] if args.effects_qa else []),
+             *(['-DBG_DESTRUCTION_QA'] if args.destruction_qa else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
              *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
              *(['-DBG_BENCHMARK'] if args.benchmark else []),
@@ -202,6 +214,8 @@ def main():
         name += '-geometry-qa'
     if args.effects_qa:
         name += '-effects-qa'
+    if args.destruction_qa:
+        name += '-destruction-qa'
     if args.menu_qa:
         name += '-menu-qa'
     if args.frontend_qa:

@@ -40,6 +40,8 @@ def main():
                            'build/n64/generated/weapon_effects_data.c', *shared],
         'effects-staging': ['port/n64/test_effects_qa.c', 'port/n64/effects_qa.c',
                             'port/n64/weapon_effects.c', 'build/n64/generated/weapon_effects_data.c', *shared],
+        'destruction': ['port/n64/test_destruction.c', 'port/n64/destruction_qa.c', 'port/n64/weapon_effects.c',
+                        'build/n64/generated/weapon_effects_data.c', *shared],
         'replay': ['port/n64/test_replay.c', 'port/n64/replay.c', *shared],
         'showcase': ['port/n64/test_showcase.c', 'port/n64/showcase.c', *shared],
     }

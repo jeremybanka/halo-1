@@ -180,8 +180,8 @@ int main(void){
         }
         assert(explosions==1&&bg_projectile_at(0)==NULL);
     }
-    /* Ghost kind is numerically the same as the plasma presentation enum;
-     * vehicle destruction must explicitly emit a normal explosion instead. */
+    /* Vehicle destruction has its own typed event; the rocket impact retains
+     * its normal explosion without confusing Ghost with the plasma enum. */
     reset();bg_vehicle_count=1;bg_vehicle*ghost=&bg_vehicles[0];
     *ghost=(bg_vehicle){.active=true,.kind=BG_V_GHOST,.health=1,.occupants={-1,-1,-1}};
     memcpy(ghost->pos,bg_players[0].pos,12);ghost->pos[0]+=4;
@@ -191,7 +191,8 @@ int main(void){
     for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_EXPLOSION){
         assert(bg_events[e].weapon==BG_EXPLOSION_NORMAL);blast_events++;
     }
-    assert(blast_events==2&&!ghost->active);
+    unsigned destroyed=0;for(unsigned e=0;e<bg_event_count;e++)destroyed+=bg_events[e].kind==BG_EVENT_VEHICLE_DESTROYED;
+    assert(blast_events==1&&destroyed==1&&!ghost->active&&ghost->wreck_time>0);
     /* Authentic scenario vehicles offer driver, turret and passenger seats. */
     memset(in,0,sizeof(in));bg_reset();bg_pickup_count=0;bg_vehicle*v=&bg_vehicles[0];assert(bg_vehicle_count==10);
     for(int i=0;i<3;i++){

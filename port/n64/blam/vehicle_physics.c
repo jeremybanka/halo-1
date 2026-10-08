@@ -154,6 +154,8 @@ static boolean collision_test_vector(uint32_t flags,const real_point3d*p,const r
  return out->surface_index>=0;
 }
 static void physics_compute_unit_collisions(int32_t i){
+ /* Wrecks keep terrain contacts but do not block or push live vehicles. */
+ if(!bg_vehicles[i].active)return;
  struct physics_instance a;physics_instance_new(&a,i);
  for(int32_t j=0;j<(int32_t)bg_vehicle_count;j++)if(j!=i&&bg_vehicles[j].active&&(j<i||TEST_FLAG(native[j].object.flags,_object_at_rest_bit))){
   /* Conservative body radii avoid the original all-contact-pairs work at distance. */
@@ -183,7 +185,7 @@ static void publish(unsigned i){
 void bg_vehicle_physics_prepare(void){
  world_load();
  for(unsigned i=0;i<bg_vehicle_count;i++){
-  bg_vehicle*v=&bg_vehicles[i];if(!v->active)continue;
+  bg_vehicle*v=&bg_vehicles[i];if(!bg_vehicle_body_present(v))continue;
   if(v->physics_valid&&native[i].definition_index==v->kind&&!memcmp(v->pos,published[i],12)&&v->yaw==published[i][3]&&v->pitch==published[i][4])continue;
   struct vehicle_datum*n=&native[i];memset(n,0,sizeof(*n));n->definition_index=v->kind;
   n->object.forward=(real_vector3d){.n={cosf(v->yaw)*cosf(v->pitch),sinf(v->yaw)*cosf(v->pitch),sinf(v->pitch)}};
@@ -251,6 +253,16 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
   }
  }else if(n->vehicle.stop_time>0){slowly_stop_vehicle(i);suspension_update(i);}
  else{v->steering=n->vehicle.turn;return;}
+ publish(i);
+}
+void bg_vehicle_physics_wreck(unsigned i){
+ /* Original rigid-body integration, contacts and gravity, with no powered
+  * mass points: dead Ghosts lose antigravity and dead Banshees fall. */
+ struct vehicle_datum*n=&native[i];
+ if(bg_vehicles[i].wreck_time==BG_WRECK_LIFE)n->object.flags&=~FLAG(_object_at_rest_bit);
+ if(TEST_FLAG(n->object.flags,_object_at_rest_bit))return;
+ n->unit.seat_power[0]=n->unit.seat_power[1]=0;
+ physics_update(i,NULL,vehicle_workspace->contact,global_zero_vector3d,global_zero_vector3d);
  publish(i);
 }
 void bg_vehicle_transform(const bg_vehicle*v,const float local[3],float out[3]){

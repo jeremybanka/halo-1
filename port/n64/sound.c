@@ -104,6 +104,7 @@ void bg_sound_update(void) {
             case BG_EVENT_DIE:sound=BG_S_DEATH;break;
             case BG_EVENT_RESPAWN:sound=BG_S_RESPAWN;break;
             case BG_EVENT_EXPLOSION:sound=e->weapon==BG_EXPLOSION_PLASMA?BG_S_PLASMA_EXPLOSION:BG_S_EXPLOSION;volume=160;break;
+            case BG_EVENT_VEHICLE_DESTROYED:sound=BG_S_EXPLOSION;volume=180;break;
             case BG_EVENT_SHIELD:sound=BG_S_SHIELD_CHARGE;volume=80;break;
             default:break;
         }

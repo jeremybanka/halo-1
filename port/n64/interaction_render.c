@@ -44,6 +44,14 @@ void bg_interaction_pose(T3DVertPacked*out,const bg_rom_pose*p,float seconds,boo
     }
     data_cache_hit_writeback(out,((p->vertices+1)&~1u)*16);
 }
+void bg_interaction_pose_blend(T3DVertPacked*out,const bg_rom_pose*p,float seconds,bool loop,float weight){
+    const int16_t*a,*b;int fraction=sample(p,seconds,loop,&a,&b),blend=(int)(weight*256);
+    for(unsigned i=0;i<p->vertices;i++){
+        int16_t*pos=t3d_vertbuffer_get_pos(out,i);
+        for(unsigned c=0;c<3;c++){unsigned k=i*3+c;int target=a[k]+((int)b[k]-a[k])*fraction/256;pos[c]+=(target-pos[c])*blend/256;}
+    }
+    data_cache_hit_writeback(out,((p->vertices+1)&~1u)*16);
+}
 void bg_interaction_points(int16_t(*out)[3],const bg_rom_pose*p,float seconds){
     const int16_t*a,*b;int fraction=sample(p,seconds,false,&a,&b);
     for(unsigned i=0;i<p->vertices;i++)for(unsigned c=0;c<3;c++){

@@ -13,6 +13,7 @@ struct vehicle_workspace {
  struct powered_mass_point_datum power[2];
  struct collision_feature_list features;
  uint8_t stamps[2][8192];
+ struct {struct collision_prism prism;int32_t surface;bool valid;} prisms[32];
 };
 #ifdef N64
 static struct vehicle_workspace *vehicle_workspace;
@@ -107,6 +108,19 @@ static int query_next(struct surface_query*q){
   else{assert(q->pending+2<=32);q->stack[q->pending++]=n->first;q->stack[q->pending++]=ni+1;}
  }
 }
+/* Static zero-height polygon projections are independent of the query point
+ * and width. Cache their original result; refresh only the prism thickness. */
+static void cached_surface_feature(const struct collision_bsp*b,int si,float height,float width,struct collision_feature_list*out){
+ if(height!=0){collision_features_from_surface(b,si,NULL,height,width,NONE,out);return;}
+ unsigned count=out->count[_collision_feature_prism];if(count>=MAXIMUM_COLLISION_FEATURES_PER_TEST)return;
+ unsigned slot=(unsigned)si%32;
+ if(vehicle_workspace->prisms[slot].valid&&vehicle_workspace->prisms[slot].surface==si){
+  out->prisms[count]=vehicle_workspace->prisms[slot].prism;out->prisms[count].height=width;out->count[_collision_feature_prism]++;
+ }else{
+  collision_features_from_surface(b,si,NULL,height,width,NONE,out);
+  vehicle_workspace->prisms[slot].prism=out->prisms[count];vehicle_workspace->prisms[slot].surface=si;vehicle_workspace->prisms[slot].valid=true;
+ }
+}
 static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3d*p,real radius,real height,real width,int32_t ignore,struct collision_feature_list*out){
  (void)flags;(void)ignore;collision_features_new(out);unsigned query=next_stamp();const struct collision_bsp*b=&bg_vehicle_bsp;
  struct surface_query query_state;float lo[3],hi[3];
@@ -114,13 +128,26 @@ static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3
  query_begin(&query_state,lo,hi);int si;
  while((si=query_next(&query_state))>=0){
    const struct collision_surface*s=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
-   collision_features_from_surface(b,si,NULL,height,width,NONE,out);
+   /* Outside a polygon's front half-space by more than the query width:
+    * neither its prism nor any boundary edge/vertex can touch this point. */
+   if(height==0){real_plane3d plane;bsp3d_get_plane_from_designator(&b->bsp3d,s->plane_designator,&plane);
+    if(plane3d_distance_to_point(&plane,p)>width+.0001f)continue;}
+   cached_surface_feature(b,si,height,width,out);
    int first=s->first_edge_index,e=first;
    do{
     const struct collision_edge*ed=TAG_BLOCK_GET_ELEMENT(&b->edges,e,struct collision_edge);int side=ed->surface_indices[1]==(int)si;
     assert(e>=0&&e<8192);
     if(vehicle_workspace->stamps[0][e]!=query){vehicle_workspace->stamps[0][e]=query;
-     if(ed->surface_indices[0]>=0&&ed->surface_indices[1]>=0)collision_features_from_edge(b,e,NULL,height,width,NONE,out);
+     /* A cylinder whose segment bounds miss this zero-height query sphere
+      * cannot contain the mass point. Preserve the original edge test for
+      * candidates and for nonzero-height callers. */
+     bool candidate=true;
+     if(height==0){
+      const struct collision_vertex*a=TAG_BLOCK_GET_ELEMENT(&b->vertices,ed->vertex_indices[0],struct collision_vertex);
+      const struct collision_vertex*c=TAG_BLOCK_GET_ELEMENT(&b->vertices,ed->vertex_indices[1],struct collision_vertex);
+      for(unsigned axis=0;axis<3;axis++)if(MAX(a->point.n[axis],c->point.n[axis])+width+.00001f<p->n[axis]||MIN(a->point.n[axis],c->point.n[axis])-width-.00001f>p->n[axis]){candidate=false;break;}
+     }
+     if(candidate&&ed->surface_indices[0]>=0&&ed->surface_indices[1]>=0)collision_features_from_edge(b,e,NULL,height,width,NONE,out);
     }
     int vi=ed->vertex_indices[side];assert(vi>=0&&vi<8192);
     if(vehicle_workspace->stamps[1][vi]!=query){vehicle_workspace->stamps[1][vi]=query;
@@ -152,6 +179,51 @@ static boolean collision_test_vector(uint32_t flags,const real_point3d*p,const r
    if(inside){out->t=t;out->plane=plane;out->surface_index=si;out->material_index=s->material_index;}
  }
  return out->surface_index>=0;
+}
+static bool ray_bounds(const int16_t bounds[6],const float origin[3],const float inverse[3],const bool zero[3],float maximum,float*entry){
+ float near=0,far=maximum;
+ for(unsigned k=0;k<3;k++){
+  if(zero[k]){if(origin[k]<bounds[k]||origin[k]>bounds[k+3])return false;continue;}
+  float lo=(bounds[k]-origin[k])*inverse[k],hi=(bounds[k+3]-origin[k])*inverse[k];
+  if(lo>hi){float t=lo;lo=hi;hi=t;}if(lo>near)near=lo;if(hi<far)far=hi;if(near>far)return false;
+ }
+ *entry=near;return true;
+}
+float bg_world_raycast(const float origin[3],const float direction[3],float distance){
+ if(distance<=.003f)return distance;
+ world_load();
+ float bias=.003f;
+ real_point3d p={.n={origin[0]+direction[0]*bias+68,-origin[2]-direction[2]*bias-118,origin[1]+direction[1]*bias}};
+ real_vector3d d={.n={direction[0]*(distance-bias),-direction[2]*(distance-bias),direction[1]*(distance-bias)}};
+ float scaled[3],inverse[3];bool zero[3];
+ for(unsigned k=0;k<3;k++){scaled[k]=p.n[k]*64;zero[k]=fabsf(d.n[k])<1e-12f;inverse[k]=zero[k]?0:1/(d.n[k]*64);}
+ uint16_t stack[32];float entries[32];unsigned pending=1;stack[0]=0;entries[0]=0;float nearest=1;
+ const struct collision_bsp*b=&bg_vehicle_bsp;
+ while(pending){
+  --pending;
+  if(entries[pending]>nearest)continue;
+  const struct vehicle_bvh_node*n=&bg_vehicle_bvh[stack[pending]];float entry;
+  if(!n->count){
+   unsigned left=(unsigned)(n-bg_vehicle_bvh)+1,right=n->first;float a,c;
+   bool l=ray_bounds(bg_vehicle_bvh[left].bounds,scaled,inverse,zero,nearest,&a),r=ray_bounds(bg_vehicle_bvh[right].bounds,scaled,inverse,zero,nearest,&c);
+   assert(pending+2<=32);
+   if(l&&r){entries[pending]=a<c?c:a;stack[pending++]=a<c?right:left;entries[pending]=a<c?a:c;stack[pending++]=a<c?left:right;}
+   else if(l){entries[pending]=a;stack[pending++]=left;}else if(r){entries[pending]=c;stack[pending++]=right;}
+   continue;
+  }
+  for(unsigned j=0;j<n->count;j++){
+   unsigned si=bg_vehicle_surface_indices[n->first+j];
+   if(!ray_bounds(bg_vehicle_surface_bounds[si],scaled,inverse,zero,nearest,&entry))continue;
+   const struct collision_surface*surface=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
+   real_plane3d plane;bsp3d_get_plane_from_designator(&b->bsp3d,surface->plane_designator,&plane);
+   float den=dot_product3d(&plane.n,&d);if(fabsf(den)<1e-9f)continue;
+   float t=-plane3d_distance_to_point(&plane,&p)/den;if(t<0||t>nearest)continue;
+   real_point3d hit;point_from_line3d(&p,&d,t,&hit);int axis=projection_from_vector3d(&plane.n);
+   bool sign=projection_sign_from_vector3d(&plane.n,axis);real_point2d q;project_point3d(&hit,axis,sign,&q);
+   if(collision_surface_test_point(b,0,NULL,si,axis,sign,&q))nearest=t;
+  }
+ }
+ return bias+nearest*(distance-bias);
 }
 static void physics_compute_unit_collisions(int32_t i){
  /* Wrecks keep terrain contacts but do not block or push live vehicles. */

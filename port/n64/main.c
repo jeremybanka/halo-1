@@ -161,6 +161,7 @@ static bg_cull_bounds body_bounds[4],held_bounds[4],vehicle_bounds[BG_MAX_VEHICL
 static bg_cull_bounds projectile_bounds[BG_MAX_PROJECTILES],explosion_bounds[12];
 static T3DMat4 body_matrices[4];
 static unsigned body_clips[4];
+static int locomotion_clip(const bg_player*p);
 static bool body_throwing[4];
 /* CPU readiness resets after the geometry-slot fence, before any draw. */
 static unsigned body_animation_ready,fp_animation_ready;
@@ -794,9 +795,10 @@ static void prepare_player_bounds(unsigned p){
     bool throwing=player->health>0&&player->grenade_cooldown>.55f&&player->vehicle<0;
     if(throwing)clip=BG_A_THROW;
     body_clips[p]=clip;body_throwing[p]=throwing;
-    float size=player->crouched?.8f:1;
+    float size=1;
+    float height_scale=locomotion_clip(player)<0?bg_body_height(player)/bg_movement.height[0]:1;
     T3DMat4*body=&body_matrices[p];
-    t3d_mat4_from_srt_euler(body,(float[]){size,size,size},(float[]){0,-body_yaw,-body_pitch},
+    t3d_mat4_from_srt_euler(body,(float[]){size,height_scale,size},(float[]){0,-body_yaw,-body_pitch},
         (float[]){player->pos[0]*BG_SCALE,player->pos[1]*BG_SCALE,player->pos[2]*BG_SCALE});
     if(player->health>0&&player->vehicle>=0){
         const bg_vehicle*v=&bg_vehicles[player->vehicle];
@@ -810,17 +812,29 @@ static void prepare_player_bounds(unsigned p){
         body->m[3][a]+=player->seat_offset[a]*(player->seat_blend/(6.f/30))*BG_SCALE;
     const bg_bounds*source_bounds=seat?&bg_seat_poses[seat->pose][player->seat_state][0].bounds:
         player->weapon_ready>0?&bg_body_ready_poses[0].bounds:&bg_body_cull_bounds[clip];
-    bg_bounds box;bg_bounds_transform(&box,source_bounds,body->m,BG_SCALE);
+    bg_bounds merged=*source_bounds;int locomotion=locomotion_clip(player);
+    if(locomotion>=0){const bg_bounds*b=&bg_locomotion_poses[locomotion][0].bounds;
+        for(unsigned k=0;k<3;k++){merged.min[k]=fminf(merged.min[k],b->min[k]);merged.max[k]=fmaxf(merged.max[k],b->max[k]);}}
+    bg_bounds box;bg_bounds_transform(&box,&merged,body->m,BG_SCALE);
     bg_bounds_quantize(&body_bounds[p],&box);
     /* Any normalized hand quaternion keeps a weapon within its origin sphere.
      * Marker position interpolation stays inside this clip's endpoint box. */
     bg_bounds marker=bg_attachment_cull_bounds[clip];
-    if(seat||player->weapon_ready>0)marker=(bg_bounds){{-1,-1,-1},{1,1,1}};
+    if(seat||player->weapon_ready>0||locomotion>=0)marker=(bg_bounds){{-1,-1,-1},{1,1,1}};
     bg_bounds_expand(&marker,bg_model_cull_radii[weapon_model(player->weapon)]);
     bg_bounds_transform(&box,&marker,body->m,BG_SCALE);bg_bounds_quantize(&held_bounds[p],&box);
     T3DMat4 armor_matrix=*body;
     for(unsigned a=0;a<3;a++)for(unsigned b=0;b<3;b++)armor_matrix.m[a][b]*=BG_SCALE/BG_MODEL_SCALE;
     t3d_mat4_to_fixed_3x4(&transforms[slot][p],&armor_matrix);
+}
+static int locomotion_clip(const bg_player*p){
+    if(p->health<=0||p->vehicle>=0||p->weapon_ready>0||p->melee_time>0||p->reload>0||p->flash>0||p->grenade_cooldown>.55f)return -1;
+    if(p->landing_time>0)return 2+(p->hard_landing?1:0)+(p->crouch_amount>.5f?2:0);
+    if(p->grounded&&p->crouch_amount>0)return hypotf(p->velocity[0],p->velocity[2])>.15f?1:0;
+    return -1;
+}
+static float locomotion_seconds(const bg_player*p,int clip){
+    return clip<2?p->anim_time:p->landing_duration-p->landing_time;
 }
 static void animate_player(unsigned p){
     if(!wanted_lods[p]&&!(wanted_held&(1u<<p)))return;
@@ -846,6 +860,7 @@ static void animate_player(unsigned p){
         }
         return;
     }
+    int locomotion=locomotion_clip(player);float loc_seconds=locomotion>=0?locomotion_seconds(player,locomotion):0;
     const bg_anim_asset*base=&bg_animations[clip];
     float phase=body_throwing[p]?(.9f-player->grenade_cooldown)/.35f:player->anim_time/base->duration;
     bool loop=clip==BG_A_RUN||clip==BG_A_IDLE||clip==BG_A_DRIVE||clip==BG_A_PASSENGER||clip==BG_A_GUNNER;
@@ -856,6 +871,7 @@ static void animate_player(unsigned p){
         const bg_anim_asset*a=lod?&bg_spartan_lod_animations[clip]:base;
         T3DVertPacked*output=CachedAddr(lod?armor_lod[slot][p]:armor[slot][p]);
         animate_mesh(output,a,f0,f1,fraction);
+        if(locomotion>=0)bg_interaction_pose_blend(output,&bg_locomotion_poses[locomotion][lod],loc_seconds,locomotion<2,locomotion<2?player->crouch_amount:1);
     }
     if(wanted_held&(1u<<p)){
         const bg_attachment_clip*attach=&bg_weapon_attachment[clip];
@@ -866,6 +882,15 @@ static void animate_player(unsigned p){
         T3DMat4 hand,world;
         float model_scale=BG_SCALE/BG_OBJECT_SCALE;
         t3d_mat4_from_srt(&hand,(float[]){model_scale,model_scale,model_scale},q,pos);
+        if(locomotion>=0){
+            const bg_rom_pose*grip=&bg_locomotion_grips[locomotion];int16_t points[4][3];
+            bg_interaction_points(points,grip,locomotion<2?fmodf(loc_seconds,grip->duration):loc_seconds);
+            float weight=locomotion<2?player->crouch_amount:1;
+            for(unsigned a=0;a<3;a++){
+                hand.m[3][a]+=(points[0][a]*(BG_SCALE/4096)-hand.m[3][a])*weight;
+                for(unsigned c=0;c<3;c++)hand.m[c][a]+=(points[c+1][a]*(BG_SCALE/BG_OBJECT_SCALE/4096)-hand.m[c][a])*weight;
+            }
+        }
         t3d_mat4_mul(&world,&body_matrices[p],&hand);t3d_mat4_to_fixed_3x4(&held_matrices[slot][p],&world);
     }
 }

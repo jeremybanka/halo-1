@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--libdragon-source', type=Path, help='Matching libdragon source checkout for the local queue override; defaults to SDK sibling libdragon-src')
     parser.add_argument('--blam-bsp', action='store_true', help='Use original Blam BSP collision; requires an 8 MiB Expansion Pak')
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--movement-qa', type=int, choices=[0,1], help='Scripted on-foot movement / aiming video comparisons')
+    mode.add_argument('--movement-qa', type=int, choices=[0,1,2,3], help='Scripted movement, aiming, terrain clearance and landing comparisons')
     mode.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
     mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')
     mode.add_argument('--snapshot-tick', type=int, help='QA only: fast-forward exactly N fixed replay ticks, then redraw the frozen four-player scene without overlays')
@@ -85,6 +85,11 @@ def main():
     connect_assets(required=False)
     out = ROOT/'build/n64'
     out.mkdir(parents=True, exist_ok=True)
+    terrain_report=out/'generated/terrain-report.json'
+    if not terrain_report.exists():parser.error('Extract collision terrain first: port/n64/extract_terrain.py')
+    terrain=json.loads(terrain_report.read_text())
+    for name,expected in {**terrain['inputs'],'build/n64/generated/terrain_data.c':terrain['sha256']}.items():
+        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:parser.error('Stale terrain bank; run port/n64/extract_terrain.py: '+name)
     movement_report = out/'generated/movement-report.json'
     if not movement_report.exists():
         parser.error('Extract player controls first: port/n64/extract_movement.py')
@@ -194,7 +199,7 @@ def main():
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
     run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py'])
     run([sys.executable, ROOT/'port/n64/blam/export_vehicle.py'])
-    sources = ['movement.c', 'interaction_render.c', 'weapon_effects.c', 'weapon_effects_draw.c', 'blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    sources = ['terrain.c', 'movement.c', 'interaction_render.c', 'weapon_effects.c', 'weapon_effects_draw.c', 'blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
     if args.effects_qa:
         sources.append('effects_qa.c')
     if args.destruction_qa:
@@ -211,7 +216,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['movement_data.c', 'sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['movement_data.c', 'sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'terrain_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')

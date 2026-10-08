@@ -90,6 +90,54 @@ static void test_segments(void){
  }
  assert(misses>9000);printf("Original BSP oracle: 10000 short airborne sweeps, %u misses\n",misses);
 }
+static boolean unpruned_features(uint32_t flags,const real_point3d*p,real radius,real height,real width,int32_t ignore,struct collision_feature_list*out){
+ (void)flags;(void)ignore;collision_features_new(out);unsigned query=next_stamp();const struct collision_bsp*b=&bg_vehicle_bsp;
+ struct surface_query query_state;float lo[3],hi[3];
+ for(int a=0;a<3;a++){lo[a]=p->n[a]-radius;hi[a]=p->n[a]+radius;}
+ query_begin(&query_state,lo,hi);int si;
+ while((si=query_next(&query_state))>=0){
+   const struct collision_surface*s=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
+   collision_features_from_surface(b,si,NULL,height,width,NONE,out);
+   int first=s->first_edge_index,e=first;
+   do{
+    const struct collision_edge*ed=TAG_BLOCK_GET_ELEMENT(&b->edges,e,struct collision_edge);int side=ed->surface_indices[1]==(int)si;
+    assert(e>=0&&e<8192);
+    if(vehicle_workspace->stamps[0][e]!=query){vehicle_workspace->stamps[0][e]=query;
+     if(ed->surface_indices[0]>=0&&ed->surface_indices[1]>=0)collision_features_from_edge(b,e,NULL,height,width,NONE,out);
+    }
+    int vi=ed->vertex_indices[side];assert(vi>=0&&vi<8192);
+    if(vehicle_workspace->stamps[1][vi]!=query){vehicle_workspace->stamps[1][vi]=query;
+     const struct collision_vertex*v=TAG_BLOCK_GET_ELEMENT(&b->vertices,vi,struct collision_vertex);
+     if(distance_squared3d(p,&v->point)<=radius*radius)collision_features_from_vertex(b,vi,NULL,height,width,NONE,out);
+    }
+    e=ed->edge_indices[side];
+   }while(e!=first);
+ }
+ return out->count[0]||out->count[1]||out->count[2];
+}
+
+/* Compare actual contact answers with the prior unpruned adapter, including
+ * points near polygon interiors/vertices and varying mass-point radii. */
+static void test_feature_candidates(void){
+ unsigned changes=0;float worst=0;
+ for(unsigned j=0;j<30000;j++){
+  unsigned si=j%bg_vehicle_bsp.surfaces.count;real_point3d points[8],p={0};
+  int count=collision_surface_polygon(&bg_vehicle_bsp,si,points);
+  for(int k=0;k<count;k++)for(int a=0;a<3;a++)p.n[a]+=points[k].n[a]/count;
+  if(j%2)p=points[j%count];
+  for(int a=0;a<3;a++)p.n[a]+=random_float(-.5,.5);
+  float r=random_float(.05,.8);struct collision_feature_list f;struct collision_plane old,new;
+  unpruned_features(0,&p,r,0,r,-1,&f);bool a=collision_features_test_point(&f,&p,&old);
+  collision_get_features_in_sphere(0,&p,r,0,r,-1,&f);bool b=collision_features_test_point(&f,&p,&new);
+  if(a!=b||(a&&fabsf(old.t-new.t)>.00001f)){
+   if(changes<8)printf("query %u contact %d/%d depth %.9g/%.9g\n",j,a,b,a?old.t:0,b?new.t:0);
+   changes++;if(a&&b)worst=fmaxf(worst,fabsf(old.t-new.t));
+  }
+ }
+ printf("30000 feature queries: %u changed answers; max depth difference %g\n",changes,worst);
+ assert(changes==0);
+}
+
 int main(void){
  _Static_assert(sizeof(struct mass_point_definition)==128,"Xbox mass-point stride");
  _Static_assert(sizeof(struct physics_mass_point_definition)==128,"vehicle mass-point view");
@@ -97,6 +145,7 @@ int main(void){
  test_world_bank();
  test_segments();
  test_pair_equivalence();
+ test_feature_candidates();
  for(int kind=0;kind<4;kind++){
   bg_vehicle*v=setup(kind,1);step(90,(bg_input){0});float start=v->pos[0];
   if(kind==BG_V_GHOST)assert(v->pos[1]>.4f&&native[0].vehicle.hover>.8f);

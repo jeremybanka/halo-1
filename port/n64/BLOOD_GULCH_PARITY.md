@@ -18,11 +18,14 @@ Old benchmark results do not certify a newer build.
   - [x] Controller response, zoom sensitivity and source-derived aim assistance
         with terrain/vehicle occlusion (approximate target pills).
   - [x] Matched N64 before/after videos and source-backed numerical checks.
-  - [ ] Slope projection/slipping, support objects and capsule collision.
-  - [ ] Crouched body/hit geometry, stand-up clearance and hard landings/stun.
+  - [x] Slope projection/falloff, steep-surface sliding and terrain capsule contacts.
+  - [x] Original collision surfaces in the 4 MiB spatial-grid adapter.
+  - [x] Posture-aware clearance, crouch/landing poses and hard-landing recovery.
+  - [ ] Moving supports, player/player contacts and source step-up orchestration.
+  - [ ] Animated hit regions, body stun, original fall damage and first-person landing effects.
   - [ ] Retail Xbox video comparison and human controller acceptance.
   - [x] Current four-player performance check and necessary optimization:
-        27.1 overall / 28.8 combat / 25.5 vehicle section FPS in Ares.
+        26.9 overall / 28.8 combat / 25.1 vehicle section FPS in Ares.
         These are averages; frame-time spikes and hardware acceptance remain.
 - [ ] Spawn selection: replace player-index/team cycling with appropriate Slayer
       spawn eligibility and threat-aware selection.
@@ -68,10 +71,13 @@ and occupied vehicles. Record ordinary gameplay paths after explicitly labeled
 staging. Distinguish retail Xbox footage, reconstructed source references, and
 N64 before/after footage. Never label an oracle or demake render as Xbox capture.
 
-Movement implementation and remaining boundaries: [MOVEMENT.md](MOVEMENT.md).
-Matched recordings: `build/n64/movement-audit/comparison.html`.
+Movement implementation and remaining boundaries: [MOVEMENT.md](MOVEMENT.md),
+[TERRAIN.md](TERRAIN.md).
+Matched recordings: `build/n64/movement-audit/comparison.html` and
+`build/n64/terrain-audit/comparison.html`.
 Current source/ROM identity: `build/n64/release-manifest.json`.
-Current movement pass: 27.1 FPS overall / 25.5 vehicle section / 108 KiB free
-heap, using four display surfaces and exact ROM pose caching. Overall P95 pose
-interval 66.8 ms and maximum 334.2 ms: section averages clear 25 FPS, but this
-does not certify a sustained floor. See the movement audit timing manifest.
+Current terrain/landing pass: 26.9 FPS overall / 25.1 vehicle section / 53 KiB
+free heap, using four display surfaces, exact original collision surfaces and
+cached static contact projections. Overall P95 pose interval 66.8 ms and maximum
+234.0 ms; vehicle maximum 66.9 ms. Section averages clear 25 FPS, but this does
+not certify a sustained floor. See the terrain audit timing manifest.

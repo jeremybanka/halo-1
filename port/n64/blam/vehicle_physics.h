@@ -5,6 +5,8 @@
  * solver operates exclusively in original Halo XYZ and 30 Hz tick units. */
 /* Release match-only world geometry while the front end owns the heap. */
 void bg_vehicle_world_release(void);
+/* Shared original polygon/BVH ray service in demake coordinates. */
+float bg_world_raycast(const float origin[3],const float direction[3],float distance);
 void bg_vehicle_physics_prepare(void);
 void bg_vehicle_physics_step(unsigned index,const bg_input *input);
 void bg_vehicle_physics_wreck(unsigned index);

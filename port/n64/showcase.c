@@ -47,14 +47,10 @@ void bg_showcase_begin(bg_showcase_kind kind){
         setup_vehicle(scenario==BG_SHOWCASE_BANSHEE?BG_V_BANSHEE:BG_V_WARTHOG);
     }else if(scenario==BG_SHOWCASE_FRAG_DOUBLE_KILL){
         place(0,-4,4,0);
-#ifdef BG_BLAM_BSP
         /* The original central terrain bank gives this throw a longer first
          * bounce than the reduced mesh. Stage both full-shield targets around
          * its actual landing; grenade physics and damage remain live. */
         place(1,2.61144f,3.8f,PI);place(2,2.61144f,4.2f,PI);
-#else
-        place(1,2.295127f,3.77f,PI);place(2,2.295127f,4.23f,PI);
-#endif
         place(3,2.3f,7.2f,PI/2);face(3,2.295127f,.45f,4);
     }else if(scenario==BG_SHOWCASE_SHOTGUN_KILL){
         place(0,0,4,0);place(1,.8f,4,PI);bg_give_weapon(0,BG_W_SHOTGUN);

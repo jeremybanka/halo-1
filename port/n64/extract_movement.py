@@ -15,6 +15,8 @@ def main():
   info=glob.player_informations.STEPTREE[0];control=glob.player_controls.STEPTREE[0];cam=biped.camera_collision_and_autoaim
   gravity=float(re.search(r'real global_gravity = ([0-9.e-]+)f;', (ROOT/'source/physics/physics.c').read_text())[1])
   vals=dict(run=[info.run_forward,info.run_backward,info.run_sideways],sneak=[info.sneak_forward,info.sneak_backward,info.sneak_sideways],accel=[info.run_acceleration*30,info.sneak_acceleration*30,info.airborne_acceleration*30],jump=biped.jumping_and_landing.jump_velocity*30,gravity=gravity*900,crouch_rate=1/cam.crouch_transition_time,camera=[cam.standing_camera_height,cam.crouching_camera_height],curve=[x.scale for x in control.look_functions.STEPTREE],yaw_rate=control.look_default_yaw_rate,pitch_rate=control.look_default_pitch_rate,peg_time=control.look_acceleration_time,peg_scale=control.look_acceleration_scale,peg_threshold=control.look_peg_threshold,friction=control.magnetism_friction,adhesion=control.magnetism_adhesion,aim_width=cam.autoaim_width,height=[cam.standing_collision_height,cam.crouching_collision_height])
+  phys=biped.physics;land=biped.jumping_and_landing
+  vals.update(radius=cam.collision_radius,slope=[phys.cosine_maximum_slope_angle,phys.neg_sine_downhill_falloff_angle,phys.neg_sine_downhill_cutoff_angle,biped.movement.downhill_velocity_scale,phys.sine_uphill_falloff_angle,phys.sine_uphill_cutoff_angle,biped.movement.uphill_velocity_scale],landing=[land.minimum_soft_landing_velocity,land.minimum_hard_landing_velocity,land.maximum_hard_landing_velocity,land.maximum_soft_landing_time,land.maximum_hard_landing_time])
   weapons=[]
   for name in ('assault rifle','pistol','plasma pistol','plasma rifle','needler','shotgun','sniper rifle','rocket launcher'):
    w=get('weapons\\'+name+'\\'+name).weap_attrs;a=w.aiming
@@ -26,7 +28,7 @@ def main():
  lines += ['.'+k+'='+c(v)+',' for k,v in vals.items()]
  lines+=['};','const bg_aim_config bg_aim_configs[BG_WEAPON_COUNT]={']+[c(row[:-1])[:-1]+','+str(row[-1])+'},' for row in weapons]+['{0,0,0,0,0,false},','};']
  out=G/'movement_data.c';out.write_text('\n'.join(lines)+'\n')
- report={'movement':vals,'weapon_aim':weapons,'units':'world units/second; acceleration in world units/second squared; aim angles radians; look rates degrees/second', 'sources':{'globals':tag_values(glob.player_controls),'biped':tag_values(biped.camera_collision_and_autoaim)},'inputs':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__).resolve(),A/'bloodgulch-decompressed.map',ROOT/'source/physics/physics.c']},'generated_sha256':hashlib.sha256(out.read_bytes()).hexdigest()}
+ report={'movement':vals,'weapon_aim':weapons,'units':'world units/second; acceleration in world units/second squared; aim angles radians; look rates degrees/second', 'sources':{'globals':tag_values(glob.player_controls),'biped':tag_values(biped.camera_collision_and_autoaim),'slopes':tag_values(biped.movement),'landing':tag_values(biped.jumping_and_landing)},'inputs':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__).resolve(),A/'bloodgulch-decompressed.map',ROOT/'source/physics/physics.c']},'generated_sha256':hashlib.sha256(out.read_bytes()).hexdigest()}
  (G/'movement-report.json').write_text(json.dumps(report,indent=2)+'\n')
  print(json.dumps(vals,indent=2))
 if __name__=='__main__':main()

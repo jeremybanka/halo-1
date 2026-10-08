@@ -17,6 +17,7 @@ typedef struct {
 } bg_chunk;
 extern const bg_triangle bg_collision[];
 extern const unsigned bg_collision_count;
+extern const uint8_t bg_collision_flags[]; /* Bit 0: upward, floor-query eligible. */
 extern const bg_cell bg_grid[BG_GRID*BG_GRID];
 extern const uint16_t bg_grid_indices[];
 extern const float bg_grid_origin[2], bg_grid_size[2];

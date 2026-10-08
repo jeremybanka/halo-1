@@ -10,6 +10,7 @@ typedef struct {
     float duration;
     bg_bounds bounds;
 } bg_rom_pose;
+extern const bg_rom_pose bg_locomotion_poses[6][2],bg_locomotion_grips[6];
 extern const bg_rom_pose bg_seat_poses[][3][2];
 extern const bg_rom_pose bg_body_ready_poses[2],bg_body_ready_grip;
 extern const bg_rom_pose bg_seat_grips[],bg_hatch_poses[2][2];
@@ -19,6 +20,7 @@ extern const unsigned bg_interaction_scratch_bytes;
 void bg_interaction_render_init(void);
 void bg_interaction_render_release(void);
 void bg_interaction_pose(T3DVertPacked *out,const bg_rom_pose *pose,float seconds,bool loop);
+void bg_interaction_pose_blend(T3DVertPacked*out,const bg_rom_pose*p,float seconds,bool loop,float weight);
 void bg_interaction_points(int16_t (*out)[3],const bg_rom_pose *pose,float seconds);
 void bg_interaction_needles(T3DVertPacked *out,unsigned ammo,float seconds);
 #endif

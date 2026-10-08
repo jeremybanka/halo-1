@@ -79,7 +79,9 @@ static void seats(void){
 static void flips(void){
     for(unsigned kind=0;kind<4;kind++){
         if(kind==BG_V_SCORPION)continue;
-        reset();bg_player*p=&bg_players[0];float pos[3]={0,p->pos[1]+.5f,4};
+        /* Use an open original-terrain patch. The old decimated patch at
+         * (0,4) hid a slope that tips the unpowered Banshee back onto a wing. */
+        reset();bg_player*p=&bg_players[0];float pos[3]={-12,bg_floor(-12,5,100)+.5f,5};
         int vi=bg_add_vehicle(kind,pos,0);bg_vehicle*v=&bg_vehicles[vi];
         v->pitch=3.14159265f;bg_vehicle_physics_prepare();
         memcpy(p->pos,v->pos,12);p->pos[2]+=1.2f;

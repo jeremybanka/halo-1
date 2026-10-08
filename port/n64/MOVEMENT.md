@@ -39,15 +39,12 @@ repository's reconstruction, not a fresh retail executable disassembly.
 
 ## Boundaries still requiring parity work
 
-Ground movement currently applies the original acceleration in the horizontal
-plane, using existing floor snapping and wall pushing. Original ground-normal
-projection, slope speed/falloff, slipping, support objects, capsule collision,
-stand-up clearance, body-stun penalties and hard-landing orchestration are not
-ported here. Target pills use a posture-scaled collision-height approximation
-instead of animated pelvis/head node positions. Vehicle cover uses the existing
-conservative spheres, and the original full object collision service is absent.
-Crouched hit geometry/animation need a coordinated follow-up. Aim target queries
-use current player records; there is no new object partition or native observer.
+The terrain follow-up now adds source slope projection/falloff, capsule contacts,
+stand-up clearance and original crouch/landing poses; see [TERRAIN.md](TERRAIN.md).
+Moving supports, player/player collision, source step-up ordering, body-stun
+penalties and original falling-damage/first-person landing effects remain open.
+Target pills still approximate animated pelvis/head positions, and vehicle cover
+uses conservative spheres. The original full object collision service is absent.
 
 N64 button layouts and their established /80 stick scale and .12 axis deadzone
 are retained. Vehicle turn-rate tuning remains unchanged. Auto-leveling and
@@ -78,7 +75,7 @@ Local recordings, source reports and exact ROM hashes live under
 `build/n64/movement-audit/`. The measurement manifest records current performance;
 video capture frame rate and emulator VPS are not displayed-pose performance.
 
-## Working performance profile
+## Previous movement-only performance profile
 
 The quiet four-player Ares run on October 8 measures 27.1 displayed FPS overall,
 28.8 in combat and 25.5 in the vehicle section. Free heap is 108 KiB. These

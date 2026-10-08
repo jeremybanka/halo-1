@@ -84,6 +84,13 @@ def run():
     for d in body_ready_poses:
         d['bounds']=[ready_bounds[:,0,:].min(axis=0).tolist(),ready_bounds[:,1,:].max(axis=0).tolist()]
     ready_grip=grip_for(body_ready)
+    locomotion=[];locomotion_grips=[];locomotion_report=[]
+    for name in ('crouch rifle idle','crouch rifle move-front','stand rifle land-soft','stand rifle land-hard','crouch rifle land-soft','crouch rifle land-hard'):
+        c=clip(graph,next(i for i,a in enumerate(graph.animations.STEPTREE) if a.name==name))
+        lods=[skin_body(c,world['models']['spartan'],mapping['spartan']),skin_body(c,world['spartan_lod'],mapping['spartan_lod'])]
+        bounds=np.array([d['bounds'] for d in lods]);union=[bounds[:,0,:].min(axis=0).tolist(),bounds[:,1,:].max(axis=0).tolist()]
+        for d in lods:d['bounds']=union
+        locomotion.append(lods);locomotion_grips.append(grip_for(c));locomotion_report.append({'name':name,'frames':len(c['frames']),'seconds':c['duration']})
     groups=[];seats=[];clip_report=[];grips=[]
     paths=[('warthog',r'vehicles\warthog\warthog'),('ghost',r'vehicles\ghost\ghost_mp'),
            ('scorpion',r'vehicles\scorpion\scorpion_mp'),('banshee',r'vehicles\banshee\banshee')]
@@ -197,6 +204,8 @@ def run():
     ready.append(ready[0]);readytimes.append(readytimes[0]) # Optional PC extra aliases Xbox AR.
     F.mkdir(exist_ok=True);(F/'interactions.bin').write_bytes(bank)
     lines=['/* Generated owned Xbox animation metadata. */','#include "asset_interaction.h"']
+    lines.append('const bg_rom_pose bg_locomotion_poses[6][2]={'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in locomotion)+'};')
+    lines.append('const bg_rom_pose bg_locomotion_grips[6]={'+','.join(init(d) for d in locomotion_grips)+'};')
     lines.append('const bg_rom_pose bg_hatch_poses[2][2]={'+','.join('{'+','.join(init(d) for d in pair)+'}' for pair in hatches)+'};')
     lines.append('const bg_rom_pose bg_seat_poses[][3][2]={'+','.join('{'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in group)+'}' for group in groups)+'};')
     for symbol,ds in [('bg_ready_poses',ready),('bg_ready_needles',needle_defs),('bg_seat_grips',grips),('bg_body_ready_poses',body_ready_poses)]:lines.append('const bg_rom_pose '+symbol+'['+str(len(ds))+']={'+','.join(init(d) for d in ds)+'};')
@@ -215,7 +224,7 @@ def run():
     defs.append('};');(G/'interaction_defs.c').write_text('\n'.join(defs)+'\n')
     inputs={str(p.relative_to(ROOT)):sha(p) for p in [A/'extended-raw.json',A/'extended-reduced.json',A/'firstperson-raw.json',A/'firstperson-reduced.json',A/'firstperson-ammo.json',A/'bloodgulch-decompressed.map',A/'a30-decompressed.map',G/'models_data.c',G/'firstperson_data.c',G/'world-mesh-sources.json',Path(__file__)]}
     files={str(p.relative_to(ROOT)):sha(p) for p in [G/'interaction_assets.c',G/'interaction_defs.c',F/'interactions.bin']}
-    report={'inputs':inputs,'files':files,'rom_bytes':len(bank),'scratch_bytes':scratch,'seats':seats,'body_clips':clip_report,'ready':fp_report,'hold_ticks':7}
+    report={'inputs':inputs,'files':files,'rom_bytes':len(bank),'scratch_bytes':scratch,'seats':seats,'locomotion':locomotion_report,'body_clips':clip_report,'ready':fp_report,'hold_ticks':7}
     (G/'interaction-report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({'rom_bytes':len(bank),'scratch_bytes':scratch,'body_groups':len(groups),'ready':fp_report},indent=2))
 if __name__=='__main__':run()

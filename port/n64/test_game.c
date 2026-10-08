@@ -236,14 +236,16 @@ int main(void){
     reset();int pickup=bg_add_pickup(BG_W_ROCKET,bg_players[0].pos);in[0].interact=true;ticks(7);in[0].interact=false;
     assert(bg_players[0].weapon==BG_W_ROCKET&&!bg_pickups[pickup].active);ticks(905);assert(bg_pickups[pickup].active);
     /* Both original roof-pad teleporters land at their own scenario exit,
-     * turn the player toward its exit direction, and enforce a cooldown. */
+     * turn the player toward its exit direction, and enforce a cooldown.
+     * The wider source capsule can depenetrate the pad frame and settle
+     * slightly along the sloped destination normal. */
     for(unsigned portal=0;portal<bg_teleporter_count;portal++){
         reset();const bg_teleporter*t=&bg_teleporters[portal];memcpy(bg_players[0].pos,t->source,12);
-        bg_tick(in,1.f/30);assert(fabsf(bg_players[0].pos[0]-t->destination[0])<.001f&&fabsf(bg_players[0].pos[2]-t->destination[2])<.001f);
+        bg_tick(in,1.f/30);assert(fabsf(bg_players[0].pos[0]-t->destination[0])<.02f&&fabsf(bg_players[0].pos[2]-t->destination[2])<.02f);
         assert(fabsf(bg_players[0].yaw-t->yaw)<.001f&&bg_players[0].teleport_cooldown>0);
         unsigned events=0;for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_TELEPORTER)events++;assert(events==1);
-        memcpy(bg_players[0].pos,t->source,12);ticks(1);assert(distance(bg_players[0].pos,t->source)<.3f);
-        ticks(32);assert(fabsf(bg_players[0].pos[0]-t->destination[0])<.001f);
+        memcpy(bg_players[0].pos,t->source,12);ticks(1);assert(distance(bg_players[0].pos,t->source)<.8f&&bg_players[0].teleport_cooldown>0);
+        ticks(32);assert(fabsf(bg_players[0].pos[0]-t->destination[0])<.02f);
         float arrival[3];memcpy(arrival,bg_players[0].pos,12);ticks(90);assert(distance(arrival,bg_players[0].pos)<.001f);
     }
     /* Slayer ends exactly at its score limit, emits one winner event and

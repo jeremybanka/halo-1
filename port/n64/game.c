@@ -1,6 +1,7 @@
 #include "blam/vehicle_physics.h"
 #include "game.h"
 #include "movement.h"
+#include "terrain.h"
 #include "blam/runtime.h"
 #include "blam/core.h"
 #include <math.h>
@@ -55,9 +56,7 @@ float bg_match_time(void){return match_time;}
 static float clamp(float v,float a,float b){return v<a?a:v>b?b:v;}
 static float dot(const float a[3],const float b[3]){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
 static void sub(float d[3],const float a[3],const float b[3]){for(int i=0;i<3;i++)d[i]=a[i]-b[i];}
-static void cross(float d[3],const float a[3],const float b[3]){
-    d[0]=a[1]*b[2]-a[2]*b[1];d[1]=a[2]*b[0]-a[0]*b[2];d[2]=a[0]*b[1]-a[1]*b[0];
-}
+
 static float distance2(const float a[3],const float b[3]){float d[3];sub(d,a,b);return dot(d,d);}
 static void normalize(float v[3]){float n=sqrtf(dot(v,v));if(n>1e-8f)for(int i=0;i<3;i++)v[i]/=n;}
 static float random_signed(void){return blam_real_seed_random_range(&random_state,-1,1);}
@@ -118,15 +117,14 @@ static float floor_uncached(float x,float z,float ceiling){
     if(index<0)return best;
     bg_cell c=bg_grid[index];
     for(unsigned i=0;i<c.count;i++){
-        const bg_triangle*t=&bg_collision[bg_grid_indices[c.first+i]];
+        unsigned triangle=bg_grid_indices[c.first+i];if(!(bg_collision_flags[triangle]&1))continue;
+        const bg_triangle*t=&bg_collision[triangle];
         const float*a=t->p[0],*b=t->p[1],*d=t->p[2];
         float det=(b[2]-d[2])*(a[0]-d[0])+(d[0]-b[0])*(a[2]-d[2]);
         if(fabsf(det)<1e-8f)continue;
         float u=((b[2]-d[2])*(x-d[0])+(d[0]-b[0])*(z-d[2]))/det;
         float v=((d[2]-a[2])*(x-d[0])+(a[0]-d[0])*(z-d[2]))/det;
         if(u<-.0001f||v<-.0001f||u+v>1.0001f)continue;
-        float ab[3],ac[3],n[3];sub(ab,b,a);sub(ac,d,a);cross(n,ab,ac);
-        if(n[1]*n[1]<.38f*dot(n,n))continue;
         float y=u*a[1]+v*b[1]+(1-u-v)*d[1];
         if(y<=ceiling&&y>best)best=y;
     }
@@ -151,57 +149,6 @@ float bg_floor(float x,float z,float ceiling){
     return height;
 }
 
-static void closest(float q[3],const float p[3],const bg_triangle*t){
-    const float*a=t->p[0],*b=t->p[1],*c=t->p[2];
-    float ab[3],ac[3],ap[3],bp[3],cp[3];sub(ab,b,a);sub(ac,c,a);sub(ap,p,a);
-    float d1=dot(ab,ap),d2=dot(ac,ap);
-    if(d1<=0&&d2<=0){memcpy(q,a,12);return;}
-    sub(bp,p,b);float d3=dot(ab,bp),d4=dot(ac,bp);
-    if(d3>=0&&d4<=d3){memcpy(q,b,12);return;}
-    float vc=d1*d4-d3*d2;
-    if(vc<=0&&d1>=0&&d3<=0){float v=d1/(d1-d3);for(int i=0;i<3;i++)q[i]=a[i]+v*ab[i];return;}
-    sub(cp,p,c);float d5=dot(ab,cp),d6=dot(ac,cp);
-    if(d6>=0&&d5<=d6){memcpy(q,c,12);return;}
-    float vb=d5*d2-d1*d6;
-    if(vb<=0&&d2>=0&&d6<=0){float w=d2/(d2-d6);for(int i=0;i<3;i++)q[i]=a[i]+w*ac[i];return;}
-    float va=d3*d6-d5*d4;
-    if(va<=0&&d4-d3>=0&&d5-d6>=0){float w=(d4-d3)/((d4-d3)+(d5-d6));for(int i=0;i<3;i++)q[i]=b[i]+w*(c[i]-b[i]);return;}
-    float denominator=va+vb+vc;
-    if(fabsf(denominator)<1e-10f){memcpy(q,a,12);return;}
-    float v=vb/denominator,w=vc/denominator;
-    for(int i=0;i<3;i++)q[i]=a[i]+ab[i]*v+ac[i]*w;
-}
-
-static void walls(bg_player*p){
-    const float radius=.14f;
-    for(int iteration=0;iteration<2;iteration++){
-        int xmin=(int)floorf((p->pos[0]-radius-bg_grid_origin[0])/bg_grid_size[0]);
-        int xmax=(int)floorf((p->pos[0]+radius-bg_grid_origin[0])/bg_grid_size[0]);
-        int zmin=(int)floorf((p->pos[2]-radius-bg_grid_origin[1])/bg_grid_size[1]);
-        int zmax=(int)floorf((p->pos[2]+radius-bg_grid_origin[1])/bg_grid_size[1]);
-        for(int z=zmin;z<=zmax;z++)for(int x=xmin;x<=xmax;x++){
-            if(x<0||z<0||x>=BG_GRID||z>=BG_GRID)continue;
-            bg_cell c=bg_grid[z*BG_GRID+x];
-            for(unsigned i=0;i<c.count;i++){
-                const bg_triangle*t=&bg_collision[bg_grid_indices[c.first+i]];
-                float ab[3],ac[3],n[3];sub(ab,t->p[1],t->p[0]);sub(ac,t->p[2],t->p[0]);cross(n,ab,ac);
-                if(n[1]*n[1]>.38f*dot(n,n))continue;
-                for(int sample=0;sample<2;sample++){
-                    float point[3]={p->pos[0],p->pos[1]+.19f+sample*.32f,p->pos[2]},q[3];closest(q,point,t);
-                    float dx=point[0]-q[0],dy=point[1]-q[1],dz=point[2]-q[2];
-                    float d2=dx*dx+dy*dy+dz*dz;
-                    if(!(d2<radius*radius))continue;
-                    float horizontal=sqrtf(dx*dx+dz*dz);
-                    if(horizontal>1e-6f){
-                        float amount=(radius-sqrtf(d2))/horizontal;
-                        p->pos[0]+=dx*amount;p->pos[2]+=dz*amount;
-                    }
-                }
-            }
-        }
-    }
-}
-
 
 #ifdef BG_BLAM_BSP
 float bg_raycast(const float origin[3],const float direction[3],float max_distance){
@@ -216,53 +163,9 @@ float bg_raycast(const float origin[3],const float direction[3],float max_distan
         ?skip+range*hit.fraction:max_distance;
 }
 #else
-/* Traverse the terrain grid once per ray and test each triangle at most once.
- * This keeps projectiles bounded even when all four players hold fire. */
-static uint16_t ray_visits[8192],ray_stamp;
-static float ray_triangle(const float origin[3],const float direction[3],const bg_triangle*t,float nearest){
-    float e1[3],e2[3],h[3],s[3],q[3];sub(e1,t->p[1],t->p[0]);sub(e2,t->p[2],t->p[0]);cross(h,direction,e2);
-    float det=dot(e1,h);if(fabsf(det)<1e-7f)return nearest;
-    sub(s,origin,t->p[0]);float u=dot(s,h)/det;if(u<0||u>1)return nearest;
-    cross(q,s,e1);float v=dot(direction,q)/det;if(v<0||u+v>1)return nearest;
-    float tval=dot(e2,q)/det;return tval>.003f&&tval<nearest?tval:nearest;
-}
 float bg_raycast(const float origin[3],const float direction[3],float max_distance){
     if(max_distance<=0)return 0;
-    float enter=0,leave=max_distance;
-    for(int axis=0;axis<2;axis++){
-        int a=axis*2;float lo=bg_grid_origin[axis],hi=lo+BG_GRID*bg_grid_size[axis];
-        if(fabsf(direction[a])<1e-8f){if(origin[a]<lo||origin[a]>hi)return max_distance;continue;}
-        float t0=(lo-origin[a])/direction[a],t1=(hi-origin[a])/direction[a];
-        if(t0>t1){float temp=t0;t0=t1;t1=temp;}
-        enter=fmaxf(enter,t0);leave=fminf(leave,t1);
-    }
-    if(enter>leave)return max_distance;
-    if(++ray_stamp==0){memset(ray_visits,0,sizeof(ray_visits));ray_stamp=1;}
-    int at[2],step[2];float next[2],delta[2];
-    for(int axis=0;axis<2;axis++){
-        int a=axis*2;float point=origin[a]+direction[a]*(enter+.00001f);
-        at[axis]=(int)floorf((point-bg_grid_origin[axis])/bg_grid_size[axis]);
-        if(at[axis]<0)at[axis]=0;
-        if(at[axis]>=BG_GRID)at[axis]=BG_GRID-1;
-        step[axis]=direction[a]>0?1:-1;
-        if(fabsf(direction[a])<1e-8f){next[axis]=delta[axis]=FLT_MAX;}
-        else{float edge=bg_grid_origin[axis]+(at[axis]+(step[axis]>0))*bg_grid_size[axis];
-            next[axis]=(edge-origin[a])/direction[a];delta[axis]=fabsf(bg_grid_size[axis]/direction[a]);}
-    }
-    float nearest=max_distance;
-    for(int iteration=0;iteration<BG_GRID*2+2;iteration++){
-        bg_cell c=bg_grid[at[1]*BG_GRID+at[0]];
-        for(unsigned i=0;i<c.count;i++){
-            unsigned index=bg_grid_indices[c.first+i];
-            if(index<8192){if(ray_visits[index]==ray_stamp)continue;ray_visits[index]=ray_stamp;}
-            nearest=ray_triangle(origin,direction,&bg_collision[index],nearest);
-        }
-        int axis=next[0]<next[1]?0:1;
-        if(next[axis]>nearest||next[axis]>leave)break;
-        at[axis]+=step[axis];next[axis]+=delta[axis];
-        if(at[axis]<0||at[axis]>=BG_GRID)break;
-    }
-    return nearest;
+    return bg_world_raycast(origin,direction,max_distance);
 }
 #endif
 
@@ -299,7 +202,7 @@ static void spawn(unsigned player){
     p->grenades[0]=2;p->grenades[1]=2;
     memcpy(p->pos,bg_spawns[index].pos,sizeof(p->pos));
     float floor=bg_floor(p->pos[0],p->pos[2],p->pos[1]+.5f);if(floor>-999)p->pos[1]=floor+.015f;
-    memcpy(p->last_pos,p->pos,sizeof(p->pos));p->yaw=bg_spawns[index].yaw;p->grounded=true;
+    memcpy(p->last_pos,p->pos,sizeof(p->pos));p->yaw=bg_spawns[index].yaw;p->grounded=true;p->ground_normal[1]=1;
     event(BG_EVENT_RESPAWN,player,p->weapon,p->pos,1);
 }
 int bg_add_pickup(int weapon,const float pos[3]){
@@ -320,6 +223,7 @@ int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw){
 }
 #include "scenario.inc"
 void bg_reset(void){
+    bg_terrain_reset();
     memset(&statistics,0,sizeof(statistics));memset(damage_history,0,sizeof(damage_history));
     memset(bg_players,0,sizeof(bg_players));memset(bg_vehicles,0,sizeof(bg_vehicles));
     blam_objects_init(&projectile_store,projectile_headers,BG_MAX_PROJECTILES,&projectile_arena,sizeof(projectile_arena));
@@ -449,7 +353,7 @@ static int target_ray(unsigned owner,const float origin[3],const float dir[3],fl
     for(unsigned j=0;j<active_players;j++){
         bg_player*p=&bg_players[j];if(j==owner||p->health<=0)continue;
         for(int sphere=0;sphere<3;sphere++){
-            float center[3]={p->pos[0],p->pos[1]+.18f+sphere*.2f,p->pos[2]},d[3];sub(d,center,origin);
+            float center[3]={p->pos[0],p->pos[1]+(.18f+sphere*.2f)*(bg_body_height(p)/bg_movement.height[0]),p->pos[2]},d[3];sub(d,center,origin);
             float t=dot(d,dir),r=sphere==2?.12f:.19f,q=dot(d,d)-t*t;
             if(t<=0||q>r*r)continue;
             t-=sqrtf(fmaxf(0,r*r-q));if(t<*nearest&&t>=0){*nearest=t;victim=j;*head=sphere==2;}
@@ -859,27 +763,32 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
         if(in->zoom){if(bg_weapon_defs[p->weapon].zoom>1)p->zoom=(p->zoom+1)%(p->weapon==BG_W_SNIPER?3:2);else p->zoom=0;}
         player_look(i,in,dt);
         update_use(i,in->interact,dt);
+        teleport(i); /* Trigger volumes precede capsule depenetration at the pad. */
         if(p->vehicle<0){
-            p->crouched=in->crouch;
-            p->crouch_amount=clamp(p->crouch_amount+(p->crouched?1:-1)*bg_movement.crouch_rate*dt,0,1);
-            float f=in->forward,s=in->strafe,length=sqrtf(f*f+s*s);if(length>1){f/=length;s/=length;}
-            float previous[3];memcpy(previous,p->pos,sizeof(previous));bool was_grounded=p->grounded;
-            bg_walk_velocity(p,f,s,dt);
-            p->pos[0]+=p->velocity[0]*dt;p->pos[2]+=p->velocity[2]*dt;
-            if(in->jump&&p->grounded){p->vy=fmaxf(p->vy,bg_movement.jump);p->grounded=false;event(BG_EVENT_JUMP,i,p->weapon,p->pos,1);}
-            p->vy-=bg_movement.gravity*dt;p->pos[1]+=p->vy*dt;
-            float intended_x=p->pos[0],intended_z=p->pos[2];walls(p);
-            float correction_x=p->pos[0]-intended_x,correction_z=p->pos[2]-intended_z;
-            float correction2=correction_x*correction_x+correction_z*correction_z;
-            float into=p->velocity[0]*correction_x+p->velocity[2]*correction_z;
-            if(correction2>1e-10f&&into<0){p->velocity[0]-=correction_x*into/correction2;p->velocity[2]-=correction_z*into/correction2;}
-            float floor=bg_floor(p->pos[0],p->pos[2],fmaxf(previous[1],p->pos[1])+.18f);
-            if(p->vy<=0&&floor>-999&&p->pos[1]<=floor+.025f){
-                if(!was_grounded){event(BG_EVENT_LAND,i,p->weapon,p->pos,-p->vy);if(p->vy<-7)damage_player(i,-1,(-p->vy-7)*15,false,false);}
-                p->pos[1]=floor+.015f;p->vy=0;p->grounded=true;
-            }else p->grounded=false;
+            p->landing_time=fmaxf(0,p->landing_time-dt);
+            p->crouched=in->crouch||(p->crouch_amount>0&&!bg_can_stand(p));
+            float old_crouch=p->crouch_amount;
+            p->crouch_amount=clamp(old_crouch+(p->crouched?1:-1)*bg_movement.crouch_rate*dt,0,1);
+            /* Original airborne crouch raises the feet while preserving the
+             * top of the collision pill; it is not a free vertical impulse. */
+            if(!p->grounded)p->pos[1]+=(bg_movement.height[0]-bg_movement.height[1])*(p->crouch_amount-old_crouch);
+            bool was_grounded=p->grounded;
+            bg_walk_velocity(p,in->forward,in->strafe,dt);
+            bool jump=in->jump&&p->grounded&&!(p->hard_landing&&p->landing_time>0);
+            if(jump){p->vy=fmaxf(p->vy,bg_movement.jump);p->velocity[1]=p->vy;p->grounded=false;event(BG_EVENT_JUMP,i,p->weapon,p->pos,1);}
+            if(p->grounded){
+                /* Original solver presses into the supporting plane by
+                 * 1/128 world units per tick. Collision removes only the
+                 * inward component, retaining slope-tangent motion. */
+                float *n=p->ground_normal;if(n[1]<=0){n[0]=n[2]=0;n[1]=1;}
+                for(unsigned axis=0;axis<3;axis++)p->velocity[axis]-=n[axis]*(30.f/128.f);
+            }else{p->velocity[1]=p->vy-bg_movement.gravity*dt;}
+            float impact=bg_move_capsule(p,dt);
+            if(!was_grounded&&p->grounded){
+                bg_start_landing(p,impact);event(BG_EVENT_LAND,i,p->weapon,p->pos,impact);
+                if(impact>7)damage_player(i,-1,(impact-7)*15,false,false);
+            }
             if(p->pos[1]<-6||cell(p->pos[0],p->pos[2])<0){kill(i,i);continue;}
-            p->velocity[1]=p->grounded?(p->pos[1]-previous[1])/dt:p->vy;
             float moving=sqrtf(p->velocity[0]*p->velocity[0]+p->velocity[2]*p->velocity[2]);p->gait+=moving*dt*5;
             bg_animation animation=p->melee_time>0?BG_ANIM_MELEE:p->reload>0?BG_ANIM_RELOAD:p->flash>0?BG_ANIM_FIRE:
                 !p->grounded?BG_ANIM_JUMP:moving>.15f?(p->crouched?BG_ANIM_WALK:BG_ANIM_RUN):BG_ANIM_IDLE;

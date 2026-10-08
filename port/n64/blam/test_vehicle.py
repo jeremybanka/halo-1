@@ -27,10 +27,13 @@ def main():
              '-Wno-multichar', '-Wno-unused-function', '-Wno-unused-parameter',
              '-Wno-unused-variable', '-Wno-incompatible-pointer-types',
              '-Iport/n64', '-Ibuild/n64/blam-core', '-Ibuild/n64/blam-vehicle']
-    shared = ['port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
+    shared = ['port/n64/terrain.c', 'port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
               'port/n64/blam/vehicle_physics.c', 'build/n64/generated/vehicle_data.c',
-              'build/n64/generated/collision_data.c']
+              'build/n64/generated/terrain_data.c']
     suites = {
+        'terrain-source': ['port/n64/test_terrain_source.c','port/n64/blam/collision.c','build/n64/generated/blam_collision_data.c',*shared],
+        'terrain-cache': ['port/n64/test_terrain_cache.c','port/n64/movement.c','build/n64/generated/movement_data.c','build/n64/generated/terrain_data.c'],
+        'terrain': ['port/n64/test_terrain.c','port/n64/terrain.c','port/n64/movement.c','build/n64/generated/movement_data.c'],
         'interaction-cache': ['port/n64/test_interaction_cache.c'],
         'native': ['port/n64/blam/test_vehicle.c',
                    'port/n64/blam/test_vehicle_reference.c', 'port/n64/blam/collision.c',

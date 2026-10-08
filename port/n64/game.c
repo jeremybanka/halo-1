@@ -86,7 +86,7 @@ const bg_weapon_def bg_weapon_defs[BG_WEAPON_COUNT]={
     [BG_W_NEEDLER]={"NEEDLER",20,80,.1f,1.0f,6,.06981317f,20,4,0,1,1,true,false,BG_P_NEEDLE},
     [BG_W_SHOTGUN]={"SHOTGUN",12,24,1.0f,.4f,12,.1745329f,16,0,0,1,15,false,false,BG_P_PLASMA},
     [BG_W_SNIPER]={"SNIPER RIFLE",4,12,.5f,2.5f,101.f*(100.f/75),.0087266f,150,0,0,10,1,false,false,BG_P_PLASMA},
-    [BG_W_ROCKET]={"ROCKET LAUNCHER",2,4,2.0f,5.0f,300,.001f,150,12,0,1,1,false,false,BG_P_ROCKET},
+    [BG_W_ROCKET]={"ROCKET LAUNCHER",2,4,2.0f,5.0f,300,.001f,150,12,0,2,1,false,false,BG_P_ROCKET},
     [BG_W_FLAMETHROWER]={"FLAMETHROWER",100,600,1.f/15,3.4f,8,.0349066f,4,5,.025f,1,1,true,false,BG_P_FLAME},
 };
 static int cell(float x,float z){

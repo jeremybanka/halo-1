@@ -39,6 +39,7 @@ def main():
         'sound-mix': ['port/n64/test_sound_mix.c', 'port/n64/sound_mix.c'],
         'shield-audio': ['port/n64/test_shield_audio.c', 'port/n64/sound_mix.c', 'build/n64/generated/shield_data.c'],
         'shields': ['port/n64/test_shields.c', *shared],
+        'view-camera': ['port/n64/test_view_camera.c', 'build/n64/generated/camera_data.c'],
         'game': ['port/n64/test_game.c', *shared],
         'weapon-effects': ['port/n64/test_weapon_effects.c', 'port/n64/weapon_effects.c',
                            'build/n64/generated/weapon_effects_data.c', *shared],

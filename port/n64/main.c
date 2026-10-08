@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "view_camera.h"
 #include "shields.h"
 #include "blam/vehicle_physics.h"
 #include "controls.h"
@@ -1156,7 +1157,9 @@ static void update_effects(float dt){
     }
 }
 #ifdef BG_MODEL_QA
-#if defined(BG_HUD_QA)
+#if defined(BG_AIM_QA)
+#include "aim_qa.h"
+#elif defined(BG_HUD_QA)
 #include "hud_qa.h"
 #elif defined(BG_GROUND_QA)
 #include "ground_qa.h"
@@ -1187,12 +1190,16 @@ static void prepare_view(unsigned p){
     }
     if(bg_player_third_person(player)){
         const bg_vehicle*vehicle=&bg_vehicles[player->vehicle];
-        /* A shallow hull-relative boom keeps the complete vehicle in view,
-         * including the front seats in a half-height split-screen viewport. */
-        float direction[3]={-cy*.992774f,.12f,sy*.992774f};
-        float origin[3]={vehicle->pos[0],vehicle->pos[1]+.5f,vehicle->pos[2]};
-        float distance=bg_raycast(origin,direction,3.5f)-.15f;if(distance<.3f)distance=.3f;
-        for(int i=0;i<3;i++)eye.v[i]=(origin[i]+direction[i]*distance)*BG_SCALE;
+        const bg_camera_track*track=&bg_camera_tracks[vehicle->kind][player->seat];
+        float origin[3],offset[3];
+        /* units.c: unnamed vehicle camera markers use the hull origin. */
+        bg_vehicle_transform(vehicle,track->origin,origin);
+        bg_camera_track_offset(track,player->yaw,player->pitch,offset);
+        float length=sqrtf(offset[0]*offset[0]+offset[1]*offset[1]+offset[2]*offset[2]);
+        float direction[3];for(unsigned a=0;a<3;a++)direction[a]=offset[a]/fmaxf(length,.001f);
+        /* Keep the existing bounded terrain obstruction test. */
+        float distance=fmaxf(.15f,fminf(length,bg_raycast(origin,direction,length)-.15f));
+        for(unsigned a=0;a<3;a++)eye.v[a]=(origin[a]+direction[a]*distance)*BG_SCALE;
         /* Mounted weapons start one unit ahead of the player's aim origin.
          * Follow that pitch-aware trajectory so the reticle tracks the shot. */
         float aim_direction[3]={cy*cp,sinf(player->pitch),-sy*cp};
@@ -1232,8 +1239,15 @@ static void prepare_view(unsigned p){
     vp->guardBandScale=views>=3?4:2;
 #endif
     float fov=views==2?.72f:1.08f;
-    if(player->health>0&&player->zoom)fov/=player->weapon==BG_W_SNIPER?(player->zoom==2?10:2):2;
-    t3d_viewport_set_projection(vp,fov,1.4f,6200.f);
+    bool scoped=player->health>0&&player->zoom;
+    if(scoped)fov=bg_camera_zoom_fov(fov,player->weapon==BG_W_SNIPER&&player->zoom==2?10:2);
+    float near,far;bg_camera_depth(scoped,&near,&far);
+    t3d_viewport_set_projection(vp,fov,near,far);
+    /* Tiny3D rounds viewport scales to integers after W normalization. At
+     * far=6200, 160x120 becomes scales 3/-2; changing far changes framing.
+     * 1/512 gives exact 20/-15 (40/-30 full screen) and exact 16-bit W/depth
+     * factors. Keep it independent of clipping distance and zoom. */
+    t3d_viewport_set_w_normalize(vp,0,BG_CAMERA_NORMALIZE_SUM);
     bg_hud_aim_projection(vp->matProj.m,views,p);
     t3d_viewport_look_at(vp,&eye,&target,&(T3DVec3){{0,1,0}});
     bg_visibility_side_planes((float (*)[4])vp->viewFrustum.planes,vp->matCamProj.m,w,h);
@@ -1242,6 +1256,7 @@ static void prepare_view(unsigned p){
      * Separate slot storage keeps queued RSP camera matrices immutable. */
     T3DViewport *gun_vp=&gun_viewports[slot][p];*gun_vp=*vp;
     t3d_viewport_set_projection(gun_vp,fov,.125f,128.f);
+    t3d_viewport_set_w_normalize(gun_vp,0,BG_CAMERA_NORMALIZE_SUM);
     bg_hud_aim_projection(gun_vp->matProj.m,views,p);
     view_eyes[p]=eye;held_masks[p]=0;
     for(unsigned j=0;j<views;j++){

@@ -36,6 +36,7 @@ def main():
     mode.add_argument('--snapshot-tick', type=int, help='QA only: fast-forward exactly N fixed replay ticks, then redraw the frozen four-player scene without overlays')
     mode.add_argument('--menu-qa', action='store_true', help='QA only: script raw controller inputs through the real pause menu and verify all four owners, styles, and setup permissions')
     mode.add_argument('--frontend-qa', type=int, choices=[3,4], help='Script the original front-end flow and a staged 15-kill match, using three or four controllers')
+    mode.add_argument('--aim-qa', type=int, choices=range(4), help='Frozen production vehicle cameras and long-range scope views')
     mode.add_argument('--model-qa', action='store_true', help='Render fixed multi-angle model and occlusion fixtures; not a timing run')
     mode.add_argument('--weapon-qa', action='store_true', help='Render remaining Xbox weapons in four poses and four world views')
     mode.add_argument('--ground-qa', action='store_true', help='Render matching ground-color and texture-resolution camera fixtures')
@@ -52,7 +53,7 @@ def main():
         parser.error('--interaction-tick must be between 0 and 240')
     if args.hud_qa_page is not None and not args.hud_qa:
         parser.error('--hud-qa-page requires --hud-qa')
-    if (args.shield_qa is not None or args.interaction_qa is not None or args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa or args.hud_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
+    if (args.aim_qa is not None or args.shield_qa is not None or args.interaction_qa is not None or args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa or args.hud_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Model/weapon QA uses unpaced frozen scenes, not performance measurement')
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
@@ -89,6 +90,13 @@ def main():
     for name,expected in {**terrain['ground_inputs'],'build/n64/generated/render_data.c':terrain['render_sha256']}.items():
         if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
             parser.error('Stale ground/terrain bank; rerun extract_ground.py and pack_assets.py: '+name)
+    camera_report=out/'generated/camera-report.json'
+    if not camera_report.exists():
+        parser.error('Extract original camera tracks first: port/n64/extract_camera.py')
+    camera=json.loads(camera_report.read_text())
+    for name,expected in {**camera['inputs'],'build/n64/generated/camera_data.c':camera['generated_sha256']}.items():
+        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
+            parser.error('Stale camera bank; run port/n64/extract_camera.py: '+name)
     micro_report = out/'generated/micro-report.json'
     if not micro_report.exists():
         parser.error('Missing micro asset provenance; run port/n64/pack_micro_lods.py')
@@ -186,7 +194,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -213,7 +221,8 @@ def main():
              *(['-DBG_MENU_QA'] if args.menu_qa else []),
              *(['-DBG_FRONTEND_QA', '-DBG_FRONTEND_QA_PLAYERS='+str(args.frontend_qa)] if args.frontend_qa else []),
              *(['-DBG_SNAPSHOT_TICK='+str(args.snapshot_tick)+'u'] if args.snapshot_tick is not None else []),
-             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa or args.hud_qa else []),
+             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.aim_qa is not None or args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa or args.hud_qa else []),
+             *(['-DBG_AIM_QA='+str(args.aim_qa)] if args.aim_qa is not None else []),
              *(['-DBG_HUD_QA'] if args.hud_qa else []),
              *(['-DBG_HUD_QA_PAGE='+str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
              *(['-DBG_WEAPON_QA'] if args.weapon_qa else []),
@@ -244,6 +253,8 @@ def main():
         name += f'-shield{args.shield_qa}'
     if args.interaction_qa is not None:
         name += f'-interaction{args.interaction_qa}-tick{args.interaction_tick}'
+    if args.aim_qa is not None:
+        name += '-aim'+str(args.aim_qa)
     if args.model_qa:
         name += '-model-qa'
     if args.weapon_qa:

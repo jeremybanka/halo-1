@@ -68,6 +68,11 @@ static float brute_ray(const float o[3],const float d[3],float result){
 #endif
 int main(void){
     test_projectile_pool_lifetime();
+    /* Xbox launcher has one 2x zoom level, with normal input toggling out. */
+    reset();bg_give_weapon(0,BG_W_ROCKET);in[0].zoom=true;ticks(1);
+    assert(bg_players[0].zoom==1);in[0].zoom=false;ticks(1);
+    in[0].zoom=true;ticks(1);assert(bg_players[0].zoom==0);
+
     reset();ticks(60);assert(bg_player_count()==4);
     for(unsigned i=0;i<4;i++){
         bg_player*p=&bg_players[i];assert(p->health==100&&p->shield==100&&p->grounded);

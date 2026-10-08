@@ -82,6 +82,13 @@ def main():
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     out = ROOT/'build/n64'
     out.mkdir(parents=True, exist_ok=True)
+    sky_report = out/'generated/sky-report.json'
+    if not sky_report.exists():
+        parser.error('Extract the original sky color ramp first: port/n64/extract_sky.py')
+    sky = json.loads(sky_report.read_text())
+    for name, expected in {**sky['inputs'], 'build/n64/generated/sky_data.c': sky['generated_sha256']}.items():
+        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest() != expected:
+            parser.error('Stale sky color ramp; run port/n64/extract_sky.py: '+name)
     if not all((out/'generated'/name).exists() for name in ('render_data.c','micro_data.c')):
         parser.error('Generate local assets, including the micro bank, first; see port/n64/README.md and port/n64/MICRO_LODS.md')
     terrain=json.loads((out/'generated/asset-report.json').read_text())
@@ -194,7 +201,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')

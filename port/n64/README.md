@@ -190,6 +190,7 @@ build/n64-python/bin/python port/n64/extract_menu_assets.py
 build/n64-python/bin/python port/n64/pack_interactions.py
 build/n64-python/bin/python port/n64/validate_assets.py
 build/n64-python/bin/python port/n64/extract_camera.py
+build/n64-python/bin/python port/n64/extract_sky.py
 build/n64-python/bin/python port/n64/build.py
 build/n64-python/bin/python port/n64/build.py --demo
 ```

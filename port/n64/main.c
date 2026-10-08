@@ -4,6 +4,7 @@
 #include <string.h>
 #include "game.h"
 #include "view_camera.h"
+#include "sky_draw.h"
 #include "shields.h"
 #include "blam/vehicle_physics.h"
 #include "controls.h"
@@ -1295,7 +1296,7 @@ static void draw_view(unsigned p){
     uint64_t begin=get_ticks_us();
     unsigned before=triangles,animation_before=animation_us;
 #endif
-    t3d_viewport_attach(vp);rdpq_clear(RGBA32(150,185,216,255));t3d_frame_start();
+    t3d_viewport_attach(vp);bg_sky_draw(vp);triangles+=16;t3d_frame_start();
     rdpq_mode_dithering(DITHER_NONE_NONE);t3d_light_set_ambient((uint8_t[]){255,255,255,255});t3d_light_set_count(0);
     rdpq_mode_tlut(TLUT_NONE);rdpq_mode_combiner(RDPQ_COMBINER_TEX_SHADE);rdpq_mode_persp(true);rdpq_mode_filter(FILTER_BILINEAR);
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_TEXTURED|T3D_FLAG_CULL_FRONT);

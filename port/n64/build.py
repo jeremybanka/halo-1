@@ -39,6 +39,7 @@ def main():
     mode.add_argument('--model-qa', action='store_true', help='Render fixed multi-angle model and occlusion fixtures; not a timing run')
     mode.add_argument('--weapon-qa', action='store_true', help='Render remaining Xbox weapons in four poses and four world views')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
+    mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
     args = parser.parse_args()
     if (args.model_qa or args.weapon_qa or args.geometry_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Model/weapon QA uses unpaced frozen scenes, not performance measurement')
@@ -56,8 +57,8 @@ def main():
             parser.error('--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds')
     if args.gpu_diagnostic and not args.benchmark:
         parser.error('--gpu-diagnostic requires --benchmark')
-    if (args.menu_qa or args.frontend_qa) and (args.benchmark or args.vi_benchmark or args.profile):
-        parser.error('Menu QA cannot combine with timing or profiling modes')
+    if (args.menu_qa or args.frontend_qa or args.effects_qa) and (args.benchmark or args.vi_benchmark or args.profile):
+        parser.error('Scripted menu/effects QA cannot combine with timing or profiling modes')
     if args.vi_benchmark:
         if args.benchmark or args.profile or args.validate or args.gpu_diagnostic or args.showcase:
             parser.error('--vi-benchmark is a quiet four-player replay and cannot combine with benchmark/profile/validation/diagnostic/showcase modes')
@@ -118,11 +119,21 @@ def main():
         subprocess.run([str(x) for x in command], check=True, cwd=ROOT,
                        env={**os.environ, 'N64_INST': str(sdk)})
 
+    fx_report = out/'generated/weapon-effects-report.json'
+    if not fx_report.exists():
+        parser.error('Extract original weapon effects first: port/n64/extract_weapon_effects.py')
+    fx = json.loads(fx_report.read_text())
+    for name, expected in {**fx['inputs'], 'build/n64/generated/weapon_effects_data.c':fx['generated_sha256']}.items():
+        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
+            parser.error('Stale weapon effects bank; rerun port/n64/extract_weapon_effects.py: '+name)
+
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
     run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py'])
     run([sys.executable, ROOT/'port/n64/blam/export_vehicle.py'])
-    sources = ['blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    sources = ['weapon_effects.c', 'weapon_effects_draw.c', 'blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    if args.effects_qa:
+        sources.append('effects_qa.c')
     sdk_extra_sources = []
     if args.rspq_buffer_kib:
         sdk_source = (args.libdragon_source or sdk.parent/'libdragon-src').resolve()
@@ -135,7 +146,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -165,6 +176,7 @@ def main():
              *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.model_qa or args.weapon_qa or args.geometry_qa else []),
              *(['-DBG_WEAPON_QA'] if args.weapon_qa else []),
              *(['-DBG_GEOMETRY_QA'] if args.geometry_qa else []),
+             *(['-DBG_EFFECTS_QA'] if args.effects_qa else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
              *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
              *(['-DBG_BENCHMARK'] if args.benchmark else []),
@@ -188,6 +200,8 @@ def main():
         name += '-weapon-qa'
     if args.geometry_qa:
         name += '-geometry-qa'
+    if args.effects_qa:
+        name += '-effects-qa'
     if args.menu_qa:
         name += '-menu-qa'
     if args.frontend_qa:

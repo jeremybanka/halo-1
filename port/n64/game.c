@@ -17,6 +17,8 @@ const bg_teleporter bg_teleporters[2]={
 };
 const unsigned bg_teleporter_count=2;
 bg_player bg_players[BG_PLAYERS];
+static bg_shot_trace sniper_traces[BG_PLAYERS];
+const bg_shot_trace *bg_sniper_trace(unsigned player){return &sniper_traces[player];}
 bg_vehicle bg_vehicles[BG_MAX_VEHICLES];
 static blam_object_store projectile_store;
 static blam_object_header projectile_headers[BG_MAX_PROJECTILES];
@@ -421,7 +423,7 @@ static int target_ray(unsigned owner,const float origin[3],const float dir[3],fl
     }
     return victim;
 }
-static void hitscan(unsigned owner,const float origin[3],const float direction[3],float range,float damage,bool headshots){
+static float hitscan(unsigned owner,const float origin[3],const float direction[3],float range,float damage,bool headshots){
     float nearest=range;bool head=false;int victim=target_ray(owner,origin,direction,&nearest,&head),vehicle=-1;
     for(unsigned i=0;i<bg_vehicle_count;i++){
         bg_vehicle*v=&bg_vehicles[i];if(!v->active||bg_players[owner].vehicle==(int)i)continue;
@@ -431,7 +433,9 @@ static void hitscan(unsigned owner,const float origin[3],const float direction[3
     }
     if((victim>=0||vehicle>=0)&&bg_raycast(origin,direction,nearest)>=nearest){
         if(victim>=0)damage_player(victim,owner,damage,false,headshots&&head);else damage_vehicle(vehicle,owner,damage);
+        return nearest;
     }
+    return range;
 }
 static bg_projectile* projectile(int kind,unsigned owner,const float origin[3],const float direction[3],float speed,float damage,float radius){
     bg_projectile*q=bg_projectile_create();if(q){
@@ -458,7 +462,14 @@ static void fire(unsigned index,bool charged){
         if(w->speed>0){
             float start[3];for(int a=0;a<3;a++)start[a]=origin[a]+dir[a]*.15f;
             projectile(w->projectile,index,start,dir,charged?18:w->speed,charged?90:w->damage,w->projectile==BG_P_ROCKET?2.2f:0);
-        }else hitscan(index,origin,dir,w->range,w->damage,p->weapon==BG_W_PISTOL||p->weapon==BG_W_SNIPER);
+        }else{
+            float distance=hitscan(index,origin,dir,w->range,w->damage,p->weapon==BG_W_PISTOL||p->weapon==BG_W_SNIPER);
+            if(p->weapon==BG_W_SNIPER){
+                distance=fminf(distance,bg_raycast(origin,dir,w->range));
+                memcpy(sniper_traces[index].start,origin,sizeof(origin));
+                for(unsigned a=0;a<3;a++)sniper_traces[index].end[a]=origin[a]+dir[a]*distance;
+            }
+        }
     }
     event(BG_EVENT_FIRE,index,p->weapon,p->pos,charged?2:1);
 }

@@ -20,6 +20,8 @@ The remaining-weapon model audit and connected first-person hand repair are
 documented in [WEAPON_OCCLUSION.md](WEAPON_OCCLUSION.md). Menu backdrop, sniper
 display, first-person sleeves and original base geometry repairs are covered
 in [GEOMETRY_REPAIRS.md](GEOMETRY_REPAIRS.md).
+Source-based muzzle flashes, sniper smoke trails and sustained plasma charging
+are documented in [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md).
 
 ## Play
 

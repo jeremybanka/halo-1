@@ -12,7 +12,7 @@
 #ifdef BG_FRONTEND_QA
 #include "frontend_qa.h"
 #endif
-#if !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+#if !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
 #define BG_FRONTEND
 #endif
 #ifdef BG_MENU_QA
@@ -21,6 +21,8 @@
 #include "asset_models.h"
 #include "asset_firstperson.h"
 #include "firstperson_ammo.h"
+#include "weapon_effects.h"
+#include "weapon_effects_draw.h"
 #include "render_animation.h"
 #include "render_lod.h"
 #include "asset_micro.h"
@@ -32,6 +34,9 @@
 #include "sound.h"
 #include "hud.h"
 #include "replay.h"
+#ifdef BG_EFFECTS_QA
+#include "effects_qa.h"
+#endif
 #ifndef BG_PACED30_BUFFERS
 #define BG_PACED30_BUFFERS 3
 #endif
@@ -574,6 +579,7 @@ static void init_scene(void){
 static void fill(int x,int y,int w,int h,color_t color){rdpq_set_mode_fill(color);rdpq_fill_rectangle(x,y,x+w,y+h);}
 static void reset_view_state(void){
     for(unsigned p=0;p<4;p++)fired_at[p]=-100;
+    bg_fx_reset();
     memset(explosions,0,sizeof(explosions));memset(wheel_rotation,0,sizeof(wheel_rotation));explosion_next=0;
 }
 #ifndef BG_SNAPSHOT_TICK
@@ -990,6 +996,7 @@ static void animate_firstperson(unsigned p){
     if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
     float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
     animate_mesh(output,a,f0,f1,fraction);
+    bg_fx_pose(p,w,clip,f0,f1,fraction);
     if(w==BG_W_SNIPER){
         T3DVertPacked *scope=scope_vertices[slot][p];
         const int16_t (*a)[3]=bg_scope_poses[bg_scope_offsets[clip]+f0];
@@ -1070,6 +1077,7 @@ static void prepare_frame(void){
 }
 static void update_effects(float dt){
     if(bg_match_time()<=dt+.00001f)reset_view_state();
+    bg_fx_update(dt);
     for(unsigned i=0;i<bg_vehicle_count;i++)wheel_rotation[i]=bg_vehicles[i].wheel_phase;
     for(unsigned i=0;i<12;i++)explosions[i].life=fmaxf(0,explosions[i].life-dt);
     for(unsigned i=0;i<bg_event_count;i++)if(bg_events[i].kind==BG_EVENT_FIRE&&bg_events[i].player>=0&&bg_events[i].player<4)
@@ -1207,6 +1215,7 @@ static void draw_view(unsigned p){
      * drained before this terrain batch; start it while objects are queued. */
     rspq_flush();
     t3d_matrix_push_pos(1);
+    bg_fx_draw_begin(slot,p,vp,&eye);
 #ifdef BG_PROFILE
     world_us+=get_ticks_us()-begin;begin=get_ticks_us();
     category_triangles[0]+=triangles-before;before=triangles;
@@ -1274,6 +1283,13 @@ static void draw_view(unsigned p){
         submitted_vertices+=24;
 #endif
     }
+    unsigned fx_triangles=bg_fx_draw_trails(game_time);
+    for(unsigned j=0;j<views;j++)if(held_masks[p]&(1u<<j))
+        fx_triangles+=bg_fx_draw_weapon(j,&held_matrices[slot][j],BG_OBJECT_SCALE,false,game_time);
+    triangles+=fx_triangles;
+#ifdef BG_PROFILE
+    submitted_vertices+=fx_triangles*2;
+#endif
 #ifdef BG_PROFILE
     object_us+=get_ticks_us()-begin-(animation_us-animation_before);begin=get_ticks_us();
     animation_before=animation_us;
@@ -1316,6 +1332,11 @@ static void draw_view(unsigned p){
             submitted_vertices+=12;
 #endif
         }
+        unsigned flash_triangles=bg_fx_draw_weapon(p,&guns[slot][p],BG_FP_SCALE,true,game_time);
+        triangles+=flash_triangles;
+#ifdef BG_PROFILE
+        submitted_vertices+=flash_triangles*2;
+#endif
     }
 #ifdef BG_PROFILE
     fp_us+=get_ticks_us()-begin-(animation_us-animation_before);
@@ -1554,6 +1575,7 @@ int main(void){
 #endif
     t3d_init((T3DInitParams){});
     bg_fp_ammo_init();
+    bg_fx_draw_init();
     rdpq_text_register_font(1,rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
     bg_menu_init(&menu,views);
 #ifdef BG_SCORES_BENCHMARK
@@ -1659,6 +1681,9 @@ int main(void){
 #endif
 #ifdef BG_FRONTEND_QA
             bg_front_qa_tick(in,game_time);
+#endif
+#ifdef BG_EFFECTS_QA
+            bg_effects_qa_input(in,game_time);views=4;bg_set_players(4);
 #endif
             bg_clear_events();bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;
 #ifdef BG_SHOWCASE
@@ -1785,6 +1810,9 @@ int main(void){
 #ifdef BG_FRONTEND_QA
         sys_get_heap_stats(&heap);rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"LIVE HEAP %uK",(heap.total-heap.used)/1024);
         rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
+#endif
+#ifdef BG_EFFECTS_QA
+        rdpq_set_mode_standard();rdpq_text_print(NULL,1,4,237,bg_effects_qa_label());
 #endif
 #ifdef BG_MODEL_QA
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"MODEL QA %u: %s",model_qa_page,model_qa_labels[model_qa_page]);

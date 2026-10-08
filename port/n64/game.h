@@ -58,6 +58,10 @@ typedef struct {
 typedef struct { float pos[3],respawn; int weapon; bool active; } bg_pickup;
 typedef struct { float source[3],destination[3],yaw; } bg_teleporter;
 typedef struct { bg_event_kind kind; int player,weapon; float pos[3],amount; } bg_event;
+/* Presentation consumes the exact last sniper ray, including spread and hit
+ * distance. Reading it never casts another ray or changes simulation RNG. */
+typedef struct {float start[3],end[3];} bg_shot_trace;
+const bg_shot_trace *bg_sniper_trace(unsigned player);
 extern const bg_teleporter bg_teleporters[2];
 extern const unsigned bg_teleporter_count;
 extern bg_player bg_players[BG_PLAYERS];

@@ -36,6 +36,10 @@ def main():
                    'build/n64/generated/vehicle_data.c',
                    'build/n64/generated/blam_collision_data.c'],
         'game': ['port/n64/test_game.c', *shared],
+        'weapon-effects': ['port/n64/test_weapon_effects.c', 'port/n64/weapon_effects.c',
+                           'build/n64/generated/weapon_effects_data.c', *shared],
+        'effects-staging': ['port/n64/test_effects_qa.c', 'port/n64/effects_qa.c',
+                            'port/n64/weapon_effects.c', 'build/n64/generated/weapon_effects_data.c', *shared],
         'replay': ['port/n64/test_replay.c', 'port/n64/replay.c', *shared],
         'showcase': ['port/n64/test_showcase.c', 'port/n64/showcase.c', *shared],
     }

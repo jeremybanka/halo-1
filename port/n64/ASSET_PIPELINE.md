@@ -347,3 +347,10 @@ thin display faces into a 1/4096-unit animated bank; the main weapon banks
 remain at 1/256-unit precision. See [GEOMETRY_REPAIRS.md](GEOMETRY_REPAIRS.md)
 for source-preservation, collision and interpolation checks and emulator
 comparisons.
+
+After changing first-person assets, regenerate the source-based firing sprites
+and animated muzzle marker supplement with
+`build/n64-python/bin/python port/n64/extract_weapon_effects.py`. Its report
+records the weapon/effect/particle/bitmap chain and rejects stale dependencies
+at build time. See [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md) for the bounded runtime
+and live four-player verification fixture.

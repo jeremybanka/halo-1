@@ -27,18 +27,24 @@ in [GROUND_TEXTURES.md](GROUND_TEXTURES.md).
 Held-use weapon pickups, original ready/boarding/dismount animations and
 seat-specific prompts are covered in [INTERACTIONS.md](INTERACTIONS.md).
 
+Progress toward the next milestone is tracked in [BLOOD_GULCH_PARITY.md](BLOOD_GULCH_PARITY.md).
+The current on-foot control pass is documented in [MOVEMENT.md](MOVEMENT.md).
+
 ## Play
 
-Load `build/n64/halo-blood-gulch-paced30-buffers5.z64` in ares as a Nintendo 64
+Load `build/n64/halo-blood-gulch-paced30-buffers4.z64` in ares as a Nintendo 64
 cartridge for the recommended four-player presentation profile. Build it with
-`build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
+`build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 4`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
-The latest quiet four-player Ares replay with source interaction animations measures
-**28.3 displayed FPS overall / 28.9 in combat / 27.8 around vehicles**, with
-64 KiB heap remaining. The 30 FPS target is not yet met. See
-[INTERACTIONS.md](INTERACTIONS.md) and `build/n64/interaction-audit/`
-for matching views and timing. Earlier pacing and model-audit measurements
-predate later changes and are historical comparisons.
+The current movement/aiming pass with cached interaction frames measures
+**27.1 displayed FPS overall / 28.8 in combat / 25.5 around vehicles** in the
+quiet four-player Ares replay, with 108 KiB heap remaining. These are section
+averages, not a sustained minimum: 95th-percentile pose intervals are 66.8 ms
+overall and the worst interval is 334.2 ms. The final 30 FPS/latency pass remains
+open. Use four display surfaces: the five-surface benchmark stalled at startup
+with this expanded runtime. See [MOVEMENT.md](MOVEMENT.md) and
+`build/n64/movement-audit/` for videos, exact ROM hashes and timing evidence.
+Earlier timing results describe older builds.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,
@@ -195,6 +201,7 @@ build/n64-python/bin/python port/n64/pack_interactions.py
 build/n64-python/bin/python port/n64/validate_assets.py
 build/n64-python/bin/python port/n64/extract_camera.py
 build/n64-python/bin/python port/n64/extract_sky.py
+build/n64-python/bin/python port/n64/extract_movement.py
 build/n64-python/bin/python port/n64/build.py
 build/n64-python/bin/python port/n64/build.py --demo
 ```

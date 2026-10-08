@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "movement.h"
 #include "view_camera.h"
 #include "sky_draw.h"
 #include "shields.h"
@@ -15,7 +16,7 @@
 #ifdef BG_FRONTEND_QA
 #include "frontend_qa.h"
 #endif
-#if !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+#if !defined(BG_MOVEMENT_QA) && !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
 #define BG_FRONTEND
 #endif
 #ifdef BG_MENU_QA
@@ -1178,10 +1179,13 @@ static void update_effects(float dt){
 #ifdef BG_SHIELD_QA
 #include "shield_fixture.h"
 #endif
+#ifdef BG_MOVEMENT_QA
+#include "movement_qa.h"
+#endif
 static void prepare_view(unsigned p){
     int w=views>=3?160:320,h=views==1?240:120,x=views>=3?(p%2)*160:0,y=views==1?0:(views>=3?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
-    float head=player->crouched?.4f:.62f;
+    float head=bg_eye_height(player);
     T3DVec3 eye={{player->pos[0]*BG_SCALE,(player->pos[1]+head)*BG_SCALE,player->pos[2]*BG_SCALE}};
     T3DVec3 target={{eye.v[0]+cy*cp,eye.v[1]+sinf(player->pitch),eye.v[2]-sy*cp}};
     if(player->vehicle>=0&&!bg_player_third_person(player)){
@@ -1204,7 +1208,7 @@ static void prepare_view(unsigned p){
         /* Mounted weapons start one unit ahead of the player's aim origin.
          * Follow that pitch-aware trajectory so the reticle tracks the shot. */
         float aim_direction[3]={cy*cp,sinf(player->pitch),-sy*cp};
-        float muzzle[3]={player->pos[0],player->pos[1]+(player->crouched?.4f:.62f),player->pos[2]};
+        float muzzle[3]={player->pos[0],player->pos[1]+bg_eye_height(player),player->pos[2]};
         for(unsigned a=0;a<3;a++)muzzle[a]+=aim_direction[a];
         float aim_distance=fmaxf(2.f,bg_raycast(muzzle,aim_direction,150.f));
         for(unsigned a=0;a<3;a++)target.v[a]=(muzzle[a]+aim_direction[a]*aim_distance)*BG_SCALE;
@@ -1842,6 +1846,9 @@ int main(void){
 #ifdef BG_DESTRUCTION_QA
             bg_destruction_qa_input(in,game_time);views=4;bg_set_players(4);
 #endif
+#ifdef BG_MOVEMENT_QA
+            movement_qa_input(in,game_time);
+#endif
             bg_clear_events();bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;
 #ifdef BG_SHOWCASE
             bg_showcase_observe();
@@ -1967,6 +1974,9 @@ int main(void){
 #ifdef BG_FRONTEND_QA
         sys_get_heap_stats(&heap);rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"LIVE HEAP %uK",(heap.total-heap.used)/1024);
         rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
+#endif
+#ifdef BG_MOVEMENT_QA
+        rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"SCRIPTED | %s",movement_qa_title());
 #endif
 #ifdef BG_DESTRUCTION_QA
         rdpq_set_mode_standard();rdpq_text_print(NULL,1,4,237,bg_destruction_qa_label());

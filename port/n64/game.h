@@ -39,6 +39,7 @@ typedef struct {
     float shield_hit,shield_break,shield_break_pos[3];
     bool shield_charging,shield_overcharging;
     float velocity[3],last_pos[3];
+    float crouch_amount,look_peg_time;
     int reserve,weapon,inventory[2],magazines[2],reserves[2],slot,zoom;
     int grenades[2],grenade_kind,vehicle,seat,needles,needle_owner;
     float needle_timer,grenade_cooldown,interact_cooldown,teleport_cooldown;

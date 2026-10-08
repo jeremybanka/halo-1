@@ -39,8 +39,10 @@ static void seats(void){
         bg_use_target target=bg_interaction_target(0);
         printf("kind %u seat %u -> target %d/%d\n",kind,seat,target.kind,target.seat);
         assert(target.kind==BG_USE_ENTER&&target.seat==(int)seat);
+        p->crouched=true;p->crouch_amount=1;
         input[0].interact=true;tick(1);
         assert(p->vehicle==vi&&p->seat==(int)seat&&p->seat_state==BG_SEAT_ENTERING&&v->occupants[seat]==0);
+        assert(!p->crouched&&p->crouch_amount==0);
         input[0].fire=input[0].secondary_fire=true;input[0].forward=1;tick(1);assert(v->flash==0&&v->cooldown==0);
         input[0].fire=input[0].secondary_fire=false;input[0].forward=0;
         tick(90);assert(p->seat_state==BG_SEAT_STABLE&&p->vehicle==vi&&p->use_latched);

@@ -1,5 +1,6 @@
 #include "blam/vehicle_physics.h"
 #include "game.h"
+#include "movement.h"
 #include "blam/runtime.h"
 #include "blam/core.h"
 #include <math.h>
@@ -481,15 +482,93 @@ static bg_projectile* projectile(int kind,unsigned owner,const float origin[3],c
 }
 static void aim(const bg_player*p,float direction[3],float origin[3]){
     float cp=cosf(p->pitch);direction[0]=cosf(p->yaw)*cp;direction[1]=sinf(p->pitch);direction[2]=-sinf(p->yaw)*cp;
-    memcpy(origin,p->pos,12);origin[1]+=p->crouched?.4f:.62f;
+    memcpy(origin,p->pos,12);origin[1]+=bg_eye_height(p);
     if(p->vehicle>=0&&bg_player_personal_weapon(p))bg_vehicle_camera_position(&bg_vehicles[p->vehicle],p->seat,origin);
 }
+bg_aim_target bg_aim_query(unsigned owner){
+    bg_player*p=&bg_players[owner];bg_aim_target best={.player=-1,.distance=1e9f};
+    if(p->vehicle>=0||p->health<=0)return best;
+    const bg_aim_config*a=&bg_aim_configs[p->weapon];if(a->zoom_only&&!p->zoom)return best;
+    float mag=p->zoom?(p->weapon==BG_W_SNIPER&&p->zoom==1?2:bg_weapon_defs[p->weapon].zoom):1;
+    float origin[3]={p->pos[0],p->pos[1]+bg_eye_height(p),p->pos[2]};
+    float cp=cosf(p->pitch),dir[3]={cosf(p->yaw)*cp,sinf(p->pitch),-sinf(p->yaw)*cp};
+    for(unsigned j=0;j<active_players;j++){
+        const bg_player*q=&bg_players[j];if(j==owner||q->health<=0||q->invisibility>0)continue;
+        float height=bg_movement.height[0]+(bg_movement.height[1]-bg_movement.height[0])*q->crouch_amount;
+        float point[3]={q->pos[0],q->pos[1]+height*.5f,q->pos[2]};
+        float dx=point[0]-origin[0],dz=point[2]-origin[2],h2=dir[0]*dir[0]+dir[2]*dir[2];
+        if(h2>.00001f)point[1]=clamp(origin[1]+(dx*dir[0]+dz*dir[2])*dir[1]/h2,q->pos[1]+height*.5f,q->pos[1]+height);
+        float d[3];sub(d,point,origin);float projection=dot(d,dir);if(projection<=0)continue;
+        float perpendicular[3];for(unsigned k=0;k<3;k++)perpendicular[k]=d[k]-dir[k]*projection;
+        float width=sqrtf(dot(perpendicular,perpendicular));
+        if(width>0){float scale=fminf(1,bg_movement.aim_width/width);for(unsigned k=0;k<3;k++){point[k]-=perpendicular[k]*scale;d[k]=point[k]-origin[k];}}
+        float distance=sqrtf(dot(d,d));if(distance<.001f||distance>fmaxf(a->auto_range,a->mag_range)*mag)continue;
+        float cosine=clamp(dot(d,dir)/distance,-1,1),max_angle=fmaxf(a->auto_angle,a->mag_angle)/mag;
+        if(cosine<cosf(max_angle))continue;
+        float angle=acosf(cosine),aut=bg_aim_attenuation(distance,a->auto_range*mag)*bg_aim_attenuation(angle,a->auto_angle/mag);
+        float magnet=bg_aim_attenuation(distance,a->mag_range*mag)*bg_aim_attenuation(angle,a->mag_angle/mag);
+        if(aut<=0&&magnet<=0)continue;
+        if(aut<best.auto_level||(aut==best.auto_level&&(magnet<best.mag_level||(magnet==best.mag_level&&distance>=best.distance))))continue;
+        for(unsigned k=0;k<3;k++)d[k]/=distance;
+        if(bg_raycast(origin,d,distance)<distance-.015f)continue;
+        /* Vehicles remain the demake's conservative hit spheres. Do not let
+         * assist pull through the same cover that blocks gameplay shots. */
+        bool blocked=false;
+        for(unsigned v=0;v<bg_vehicle_count;v++)if(bg_vehicles[v].active&&q->vehicle!=(int)v){
+            float offset[3]={bg_vehicles[v].pos[0]-origin[0],bg_vehicles[v].pos[1]+.35f-origin[1],bg_vehicles[v].pos[2]-origin[2]};
+            float along=dot(offset,d),r=bg_vehicles[v].kind==BG_V_SCORPION?1.05f:.65f;
+            if(along>0&&along<distance&&dot(offset,offset)-along*along<r*r){blocked=true;break;}
+        }
+        if(blocked)continue;
+        best=(bg_aim_target){.player=(int)j,.distance=distance,.auto_level=aut,.mag_level=magnet};memcpy(best.point,point,sizeof(point));
+    }
+    return best;
+}
+static void player_look(unsigned index,const bg_input*in,float dt){
+    bg_player*p=&bg_players[index];
+    if(p->vehicle>=0){ /* Vehicle control tuning is deliberately unchanged. */
+        float scale=p->zoom?(p->zoom==2?.15f:.35f):1;
+        p->yaw+=in->turn*2.25f*dt*scale;p->pitch=clamp(p->pitch+in->look*1.35f*dt*scale,-1.25f,1.25f);p->look_peg_time=0;return;
+    }
+    float mag=p->zoom?(p->weapon==BG_W_SNIPER&&p->zoom==1?2:bg_weapon_defs[p->weapon].zoom):1,dy,dp;
+    bg_look_input(p,in,mag,dt,&dy,&dp);
+    if(in->turn!=0||in->look!=0||in->forward!=0||in->strafe!=0){
+        bg_aim_target target=bg_aim_query(index);
+        if(target.player>=0&&target.mag_level>0){
+            bg_player*q=&bg_players[target.player];float d[3]={target.point[0]-p->pos[0],target.point[1]-p->pos[1]-bg_eye_height(p),target.point[2]-p->pos[2]};
+            float v[3];sub(v,q->velocity,p->velocity);float h2=d[0]*d[0]+d[2]*d[2],h=sqrtf(h2),r2=h2+d[1]*d[1];
+            if(h2>.00001f&&r2>.00001f){
+                float ay=(d[2]*v[0]-d[0]*v[2])/h2;
+                float ap=(h*v[1]-d[1]/h*(d[0]*v[0]+d[2]*v[2]))/r2;
+                float scale=1-target.mag_level*bg_movement.friction,adhesion=target.mag_level*bg_movement.adhesion;
+                dy=dy*scale+clamp(ay,-3.14159265f,3.14159265f)*dt*adhesion;
+                dp=dp*scale+clamp(ap,-1.57079633f,1.57079633f)*dt*adhesion;
+            }
+        }
+    }
+    p->yaw+=dy;p->pitch=clamp(p->pitch+dp,-1.49225651f,1.49225651f);
+}
+static void assisted_shot(unsigned index,float direction[3],const float origin[3]){
+    bg_aim_target target=bg_aim_query(index);if(target.player<0||target.auto_level<=0)return;
+    float desired[3];sub(desired,target.point,origin);normalize(desired);
+    for(unsigned k=0;k<3;k++)desired[k]=direction[k]+(desired[k]-direction[k])*target.auto_level;
+    normalize(desired);
+    bg_player*p=&bg_players[index];const bg_aim_config*a=&bg_aim_configs[p->weapon];
+    float mag=p->zoom?(p->weapon==BG_W_SNIPER&&p->zoom==1?2:bg_weapon_defs[p->weapon].zoom):1;
+    float limit=fmaxf(a->deviation,a->auto_angle)/mag,cosine=clamp(dot(desired,direction),-1,1);
+    if(cosine<cosf(limit)){
+        float side[3];for(unsigned k=0;k<3;k++)side[k]=desired[k]-direction[k]*cosine;
+        normalize(side);for(unsigned k=0;k<3;k++)desired[k]=direction[k]*cosf(limit)+side[k]*sinf(limit);
+    }
+    memcpy(direction,desired,3*sizeof(float));
+}
+
 static void fire(unsigned index,bool charged){
     bg_player*p=&bg_players[index];const bg_weapon_def*w=&bg_weapon_defs[p->weapon];
     p->cooldown=w->interval;p->flash=.08f;p->recoil=.06f;p->ammo-=charged?10:1;if(p->ammo<0)p->ammo=0;
     p->heat+=charged?.65f:w->heat;if(p->heat>=1){p->heat=1;p->overheated=true;}
     p->animation=BG_ANIM_FIRE;p->anim_time=0;
-    float direction[3],origin[3];aim(p,direction,origin);
+    float direction[3],origin[3];aim(p,direction,origin);assisted_shot(index,direction,origin);
     float spread=w->spread*(p->zoom?.3f:1)*(p->grounded?1:1.5f);
     for(int pellet=0;pellet<w->pellets;pellet++){
         float dir[3];for(int a=0;a<3;a++)dir[a]=direction[a]+random_signed()*spread;normalize(dir);
@@ -630,7 +709,7 @@ static void interact(unsigned player,bg_use_target target){
         bg_vehicle_seat_position(v,p->seat,false,anchor);seat_vector(v,s,s->enter_start,start);
         for(unsigned a=0;a<3;a++)p->seat_offset[a]=p->pos[a]-anchor[a]-start[a];
         p->seat_state=BG_SEAT_ENTERING;p->seat_time=s->enter_time;p->seat_blend=6.f/30;
-        p->zoom=p->reload=p->charge=p->melee_time=0;p->animation=BG_ANIM_DRIVE;p->anim_time=0;p->crouched=false;
+        p->zoom=p->reload=p->charge=p->melee_time=0;p->animation=BG_ANIM_DRIVE;p->anim_time=0;p->crouched=false;p->crouch_amount=0;
         memcpy(p->pos,anchor,sizeof(anchor));event(BG_EVENT_ENTER,player,v->kind,p->pos,p->seat);
     }
 }
@@ -778,25 +857,29 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
         if(in->switch_weapon&&p->weapon_ready<=0&&bg_player_personal_weapon(p))select_slot(p,1-p->slot);
         if(in->switch_grenade)p->grenade_kind=1-p->grenade_kind;
         if(in->zoom){if(bg_weapon_defs[p->weapon].zoom>1)p->zoom=(p->zoom+1)%(p->weapon==BG_W_SNIPER?3:2);else p->zoom=0;}
-        float turn_scale=p->zoom?(p->zoom==2?.15f:.35f):1;
-        p->yaw+=in->turn*2.25f*dt*turn_scale;p->pitch=clamp(p->pitch+in->look*1.35f*dt*turn_scale,-1.25f,1.25f);
+        player_look(i,in,dt);
         update_use(i,in->interact,dt);
         if(p->vehicle<0){
             p->crouched=in->crouch;
+            p->crouch_amount=clamp(p->crouch_amount+(p->crouched?1:-1)*bg_movement.crouch_rate*dt,0,1);
             float f=in->forward,s=in->strafe,length=sqrtf(f*f+s*s);if(length>1){f/=length;s/=length;}
             float previous[3];memcpy(previous,p->pos,sizeof(previous));bool was_grounded=p->grounded;
-            float speed=p->crouched?1.0f:2.25f;
-            p->pos[0]+=(cosf(p->yaw)*f+sinf(p->yaw)*s)*speed*dt;
-            p->pos[2]+=(-sinf(p->yaw)*f+cosf(p->yaw)*s)*speed*dt;
-            if(in->jump&&p->grounded){p->vy=1.9f;p->grounded=false;event(BG_EVENT_JUMP,i,p->weapon,p->pos,1);}
-            p->vy-=4.8f*dt;p->pos[1]+=p->vy*dt;walls(p);
+            bg_walk_velocity(p,f,s,dt);
+            p->pos[0]+=p->velocity[0]*dt;p->pos[2]+=p->velocity[2]*dt;
+            if(in->jump&&p->grounded){p->vy=fmaxf(p->vy,bg_movement.jump);p->grounded=false;event(BG_EVENT_JUMP,i,p->weapon,p->pos,1);}
+            p->vy-=bg_movement.gravity*dt;p->pos[1]+=p->vy*dt;
+            float intended_x=p->pos[0],intended_z=p->pos[2];walls(p);
+            float correction_x=p->pos[0]-intended_x,correction_z=p->pos[2]-intended_z;
+            float correction2=correction_x*correction_x+correction_z*correction_z;
+            float into=p->velocity[0]*correction_x+p->velocity[2]*correction_z;
+            if(correction2>1e-10f&&into<0){p->velocity[0]-=correction_x*into/correction2;p->velocity[2]-=correction_z*into/correction2;}
             float floor=bg_floor(p->pos[0],p->pos[2],fmaxf(previous[1],p->pos[1])+.18f);
             if(p->vy<=0&&floor>-999&&p->pos[1]<=floor+.025f){
                 if(!was_grounded){event(BG_EVENT_LAND,i,p->weapon,p->pos,-p->vy);if(p->vy<-7)damage_player(i,-1,(-p->vy-7)*15,false,false);}
                 p->pos[1]=floor+.015f;p->vy=0;p->grounded=true;
             }else p->grounded=false;
             if(p->pos[1]<-6||cell(p->pos[0],p->pos[2])<0){kill(i,i);continue;}
-            for(int a=0;a<3;a++)p->velocity[a]=(p->pos[a]-previous[a])/dt;
+            p->velocity[1]=p->grounded?(p->pos[1]-previous[1])/dt:p->vy;
             float moving=sqrtf(p->velocity[0]*p->velocity[0]+p->velocity[2]*p->velocity[2]);p->gait+=moving*dt*5;
             bg_animation animation=p->melee_time>0?BG_ANIM_MELEE:p->reload>0?BG_ANIM_RELOAD:p->flash>0?BG_ANIM_FIRE:
                 !p->grounded?BG_ANIM_JUMP:moving>.15f?(p->crouched?BG_ANIM_WALK:BG_ANIM_RUN):BG_ANIM_IDLE;

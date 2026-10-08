@@ -27,14 +27,16 @@ def main():
              '-Wno-multichar', '-Wno-unused-function', '-Wno-unused-parameter',
              '-Wno-unused-variable', '-Wno-incompatible-pointer-types',
              '-Iport/n64', '-Ibuild/n64/blam-core', '-Ibuild/n64/blam-vehicle']
-    shared = ['port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
+    shared = ['port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
               'port/n64/blam/vehicle_physics.c', 'build/n64/generated/vehicle_data.c',
               'build/n64/generated/collision_data.c']
     suites = {
+        'interaction-cache': ['port/n64/test_interaction_cache.c'],
         'native': ['port/n64/blam/test_vehicle.c',
                    'port/n64/blam/test_vehicle_reference.c', 'port/n64/blam/collision.c',
                    'build/n64/generated/vehicle_data.c',
                    'build/n64/generated/blam_collision_data.c'],
+        'movement': ['port/n64/test_movement.c', 'port/n64/controls.c', *shared],
         'interactions': ['port/n64/test_interactions.c', *shared],
         'sound-mix': ['port/n64/test_sound_mix.c', 'port/n64/sound_mix.c'],
         'shield-audio': ['port/n64/test_shield_audio.c', 'port/n64/sound_mix.c', 'build/n64/generated/shield_data.c'],

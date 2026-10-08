@@ -3,14 +3,20 @@
 #include <malloc.h>
 #include "asset_interaction.h"
 #include "asset_firstperson.h"
+#include "interaction_cache.h"
 static uint8_t *scratch;
 static uint32_t rom,rom_size;
+static bg_pose_cache cache;
 void bg_interaction_render_init(void){
     if(scratch)return;
     rom=dfs_rom_addr("interactions.bin");rom_size=dfs_rom_size("interactions.bin");
     assertf(rom&&rom_size,"Missing Xbox interaction pose bank");
-    scratch=memalign(16,bg_interaction_scratch_bytes);
+    scratch=memalign(16,bg_pose_cache_bytes(bg_interaction_scratch_bytes));
     assertf(scratch,"Interaction frame scratch allocation");
+    cache.storage=scratch;cache.stride=bg_interaction_scratch_bytes;
+}
+static void read_frames(void*out,uint32_t offset,uint32_t bytes){
+    data_cache_hit_invalidate(out,bytes);dma_read(out,rom+offset,bytes);
 }
 static int sample(const bg_rom_pose*p,float seconds,bool loop,const int16_t**a,const int16_t**b){
     bg_interaction_render_init();
@@ -18,10 +24,10 @@ static int sample(const bg_rom_pose*p,float seconds,bool loop,const int16_t**a,c
     if(loop)phase-=floorf(phase);else phase=fminf(phase,1);
     float frame=phase*(p->frames-1);unsigned f0=frame,f1=f0+1<p->frames?f0+1:f0;
     assertf(p->stride*2<=bg_interaction_scratch_bytes&&p->offset+p->stride*p->frames<=rom_size,"Interaction frame bounds");
-    data_cache_hit_invalidate(scratch,p->stride*2);
-    dma_read(scratch,rom+p->offset+p->stride*f0,p->stride);
-    if(f1!=f0)dma_read(scratch+p->stride,rom+p->offset+p->stride*f1,p->stride);
-    *a=(const int16_t*)scratch;*b=f1==f0?*a:(const int16_t*)(scratch+p->stride);
+    /* Adjacent interpolation frames are contiguous and already padded for
+     * DMA. Fetch the identical pair in one transfer instead of two waits. */
+    const uint8_t*data=bg_pose_cache_fetch(&cache,p->offset+p->stride*f0,p->stride*(f1==f0?1:2),read_frames);
+    *a=(const int16_t*)data;*b=f1==f0?*a:(const int16_t*)(data+p->stride);
     return (frame-f0)*256;
 }
 void bg_interaction_pose(T3DVertPacked*out,const bg_rom_pose*p,float seconds,bool loop){

@@ -444,10 +444,6 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
         rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
         hud_text(state,x+(width-hud_text_width(state))/2,y+height/2-18,hud_cyan);
     }
-    /* Contact sheet in the same raster path as live prompts. */
-    rdpq_tex_upload(TILE0,&button_atlas,NULL);
-    for(unsigned id=0;id<HUD_BUTTON_COUNT;id++)
-        hud_button(id,x+width/2-48+(id%6)*16,y+height/2+12+(id/6)*16);
 #endif
     rdpq_set_mode_standard();
 }

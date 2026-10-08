@@ -53,6 +53,10 @@ tests verify one-press recovery to a boardable vehicle for Warthog, Ghost and
 Banshee, plus release latching and unavailable targets. Native solver tests
 cover the formerly rejected 60-degree lean. The new visual gallery is
 `build/n64/button-audit/comparison.html`.
+The icon catalogue is shown separately in that gallery, never overlaid on the
+interaction fixtures. Those scenes display only each interaction's selected
+button, just as the release HUD does; flip fixtures retain an orientation
+counter for physics inspection.
 
 ## Source and deliberate adaptations
 

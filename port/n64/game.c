@@ -632,7 +632,11 @@ static void update_use(unsigned player,bool held,float dt){
     if(!same_target(target,p->use_target)){p->use_target=target;p->use_time=0;}
     if(!target.kind){p->use_time=0;return;}
     p->use_time+=dt;
-    if(p->use_time+1e-6f>=BG_USE_HOLD_TICKS/30.f){p->use_latched=true;p->use_time=0;interact(player,target);}
+    /* Xbox delays weapon swaps only; vehicle actions start on use. The
+     * animation bank is streamed during playback, independently of this hold. */
+    if(target.kind!=BG_USE_PICKUP||p->use_time+1e-6f>=BG_USE_HOLD_TICKS/30.f){
+        p->use_latched=true;p->use_time=0;interact(player,target);
+    }
 }
 static void melee(unsigned index){
     bg_player*p=&bg_players[index];if(p->melee_time>0||p->reload>0)return;

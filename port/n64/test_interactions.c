@@ -38,7 +38,7 @@ static void seats(void){
         bg_use_target target=bg_interaction_target(0);
         printf("kind %u seat %u -> target %d/%d\n",kind,seat,target.kind,target.seat);
         assert(target.kind==BG_USE_ENTER&&target.seat==(int)seat);
-        input[0].interact=true;tick(6);assert(p->vehicle<0);tick(1);
+        input[0].interact=true;tick(1);
         assert(p->vehicle==vi&&p->seat==(int)seat&&p->seat_state==BG_SEAT_ENTERING&&v->occupants[seat]==0);
         input[0].fire=input[0].secondary_fire=true;input[0].forward=1;tick(1);assert(v->flash==0&&v->cooldown==0);
         input[0].fire=input[0].secondary_fire=false;input[0].forward=0;
@@ -50,7 +50,7 @@ static void seats(void){
             int ammo=p->ammo;input[0].fire=true;tick(1);input[0].fire=false;
             assert(p->ammo==ammo-1);
         }
-        input[0].interact=false;tick(1);input[0].interact=true;tick(7);
+        input[0].interact=false;tick(1);input[0].interact=true;tick(1);
         assert(p->seat_state==BG_SEAT_EXITING&&v->occupants[seat]==0);
         unsigned frames=(unsigned)lroundf(bg_seat_definitions[kind][seat].exit_time*30);
         tick(frames-1);assert(p->vehicle==vi);tick(1);
@@ -60,7 +60,7 @@ static void seats(void){
     /* A contested single-seat vehicle reserves its occupant before animation. */
     reset();float ghost_pos[3]={0,bg_floor(0,4,100),4};int ghost=bg_add_vehicle(BG_V_GHOST,ghost_pos,0);
     bg_vehicle_seat_position(&bg_vehicles[ghost],0,true,bg_players[0].pos);
-    memcpy(bg_players[1].pos,bg_players[0].pos,12);input[0].interact=input[1].interact=true;tick(7);
+    memcpy(bg_players[1].pos,bg_players[0].pos,12);input[0].interact=input[1].interact=true;tick(1);
     assert(bg_players[0].vehicle==ghost&&bg_players[1].vehicle<0&&bg_vehicles[ghost].occupants[0]==0);
     /* Destruction during entry frees the reservation and cannot leave a busy corpse. */
     bg_vehicles[ghost].health=1;bg_projectile*blast=bg_projectile_create();assert(blast);
@@ -73,4 +73,4 @@ static void seats(void){
     bg_vehicle_seat_position(&bg_vehicles[vi],4,true,bg_players[0].pos);
     assert(bg_interaction_target(0).kind!=BG_USE_ENTER);
 }
-int main(void){pickup();seats();puts("PASS: 7-tick holds/cancellation, contention, ready locks, every Xbox seat entry/exit, seat reservation and driver requirement");}
+int main(void){pickup();seats();puts("PASS: 7-tick weapon holds/cancellation, immediate vehicle use, contention, ready locks, every Xbox seat entry/exit, seat reservation and driver requirement");}

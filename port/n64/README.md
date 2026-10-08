@@ -79,7 +79,7 @@ player count or control style. See [CONTROLS.md](CONTROLS.md) for ownership,
 button-edge behavior and vehicle controls.
 
 Approach the Warthog's left side for the driver, right side for the front
-passenger, or rear for the gunner, then hold **B** with N64 controls or **C-left**
+passenger, or rear for the gunner, then press **B** with N64 controls or **C-left**
 with Xbox style. The nearest available entry marker selects the seat; HUD
 interaction prompts show **B** or **C-LEFT** for that player's selected layout.
 In Xbox style, holding R shows scores in that player's view without pausing.

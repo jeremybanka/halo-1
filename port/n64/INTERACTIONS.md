@@ -11,8 +11,9 @@ seats, and requires a driver before boarding a Scorpion bench. All ten seat
 positions are represented: three Warthog, one Ghost, five Scorpion and one
 Banshee. The match still has at most four players.
 
-Hold **B** in N64 controls or **C-left** in Xbox controls. Releasing use, losing
-the target or changing targets resets the hold. A completed use stays latched
+Use **B** in N64 controls or **C-left** in Xbox controls. Vehicle entry, exit and
+flipping start immediately; weapon replacements require the seven-tick hold.
+Releasing use, losing the target or changing targets resets the weapon hold. A completed use stays latched
 until release, preventing an uninterrupted hold from entering and then exiting.
 Seat reservations last through the entire boarding/dismount clip. Vehicle
 control and weapons become available after boarding finishes.
@@ -28,8 +29,8 @@ directories.
 - `source/game/player_control.c`, action/reload input processing: held use and
   `minimum_weapon_swap_ticks`; the extracted globals value is seven.
 - `source/game/players.c`, action handling: vehicle action dispatch and weapon
-  swap latch. Xbox vehicle entry starts directly from held use; the N64 port
-  deliberately applies the same seven-tick hold to vehicles, as requested.
+  swap latch. Vehicle actions start directly from use, matching Xbox. Streaming
+  animation frames from ROM requires no artificial input delay.
 - `source/items/weapons.c`, `weapon_ready`: original ready-animation duration.
 - `source/units/units.c`, `unit_enter_seat`, `unit_try_and_exit_seat`, seat target
   search and animation completion: enter/exit graph indices 7/8, six-tick

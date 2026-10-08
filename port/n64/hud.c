@@ -271,14 +271,14 @@ static void interaction_label(const bg_player*p,bg_control_style style,char *out
     const char*vehicles[]={"WARTHOG","GHOST","SCORPION","BANSHEE"};
     out[0]=0;
     if(target.kind==BG_USE_PICKUP)snprintf(out,size,"HOLD %s TO PICK UP",button);
-    else if(target.kind==BG_USE_EXIT)snprintf(out,size,"HOLD %s TO EXIT",button);
-    else if(target.kind==BG_USE_FLIP)snprintf(out,size,"HOLD %s TO FLIP",button);
+    else if(target.kind==BG_USE_EXIT)snprintf(out,size,"%s TO EXIT",button);
+    else if(target.kind==BG_USE_FLIP)snprintf(out,size,"%s TO FLIP",button);
     else if(target.kind==BG_USE_ENTER){
         const bg_vehicle*v=&bg_vehicles[target.object];
         const bg_seat_definition*s=&bg_seat_definitions[v->kind][target.seat];
         const char*role=s->flags&4?"DRIVE":s->flags&8?"GUNNER":"PASSENGER";
-        if(target.seat==0)snprintf(out,size,"HOLD %s - %s %s",button,role,vehicles[v->kind]);
-        else snprintf(out,size,"HOLD %s - %s",button,role);
+        if(target.seat==0)snprintf(out,size,"%s - %s %s",button,role,vehicles[v->kind]);
+        else snprintf(out,size,"%s - %s",button,role);
     }
 }
 

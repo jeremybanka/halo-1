@@ -32,7 +32,7 @@ int main(void){
         printf("%s: pass %.2fs, shots%u kills%u score%d grenade%u boards%u super%u hits%u turn%.3f travel%.2f altitude%.2f seats%u/%u\n",bg_showcase_title(),passed_at,s->shots,s->kills,bg_players[0].score,s->grenades,s->boardings,s->supercombines,s->needle_hits,s->maximum_homing_turn,s->traveled,s->maximum_altitude,s->driver_frames,s->passenger_frames);
         assert(s->passed);assert(passed_at<=bg_showcase_duration()-6);
         if(kind==BG_SHOWCASE_FRAG_DOUBLE_KILL)assert(s->double_kills==1&&s->grenades==1&&s->kills==2&&victims==6&&bg_players[0].score==2);
-        if(kind==BG_SHOWCASE_SHOTGUN_KILL)assert(s->shots==2&&victims==2&&bg_players[0].score==1);
+        if(kind==BG_SHOWCASE_SHOTGUN_KILL)assert(s->shots==1&&victims==2&&bg_players[0].score==1);
         if(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE)assert(s->supercombines==1&&s->needle_hits==7&&victims==2&&bg_players[0].score==1);
         assert(needle_bursts==(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE?1u:0u));
         if(kind==BG_SHOWCASE_NEEDLER_HOMING)assert(s->shots==1&&s->needle_hits==1&&victims==0);

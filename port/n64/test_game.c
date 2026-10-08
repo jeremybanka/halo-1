@@ -10,7 +10,7 @@ static void ticks(unsigned n){for(unsigned i=0;i<n;i++){bg_tick(in,1.f/30);bg_cl
 static float distance(const float a[3],const float b[3]){float x=a[0]-b[0],y=a[1]-b[1],z=a[2]-b[2];return sqrtf(x*x+y*y+z*z);}
 static void reset(void){memset(in,0,sizeof(in));bg_set_players(4);bg_reset();bg_pickup_count=bg_vehicle_count=0;bg_clear_events();}
 static void duel(void){reset();bg_players[0].yaw=bg_players[0].pitch=0;
-    memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;}
+    memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;bg_players[1].yaw=3.14159265f;}
 static void equip(bg_weapon weapon){assert(bg_give_weapon(0,weapon));if(bg_players[0].weapon!=(int)weapon){in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;}ticks(40);}
 static unsigned projectiles(int kind){
     unsigned n=0;for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
@@ -127,7 +127,7 @@ int main(void){
         assert(bg_players[0].ammo==ammo-1);
     }
     duel();equip(BG_W_PLASMA_PISTOL);in[0].fire=true;ticks(30);in[0].fire=false;ticks(5);
-    assert(bg_players[0].ammo==90&&bg_players[1].shield==0&&bg_players[1].health<100);
+    assert(bg_players[0].ammo==90&&bg_players[1].shield==0&&bg_players[1].health==100);
     duel();equip(BG_W_PISTOL);bg_players[1].shield=0;in[0].fire=true;ticks(1);
     assert(bg_players[1].health==0); /* Unshielded precision headshot. */
     duel();equip(BG_W_PISTOL);
@@ -271,12 +271,12 @@ int main(void){
     /* Two real melee hits from different attackers award the contributor an
      * assist. Respawning clears that victim's damage history. */
     duel();bg_players[1].shield=0;in[0].melee=true;ticks(1);in[0].melee=false;
-    assert(bg_players[1].health==15);
+    assert(fabsf(bg_players[1].health-(100-40.f*1.4f/75*100))<.001f);
     memcpy(bg_players[2].pos,bg_players[0].pos,12);bg_players[2].yaw=bg_players[2].pitch=0;
     bg_players[0].pos[2]+=5;in[2].melee=true;ticks(1);in[2].melee=false;
     assert(bg_match_stats()->kills[2]==1&&bg_match_stats()->assists[0]==1&&bg_match_stats()->deaths[1]==1);
     ticks(100);memcpy(bg_players[1].pos,bg_players[2].pos,12);bg_players[1].pos[0]+=.8f;
-    bg_players[1].shield=0;bg_players[1].health=80;in[2].melee=true;ticks(1);
+    bg_players[1].shield=0;bg_players[1].health=70;in[2].melee=true;ticks(1);
     assert(bg_match_stats()->kills[2]==2&&bg_match_stats()->assists[0]==1);
     bg_set_score_limit(25);
     /* Consecutive real kills announce double/triple kills and a five-kill spree. */

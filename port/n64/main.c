@@ -16,7 +16,7 @@
 #ifdef BG_FRONTEND_QA
 #include "frontend_qa.h"
 #endif
-#if !defined(BG_MOVEMENT_QA) && !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+#if !defined(BG_COMBAT_QA) && !defined(BG_MOVEMENT_QA) && !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
 #define BG_FRONTEND
 #endif
 #ifdef BG_MENU_QA
@@ -1217,6 +1217,9 @@ static void update_effects(float dt){
 #ifdef BG_MOVEMENT_QA
 #include "movement_qa.h"
 #endif
+#ifdef BG_COMBAT_QA
+#include "combat_qa.h"
+#endif
 static void prepare_view(unsigned p){
     int w=views>=3?160:320,h=views==1?240:120,x=views>=3?(p%2)*160:0,y=views==1?0:(views>=3?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
@@ -1811,7 +1814,7 @@ int main(void){
 #endif
 #ifdef BG_SHIELD_QA
     shield_fixture_stage(BG_SHIELD_QA);game_time=bg_match_time();
-    for(unsigned p=0;p<4;p++)debugf("SHIELD P%u vitality=%.2f hit=%.2f break=%.2f charge=%d overcharge=%d health=%d\n",p,bg_players[p].shield,bg_players[p].shield_hit,bg_players[p].shield_break,bg_players[p].shield_charging,bg_players[p].shield_overcharging,bg_players[p].health);
+    for(unsigned p=0;p<4;p++)debugf("SHIELD P%u vitality=%.2f hit=%.2f break=%.2f charge=%d overcharge=%d health=%.2f\n",p,bg_players[p].shield,bg_players[p].shield_hit,bg_players[p].shield_break,bg_players[p].shield_charging,bg_players[p].shield_overcharging,bg_players[p].health);
 #endif
     heap_stats_t heap;sys_get_heap_stats(&heap);
     debugf("HALO N64 world=%u textures=%u RAM=%d free=%d\n",bg_collision_count,bg_material_count,get_memory_size(),heap.total-heap.used);
@@ -1899,6 +1902,9 @@ int main(void){
 #endif
 #ifdef BG_MOVEMENT_QA
             movement_qa_input(in,game_time);
+#endif
+#ifdef BG_COMBAT_QA
+            combat_qa_input(in,game_time);
 #endif
             bg_clear_events();bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;
 #ifdef BG_SHOWCASE
@@ -2026,6 +2032,10 @@ int main(void){
 #ifdef BG_FRONTEND_QA
         sys_get_heap_stats(&heap);rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,215,"LIVE HEAP %uK",(heap.total-heap.used)/1024);
         rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
+#endif
+#ifdef BG_COMBAT_QA
+        rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,225,"TARGETS S/H: %.1f/%.1f | %.1f/%.1f",bg_players[1].shield,(double)bg_players[1].health,bg_players[3].shield,(double)bg_players[3].health);
+        rdpq_text_printf(NULL,1,4,237,"SCRIPTED | %s",combat_qa_title());
 #endif
 #ifdef BG_MOVEMENT_QA
         rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,237,"SCRIPTED | %s",movement_qa_title());

@@ -12,7 +12,7 @@ Old benchmark results do not certify a newer build.
 
 ## Essentials
 
-- [ ] On-foot movement and aiming — **active**
+- [ ] On-foot movement and aiming
   - [x] Original walking/backward/strafe/crouch speeds and acceleration.
   - [x] Jump impulse, gravity and airborne steering.
   - [x] Controller response, zoom sensitivity and source-derived aim assistance
@@ -25,18 +25,24 @@ Old benchmark results do not certify a newer build.
   - [ ] Animated hit regions, body stun, original fall damage and first-person landing effects.
   - [ ] Retail Xbox video comparison and human controller acceptance.
   - [ ] Current four-player performance check and necessary optimization:
-        after the environment surface repair, 26.6 overall / 28.7 combat / 24.7
-        vehicle section FPS in Ares. Recover the vehicle phase above 25;
-        the preserved previous ROM repeats 26.9 / 28.8 / 25.1.
-        These are averages; frame-time spikes and hardware acceptance remain.
+        the direct-damage pass measures 27.7 overall / 28.8 combat / 26.6
+        vehicle section FPS in Ares. Both section averages clear 25, but
+        the overall P95 is 66.8 ms and maximum is 267.4 ms. Sustained floor
+        and hardware acceptance remain; changed deaths alter the replay load.
   - [ ] Recover release memory headroom before more resident features: the full
-        four-player frontend lifecycle currently shows 21 KiB free in combat.
+        four-player frontend lifecycle currently shows 17 KiB free in combat.
 - [ ] Spawn selection: replace player-index/team cycling with appropriate Slayer
       spawn eligibility and threat-aware selection.
 - [ ] Dropped weapons/grenades and pickup ammunition conservation.
 - [ ] Original map pickup timing, starting equipment and respawn rules.
-- [ ] Combat audit: shield/headshot breakpoints, spread/range, reload interruption,
-      melee direction/damage, grenade bounce/fuses/cover, projectile tracking.
+- [ ] Combat audit — **active**, see [COMBAT.md](COMBAT.md).
+  - [x] Source direct-damage profiles, fractional vitality and material modifiers.
+  - [x] Shield/headshot breakpoints, overcharge EMP and damage-range falloff.
+  - [x] Forward/airborne melee strength and rear force-kill.
+  - [x] Four staged N64 before/after encounter videos and sanitizer checks.
+  - [ ] Spread/bloom, firing cadence, reload interruption and timed melee sweep.
+  - [ ] Grenade/rocket damage, bounce/fuses/cover and Needler tracking/detonation.
+  - [ ] Animated hit regions, vehicle materials and Xbox/controller acceptance.
 - [ ] Camouflage visibility transitions and interaction with targeting/radar.
 - [ ] Vehicle edge cases: exposed occupants, damage, blast cover, splatters,
       boarding/dismount clearance and camera obstruction.
@@ -91,3 +97,7 @@ FPS and 60 KiB timing-fixture free heap. The vehicle-heavy section needs its
 small regression recovered before checking off the development performance
 gate. See [ENVIRONMENT_SURFACES.md](ENVIRONMENT_SURFACES.md) and
 `build/n64/environment-audit/comparison.html` for the before/after visual evidence.
+
+Combat direct-damage pass: 27.7 overall / 28.8 combat / 26.6 vehicle FPS,
+56 KiB timing-fixture free heap; changed damage affects replay composition.
+See [COMBAT.md](COMBAT.md) and `build/n64/combat-audit/comparison.html`.

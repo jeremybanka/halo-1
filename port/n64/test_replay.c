@@ -16,7 +16,7 @@ int main(void){
             if(q->vehicle>=0){vehicle_mask|=1u<<bg_vehicles[q->vehicle].kind;if(q->seat==1&&bg_vehicles[q->vehicle].kind==BG_V_WARTHOG)gunner++;}
         }
         bg_clear_events();
-        if(frame%450==0)printf("%3u s seats %d/%d/%d/%d health %d/%d/%d/%d shots %u deaths %u\n",frame/30,
+        if(frame%450==0)printf("%3u s seats %d/%d/%d/%d health %.1f/%.1f/%.1f/%.1f shots %u deaths %u\n",frame/30,
             bg_players[0].vehicle,bg_players[1].vehicle,bg_players[2].vehicle,bg_players[3].vehicle,
             bg_players[0].health,bg_players[1].health,bg_players[2].health,bg_players[3].health,shots,kills);
     }

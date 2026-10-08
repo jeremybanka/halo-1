@@ -33,13 +33,13 @@ typedef struct {
 } bg_weapon_def;
 typedef struct {
     float pos[3],yaw,pitch,vy,cooldown,reload,respawn,hurt,flash;
-    int health,ammo,score; bool grounded;
+    float health; int ammo,score; bool grounded;
     float shield,shield_delay,heat,charge,recoil,gait,anim_time,melee_time,invisibility;
     /* Source damage flash decays independently of remaining shield vitality. */
     float shield_hit,shield_break,shield_break_pos[3];
     bool shield_charging,shield_overcharging;
     float velocity[3],last_pos[3];
-    float crouch_amount,look_peg_time;
+    float crouch_amount,look_peg_time,airborne_time;
     float ground_normal[3],landing_time,landing_duration;
     bool hard_landing;
     int reserve,weapon,inventory[2],magazines[2],reserves[2],slot,zoom;
@@ -72,7 +72,7 @@ static inline bool bg_vehicle_body_present(const bg_vehicle*v){return v->active|
 static inline bool bg_vehicle_body_visible(const bg_vehicle*v){return v->active||(v->wreck_time>0&&(v->wreck_time>2||((unsigned)(v->wreck_time*4)&1)));}
 typedef struct {
     float pos[3],velocity[3],life,damage,radius; int kind,owner,attached;
-    float attached_offset[3]; bool active;
+    float attached_offset[3],distance; uint8_t damage_profile; bool active;
 } bg_projectile;
 typedef struct { float pos[3],respawn; int weapon; bool active; } bg_pickup;
 typedef struct { float source[3],destination[3],yaw; } bg_teleporter;

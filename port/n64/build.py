@@ -32,6 +32,7 @@ def main():
     parser.add_argument('--libdragon-source', type=Path, help='Matching libdragon source checkout for the local queue override; defaults to SDK sibling libdragon-src')
     parser.add_argument('--blam-bsp', action='store_true', help='Use original Blam BSP collision; requires an 8 MiB Expansion Pak')
     mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--combat-qa', type=int, choices=range(4), help='Staged weapon damage and range comparisons through production input')
     mode.add_argument('--movement-qa', type=int, choices=[0,1,2,3], help='Scripted movement, aiming, terrain clearance and landing comparisons')
     mode.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
     mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')
@@ -73,7 +74,7 @@ def main():
             parser.error('--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds')
     if args.gpu_diagnostic and not args.benchmark:
         parser.error('--gpu-diagnostic requires --benchmark')
-    if (args.menu_qa or args.frontend_qa or args.effects_qa or args.destruction_qa) and (args.benchmark or args.vi_benchmark or args.profile):
+    if (args.combat_qa is not None or args.menu_qa or args.frontend_qa or args.effects_qa or args.destruction_qa) and (args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Scripted menu/effects QA cannot combine with timing or profiling modes')
     if args.vi_benchmark:
         if args.benchmark or args.profile or args.validate or args.gpu_diagnostic or args.showcase:
@@ -197,6 +198,12 @@ def main():
         if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
             parser.error('Stale interaction bank; rerun port/n64/pack_interactions.py: '+name)
 
+    combat_path=out/'generated/combat-report.json'
+    if not combat_path.exists():parser.error('Extract Xbox damage first: port/n64/extract_combat.py')
+    combat=json.loads(combat_path.read_text())
+    for name,expected in {**combat['inputs'],'build/n64/generated/combat_data.c':combat['generated_sha256']}.items():
+        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
+            parser.error('Stale combat bank; rerun port/n64/extract_combat.py: '+name)
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
     run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py'])
@@ -218,7 +225,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['movement_data.c', 'sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'terrain_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['combat_data.c', 'movement_data.c', 'sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'terrain_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -240,6 +247,7 @@ def main():
                 '-ftrivial-auto-var-init=pattern', '-Wno-unused-parameter',
                 '-Wno-override-init', '-Wno-sign-compare'] if source.name == 'rspq_override.c' else []),
              *(['-DRDPQ_VALIDATE'] if args.validate else []),
+             *(['-DBG_COMBAT_QA='+str(args.combat_qa)] if args.combat_qa is not None else []),
              *(['-DBG_MOVEMENT_QA='+str(args.movement_qa)] if args.movement_qa is not None else []),
              *(['-DBG_DEMO'] if args.demo else []),
              *(['-DBG_SHOWCASE='+str(SHOWCASES.index(args.showcase))] if args.showcase else []),
@@ -280,6 +288,8 @@ def main():
         name += f'-shield{args.shield_qa}'
     if args.interaction_qa is not None:
         name += f'-interaction{args.interaction_qa}-tick{args.interaction_tick}'
+    if args.combat_qa is not None:
+        name += '-combat'+str(args.combat_qa)
     if args.movement_qa is not None:
         name += '-movement'+str(args.movement_qa)
     if args.aim_qa is not None:

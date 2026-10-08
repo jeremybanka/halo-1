@@ -585,8 +585,8 @@ bg_use_target bg_interaction_target(unsigned player){
     float center[3]={p->pos[0],p->pos[1]+.35f,p->pos[2]};
     for(unsigned i=0;i<bg_vehicle_count;i++){
         const bg_vehicle*v=&bg_vehicles[i];if(!v->active)continue;
-        if(v->physics_valid&&v->up[1]<.70710678f){
-            if(v->occupants[0]<0&&distance2(p->pos,v->pos)<4.f)return (bg_use_target){BG_USE_FLIP,i,-1};
+        if(v->physics_valid&&v->up[1]<BG_VEHICLE_FLIP_MAX_UP){
+            if(!v->flipping&&v->occupants[0]<0&&distance2(p->pos,v->pos)<4.f)return (bg_use_target){BG_USE_FLIP,i,-1};
             continue;
         }
         for(unsigned seat=0;seat<bg_seat_counts[v->kind];seat++)if(v->occupants[seat]<0){

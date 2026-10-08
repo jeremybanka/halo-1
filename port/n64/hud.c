@@ -9,7 +9,9 @@
 static surface_t images[BG_H_COUNT];
 static surface_t scope_images[BG_SCOPE_COUNT];
 #include "hud_pixels.h"
+#include "hud_buttons.h"
 static surface_t pixel_atlas;
+static surface_t button_atlas;
 static int current_combiner,current_filter;
 /* Static sprite geometry/texture uploads do not depend on health, ammo or
  * tint. Replaying these RDP blocks avoids repeating the large-sprite tiler
@@ -265,21 +267,38 @@ static void radar(unsigned p, int x, int y, float scale) {
     pixel((int)cx-1,(int)cy+1,3,1,bright);
 }
 
-static void interaction_label(const bg_player*p,bg_control_style style,char *out,unsigned size){
+static void interaction_label(const bg_player*p,char *out,unsigned size){
     bg_use_target target=bg_interaction_target(p-bg_players);
-    const char*button=style==BG_CONTROLS_XBOX?"C-LEFT":"B";
     const char*vehicles[]={"WARTHOG","GHOST","SCORPION","BANSHEE"};
     out[0]=0;
-    if(target.kind==BG_USE_PICKUP)snprintf(out,size,"HOLD %s TO PICK UP",button);
-    else if(target.kind==BG_USE_EXIT)snprintf(out,size,"%s TO EXIT",button);
-    else if(target.kind==BG_USE_FLIP)snprintf(out,size,"%s TO FLIP",button);
+    if(target.kind==BG_USE_PICKUP)snprintf(out,size,"PICK UP");
+    else if(target.kind==BG_USE_EXIT)snprintf(out,size,"EXIT %s",vehicles[bg_vehicles[target.object].kind]);
+    else if(target.kind==BG_USE_FLIP)snprintf(out,size,"FLIP %s",vehicles[bg_vehicles[target.object].kind]);
     else if(target.kind==BG_USE_ENTER){
         const bg_vehicle*v=&bg_vehicles[target.object];
         const bg_seat_definition*s=&bg_seat_definitions[v->kind][target.seat];
         const char*role=s->flags&4?"DRIVE":s->flags&8?"GUNNER":"PASSENGER";
-        if(target.seat==0)snprintf(out,size,"%s - %s %s",button,role,vehicles[v->kind]);
-        else snprintf(out,size,"%s - %s",button,role);
+        if(target.seat==0)snprintf(out,size,"%s %s",role,vehicles[v->kind]);
+        else snprintf(out,size,"%s",role);
     }
+}
+static void hud_button(unsigned id,int x,int y){
+    /* Unlike the one-bit text bank, icons encode dim inactive buttons and
+     * opaque dark letter/arrow cutouts. Preserve both intensity and alpha. */
+    set_combiner(0);rdpq_set_prim_color(hud_cyan);
+    rdpq_texture_rectangle(TILE0,x,y,x+hud_button_width[id],y+hud_button_height[id],(id%4)*16,(id/4)*16);
+}
+static void interaction_prompt(const bg_player*p,bg_control_style style,int x,int y,int width){
+    char label[48];interaction_label(p,label,sizeof(label));if(!label[0])return;
+    bg_use_target target=bg_interaction_target(p-bg_players);
+    unsigned icon=style==BG_CONTROLS_XBOX?HUD_BUTTON_C_LEFT:HUD_BUTTON_B;
+    bool hold=target.kind==BG_USE_PICKUP;
+    int prefix=hold?24:0,iw=hud_button_width[icon];
+    int start=x+(width-prefix-iw-3-hud_text_width(label))/2;
+    if(hold)hud_text("HOLD",start,y,hud_cyan);
+    hud_text(label,start+prefix+iw+3,y,hud_cyan);
+    rdpq_tex_upload(TILE0,&button_atlas,NULL);
+    hud_button(icon,start+prefix,y-(hud_button_height[icon]-6)/2);
 }
 
 static bool scoped(const bg_player *p) {
@@ -342,6 +361,9 @@ void bg_hud_init(void) {
     hud_pixels_init();
     pixel_atlas=surface_make(hud_pixels,FMT_IA4,HUD_PIXEL_W,HUD_PIXEL_H,HUD_PIXEL_W/2);
     data_cache_hit_writeback(hud_pixels,sizeof(hud_pixels));
+    hud_buttons_init();
+    button_atlas=surface_make(hud_button_pixels,FMT_IA4,HUD_BUTTON_W,HUD_BUTTON_H,HUD_BUTTON_W/2);
+    data_cache_hit_writeback(hud_button_pixels,sizeof(hud_button_pixels));
 }
 
 void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_style style) {
@@ -400,8 +422,7 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
     } else if (personal&&p->reload>0) status=HUD_RELOAD;
     else if (personal&&p->overheated) status=HUD_OVERHEAT;
     else {
-        char label[48];interaction_label(p,style,label,sizeof(label));
-        if(label[0])hud_text(label,x+(width-hud_text_width(label))/2,status_y,hud_cyan);
+        interaction_prompt(p,style,x,status_y,width);
     }
     status=control_status(status,style);
     if(status>=0){
@@ -409,5 +430,17 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
         hud_text(label,x+(width-hud_text_width(label))/2,status_y,
             status==HUD_OVERHEAT?red:hud_cyan);
     }
+#ifdef BG_INTERACTION_QA
+    if(BG_INTERACTION_QA==4){
+        const bg_vehicle*v=&bg_vehicles[index];char state[32];
+        snprintf(state,sizeof(state),"UP %d %s",(int)lroundf(v->up[1]*100),v->flipping?"ROLLING":v->up[1]>=BG_VEHICLE_FLIP_MAX_UP?"READY":"FLIPPED");
+        rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
+        hud_text(state,x+(width-hud_text_width(state))/2,y+height/2-18,hud_cyan);
+    }
+    /* Contact sheet in the same raster path as live prompts. */
+    rdpq_tex_upload(TILE0,&button_atlas,NULL);
+    for(unsigned id=0;id<HUD_BUTTON_COUNT;id++)
+        hud_button(id,x+width/2-48+(id%6)*16,y+height/2+12+(id/6)*16);
+#endif
     rdpq_set_mode_standard();
 }

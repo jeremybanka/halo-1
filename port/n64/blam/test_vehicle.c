@@ -118,6 +118,13 @@ int main(void){
  v=setup(BG_V_WARTHOG,20);v->angular_velocity[0]=3;v->physics_valid=false;bg_vehicle_physics_prepare();step(30,(bg_input){0});assert(v->up[1]<-.5f);
  float local[3]={0,.5f,.3f},world[3];bg_vehicle_transform(v,local,world);assert(world[1]<v->pos[1]);
  bg_vehicle_physics_flip(0,(float[]){0,20,3});step(30,(bg_input){0});assert(v->up[1]>.5f);puts("Rollover, full-pose seat transform and original flip torque passed");
+ /* Use permits a 60-degree lean even though the original driving-state
+  * vehicle_is_flipped predicate does not yet consider it overturned. */
+ for(int kind=0;kind<4;kind++)if(kind!=BG_V_SCORPION){
+  v=setup(kind,20);native[0].object.up=(real_vector3d){.n={0,.8660254f,.5f}};publish(0);
+  assert(!vehicle_is_flipped(0));bg_vehicle_physics_flip(0,(float[]){0,20,3});
+  assert(v->flipping&&TEST_FLAG(native[0].vehicle.flags,4));
+ }
  /* Reset and reused slots must not inherit the previous body's spin. */
  v=setup(BG_V_SCORPION,20);step(10,(bg_input){0});assert(v->up[1]>.999f);
  v=setup(BG_V_WARTHOG,20);float blast[3]={v->pos[0],v->pos[1],v->pos[2]+.5f};

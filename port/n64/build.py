@@ -43,7 +43,7 @@ def main():
     parser.add_argument('--hud-qa-page', type=int, choices=range(7), help='Hold one HUD QA page instead of cycling; requires --hud-qa')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
     mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
-    mode.add_argument('--interaction-qa', type=int, choices=range(4), help='Production pickup/seat input with frozen inspection cameras')
+    mode.add_argument('--interaction-qa', type=int, choices=range(5), help='Production pickup/seat/flip input with frozen inspection cameras')
     parser.add_argument('--interaction-tick', type=int, default=25, help='Use/seat simulation tick for --interaction-qa')
     mode.add_argument('--destruction-qa', action='store_true', help='Script four-angle vehicle destruction, wreck settling, blinking and respawn')
     args = parser.parse_args()

@@ -1,4 +1,5 @@
 #include "game.h"
+#include "blam/vehicle_physics.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -73,4 +74,29 @@ static void seats(void){
     bg_vehicle_seat_position(&bg_vehicles[vi],4,true,bg_players[0].pos);
     assert(bg_interaction_target(0).kind!=BG_USE_ENTER);
 }
-int main(void){pickup();seats();puts("PASS: 7-tick weapon holds/cancellation, immediate vehicle use, contention, ready locks, every Xbox seat entry/exit, seat reservation and driver requirement");}
+static void flips(void){
+    for(unsigned kind=0;kind<4;kind++){
+        if(kind==BG_V_SCORPION)continue;
+        reset();bg_player*p=&bg_players[0];float pos[3]={0,p->pos[1]+.5f,4};
+        int vi=bg_add_vehicle(kind,pos,0);bg_vehicle*v=&bg_vehicles[vi];
+        v->pitch=3.14159265f;bg_vehicle_physics_prepare();
+        memcpy(p->pos,v->pos,12);p->pos[2]+=1.2f;
+        assert(bg_interaction_target(0).kind==BG_USE_FLIP);
+        v->occupants[0]=1;assert(bg_interaction_target(0).kind!=BG_USE_FLIP);v->occupants[0]=-1;
+        v->active=false;assert(bg_interaction_target(0).kind!=BG_USE_FLIP);v->active=true;
+        input[0].interact=true;tick(1);assert(p->use_latched&&p->vehicle<0);
+        assert(bg_interaction_target(0).kind!=BG_USE_FLIP); /* No restart mid-roll. */
+        p->pos[0]=-4;p->pos[2]=4;p->pos[1]=bg_floor(-4,4,100)+.015f;p->vy=0;
+        float peak=v->up[1];for(unsigned t=1;t<120;t++){tick(1);peak=fmaxf(peak,v->up[1]);}
+        assert(p->health>0&&p->use_latched&&p->vehicle<0);
+        input[0].interact=false;tick(1);assert(!p->use_latched);
+        printf("Flip kind %u: upright peak %.3f, settled up %.3f\n",kind,peak,v->up[1]);
+        assert(peak>.9f&&v->up[1]>BG_VEHICLE_FLIP_MAX_UP&&!v->flipping);
+        bg_vehicle_seat_position(v,0,true,p->pos);assert(bg_interaction_target(0).kind==BG_USE_ENTER);
+        /* A tilted but not flipped chassis must not offer an ineffective flip. */
+        v->up[1]=.71f;assert(bg_interaction_target(0).kind!=BG_USE_FLIP);
+        memcpy(p->pos,v->pos,12);v->up[1]=.5f;assert(bg_interaction_target(0).kind==BG_USE_FLIP);
+        p->pos[0]+=10;assert(bg_interaction_target(0).kind!=BG_USE_FLIP);
+    }
+}
+int main(void){pickup();seats();flips();puts("PASS: weapon holds, immediate seat use, Warthog/Ghost/Banshee flips, contention, ready locks and reservations");}

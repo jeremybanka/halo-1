@@ -4,6 +4,7 @@
 #include <stdint.h>
 #define BG_VEHICLE_SEATS 5
 #define BG_USE_HOLD_TICKS 7
+#define BG_VEHICLE_FLIP_MAX_UP .70710678f
 /* The existing Warthog seat IDs are retained: driver, gunner, passenger. */
 typedef struct {
     float anchor[3],entry[3],camera[3],yaw,exit_offset[3],exit_velocity[3],enter_start[3];

@@ -18,6 +18,42 @@ until release, preventing an uninterrupted hold from entering and then exiting.
 Seat reservations last through the entire boarding/dismount clip. Vehicle
 control and weapons become available after boarding finishes.
 
+## Pixel button prompts and flipping
+
+Pickup, seat, exit and flip prompts use native-size cyan button icons with
+integer coordinates and point sampling. There is no separator dash. A circular
+B represents N64 use; the Xbox layout shows the four-button C cluster with its
+left button filled. Weapon pickups retain the word HOLD. Vehicle prompts name
+the vehicle or seat, including FLIP WARTHOG, FLIP GHOST and FLIP BANSHEE.
+
+`hud_buttons.h` supplies the complete reusable set: A/B circles, mirrored L/R
+shoulders, a symmetric Z shoulder, four C-direction clusters, Start and D-pad.
+Its immutable IA4 atlas occupies 1,536 bytes and uploads only when an interaction
+prompt is present. The QA contact sheet additionally draws all icons; it is not
+part of the release HUD. The icon combiner preserves intensity as well as alpha,
+so inactive C buttons and letter/arrow cutouts remain distinct.
+
+The original flip torque was already present. Its use gate now matches the
+45-degree prompt threshold, instead of incorrectly using the stricter `.2` up
+component from `vehicle_is_flipped`, which is a driving-state predicate.
+Occupied-driver, destroyed and currently flipping vehicles do not offer flip.
+One held press cannot restart the roll or board the recovered vehicle.
+
+Warthog and Ghost retain original recovery behavior. Banshee recovery has a
+bounded N64 adaptation: continue the original roll for up to 90 ticks, with a
+minimum upward velocity of .025 units/tick while the wing has not cleared the
+upright threshold. The original `.9` up threshold ends the assist; position and
+orientation are never snapped. This lets a wing clear the terrain instead of
+stopping the roll with the craft braced on its side. Physics still determines
+the final resting angle on sloped ground.
+
+`test_hud_buttons.py` validates the exact runtime atlas, C-direction rotations,
+L/R and Z outlines, cell bounds and four-player prompt widths. Interaction
+tests verify one-press recovery to a boardable vehicle for Warthog, Ghost and
+Banshee, plus release latching and unavailable targets. Native solver tests
+cover the formerly rejected 60-degree lean. The new visual gallery is
+`build/n64/button-audit/comparison.html`.
+
 ## Source and deliberate adaptations
 
 The supplied USA Rev 2 `bloodgulch.map` supplies the Spartan graph, weapon

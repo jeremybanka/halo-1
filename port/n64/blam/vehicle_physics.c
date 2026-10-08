@@ -178,6 +178,7 @@ static void publish(unsigned i){
  v->yaw=atan2f(n->object.forward.j,n->object.forward.i);v->pitch=asinf(PIN(n->object.forward.k,-1,1));
  v->speed=dot_product3d(&n->object.forward,&n->object.translational_velocity)*30;
  v->steering=n->vehicle.turn;
+ v->flipping=TEST_FLAG(n->vehicle.flags,4);
  float circumference=bg_vehicle_drive_defs[v->kind].wheel_circumference;
  v->wheel_phase=circumference>0?n->vehicle.wheel/circumference*(2*_pi):0;
  memcpy(published[i],v->pos,12);published[i][3]=v->yaw;published[i][4]=v->pitch;v->physics_valid=true;
@@ -235,7 +236,17 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
   float delta=time>0?1.f/(time*30):1;
   n->unit.seat_power[seat]=PIN(n->unit.seat_power[seat]+(on?delta:-delta),0,1);
  }
+ /* Wide Banshee wings can remain braced against the demake terrain after
+  * the source's 30-tick roll. Continue that same torque, bounded to 90 ticks;
+  * the original upright threshold still ends recovery as soon as it clears. */
+ if(v->flipping&&v->kind==BG_V_BANSHEE&&++v->flip_elapsed<90&&n->vehicle.upending_ticks>=30&&n->object.up.k<=.9f)
+  n->vehicle.upending_ticks=0;
  vehicle_control_update(i);
+ /* Give an overturned fighter a small, bounded clearance lift while its
+  * wide wing has not yet cleared the ground. This changes velocity, not pose;
+  * contacts and the original roll torque still perform the recovery. */
+ if(v->flipping&&v->kind==BG_V_BANSHEE&&v->flip_elapsed<90&&n->object.up.k<.9f)
+  n->object.translational_velocity.k=MAX(n->object.translational_velocity.k,.025f);
  if(!TEST_FLAG(n->object.flags,_object_at_rest_bit)){
   /* physics_compute_new clears the active contact records itself. */
   memset(vehicle_workspace->power,0,sizeof(vehicle_workspace->power));
@@ -274,7 +285,9 @@ void bg_vehicle_transform(const bg_vehicle*v,const float local[3],float out[3]){
 }
 void bg_vehicle_physics_flip(unsigned i,const float player_position[3]){
  bg_vehicle_physics_prepare();struct vehicle_datum*n=&native[i];
- if(!vehicle_is_flipped(i))return;
+ /* player_examine_nearby_vehicle permits use before the stricter .2
+  * vehicle_is_flipped driving-state predicate. Match the HUD/use threshold. */
+ if(n->object.up.k>=BG_VEHICLE_FLIP_MAX_UP)return;
  n->vehicle.flags|=FLAG(4);/* players.c flip action selects the roll/pitch direction from approach. */
  if(fabsf(n->object.forward.k)>.70710677f)n->vehicle.upending_type=(n->object.forward.k<0)+3;
  else{
@@ -282,6 +295,8 @@ void bg_vehicle_physics_flip(unsigned i,const float player_position[3]){
   cross_product3d(global_up3d,&delta,&delta);
   n->vehicle.upending_type=(dot_product3d(&delta,&n->object.forward)>0)+1;
  }n->vehicle.upending_ticks=0;n->object.flags&=~FLAG(_object_at_rest_bit);
+ bg_vehicles[i].flipping=true;
+ bg_vehicles[i].flip_elapsed=0;
 }
 
 void bg_vehicle_physics_explosion(unsigned i,const float origin[3],int kind){

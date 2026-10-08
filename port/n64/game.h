@@ -58,7 +58,8 @@ typedef struct {
     float forward[3],up[3],angular_velocity[3],steering,wheel_phase,suspension[8];
     bool physics_valid;
     float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch; int kind,health,occupants[BG_VEHICLE_SEATS]; bool active;
-    float hatch;bool hatch_closing;
+    float hatch;bool hatch_closing,flipping;
+    uint8_t flip_elapsed;
 } bg_vehicle;
 #define BG_WRECK_LIFE 12.f
 static inline bool bg_vehicle_body_present(const bg_vehicle*v){return v->active||v->wreck_time>0;}

@@ -180,7 +180,11 @@ static void hud_vitals(const bg_player *p,int x,int y){
     if(fill)pixel(x+2,y+2,fill,3,hud_cyan);
     if(p->shield>100){
         fill=(int)ceilf(fminf(p->shield-100,100)*.42f);
-        pixel(x+2,y+2,fill,3,RGBA32(248,221,104,255));
+        pixel(x+2,y+2,fill,3,RGBA32(255,48,48,255));
+    }
+    if(p->shield>200){
+        fill=(int)ceilf(fminf(p->shield-200,100)*.42f);
+        pixel(x+2,y+2,fill,3,RGBA32(48,255,64,255));
     }
     /* Eight upright health cells, aligned to the shield's right edge. */
     pixel(x+12,y+7,33,5,hud_backing);
@@ -398,6 +402,9 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
         const bg_seat_definition*seat=bg_player_seat(p);
         int id=personal?(int)reticles[weapon]:seat&&(seat->flags&8)?vehicle_reticles[vehicle->kind]:-1;
         if(p->seat_state!=BG_SEAT_STABLE)id=-1;
+#ifdef BG_SHIELD_QA
+        id=-1; /* Inspection camera looks at this actor, not down its sights. */
+#endif
         if(id>=0)hud_reticle(id,(int)roundf(aim_x),(int)roundf(aim_y));
     }
     int left=x+margin,top=y+margin,right=x+width-margin;

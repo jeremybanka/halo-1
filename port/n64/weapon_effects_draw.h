@@ -7,4 +7,5 @@ void bg_fx_pose(unsigned player,unsigned weapon,unsigned clip,unsigned f0,unsign
 unsigned bg_fx_draw_weapon(unsigned player,const T3DMat4FP*matrix,float units,bool firstperson,float time);
 unsigned bg_fx_draw_trails(float time);
 unsigned bg_fx_draw_vehicle_destruction(void);
+unsigned bg_fx_draw_shield_breaks(unsigned viewer);
 #endif

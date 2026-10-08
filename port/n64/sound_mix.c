@@ -24,16 +24,23 @@ void bg_sound_mix(bg_sound_voice *voices, unsigned voice_count, int16_t *output,
             uint32_t frame = v->frame, fraction = v->fraction, step = v->step;
             uint32_t length = asset->count;
             int left = v->left, right = v->right;
+            /* Most owned PCM is 1/2 or 1/4 output rate. Reuse its scaled
+             * stereo sample until the source cursor advances; output and
+             * phase are bit-identical to the sample-major reference. */
+            int sample=samples[frame],scaled_left=sample*left,scaled_right=sample*right;
             for (unsigned f = 0; f < count; f++) {
-                int sample = samples[frame];
-                mixed[f*2] += sample * left;
-                mixed[f*2+1] += sample * right;
+                mixed[f*2] += scaled_left;
+                mixed[f*2+1] += scaled_right;
                 fraction += step;
-                frame += fraction >> 16;
+                unsigned advance=fraction>>16;
                 fraction &= 65535;
-                if (frame >= length) {
-                    if (v->loop) frame %= length;
-                    else { v->asset = NULL; break; }
+                if(advance){
+                    frame+=advance;
+                    if (frame >= length) {
+                        if (v->loop) frame %= length;
+                        else { v->asset = NULL; break; }
+                    }
+                    sample=samples[frame];scaled_left=sample*left;scaled_right=sample*right;
                 }
             }
             v->frame = frame;

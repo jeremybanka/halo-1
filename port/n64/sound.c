@@ -4,6 +4,9 @@
 #include "game.h"
 #include "asset_models.h"
 #include "sound.h"
+#include "shields.h"
+#include "shield_assets.h"
+#include "shield_audio.h"
 #include "asset_frontend.h"
 #include <stdlib.h>
 
@@ -11,17 +14,20 @@
  * the supplied Xbox ADPCM decoded offline to signed 8-bit PCM, never synthesized.
  * A split-screen listener belongs to the whole couch; pan by viewport column. */
 typedef bg_sound_voice voice;
-static voice voices[14];
+static voice voices[17];
+/* One shared HUD loop per state; four split-screen players never multiply
+ * identical warning loops. They cannot be stolen by gunfire channels. */
+static float shield_gain[3];
 static unsigned replacement;
 static int rate;
-static float footsteps[4], shield_sound[4];
+static float footsteps[4], shield_hit_delay[4];
 static FILE *title_music;
 static int8_t music_buffer[4096];
 static unsigned music_at,music_count,music_fraction;
 static bg_audio_asset menu_effects[4];
 void bg_sound_frontend(bool active){
     if(active==(title_music!=NULL))return;
-    memset(voices,0,sizeof(voices));
+    memset(voices,0,sizeof(voices));memset(shield_gain,0,sizeof(shield_gain));memset(shield_hit_delay,0,sizeof(shield_hit_delay));
     if(active){
         title_music=fopen("rom:/music.s8","rb");assertf(title_music,"Missing title music");
         music_at=music_count=music_fraction=0;
@@ -70,14 +76,16 @@ static void play(unsigned channel,unsigned sound,int volume,int pan,bool loop) {
 void bg_sound_announce(unsigned sound){play(12,sound,160,128,false);}
 void bg_sound_init(void) {
     audio_init(22050,6);rate=audio_get_frequency();
-    memset(voices,0,sizeof(voices));bg_sound_announce(BG_S_SLAYER);play(13,BG_S_AMBIENCE,18,128,true);
+    memset(voices,0,sizeof(voices));memset(shield_gain,0,sizeof(shield_gain));memset(shield_hit_delay,0,sizeof(shield_hit_delay));bg_sound_announce(BG_S_SLAYER);play(13,BG_S_AMBIENCE,18,128,true);
 }
 static unsigned reload_sound(int weapon) {
     static const unsigned sounds[BG_WEAPON_COUNT]={BG_S_RELOAD,BG_S_PISTOL_RELOAD,BG_S_RELOAD,BG_S_RELOAD,
         BG_S_NEEDLER_RELOAD,BG_S_SHOTGUN_RELOAD,BG_S_SNIPER_RELOAD,BG_S_ROCKET_RELOAD,BG_S_RELOAD};
     return sounds[weapon<0||weapon>=BG_WEAPON_COUNT?0:weapon];
 }
+static void shield_loops(void);
 void bg_sound_update(void) {
+    shield_loops();
     for(unsigned i=0;i<bg_event_count;i++){
         const bg_event*e=&bg_events[i];unsigned sound=BG_S_COUNT;int volume=112;
         int p=e->player>=0&&e->player<4?e->player:0,pan=bg_player_count()==4?(p%2?176:80):128;
@@ -100,12 +108,11 @@ void bg_sound_update(void) {
             case BG_EVENT_RELOAD:sound=reload_sound(e->weapon);volume=100;break;
             case BG_EVENT_JUMP:sound=BG_S_JUMP;volume=65;break;
             case BG_EVENT_LAND:sound=BG_S_FOOTSTEP;volume=65;break;
-            case BG_EVENT_HURT:if(bg_players[p].shield_delay>shield_sound[p]+.1f){sound=BG_S_SHIELD_HIT;shield_sound[p]=bg_players[p].shield_delay;}break;
+            case BG_EVENT_SHIELD_HIT:if(e->amount>0&&shield_hit_delay[p]<=0){sound=BG_S_SHIELD_HIT;shield_hit_delay[p]=.1f;}break;
             case BG_EVENT_DIE:sound=BG_S_DEATH;break;
             case BG_EVENT_RESPAWN:sound=BG_S_RESPAWN;break;
             case BG_EVENT_EXPLOSION:sound=e->weapon==BG_EXPLOSION_PLASMA?BG_S_PLASMA_EXPLOSION:BG_S_EXPLOSION;volume=160;break;
             case BG_EVENT_VEHICLE_DESTROYED:sound=BG_S_EXPLOSION;volume=180;break;
-            case BG_EVENT_SHIELD:sound=BG_S_SHIELD_CHARGE;volume=80;break;
             default:break;
         }
         if(sound<BG_S_COUNT){
@@ -119,7 +126,7 @@ void bg_sound_update(void) {
         }
     }
     for(unsigned p=0;p<4;p++){
-        bg_player*player=&bg_players[p];shield_sound[p]=fminf(shield_sound[p],player->shield_delay);
+        bg_player*player=&bg_players[p];shield_hit_delay[p]=fmaxf(0,shield_hit_delay[p]-1.f/30);
         if(player->grounded&&player->health>0&&player->vehicle<0&&player->gait-footsteps[p]>3.2f){
             play(replacement++%8,BG_S_FOOTSTEP,35,p%2?176:80,false);footsteps[p]=player->gait;
         }
@@ -132,10 +139,26 @@ void bg_sound_update(void) {
         voices[8+p].step=(uint32_t)((float)((uint32_t)voices[8+p].asset->rate<<16)/rate*(.75f+fabsf(v->speed)*.065f));
     }
 }
+static void shield_loops(void){
+    unsigned listeners[3]={0},pan_sum[3]={0};
+    if(!bg_match_finished())for(unsigned p=0;p<bg_player_count();p++){
+        unsigned flags=bg_shield_sounds(&bg_players[p]);if(!flags)continue;
+        unsigned pan=bg_player_count()==4?(p%2?176:80):128;
+        for(unsigned state=0;state<3;state++)if(flags&(1u<<state)){listeners[state]++;pan_sum[state]+=pan;}
+    }
+    for(unsigned state=0;state<3;state++){
+        if(!listeners[state]&&shield_gain[state]==0)continue;
+        const bg_audio_asset*a=state==0?&bg_audio_assets[BG_S_SHIELD_CHARGE]:&bg_shield_audio[state-1];
+        bg_shield_loop_update(&voices[14+state],&shield_gain[state],a,listeners[state]>0,
+            listeners[state]?pan_sum[state]/listeners[state]:128,state==0?96:state==1?48:80,
+            state==0?0:.5f,state==0?.1f:.5f,rate);
+    }
+}
+
 void bg_sound_pump(void) {
     while(audio_can_write()){
         int16_t*out=audio_write_begin();int count=audio_get_buffer_length();
-        bg_sound_mix(voices,14,out,(unsigned)count);mix_title(out,(unsigned)count);
+        bg_sound_mix(voices,17,out,(unsigned)count);mix_title(out,(unsigned)count);
         audio_write_end();
     }
 }

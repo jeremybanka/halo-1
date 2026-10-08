@@ -21,7 +21,7 @@ typedef enum { BG_EVENT_FIRE, BG_EVENT_RELOAD, BG_EVENT_JUMP, BG_EVENT_LAND,
     BG_EVENT_PICKUP, BG_EVENT_EMPTY, BG_EVENT_MELEE, BG_EVENT_ENTER,
     BG_EVENT_EXIT, BG_EVENT_ENGINE, BG_EVENT_SHIELD, BG_EVENT_GRENADE,
     BG_EVENT_GAME_OVER, BG_EVENT_DOUBLE_KILL, BG_EVENT_TRIPLE_KILL, BG_EVENT_KILLING_SPREE, BG_EVENT_TELEPORTER, BG_EVENT_NEEDLE_HIT, BG_EVENT_SUPERCOMBINE,
-    BG_EVENT_VEHICLE_DESTROYED } bg_event_kind;
+    BG_EVENT_VEHICLE_DESTROYED, BG_EVENT_SHIELD_HIT, BG_EVENT_SHIELD_BREAK } bg_event_kind;
 typedef enum { BG_P_PLASMA, BG_P_NEEDLE, BG_P_ROCKET, BG_P_FRAG,
     BG_P_PLASMA_GRENADE, BG_P_CANNON, BG_P_FLAME } bg_projectile_kind;
 /* BG_EVENT_EXPLOSION stores this presentation type in event.weapon. */
@@ -35,6 +35,9 @@ typedef struct {
     float pos[3],yaw,pitch,vy,cooldown,reload,respawn,hurt,flash;
     int health,ammo,score; bool grounded;
     float shield,shield_delay,heat,charge,recoil,gait,anim_time,melee_time,invisibility;
+    /* Source damage flash decays independently of remaining shield vitality. */
+    float shield_hit,shield_break,shield_break_pos[3];
+    bool shield_charging,shield_overcharging;
     float velocity[3],last_pos[3];
     int reserve,weapon,inventory[2],magazines[2],reserves[2],slot,zoom;
     int grenades[2],grenade_kind,vehicle,seat,needles,needle_owner;

@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "shields.h"
 #include "blam/vehicle_physics.h"
 #include "controls.h"
 #include "menu.h"
@@ -61,7 +62,7 @@
 #endif
 #ifdef BG_SNAPSHOT_TICK
 #include "replay_snapshot.h"
-#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK) || defined(BG_SHOWCASE) || defined(BG_PROFILE) || (defined(RDPQ_VALIDATE) && !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA))
+#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK) || defined(BG_SHOWCASE) || defined(BG_PROFILE) || (defined(RDPQ_VALIDATE) && !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA))
 #error "Snapshot QA requires an overlay-free build without benchmark/showcase/profile/validation"
 #endif
 #endif
@@ -1170,6 +1171,9 @@ static void update_effects(float dt){
 #ifdef BG_INTERACTION_QA
 #include "interaction_qa.h"
 #endif
+#ifdef BG_SHIELD_QA
+#include "shield_fixture.h"
+#endif
 static void prepare_view(unsigned p){
     int w=views>=3?160:320,h=views==1?240:120,x=views>=3?(p%2)*160:0,y=views==1?0:(views>=3?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
@@ -1216,6 +1220,11 @@ static void prepare_view(unsigned p){
 #ifdef BG_INTERACTION_QA
     interaction_qa_camera(p,&eye,&target);
 #endif
+#ifdef BG_SHIELD_QA
+    const float angle=(BG_SHIELD_QA==1?2.5f:.6f);
+    eye=(T3DVec3){{(player->pos[0]+cosf(angle)*1.7f)*BG_SCALE,(player->pos[1]+.7f)*BG_SCALE,(player->pos[2]+sinf(angle)*1.7f)*BG_SCALE}};
+    target=(T3DVec3){{player->pos[0]*BG_SCALE,(player->pos[1]+.38f)*BG_SCALE,player->pos[2]*BG_SCALE}};
+#endif
     T3DViewport*vp=&viewports[slot][p];t3d_viewport_set_area(vp,x,y,w,h);
 #ifdef BG_GUARDBAND4
     /* Tiny3D supports factors 1–4. Enlarge only the clipping guard band;
@@ -1238,7 +1247,7 @@ static void prepare_view(unsigned p){
     for(unsigned j=0;j<views;j++){
         bg_player*q=&bg_players[j];body_lods[p][j]=0;
         if(q->invisibility>0)continue;
-#if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA)
+#if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA)
         if(j==p&&!bg_player_third_person(player)&&player->health>0)continue;
 #endif
         if(q->vehicle>=0&&bg_vehicles[q->vehicle].kind==BG_V_BANSHEE&&q->seat_state==BG_SEAT_STABLE)continue;
@@ -1350,8 +1359,17 @@ static void draw_view(unsigned p){
         if(body_lods[p][j]||(held_masks[p]&(1u<<j)))ensure_player_animation(j);
         if(body_lods[p][j]){
             bool lod=body_lods[p][j]==2;
+            float shield=bg_shield_glow(&bg_players[j]);
+            if(shield>0){
+                /* One-pass bounded color glow: no duplicate skinned shell,
+                 * extra triangles, transparent sorting, or z fighting. */
+                unsigned intensity=(unsigned)(shield*(.48f+.04f*sinf(game_time*31+j))*255);
+                rdpq_sync_pipe();rdpq_set_prim_color(RGBA32(255,139,62,intensity));
+                rdpq_mode_combiner(RDPQ_COMBINER1((PRIM,SHADE,PRIM_ALPHA,SHADE),(0,0,0,SHADE)));
+            }
             t3d_matrix_set(&transforms[slot][j],true);rspq_block_run(lod?armor_lod_blocks[slot][j]:player_blocks[slot][j]);
             triangles+=lod?bg_spartan_lod.triangle_count:bg_model_assets[BG_M_SPARTAN].triangle_count;
+            if(shield>0){rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);}
 #ifdef BG_PROFILE
             submitted_vertices+=lod?spartan_lod_vertex_loads:model_vertex_loads[BG_M_SPARTAN];
 #endif
@@ -1389,6 +1407,7 @@ static void draw_view(unsigned p){
     for(unsigned j=0;j<views;j++)if(held_masks[p]&(1u<<j))
         fx_triangles+=bg_fx_draw_weapon(j,&held_matrices[slot][j],BG_OBJECT_SCALE,false,game_time);
     fx_triangles+=bg_fx_draw_vehicle_destruction();
+    fx_triangles+=bg_fx_draw_shield_breaks(p);
     triangles+=fx_triangles;
 #ifdef BG_PROFILE
     submitted_vertices+=fx_triangles*2;
@@ -1401,6 +1420,9 @@ static void draw_view(unsigned p){
     if(player->health>0&&bg_player_personal_weapon(player)&&!bg_player_third_person(player)&&!player->zoom
 #ifdef BG_INTERACTION_QA
        &&BG_INTERACTION_QA<2
+#endif
+#ifdef BG_SHIELD_QA
+       &&false
 #endif
 #ifdef BG_DESTRUCTION_QA
        &&false /* Inspection cameras omit the viewmodel, preserving world effects. */
@@ -1715,6 +1737,10 @@ int main(void){
 #endif
 #ifdef BG_INTERACTION_QA
     interaction_qa_stage();
+#endif
+#ifdef BG_SHIELD_QA
+    shield_fixture_stage(BG_SHIELD_QA);game_time=bg_match_time();
+    for(unsigned p=0;p<4;p++)debugf("SHIELD P%u vitality=%.2f hit=%.2f break=%.2f charge=%d overcharge=%d health=%d\n",p,bg_players[p].shield,bg_players[p].shield_hit,bg_players[p].shield_break,bg_players[p].shield_charging,bg_players[p].shield_overcharging,bg_players[p].health);
 #endif
     heap_stats_t heap;sys_get_heap_stats(&heap);
     debugf("HALO N64 world=%u textures=%u RAM=%d free=%d\n",bg_collision_count,bg_material_count,get_memory_size(),heap.total-heap.used);

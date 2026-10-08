@@ -491,3 +491,5 @@ Neither derived game assets nor generated ROMs are committed. The user's
 `n64-3d-splitscreen` project informed rendering and split-view buffer management.
 
 Yellow visor compensation and source-based vehicle explosions/wrecks are documented in [VEHICLE_DESTRUCTION.md](VEHICLE_DESTRUCTION.md).
+
+See [SHIELDS.md](SHIELDS.md) for source-driven shield flashes, depletion particles, overshield rules and HUD audio.

@@ -5,20 +5,22 @@
 #include "weapon_effects.h"
 #include "weapon_effects_draw.h"
 #include "vehicle_visuals.h"
+#include "shield_assets.h"
 #define FX_QUADS 32
 #define FX_SCALE 256.f
 /* Separate storage per fenced slot and camera: drawing the next split must
  * never overwrite vertices or matrices still borrowed by the RSP. */
 static T3DVertPacked vertices[2][4][FX_QUADS*2] __attribute__((aligned(16)));
 static T3DMat4FP matrices[2][4];
-static surface_t textures[16];
+static surface_t textures[18];
 static float fp_markers[4][2][3],eye_pos[3],right[3],up[3];
 static unsigned frame_slot,view,used,bound,limit;
 static float pixel_width;
 void bg_fx_draw_init(void){
-    assertf(bg_fx_texture_count+5<=16,"Effect texture table capacity");
+    assertf(bg_fx_texture_count+7<=18,"Effect texture table capacity");
     for(unsigned i=0;i<bg_fx_texture_count;i++)textures[i]=surface_make_linear((void*)bg_fx_textures[i],FMT_RGBA32,16,16);
     for(unsigned i=0;i<5;i++)textures[bg_fx_texture_count+i]=surface_make_linear((void*)bg_vehicle_fx_textures[i],FMT_RGBA32,16,16);
+    for(unsigned i=0;i<2;i++)textures[bg_fx_texture_count+5+i]=surface_make_linear((void*)bg_shield_textures[i],FMT_RGBA32,16,16);
 }
 void bg_fx_pose(unsigned player,unsigned weapon,unsigned clip,unsigned f0,unsigned f1,int fraction){
     const int16_t (*a)[3]=bg_fx_marker_poses[bg_fx_marker_offsets[weapon][clip]+f0];
@@ -175,5 +177,39 @@ unsigned bg_fx_draw_vehicle_destruction(void){
             sprite(point,r,r,base+BG_VFX_SMOKE,tint((uint8_t[]){67,65,63},alpha),phase*.3f+j);
         }
     }
-    limit=FX_QUADS;if(drawing)restore();return (used-before)*2;
+    limit=FX_QUADS;if(drawing)restore();
+    return (used-before)*2;
+}
+
+unsigned bg_fx_draw_shield_breaks(unsigned viewer){
+    (void)viewer;unsigned before=used;bool drawing=false;limit=FX_QUADS-4;
+    /* Sharing the existing 32-quad budget bounds every viewport's work.
+     * Two short depletion clouds, then four outward falling gold sparks. */
+    for(unsigned p=0;p<bg_player_count();p++){
+        const bg_player*q=&bg_players[p];
+        if(q->shield_break<=0)continue;
+#ifndef BG_SHIELD_QA
+        if(p==viewer&&!bg_player_third_person(q))continue;
+#endif
+        float age=2.25f-q->shield_break;
+        float center[3]={q->shield_break_pos[0],q->shield_break_pos[1]+.4f,q->shield_break_pos[2]};
+        if(!drawing){mode();drawing=true;}
+        uint8_t gold[3]={255,213,85};
+        if(age<.3f)for(unsigned k=0;k<2;k++){
+            float toward[3],length=0;for(unsigned a=0;a<3;a++){toward[a]=eye_pos[a]-center[a];length+=toward[a]*toward[a];}
+            length=sqrtf(length);float at[3];
+            /* Billboards sit on the near side of the shield envelope; keeping
+             * their centers inside the opaque torso would hide the flash. */
+            for(unsigned a=0;a<3;a++)at[a]=center[a]+toward[a]*(.18f/fmaxf(.01f,length))+right[a]*(k?.12f:-.12f);
+            at[1]+=k*.18f;
+            float r=.3f*(1+age*5);
+            sprite(at,r,r,bg_fx_texture_count+5,tint(gold,fminf(1,(.3f-age)*5)),p+k*1.7f);
+        }
+        for(unsigned k=0;k<4;k++){
+            float angle=k*1.5707963f+p,at[3]={center[0]+cosf(angle)*(.18f+age*.25f),center[1]+.15f+age*.22f-age*age*.17f,center[2]+sinf(angle)*(.18f+age*.25f)};
+            sprite(at,.024f,.07f,bg_fx_texture_count+6,tint(gold,fminf(1,q->shield_break)),angle+age);
+        }
+    }
+    limit=FX_QUADS;if(drawing)restore();
+    return (used-before)*2;
 }

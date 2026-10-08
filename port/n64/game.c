@@ -401,11 +401,21 @@ static void kill(unsigned victim,int owner){
 }
 static void damage_player(unsigned victim,int owner,float damage,bool plasma,bool headshot){
     bg_player*p=&bg_players[victim];if(bg_match_finished()||p->health<=0||damage<=0)return;
+    if(p->shield_overcharging){ /* Original charge protection still flashes. */
+        p->shield_hit=1;event(BG_EVENT_SHIELD_HIT,victim,p->weapon,p->pos,0);return;
+    }
     if(owner>=0&&owner<(int)active_players&&owner!=(int)victim)damage_history[victim][owner]+=damage;
+    float old_shield=p->shield;
+    p->shield_charging=false;
     p->shield_delay=6;p->hurt=.65f;p->zoom=0;p->charge=0;
     float shield_damage=damage*(plasma?1.6f:1);
     if(p->shield>0){float absorb=fminf(p->shield,shield_damage);p->shield-=absorb;damage-=absorb/(plasma?1.6f:1);}
     if(p->shield<.0001f)p->shield=0;
+    if(old_shield>p->shield){
+        p->shield_hit=p->shield>0?1:0;
+        event(BG_EVENT_SHIELD_HIT,victim,p->weapon,p->pos,old_shield-p->shield);
+        if(p->shield==0){p->shield_break=2.25f;memcpy(p->shield_break_pos,p->pos,12);event(BG_EVENT_SHIELD_BREAK,victim,p->weapon,p->pos,1);}
+    }
     if(headshot&&p->shield==0)damage=200;
     if(damage>0){p->health-= (int)ceilf(damage);}
     event(BG_EVENT_HURT,victim,p->weapon,p->pos,damage);
@@ -733,6 +743,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
     for(unsigned i=0;i<active_players;i++){
         bg_player*p=&bg_players[i];const bg_input*in=&inputs[i];
         p->cooldown=fmaxf(0,p->cooldown-dt);p->flash=fmaxf(0,p->flash-dt);p->hurt=fmaxf(0,p->hurt-dt);
+        p->shield_hit=fmaxf(0,p->shield_hit-dt*.5f);p->shield_break=fmaxf(0,p->shield_break-dt);
         p->recoil=fmaxf(0,p->recoil-dt*.3f);p->melee_time=fmaxf(0,p->melee_time-dt);
         p->grenade_cooldown=fmaxf(0,p->grenade_cooldown-dt);p->interact_cooldown=fmaxf(0,p->interact_cooldown-dt);
         p->invisibility=fmaxf(0,p->invisibility-dt);p->teleport_cooldown=fmaxf(0,p->teleport_cooldown-dt);p->anim_time+=dt;
@@ -750,9 +761,16 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
             damage_player(i,owner,needles*4,false,false);
             if(p->health<=0)continue;
         }}
-        if(p->shield_delay>0)p->shield_delay=fmaxf(0,p->shield_delay-dt);
-        else if(p->shield<100){if(p->shield<=0)event(BG_EVENT_SHIELD,i,p->weapon,p->pos,1);p->shield=fminf(100,p->shield+25*dt);}
-        if(p->shield>100)p->shield=fmaxf(100,p->shield-dt*1.5f);
+        bool was_charging=p->shield_charging;p->shield_charging=false;
+        if(p->shield_overcharging){
+            p->shield=fminf(300,p->shield+100*dt);
+            if(p->shield>299.999f)p->shield=300;
+            p->shield_overcharging=p->shield<300;
+            p->shield_charging=p->shield_overcharging;
+        }else if(p->shield>100)p->shield=fmaxf(100,p->shield-dt*(100.f/45));
+        else if(p->shield_delay>0)p->shield_delay=fmaxf(0,p->shield_delay-dt);
+        else if(p->shield<100){p->shield=fminf(100,p->shield+25*dt);p->shield_charging=p->shield<100;}
+        if(p->shield_charging&&!was_charging)event(BG_EVENT_SHIELD,i,p->weapon,p->pos,1);
         p->heat=fmaxf(0,p->heat-dt*.2f);if(p->overheated&&p->heat<.15f)p->overheated=false;
         int stowed=1-p->slot;p->heats[stowed]=fmaxf(0,p->heats[stowed]-dt*.2f);
         if(p->heats[stowed]<.15f)p->overheated_slots[stowed]=false;
@@ -807,7 +825,11 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
             if(q->weapon==BG_PICK_HEALTH&&p->health<100){p->health=100;consume=true;}
             if(q->weapon==BG_PICK_FRAG&&p->grenades[0]<4){p->grenades[0]=4;consume=true;}
             if(q->weapon==BG_PICK_PLASMA&&p->grenades[1]<4){p->grenades[1]=4;consume=true;}
-            if(q->weapon==BG_PICK_OVERSHIELD){p->shield=300;consume=true;}
+            if(q->weapon==BG_PICK_OVERSHIELD&&p->shield<=100&&!p->shield_overcharging){
+                p->shield=fmaxf(1,p->shield);p->shield_delay=0;
+                p->shield_overcharging=p->shield_charging=true;consume=true;
+                event(BG_EVENT_SHIELD,i,p->weapon,p->pos,1);
+            }
             if(q->weapon==BG_PICK_CAMO){p->invisibility=30;consume=true;}
             if(q->weapon<BG_WEAPON_COUNT&&(q->weapon==p->inventory[0]||q->weapon==p->inventory[1])){
                 int slot=q->weapon==p->inventory[0]?0:1;

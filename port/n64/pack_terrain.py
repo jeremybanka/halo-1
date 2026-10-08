@@ -5,19 +5,19 @@ UV_FRACTION = 32
 UV_PERIOD = TEXTURE_SIZE * UV_FRACTION
 
 
-def _uv_offset(vertices):
+def _uv_offset(vertices, period=UV_PERIOD):
     # Integer texture periods preserve repeat sampling and interpolation.
     return tuple((min(v[a] for v in vertices) + max(v[a] for v in vertices))
-                 // (2 * UV_PERIOD) * UV_PERIOD for a in (6, 7))
+                 // (2 * period) * period for a in (6, 7))
 
 
-def _uv_fits(vertices):
-    offset = _uv_offset(vertices)
+def _uv_fits(vertices, period=UV_PERIOD):
+    offset = _uv_offset(vertices, period)
     return all(-32768 <= v[a] - offset[a - 6] <= 32767
                for v in vertices for a in (6, 7))
 
 
-def indexed_terrain(triangles, color_delta=8):
+def indexed_terrain(triangles, color_delta=8, uv_period=UV_PERIOD):
     """Pack one material/spatial cell, preserving its triangle/corner order.
 
     Input vertices are immutable integer (x,y,z,r,g,b,s,t) tuples. UVs have
@@ -26,17 +26,18 @@ def indexed_terrain(triangles, color_delta=8):
     therefore differ by a constant integer repeat, even with perspective.
     """
     assert 0 <= color_delta <= 8
+    assert uv_period in (1024, 2048)
     chunks = []
     vertices, lookup, indices, originals = [], {}, [], []
 
     def flush():
         if not indices:
             return
-        offset = _uv_offset(vertices)
+        offset = _uv_offset(vertices, uv_period)
         packed = [v[:6] + (v[6] - offset[0], v[7] - offset[1]) for v in vertices]
         assert ((len(packed) + 1) & ~1) <= 60 and len(indices) <= 120
         assert len(indices) % 3 == 0
-        assert _uv_fits(vertices)
+        assert _uv_fits(vertices, uv_period)
         # Check every expanded corner against the original, not a previous
         # merge. Representatives are never averaged or modified.
         for original, index in zip(originals, indices):
@@ -69,7 +70,7 @@ def indexed_terrain(triangles, color_delta=8):
                     trial.append(v)
                     trial_lookup.setdefault(key, []).append(index)
                 local.append(index)
-            fits = ((len(trial) + 1) & ~1) <= 60 and len(indices) + 3 <= 120 and _uv_fits(trial)
+            fits = ((len(trial) + 1) & ~1) <= 60 and len(indices) + 3 <= 120 and _uv_fits(trial, uv_period)
             if indices and not fits:
                 flush()
                 vertices, lookup, indices, originals = [], {}, [], []

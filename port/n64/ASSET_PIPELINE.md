@@ -356,3 +356,8 @@ at build time. See [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md) for the bounded runtim
 and live four-player verification fixture.
 
 Run `build/n64-python/bin/python port/n64/extract_vehicle_visuals.py` to pack the owned b40 damaged Ghost/Banshee permutations and death-effect sprites. The build validates the extraction hashes. The world packer restores bright yellow, un-tinted visor panels in the original low-detail Spartan meshes; see [VEHICLE_DESTRUCTION.md](VEHICLE_DESTRUCTION.md).
+
+Ground textures retain the original grass/sand mask through an offline diffuse
+bake, then use 64×64 CI4 at the prior 2 KiB pixel budget. Run `extract_ground.py`
+before `pack_assets.py`; see [GROUND_TEXTURES.md](GROUND_TEXTURES.md) for source
+operations, 32/64/128 experiments, texture-memory limits and matching Ares QA.

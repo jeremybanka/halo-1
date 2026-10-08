@@ -38,11 +38,12 @@ def main():
     mode.add_argument('--frontend-qa', type=int, choices=[3,4], help='Script the original front-end flow and a staged 15-kill match, using three or four controllers')
     mode.add_argument('--model-qa', action='store_true', help='Render fixed multi-angle model and occlusion fixtures; not a timing run')
     mode.add_argument('--weapon-qa', action='store_true', help='Render remaining Xbox weapons in four poses and four world views')
+    mode.add_argument('--ground-qa', action='store_true', help='Render matching ground-color and texture-resolution camera fixtures')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
     mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
     mode.add_argument('--destruction-qa', action='store_true', help='Script four-angle vehicle destruction, wreck settling, blinking and respawn')
     args = parser.parse_args()
-    if (args.model_qa or args.weapon_qa or args.geometry_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
+    if (args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Model/weapon QA uses unpaced frozen scenes, not performance measurement')
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
@@ -73,6 +74,12 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     if not all((out/'generated'/name).exists() for name in ('render_data.c','micro_data.c')):
         parser.error('Generate local assets, including the micro bank, first; see port/n64/README.md and port/n64/MICRO_LODS.md')
+    terrain=json.loads((out/'generated/asset-report.json').read_text())
+    if not terrain.get('ground_inputs'):
+        parser.error('Pack the ground color bank first: extract_ground.py, then pack_assets.py')
+    for name,expected in {**terrain['ground_inputs'],'build/n64/generated/render_data.c':terrain['render_sha256']}.items():
+        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
+            parser.error('Stale ground/terrain bank; rerun extract_ground.py and pack_assets.py: '+name)
     micro_report = out/'generated/micro-report.json'
     if not micro_report.exists():
         parser.error('Missing micro asset provenance; run port/n64/pack_micro_lods.py')
@@ -184,8 +191,9 @@ def main():
              *(['-DBG_MENU_QA'] if args.menu_qa else []),
              *(['-DBG_FRONTEND_QA', '-DBG_FRONTEND_QA_PLAYERS='+str(args.frontend_qa)] if args.frontend_qa else []),
              *(['-DBG_SNAPSHOT_TICK='+str(args.snapshot_tick)+'u'] if args.snapshot_tick is not None else []),
-             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.model_qa or args.weapon_qa or args.geometry_qa else []),
+             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa else []),
              *(['-DBG_WEAPON_QA'] if args.weapon_qa else []),
+             *(['-DBG_GROUND_QA'] if args.ground_qa else []),
              *(['-DBG_GEOMETRY_QA'] if args.geometry_qa else []),
              *(['-DBG_EFFECTS_QA'] if args.effects_qa else []),
              *(['-DBG_DESTRUCTION_QA'] if args.destruction_qa else []),
@@ -210,6 +218,8 @@ def main():
         name += '-model-qa'
     if args.weapon_qa:
         name += '-weapon-qa'
+    if args.ground_qa:
+        name += '-ground-qa'
     if args.geometry_qa:
         name += '-geometry-qa'
     if args.effects_qa:

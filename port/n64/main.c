@@ -496,8 +496,10 @@ static void init_scene(void){
     motion_tracks=malloc(motion_capacity*sizeof(*motion_tracks));
     assertf(motion_tracks,"Animation interpolation scratch allocation");
     data_cache_hit_writeback(bg_vertices,bg_vertex_count*16);
+    data_cache_hit_writeback((void*)bg_ground_palette,32);
     for(unsigned i=0;i<bg_material_count;i++){
-        textures[i]=surface_make(bg_textures[i],FMT_RGBA16,32,32,64);
+        unsigned size=bg_texture_sizes[i];
+        textures[i]=surface_make(bg_textures[i],bg_texture_ci4[i]?FMT_CI4:FMT_RGBA16,size,size,bg_texture_ci4[i]?size/2:size*2);
         data_cache_hit_writeback(bg_textures[i],2048);
     }
     for(unsigned i=0;i<bg_chunk_count;i++)world_blocks[i]=record_indexed(&bg_chunks[i]);
@@ -1111,7 +1113,9 @@ static void update_effects(float dt){
     }
 }
 #ifdef BG_MODEL_QA
-#if defined(BG_GEOMETRY_QA)
+#if defined(BG_GROUND_QA)
+#include "ground_qa.h"
+#elif defined(BG_GEOMETRY_QA)
 #include "geometry_qa.h"
 #elif defined(BG_WEAPON_QA)
 #include "weapon_qa.h"
@@ -1215,10 +1219,13 @@ static void draw_view(unsigned p){
     rdpq_mode_dithering(DITHER_NONE_NONE);t3d_light_set_ambient((uint8_t[]){255,255,255,255});t3d_light_set_count(0);
     rdpq_mode_tlut(TLUT_NONE);rdpq_mode_combiner(RDPQ_COMBINER_TEX_SHADE);rdpq_mode_persp(true);rdpq_mode_filter(FILTER_BILINEAR);
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_TEXTURED|T3D_FLAG_CULL_FRONT);
-    unsigned bound=~0u;
+    unsigned bound=~0u;bool palette_mode=false;
     for(unsigned b=0;b<bg_chunk_count;b++){
         const bg_chunk*c=&bg_chunks[b];if(!t3d_frustum_vs_aabb_s16(&vp->viewFrustum,c->bounds,c->bounds+3))continue;
         if(bound!=c->material){
+            bool paletted=bg_texture_ci4[c->material];
+            if(paletted!=palette_mode){rdpq_mode_tlut(paletted?TLUT_RGBA16:TLUT_NONE);palette_mode=paletted;}
+            if(paletted)rdpq_tex_upload_tlut((uint16_t*)bg_ground_palette,0,16);
             rdpq_tex_upload(TILE0,&textures[c->material],&(rdpq_texparms_t){.s.repeats=REPEAT_INFINITE,.t.repeats=REPEAT_INFINITE});
             bound=c->material;
         }
@@ -1227,6 +1234,7 @@ static void draw_view(unsigned p){
         submitted_vertices+=(c->count+1)&~1u;
 #endif
     }
+    if(palette_mode)rdpq_mode_tlut(TLUT_NONE);
     /* Extracted model faces are outward-wound. Terrain uses its own winding. */
     rdpq_mode_combiner(RDPQ_COMBINER_SHADE);t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
     /* Every object matrix below is already in world space, including vehicle

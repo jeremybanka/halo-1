@@ -2,6 +2,7 @@
 """Pack reduced local assets into endian-independent C arrays for Tiny3D."""
 import argparse
 import collections
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -28,9 +29,30 @@ def floats(values):
     return '{'+','.join(f'{v:.7f}f' for v in values)+'}'
 
 
-def pack(source, output):
+def pack(source, output, ground_size=64, ground_style='blended'):
     from PIL import Image
     data=json.loads(source.read_text())
+    ground=next(i for i,m in enumerate(data['materials']) if m['name'].endswith('\\blood ground'))
+    ground_path=source.parent/'ground'/f'{ground_style}-{ground_size}.png'
+    ground_report=json.loads((ground_path.parent/'report.json').read_text())
+    root=Path(__file__).resolve().parents[2]
+    for name,expected in {**ground_report['inputs'],**ground_report['files']}.items():
+        if hashlib.sha256((root/name).read_bytes()).hexdigest()!=expected:
+            raise ValueError('Stale ground bake; rerun extract_ground.py: '+name)
+    ground_image=Image.open(ground_path).convert('RGB')
+    if ground_image.size!=(ground_size,ground_size):raise ValueError('Wrong ground bake size')
+    ground_palette=[0]*16
+    if ground_size==64:
+        # CI4 fits 64x64 in the same 2 KiB as 32x32 RGBA16. Do not dither:
+        # palette noise becomes unstable in a small moving viewport.
+        quantized=ground_image.quantize(colors=16,method=Image.Quantize.MEDIANCUT,dither=Image.Dither.NONE)
+        palette=quantized.getpalette()
+        for i in range(16):
+            r,g,b=palette[i*3:i*3+3]
+            ground_palette[i]=((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|1
+        ix=list(quantized.get_flattened_data())
+        ground_words=[(ix[i]<<12)|(ix[i+1]<<8)|(ix[i+2]<<4)|ix[i+3] for i in range(0,len(ix),4)]
+    elif ground_size!=32:raise ValueError('Only 32 RGBA16 or 64 CI4 fit this single-upload terrain path')
     output.mkdir(parents=True,exist_ok=True)
     groups=collections.defaultdict(list)
     for tri in data['triangles']:
@@ -43,16 +65,17 @@ def pack(source, output):
         n=normal(p)
         light=.60+.40*max(0,sum(a*b for a,b in zip(n,[.25,.83,.49])))
         uv=tri['uv']
+        period=ground_size*32 if global_uv and tri['material']==ground else UV_PERIOD
         offset=[math.floor(min(v[i] for v in uv)) for i in range(2)]
         for point,tex in zip(p,uv):
             pos=[round(v*SCALE) for v in point]
             if not all(-32768<=v<=32767 for v in pos):raise ValueError('Packed position overflow')
-            st=[round((tex[i]-offset[i])*UV_PERIOD) for i in range(2)]
+            st=[round((tex[i]-offset[i])*period) for i in range(2)]
             if not all(-32768<=v<=32767 for v in st):raise ValueError('Packed UV overflow')
             if global_uv:
-                absolute=[round(tex[i]*UV_PERIOD) for i in range(2)]
-                # Preserve the old quantizer exactly, modulo whole32x32 repeats.
-                if any(absolute[i]-st[i]!=offset[i]*UV_PERIOD for i in range(2)):
+                absolute=[round(tex[i]*period) for i in range(2)]
+                # Preserve quantization exactly modulo whole material repeats.
+                if any(absolute[i]-st[i]!=offset[i]*period for i in range(2)):
                     raise ValueError('Terrain UV rounding is not integer-wrap equivalent')
                 st=absolute
             rgb=[round(255*light)]*3
@@ -67,7 +90,8 @@ def pack(source, output):
         packed=[tuple(v for attribute in corner for v in attribute) for corner in expanded]
         # Material and spatial-cell boundaries remain unchanged. The helper
         # preserves triangle order and checks every merged original corner.
-        for batch in indexed_terrain([packed[i:i+3] for i in range(0,len(packed),3)]):
+        period=ground_size*32 if key[0]==ground else UV_PERIOD
+        for batch in indexed_terrain([packed[i:i+3] for i in range(0,len(packed),3)],uv_period=period):
             first=len(vertices)
             unique=[(list(v[:3]),list(v[3:6]),list(v[6:])) for v in batch['vertices']]
             local=batch['indices'];vertices.extend(unique);count=len(unique)
@@ -102,9 +126,12 @@ def pack(source, output):
         lines.append(f'T3DVertPacked *bg_{name} = &bg_vertices[{first//2}];')
         lines.append(f'const unsigned bg_{name}_vertices={count};')
     lines.append('uint16_t bg_textures[][32*32] __attribute__((aligned(16)))={')
-    for mat in data['materials']:
+    for material,mat in enumerate(data['materials']):
+        if material==ground and ground_size==64:
+            lines.append('{'+','.join(hex(v) for v in ground_words)+'},')
+            continue
         if mat['texture']:
-            texture=Image.open(mat['texture']).convert('RGB')
+            texture=ground_image if material==ground else Image.open(mat['texture']).convert('RGB')
             if texture.size!=(TEXTURE_SIZE,TEXTURE_SIZE):
                 raise ValueError('Terrain repeat-preserving packing requires32x32 textures')
             pixels=list(texture.get_flattened_data())
@@ -117,6 +144,9 @@ def pack(source, output):
             pixels=[color]*1024
         lines.append('{'+','.join(hex(((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|1) for r,g,b in pixels)+'},')
     lines.append('};')
+    lines.append('const uint8_t bg_texture_sizes[]={'+','.join(str(ground_size if i==ground else 32) for i in range(len(data['materials'])))+'};')
+    lines.append('const uint8_t bg_texture_ci4[]={'+','.join(str(int(i==ground and ground_size==64)) for i in range(len(data['materials'])))+'};')
+    lines.append('const uint16_t bg_ground_palette[16] __attribute__((aligned(8)))={'+','.join(hex(v) for v in ground_palette)+'};')
     (output/'render_data.c').write_text('\n'.join(lines)+'\n')
 
     # Collision uses exactly the reduced visible surface, avoiding hovering
@@ -168,6 +198,11 @@ def pack(source, output):
             'world_index_bytes':len(terrain_indices)*2,
             'world_color_max_delta':8,'world_uv_period':UV_PERIOD,'world_max_batch_indices':max(c[5] for c in chunks),
             'textures':len(data['materials']),'texture_bytes':len(data['materials'])*2048,
+            'ground_size':ground_size,'ground_style':ground_style,'ground_format':'CI4' if ground_size==64 else 'RGBA16',
+            'ground_palette_bytes':32,'ground_bake':str(ground_path),
+            'ground_inputs':{**ground_report['inputs'],**{str(p.resolve().relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+                            for p in [Path(__file__),Path(__file__).with_name('pack_terrain.py'),source,ground_path,ground_path.parent/'report.json']}},
+            'render_sha256':hashlib.sha256((output/'render_data.c').read_bytes()).hexdigest(),
             'collision_bytes':len(collision)*12+len(collision_vertices)*12+len(indices)*2+GRID*GRID*4,
             'collision_shared_vertices':len(collision_vertices),
             'collision_corner_bytes_saved':len(collision)*24-len(collision_vertices)*12,
@@ -181,4 +216,6 @@ if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('source',type=Path)
     p.add_argument('--output',type=Path,default=Path('build/n64/generated'))
-    a=p.parse_args();pack(a.source,a.output)
+    p.add_argument('--ground-size',type=int,choices=(32,64),default=64)
+    p.add_argument('--ground-style',choices=('base','blended'),default='blended')
+    a=p.parse_args();pack(a.source,a.output,a.ground_size,a.ground_style)

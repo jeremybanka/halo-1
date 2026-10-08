@@ -22,6 +22,8 @@ display, first-person sleeves and original base geometry repairs are covered
 in [GEOMETRY_REPAIRS.md](GEOMETRY_REPAIRS.md).
 Source-based muzzle flashes, sniper smoke trails and sustained plasma charging
 are documented in [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md).
+The source grass/sand bake and 64×64 paletted ground experiment are documented
+in [GROUND_TEXTURES.md](GROUND_TEXTURES.md).
 
 ## Play
 
@@ -29,13 +31,12 @@ Load `build/n64/halo-blood-gulch-paced30-buffers5.z64` in ares as a Nintendo 64
 cartridge for the recommended four-player presentation profile. Build it with
 `build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
-The original vehicle solvers add CPU cost: the latest quiet four-player Ares
-replay measured **29.1 displayed FPS overall / 28.9 during vehicles**, with
-four-refresh vehicle stalls. The 30 FPS target is not yet met. Earlier pacing
-results in [PACING.md](PACING.md) and below predate this physics change and must
-not be used as current performance claims. The latest model audit and timing recordings live
-in `build/n64/weapon-occlusion-audit/`; the solver audit remains in
-`build/n64/vehicle-physics-audit/`.
+The latest quiet four-player Ares replay with the baked 64×64 ground measures
+**28.5 displayed FPS overall / 29.0 in combat / 28.0 around vehicles**, with
+46 KiB heap remaining. The 30 FPS target is not yet met. See
+[GROUND_TEXTURES.md](GROUND_TEXTURES.md) and `build/n64/ground-experiment/`
+for matching views and timing. Earlier pacing and model-audit measurements
+predate later changes and are historical comparisons.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,
@@ -171,6 +172,7 @@ build/n64-python/bin/python port/n64/extract_assets.py \
   build/assets/halo-retail/maps/bloodgulch.map
 blender --background --factory-startup --python port/n64/reduce_assets.py -- \
   build/n64/assets/bloodgulch-raw.json build/n64/assets/bloodgulch-reduced.json
+build/n64-python/bin/python port/n64/extract_ground.py
 build/n64-python/bin/python port/n64/pack_assets.py \
   build/n64/assets/bloodgulch-reduced.json
 ```

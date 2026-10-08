@@ -269,7 +269,7 @@ static void store_inventory(bg_player*p){p->magazines[p->slot]=p->ammo;p->reserv
     p->heats[p->slot]=p->heat;p->overheated_slots[p->slot]=p->overheated;}
 static void select_slot(bg_player*p,int slot){
     store_inventory(p);p->slot=slot;p->weapon=p->inventory[slot];p->ammo=p->magazines[slot];p->reserve=p->reserves[slot];
-    p->reload=0;p->charge=0;p->zoom=0;p->cooldown=.35f;p->heat=p->heats[slot];p->overheated=p->overheated_slots[slot];
+    p->reload=0;p->charge=0;p->zoom=0;p->weapon_ready=bg_ready_times[p->weapon];p->cooldown=p->weapon_ready;p->heat=p->heats[slot];p->overheated=p->overheated_slots[slot];
 }
 bool bg_give_weapon(unsigned player,bg_weapon weapon){
     if(player>=BG_PLAYERS||weapon>=BG_WEAPON_COUNT)return false;
@@ -312,7 +312,7 @@ int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw){
     if(bg_vehicle_count>=BG_MAX_VEHICLES||kind>=BG_VEHICLE_COUNT)return -1;
     int index=bg_vehicle_count++;bg_vehicle*v=&bg_vehicles[index];memset(v,0,sizeof(*v));
     v->kind=kind;v->yaw=v->home_yaw=yaw;v->active=true;v->health=kind==BG_V_SCORPION?800:400;
-    for(int i=0;i<3;i++)v->occupants[i]=-1;
+    for(int i=0;i<BG_VEHICLE_SEATS;i++)v->occupants[i]=-1;
     memcpy(v->pos,pos,sizeof(v->pos));float floor=bg_floor(pos[0],pos[2],pos[1]+2);
     if(floor>-999)v->pos[1]=floor+(kind==BG_V_GHOST?.15f:.02f);
     memcpy(v->home,v->pos,sizeof(v->home));return index;
@@ -329,29 +329,51 @@ void bg_reset(void){
     for(int i=0;i<BG_PLAYERS;i++)spawn(i);
     load_scenario();
 }
+const bg_seat_definition *bg_player_seat(const bg_player*p){
+    return p->vehicle>=0&&(unsigned)p->vehicle<bg_vehicle_count&&p->seat>=0&&p->seat<bg_seat_counts[bg_vehicles[p->vehicle].kind]?&bg_seat_definitions[bg_vehicles[p->vehicle].kind][p->seat]:NULL;
+}
+bool bg_player_personal_weapon(const bg_player*p){
+    const bg_seat_definition*s=bg_player_seat(p);
+    return p->seat_state==BG_SEAT_STABLE&&(!s||!(s->flags&12));
+}
+bool bg_player_third_person(const bg_player*p){
+    const bg_seat_definition*s=bg_player_seat(p);
+    return s&&((s->flags&16)||p->seat_state!=BG_SEAT_STABLE);
+}
+static void seat_vector(const bg_vehicle*v,const bg_seat_definition*s,const float local[3],float out[3]){
+    float c=cosf(s->yaw),z=sinf(s->yaw);
+    float rotated[3]={c*local[0]+z*local[2],local[1],-z*local[0]+c*local[2]},world[3];
+    bg_vehicle_transform(v,rotated,world);
+    for(unsigned a=0;a<3;a++)out[a]=world[a]-v->pos[a];
+}
 void bg_vehicle_seat_position(const bg_vehicle*v,unsigned seat,bool entry,float out[3]){
-    static const float seats[3][3]={{-.023795f,.390750f,-.165752f},{-.622840f,.755568f,0},{-.116200f,.578034f,.158644f}};
-    static const float entries[3][3]={{-.025f,0,-.6f},{-1.185978f,0,0},{-.025f,0,.6f}};
-    float local[3]={0,entry?0:seat==1?.6f:.25f,seat==2?.3f:seat==1?-.2f:0};
-    if(seat>2)seat=0;
-    if(v->kind==BG_V_WARTHOG){
-        memcpy(local,entry?entries[seat]:seats[seat],sizeof(local));
-        if(!entry&&seat==1){
-            float x=local[0]+.5f,z=local[2],c=cosf(v->turret_yaw),s=sinf(v->turret_yaw);
-            local[0]=-.5f+c*x+s*z;local[2]=-s*x+c*z;
-        }
+    if(seat>=bg_seat_counts[v->kind])seat=0;
+    const bg_seat_definition*s=&bg_seat_definitions[v->kind][seat];
+    float local[3];memcpy(local,entry?s->entry:s->anchor,sizeof(local));
+    if(!entry&&v->kind==BG_V_WARTHOG&&seat==1){
+        float x=local[0]+.5f,z=local[2],c=cosf(v->turret_yaw),sn=sinf(v->turret_yaw);
+        local[0]=-.5f+c*x+sn*z;local[2]=-sn*x+c*z;
     }
     bg_vehicle_transform(v,local,out);
 }
+void bg_vehicle_camera_position(const bg_vehicle*v,unsigned seat,float out[3]){
+    bg_vehicle_transform(v,bg_seat_definitions[v->kind][seat].camera,out);
+}
 static void eject(unsigned player){
     bg_player*p=&bg_players[player];if(p->vehicle<0)return;bg_vehicle*v=&bg_vehicles[p->vehicle];
-    v->occupants[p->seat]=-1;p->vehicle=p->seat=-1;
-    p->pos[0]=v->pos[0]+sinf(v->yaw)*1.1f;p->pos[2]=v->pos[2]+cosf(v->yaw)*1.1f;p->pos[1]=v->pos[1]+.25f;
-    p->vy=.4f;p->grounded=false;p->interact_cooldown=.5f;event(BG_EVENT_EXIT,player,v->kind,p->pos,1);
+    const bg_seat_definition*s=bg_player_seat(p);float offset[3],velocity[3],anchor[3];
+    seat_vector(v,s,s->exit_offset,offset);seat_vector(v,s,s->exit_velocity,velocity);
+    bg_vehicle_seat_position(v,p->seat,false,anchor);
+    for(unsigned a=0;a<3;a++){p->pos[a]=anchor[a]+offset[a];p->velocity[a]=v->velocity[a]+velocity[a];}
+    v->occupants[p->seat]=-1;p->vehicle=p->seat=-1;p->seat_state=BG_SEAT_STABLE;p->seat_time=p->seat_blend=0;
+    p->vy=p->velocity[1];p->grounded=false;p->interact_cooldown=.5f;
+    p->weapon_ready=bg_ready_times[p->weapon];p->cooldown=p->weapon_ready;p->animation=BG_ANIM_IDLE;p->anim_time=0;
+    event(BG_EVENT_EXIT,player,v->kind,p->pos,1);
 }
 static void kill(unsigned victim,int owner){
     bg_player*p=&bg_players[victim];if(p->health<=0)return;
     if(p->vehicle>=0)eject(victim);
+    p->weapon_ready=p->use_time=0;p->use_latched=false;p->use_target.kind=BG_USE_NONE;
     p->health=0;p->shield=0;p->respawn=3;p->zoom=0;statistics.deaths[victim]++;
     p->needles=0;p->needle_timer=0;p->needle_owner=-1;
     p->animation=BG_ANIM_DIE;p->anim_time=0;
@@ -392,7 +414,7 @@ static void damage_player(unsigned victim,int owner,float damage,bool plasma,boo
 static void damage_vehicle(unsigned index,int owner,float amount){
     bg_vehicle*v=&bg_vehicles[index];if(bg_match_finished()||!v->active)return;v->health-=(int)amount;
     if(v->health>0)return;
-    for(int seat=0;seat<3;seat++)if(v->occupants[seat]>=0)kill(v->occupants[seat],owner);
+    for(int seat=0;seat<bg_seat_counts[v->kind];seat++)if(v->occupants[seat]>=0)kill(v->occupants[seat],owner);
     v->active=false;v->respawn=20;v->wreck_time=BG_WRECK_LIFE;v->speed=0;
     event(BG_EVENT_VEHICLE_DESTROYED,owner,v->kind,v->pos,(float)index);
 }
@@ -450,6 +472,7 @@ static bg_projectile* projectile(int kind,unsigned owner,const float origin[3],c
 static void aim(const bg_player*p,float direction[3],float origin[3]){
     float cp=cosf(p->pitch);direction[0]=cosf(p->yaw)*cp;direction[1]=sinf(p->pitch);direction[2]=-sinf(p->yaw)*cp;
     memcpy(origin,p->pos,12);origin[1]+=p->crouched?.4f:.62f;
+    if(p->vehicle>=0&&bg_player_personal_weapon(p))bg_vehicle_camera_position(&bg_vehicles[p->vehicle],p->seat,origin);
 }
 static void fire(unsigned index,bool charged){
     bg_player*p=&bg_players[index];const bg_weapon_def*w=&bg_weapon_defs[p->weapon];
@@ -546,44 +569,70 @@ static void update_projectiles(float dt){
         if(!q->active)blam_object_delete(&projectile_store,handle);
     }
 }
-static void interact(unsigned player){
-    bg_player*p=&bg_players[player];if(p->interact_cooldown>0)return;
-    if(p->vehicle>=0){eject(player);return;}
-    int pickup=-1;float nearest=.85f*.85f;
-    for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].active){
-        float d=distance2(p->pos,bg_pickups[i].pos);if(d<nearest){pickup=i;nearest=d;}}
-    if(pickup>=0){bg_pickup*q=&bg_pickups[pickup];
-        if(q->weapon<BG_WEAPON_COUNT)bg_give_weapon(player,q->weapon);
-        else switch(q->weapon){
-            case BG_PICK_HEALTH:p->health=100;break;
-            case BG_PICK_FRAG:p->grenades[0]=4;break;
-            case BG_PICK_PLASMA:p->grenades[1]=4;break;
-            case BG_PICK_OVERSHIELD:p->shield=300;break;
-            case BG_PICK_CAMO:p->invisibility=30;break;
-        }
-        q->active=false;q->respawn=q->weapon>=BG_PICK_OVERSHIELD?60:30;p->interact_cooldown=.5f;
-        if(q->weapon>=BG_WEAPON_COUNT)event(BG_EVENT_PICKUP,player,q->weapon,p->pos,1);
-        return;
+bg_use_target bg_interaction_target(unsigned player){
+    bg_use_target result={BG_USE_NONE,-1,-1};if(player>=active_players)return result;
+    const bg_player*p=&bg_players[player];
+    if(p->health<=0||p->interact_cooldown>0||p->seat_state!=BG_SEAT_STABLE||p->weapon_ready>0)return result;
+    if(p->vehicle>=0)return (bg_use_target){BG_USE_EXIT,p->vehicle,p->seat};
+    float nearest=.85f*.85f;
+    for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].active&&bg_pickups[i].weapon<BG_WEAPON_COUNT){
+        const bg_pickup*q=&bg_pickups[i];
+        if(p->inventory[0]==q->weapon||p->inventory[1]==q->weapon)continue;
+        float d=distance2(p->pos,q->pos);if(d<nearest){result=(bg_use_target){BG_USE_PICKUP,i,-1};nearest=d;}
     }
-    nearest=2.0f*2.0f;int vehicle=-1,seat=-1;
+    if(result.kind)return result;
+    nearest=1.f;
+    float center[3]={p->pos[0],p->pos[1]+.35f,p->pos[2]};
     for(unsigned i=0;i<bg_vehicle_count;i++){
-        bg_vehicle*v=&bg_vehicles[i];if(!v->active)continue;float d=distance2(p->pos,v->pos);
-        if(d>=4.f)continue;
-        if(v->physics_valid&&v->up[1]<.2f){
-            if(d<nearest){vehicle=i;seat=-1;nearest=d;}
+        const bg_vehicle*v=&bg_vehicles[i];if(!v->active)continue;
+        if(v->physics_valid&&v->up[1]<.70710678f){
+            if(v->occupants[0]<0&&distance2(p->pos,v->pos)<4.f)return (bg_use_target){BG_USE_FLIP,i,-1};
             continue;
         }
-        int seats=v->kind==BG_V_WARTHOG||v->kind==BG_V_SCORPION?3:1;
-        for(int s=0;s<seats;s++)if(v->occupants[s]<0){
-            float entry[3];bg_vehicle_seat_position(v,s,true,entry);float seat_distance=distance2(p->pos,entry);
-            if(seat_distance<nearest){vehicle=i;seat=s;nearest=seat_distance;}
+        for(unsigned seat=0;seat<bg_seat_counts[v->kind];seat++)if(v->occupants[seat]<0){
+            const bg_seat_definition*s=&bg_seat_definitions[v->kind][seat];
+            if((s->flags&512)&&v->occupants[0]<0)continue;
+            float entry[3],anchor[3];bg_vehicle_seat_position(v,seat,true,entry);bg_vehicle_seat_position(v,seat,false,anchor);
+            float d=fminf(distance2(center,entry),distance2(center,anchor));
+            float bias=result.kind==BG_USE_ENTER&&result.seat==0&&seat!=0?2.25f:1.f;
+            if(d<1.f&&d*bias<nearest){result=(bg_use_target){BG_USE_ENTER,i,seat};nearest=d;}
         }
     }
-    if(vehicle>=0){bg_vehicle*v=&bg_vehicles[vehicle];
-        if(v->physics_valid&&v->up[1]<.2f){bg_vehicle_physics_flip(vehicle,p->pos);p->interact_cooldown=.5f;return;}
-        v->occupants[seat]=player;p->vehicle=vehicle;p->seat=seat;
-        p->zoom=0;p->reload=0;p->interact_cooldown=.5f;p->animation=BG_ANIM_DRIVE;p->anim_time=0;
-        memcpy(p->pos,v->pos,sizeof(p->pos));p->pos[1]+=.3f;event(BG_EVENT_ENTER,player,v->kind,p->pos,seat);}
+    return result;
+}
+static bool same_target(bg_use_target a,bg_use_target b){return a.kind==b.kind&&a.object==b.object&&a.seat==b.seat;}
+static void interact(unsigned player,bg_use_target target){
+    bg_player*p=&bg_players[player];
+    if(!same_target(target,bg_interaction_target(player)))return;
+    if(target.kind==BG_USE_PICKUP){
+        bg_pickup*q=&bg_pickups[target.object];bg_give_weapon(player,q->weapon);
+        p->weapon_ready=bg_ready_times[p->weapon];p->cooldown=p->weapon_ready;
+        q->active=false;q->respawn=30;p->interact_cooldown=.5f;
+    }else if(target.kind==BG_USE_FLIP){
+        bg_vehicle_physics_flip(target.object,p->pos);p->interact_cooldown=.5f;
+    }else if(target.kind==BG_USE_EXIT){
+        p->seat_state=BG_SEAT_EXITING;p->seat_time=bg_player_seat(p)->exit_time;p->anim_time=0;
+        p->reload=p->charge=p->melee_time=p->zoom=0;
+    }else if(target.kind==BG_USE_ENTER){
+        bg_vehicle*v=&bg_vehicles[target.object];float anchor[3],start[3];
+        p->vehicle=target.object;p->seat=target.seat;v->occupants[p->seat]=player;
+        const bg_seat_definition*s=bg_player_seat(p);
+        bg_vehicle_seat_position(v,p->seat,false,anchor);seat_vector(v,s,s->enter_start,start);
+        for(unsigned a=0;a<3;a++)p->seat_offset[a]=p->pos[a]-anchor[a]-start[a];
+        p->seat_state=BG_SEAT_ENTERING;p->seat_time=s->enter_time;p->seat_blend=6.f/30;
+        p->zoom=p->reload=p->charge=p->melee_time=0;p->animation=BG_ANIM_DRIVE;p->anim_time=0;p->crouched=false;
+        memcpy(p->pos,anchor,sizeof(anchor));event(BG_EVENT_ENTER,player,v->kind,p->pos,p->seat);
+    }
+}
+static void update_use(unsigned player,bool held,float dt){
+    bg_player*p=&bg_players[player];
+    if(!held){p->use_time=0;p->use_latched=false;p->use_target=(bg_use_target){BG_USE_NONE,-1,-1};return;}
+    if(p->use_latched)return;
+    bg_use_target target=bg_interaction_target(player);
+    if(!same_target(target,p->use_target)){p->use_target=target;p->use_time=0;}
+    if(!target.kind){p->use_time=0;return;}
+    p->use_time+=dt;
+    if(p->use_time+1e-6f>=BG_USE_HOLD_TICKS/30.f){p->use_latched=true;p->use_time=0;interact(player,target);}
 }
 static void melee(unsigned index){
     bg_player*p=&bg_players[index];if(p->melee_time>0||p->reload>0)return;
@@ -599,8 +648,14 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS],float dt){
             if(v->wreck_time>0){bg_vehicle_physics_wreck(i);v->wreck_time=fmaxf(0,v->wreck_time-dt);}
             v->respawn-=dt;if(v->respawn<=0){v->active=true;v->wreck_time=0;v->health=v->kind==BG_V_SCORPION?800:400;
             memcpy(v->pos,v->home,sizeof(v->pos));v->yaw=v->home_yaw;v->pitch=0;v->physics_valid=false;memset(v->velocity,0,sizeof(v->velocity));memset(v->angular_velocity,0,sizeof(v->angular_velocity));}continue;}
-        for(int seat=0;seat<3;seat++)if(v->occupants[seat]>=(int)active_players)eject(v->occupants[seat]);
-        int driver=v->occupants[0];const bg_input*in=driver>=0?&inputs[driver]:NULL;
+        for(int seat=0;seat<bg_seat_counts[v->kind];seat++)if(v->occupants[seat]>=(int)active_players)eject(v->occupants[seat]);
+        int driver=v->occupants[0];const bg_input*in=driver>=0&&bg_players[driver].seat_state==BG_SEAT_STABLE?&inputs[driver]:NULL;
+        if(v->kind==BG_V_SCORPION||v->kind==BG_V_BANSHEE){
+            const bg_player*p=driver>=0?&bg_players[driver]:NULL;
+            float duration=v->kind==BG_V_SCORPION?16.f/30:22.f/30;
+            v->hatch_closing=p&&p->seat_state==BG_SEAT_STABLE;
+            v->hatch=!p||p->seat_state==BG_SEAT_ENTERING?1:clamp(p->anim_time/duration,0,1);
+        }
         float maxspeed=v->kind==BG_V_SCORPION?3.5f:v->kind==BG_V_BANSHEE?9:v->kind==BG_V_GHOST?7:7.65f;
         bg_vehicle_physics_step(i,in);
         if(v->pos[1]<-8||cell(v->pos[0],v->pos[2])<0){damage_vehicle(i,driver,10000);continue;}
@@ -608,13 +663,13 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS],float dt){
         if(v->engine_phase>12){v->engine_phase-=12;if(driver>=0)event(BG_EVENT_ENGINE,driver,v->kind,v->pos,fabsf(v->speed)/maxspeed);}
         for(unsigned j=0;j<active_players;j++)if(bg_players[j].health>0&&bg_players[j].vehicle<0&&fabsf(v->speed)>2){
             if(distance2(bg_players[j].pos,v->pos)<.8f*.8f)damage_player(j,driver,fabsf(v->speed)*40,false,false);}
-        for(int seat=0;seat<3;seat++)if(v->occupants[seat]>=0){
+        for(int seat=0;seat<bg_seat_counts[v->kind];seat++)if(v->occupants[seat]>=0){
             bg_player*p=&bg_players[v->occupants[seat]];
             if(v->kind==BG_V_WARTHOG&&seat==1)v->turret_yaw=p->yaw-v->yaw;
             bg_vehicle_seat_position(v,seat,false,p->pos);
             if((v->kind==BG_V_SCORPION&&seat==0)||(v->kind==BG_V_WARTHOG&&seat==1)){v->turret_yaw=p->yaw-v->yaw;v->turret_pitch=p->pitch;}
             p->vy=0;p->grounded=true;p->animation=BG_ANIM_DRIVE;
-            bool mounted=(v->kind==BG_V_WARTHOG&&seat==1)||(v->kind!=BG_V_WARTHOG&&seat==0);
+            bool mounted=p->seat_state==BG_SEAT_STABLE&&((v->kind==BG_V_WARTHOG&&seat==1)||(v->kind!=BG_V_WARTHOG&&seat==0));
             const bg_input*control=&inputs[v->occupants[seat]];
             if(mounted&&control->fire&&v->cooldown<=0){
                 float dir[3],origin[3];aim(p,dir,origin);for(int a=0;a<3;a++)origin[a]+=dir[a]*1.0f;
@@ -677,6 +732,14 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
         p->recoil=fmaxf(0,p->recoil-dt*.3f);p->melee_time=fmaxf(0,p->melee_time-dt);
         p->grenade_cooldown=fmaxf(0,p->grenade_cooldown-dt);p->interact_cooldown=fmaxf(0,p->interact_cooldown-dt);
         p->invisibility=fmaxf(0,p->invisibility-dt);p->teleport_cooldown=fmaxf(0,p->teleport_cooldown-dt);p->anim_time+=dt;
+        p->weapon_ready=fmaxf(0,p->weapon_ready-dt);p->seat_blend=fmaxf(0,p->seat_blend-dt);
+        if(p->seat_state!=BG_SEAT_STABLE){
+            p->seat_time=fmaxf(0,p->seat_time-dt);
+            if(p->seat_time<=1e-6f){
+                if(p->seat_state==BG_SEAT_EXITING)eject(i);
+                else {p->seat_state=BG_SEAT_STABLE;p->anim_time=0;}
+            }
+        }
         if(p->health<=0){p->respawn-=dt;if(p->respawn<=0){spawn_cycle++;spawn(i);}continue;}
         if(p->needles>0){p->needle_timer-=dt;if(p->needle_timer<=0){
             int needles=p->needles,owner=p->needle_owner;p->needles=0;p->needle_owner=-1;p->needle_timer=0;
@@ -690,12 +753,12 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
         int stowed=1-p->slot;p->heats[stowed]=fmaxf(0,p->heats[stowed]-dt*.2f);
         if(p->heats[stowed]<.15f)p->overheated_slots[stowed]=false;
         advance_reload(p,in,dt);
-        if(in->switch_weapon)select_slot(p,1-p->slot);
+        if(in->switch_weapon&&p->weapon_ready<=0&&bg_player_personal_weapon(p))select_slot(p,1-p->slot);
         if(in->switch_grenade)p->grenade_kind=1-p->grenade_kind;
         if(in->zoom){if(bg_weapon_defs[p->weapon].zoom>1)p->zoom=(p->zoom+1)%(p->weapon==BG_W_SNIPER?3:2);else p->zoom=0;}
         float turn_scale=p->zoom?(p->zoom==2?.15f:.35f):1;
         p->yaw+=in->turn*2.25f*dt*turn_scale;p->pitch=clamp(p->pitch+in->look*1.35f*dt*turn_scale,-1.25f,1.25f);
-        if(in->interact)interact(i);
+        update_use(i,in->interact,dt);
         if(p->vehicle<0){
             p->crouched=in->crouch;
             float f=in->forward,s=in->strafe,length=sqrtf(f*f+s*s);if(length>1){f/=length;s/=length;}
@@ -717,9 +780,9 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
                 !p->grounded?BG_ANIM_JUMP:moving>.15f?(p->crouched?BG_ANIM_WALK:BG_ANIM_RUN):BG_ANIM_IDLE;
             if(animation!=p->animation){p->animation=animation;p->anim_time=0;}
         }
-        bool personal=p->vehicle<0||(p->seat==2)||(p->seat==1&&bg_vehicles[p->vehicle].kind==BG_V_SCORPION);
+        bool personal=bg_player_personal_weapon(p)&&p->weapon_ready<=0;
         if(personal){
-            if(in->reload)start_reload(i);
+            if(in->reload&&bg_interaction_target(i).kind<=BG_USE_PICKUP)start_reload(i);
             if(in->grenade)grenade(i);
             if(in->melee)melee(i);
             const bg_weapon_def*w=&bg_weapon_defs[p->weapon];

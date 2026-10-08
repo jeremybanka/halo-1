@@ -27,7 +27,7 @@ def main():
              '-Wno-multichar', '-Wno-unused-function', '-Wno-unused-parameter',
              '-Wno-unused-variable', '-Wno-incompatible-pointer-types',
              '-Iport/n64', '-Ibuild/n64/blam-core', '-Ibuild/n64/blam-vehicle']
-    shared = ['port/n64/game.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
+    shared = ['port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
               'port/n64/blam/vehicle_physics.c', 'build/n64/generated/vehicle_data.c',
               'build/n64/generated/collision_data.c']
     suites = {
@@ -35,6 +35,7 @@ def main():
                    'port/n64/blam/test_vehicle_reference.c', 'port/n64/blam/collision.c',
                    'build/n64/generated/vehicle_data.c',
                    'build/n64/generated/blam_collision_data.c'],
+        'interactions': ['port/n64/test_interactions.c', *shared],
         'game': ['port/n64/test_game.c', *shared],
         'weapon-effects': ['port/n64/test_weapon_effects.c', 'port/n64/weapon_effects.c',
                            'build/n64/generated/weapon_effects_data.c', *shared],

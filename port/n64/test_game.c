@@ -11,7 +11,7 @@ static float distance(const float a[3],const float b[3]){float x=a[0]-b[0],y=a[1
 static void reset(void){memset(in,0,sizeof(in));bg_set_players(4);bg_reset();bg_pickup_count=bg_vehicle_count=0;bg_clear_events();}
 static void duel(void){reset();bg_players[0].yaw=bg_players[0].pitch=0;
     memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;}
-static void equip(bg_weapon weapon){assert(bg_give_weapon(0,weapon));if(bg_players[0].weapon!=(int)weapon){in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;}ticks(12);}
+static void equip(bg_weapon weapon){assert(bg_give_weapon(0,weapon));if(bg_players[0].weapon!=(int)weapon){in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;}ticks(40);}
 static unsigned projectiles(int kind){
     unsigned n=0;for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
         const bg_projectile*q=bg_projectile_at(i);if(q&&q->active&&(kind<0||q->kind==kind))n++;
@@ -105,7 +105,7 @@ int main(void){
     for(int i=0;i<4;i++)assert(bg_players[i].ammo==59);
     memset(in,0,sizeof(in));in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;
     assert(bg_players[0].weapon==BG_W_PISTOL&&bg_players[0].ammo==12&&bg_players[1].weapon==BG_W_AR);
-    in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;assert(bg_players[0].ammo==59);
+    ticks(40);in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;assert(bg_players[0].ammo==59);
     /* Rifle rounds drain shields, kill once and preserve score on respawn. */
     duel();in[0].fire=true;ticks(5);assert(bg_players[1].shield<100&&bg_players[1].health==100);
     ticks(65);assert(bg_players[1].health==0&&bg_players[0].score==1);
@@ -154,8 +154,9 @@ int main(void){
     for(int a=0;a<3;a++)assert(fabsf(sticky->pos[a]-bg_players[1].pos[a]-sticky->attached_offset[a])<.0001f);
     /* Switching away from a hot plasma rifle cannot reset its heat lock. */
     reset();equip(BG_W_PLASMA_RIFLE);bg_players[0].heat=.9f;bg_players[0].overheated=true;
-    in[0].switch_weapon=true;ticks(1);ticks(1);in[0].switch_weapon=false;
-    assert(bg_players[0].weapon==BG_W_PLASMA_RIFLE&&bg_players[0].overheated&&bg_players[0].heat>.85f);
+    in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;ticks(36);
+    in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;
+    assert(bg_players[0].weapon==BG_W_PLASMA_RIFLE&&bg_players[0].overheated&&bg_players[0].heat>.6f);
     /* Recharging shields do not regenerate health. */
     reset();bg_players[0].health=65;bg_players[0].shield=0;bg_players[0].shield_delay=6;ticks(170);assert(bg_players[0].shield==0);
     ticks(140);assert(bg_players[0].shield==100&&bg_players[0].health==65);
@@ -183,7 +184,7 @@ int main(void){
     /* Vehicle destruction has its own typed event; the rocket impact retains
      * its normal explosion without confusing Ghost with the plasma enum. */
     reset();bg_vehicle_count=1;bg_vehicle*ghost=&bg_vehicles[0];
-    *ghost=(bg_vehicle){.active=true,.kind=BG_V_GHOST,.health=1,.occupants={-1,-1,-1}};
+    *ghost=(bg_vehicle){.active=true,.kind=BG_V_GHOST,.health=1,.occupants={-1,-1,-1,-1,-1}};
     memcpy(ghost->pos,bg_players[0].pos,12);ghost->pos[0]+=4;
     bg_projectile*blast=bg_projectile_create();assert(blast);
     *blast=(bg_projectile){.active=true,.kind=BG_P_ROCKET,.owner=0,.attached=-2,.life=.001f,.damage=300,.radius=2.2f};
@@ -197,17 +198,17 @@ int main(void){
     memset(in,0,sizeof(in));bg_reset();bg_pickup_count=0;bg_vehicle*v=&bg_vehicles[0];assert(bg_vehicle_count==10);
     for(int i=0;i<3;i++){
         bg_vehicle_seat_position(v,i,true,bg_players[i].pos);
-        in[i].interact=true;ticks(1);in[i].interact=false;assert(bg_players[i].vehicle==0&&bg_players[i].seat==i);
+        in[i].interact=true;ticks(7);in[i].interact=false;assert(bg_players[i].vehicle==0&&bg_players[i].seat==i);
     }
-    memcpy(start,v->pos,12);bg_players[0].yaw=v->yaw;in[0].forward=1;in[1].fire=true;ticks(60);
+    ticks(70);memcpy(start,v->pos,12);bg_players[0].yaw=v->yaw;in[0].forward=1;in[1].fire=true;ticks(60);
     assert(distance(start,v->pos)>1&&v->speed>2&&bg_players[1].ammo==60);
     assert(bg_players[0].vehicle==bg_players[1].vehicle&&bg_players[2].vehicle==0);
-    in[0].interact=true;ticks(1);in[0].interact=false;assert(bg_players[0].vehicle==-1&&v->occupants[0]==-1);
+    in[0].interact=true;ticks(7);in[0].interact=false;ticks(30);assert(bg_players[0].vehicle==-1&&v->occupants[0]==-1);
     /* All four vehicle types move; Banshee can gain altitude. */
     for(int kind=BG_V_GHOST;kind<BG_VEHICLE_COUNT;kind++){
         memset(in,0,sizeof(in));bg_reset();bg_pickup_count=0;
         unsigned j=0;while(j<bg_vehicle_count&&bg_vehicles[j].kind!=kind)j++;assert(j<bg_vehicle_count);v=&bg_vehicles[j];
-        bg_vehicle_seat_position(v,0,true,bg_players[0].pos);in[0].interact=true;ticks(1);in[0].interact=false;
+        bg_vehicle_seat_position(v,0,true,bg_players[0].pos);in[0].interact=true;ticks(7);in[0].interact=false;ticks(70);
         assert(bg_players[0].vehicle==(int)j&&bg_players[0].seat==0);memcpy(start,v->pos,12);in[0].forward=1;bg_players[0].yaw=v->yaw;bg_players[0].pitch=kind==BG_V_BANSHEE?.35f:0;ticks(60);
         assert(distance(start,v->pos)>.5f);if(kind==BG_V_BANSHEE)assert(v->pos[1]>start[1]+1);
         if(kind==BG_V_SCORPION){
@@ -227,7 +228,7 @@ int main(void){
     /* Inactive players cannot take bullets and are ejected from vehicles. */
     duel();bg_set_players(1);in[0].fire=true;ticks(70);assert(bg_players[1].health==100&&bg_players[1].shield==100);
     /* Pickups respect explicit replacement and respawn. */
-    reset();int pickup=bg_add_pickup(BG_W_ROCKET,bg_players[0].pos);in[0].interact=true;ticks(1);in[0].interact=false;
+    reset();int pickup=bg_add_pickup(BG_W_ROCKET,bg_players[0].pos);in[0].interact=true;ticks(7);in[0].interact=false;
     assert(bg_players[0].weapon==BG_W_ROCKET&&!bg_pickups[pickup].active);ticks(905);assert(bg_pickups[pickup].active);
     /* Both original roof-pad teleporters land at their own scenario exit,
      * turn the player toward its exit direction, and enforce a cooldown. */

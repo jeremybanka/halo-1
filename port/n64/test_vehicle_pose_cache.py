@@ -1,3 +1,4 @@
+import re
 """Compare actual cached vehicle preparation against its unchanged miss path.
 
 The host harness links real game/replay sources and extracts current rig tables
@@ -57,6 +58,24 @@ for name in ('parts_warthog','parts_ghost','parts_scorpion','parts_banshee','bg_
  c+='\n'+declaration(bank,name)
 c+='\nconst bg_bounds bg_vehicle_micro_gate_bounds[4]='+declaration((ROOT/'build/n64/generated/micro_data.c').read_text(),'bg_vehicle_micro_gate_bounds').split('=',1)[1]
 c+='\n'+declaration((ROOT/'build/n64/generated/vehicle_visuals_data.c').read_text(),'bg_covenant_wreck_bounds')
+interaction=(ROOT/'port/n64/asset_interaction.h').read_text()
+c+='\n'+interaction[interaction.index('typedef struct {'):interaction.index('extern const bg_rom_pose')]
+c+='\n'+re.search(r'const bg_rom_pose bg_hatch_poses[^;]+;', (ROOT/'build/n64/generated/interaction_assets.c').read_text()).group()
+c+=r'''
+static void t3d_mat4_identity(T3DMat4*m){memset(m,0,sizeof(*m));for(unsigned a=0;a<4;a++)m->m[a][a]=1;}
+static void bg_interaction_points(int16_t(*out)[3],const bg_rom_pose*p,float seconds){
+ static FILE*f;if(!f){f=fopen("build/n64/frontend-files/interactions.bin","rb");assert(f);}
+ float frame=fminf(fmaxf(seconds/p->duration,0),1)*(p->frames-1);
+ unsigned f0=frame,f1=f0+1<p->frames?f0+1:f0;int fraction=(frame-f0)*256;
+ int16_t points[2][4][3];assert(p->vertices==4);
+ for(unsigned sample=0;sample<2;sample++){
+  assert(!fseek(f,p->offset+p->stride*(sample?f1:f0),SEEK_SET));
+  for(unsigned i=0;i<4;i++)for(unsigned a=0;a<3;a++){int hi=fgetc(f),lo=fgetc(f);assert(hi>=0&&lo>=0);points[sample][i][a]=(int16_t)((hi<<8)|lo);}
+ }
+ for(unsigned i=0;i<4;i++)for(unsigned a=0;a<3;a++){int x=points[0][i][a],y=points[1][i][a];out[i][a]=x+(y-x)*fraction/256;}
+}
+'''
+
 for source,result,name,args in (
  (math,'void','t3d_mat4_from_srt_euler','T3DMat4*mat,const float scale[3],const float rot[3],const float translate[3]'),
  (header,'void','t3d_mat4_mul','T3DMat4*matRes,const T3DMat4*matA,const T3DMat4*matB'),
@@ -119,7 +138,7 @@ int main(void){
    v->kind=rnd()%4;for(unsigned a=0;a<3;a++)v->pos[a]=uniform(-80,80);
    v->physics_valid=(trial%2)==0;
    float angle=uniform(-3,3);v->forward[0]=1;v->forward[1]=v->forward[2]=0;v->up[0]=0;v->up[1]=cosf(angle);v->up[2]=sinf(angle);
-   v->steering=uniform(-.5,.5);for(unsigned a=0;a<8;a++)v->suspension[a]=uniform(-.3,-.1);
+   v->hatch=uniform(0,1);v->hatch_closing=(trial%4)==0;v->steering=uniform(-.5,.5);for(unsigned a=0;a<8;a++)v->suspension[a]=uniform(-.3,-.1);
    v->yaw=uniform(-4,4);v->pitch=uniform(-4,4);v->turret_yaw=uniform(-4,4);v->turret_pitch=uniform(-4,4);wheel_rotation[i]=uniform(-100000,100000);
   }
   v->active=trial%13!=0; /* Include dead/live transitions with the same pose. */
@@ -133,7 +152,7 @@ int main(void){
 }
 '''
 (OUT/'probe.c').write_text(c)
-cmd=['clang','-std=c17','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-Wno-multichar','-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-incompatible-pointer-types','-Ibuild/n64/blam-vehicle','-fno-strict-aliasing','-fwrapv','-Iport/n64','-Ibuild/n64/blam-core',str(OUT/'probe.c'),'port/n64/game.c','port/n64/replay.c','port/n64/blam/runtime.c','port/n64/blam/core.c','port/n64/blam/vehicle_physics.c','build/n64/generated/vehicle_data.c','build/n64/generated/collision_data.c','-lm','-o',str(OUT/'probe')]
+cmd=['clang','-std=c17','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-Wno-multichar','-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-incompatible-pointer-types','-Ibuild/n64/blam-vehicle','-fno-strict-aliasing','-fwrapv','-Iport/n64','-Ibuild/n64/blam-core',str(OUT/'probe.c'),'port/n64/game.c','build/n64/generated/interaction_defs.c','port/n64/replay.c','port/n64/blam/runtime.c','port/n64/blam/core.c','port/n64/blam/vehicle_physics.c','build/n64/generated/vehicle_data.c','build/n64/generated/collision_data.c','-lm','-o',str(OUT/'probe')]
 subprocess.run(cmd,check=True)
 p=subprocess.run([str(OUT/'probe')],capture_output=True,text=True);print(p.stdout+p.stderr);(OUT/'probe.log').write_text(p.stdout+p.stderr);assert p.returncode==0
 results={}

@@ -5,6 +5,7 @@
 #include "firstperson_ammo.h"
 #include "firstperson_ammo_logic.h"
 #include "game.h"
+#include "asset_interaction.h"
 
 static T3DVertPacked digits[2][4][4] __attribute__((aligned(16)));
 static T3DMat4FP precision_matrix __attribute__((aligned(16)));
@@ -39,6 +40,8 @@ void bg_fp_ammo_prepare(unsigned slot,unsigned player,unsigned weapon,unsigned c
     if(weapon==BG_W_AR) {
         int16_t positions[8][3],uv[8][2];
         bg_ar_ammo_sample(positions,uv,clip,f0,f1,fraction,ammo);
+        if(bg_players[player].weapon_ready>0)bg_interaction_points(positions,&bg_ready_ar_digits,
+            bg_ready_times[weapon]-bg_players[player].weapon_ready);
         T3DVertPacked*out=digits[slot][player];
         for(unsigned i=0;i<8;i++) {
             memcpy(t3d_vertbuffer_get_pos(out,i),positions[i],sizeof(positions[i]));
@@ -47,6 +50,9 @@ void bg_fp_ammo_prepare(unsigned slot,unsigned player,unsigned weapon,unsigned c
         }
         data_cache_hit_writeback(out,sizeof(digits[slot][player]));
     } else if(weapon==BG_W_NEEDLER) {
+        if(bg_players[player].weapon_ready>0){
+            bg_interaction_needles(firstperson_vertices,ammo,bg_ready_times[weapon]-bg_players[player].weapon_ready);return;
+        }
         bg_needler_ammo_sample(firstperson_vertices,&bg_needler_ammo,clip,f0,f1,fraction,
             bg_needler_ammo_state(ammo,reserve,reload_elapsed));
         data_cache_hit_writeback(firstperson_vertices,(bg_needler_ammo.base_vertices+1u)/2u*32u);

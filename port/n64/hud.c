@@ -265,27 +265,21 @@ static void radar(unsigned p, int x, int y, float scale) {
     pixel((int)cx-1,(int)cy+1,3,1,bright);
 }
 
-static float distance_squared(const float a[3],const float b[3]) {
-    float x=a[0]-b[0],y=a[1]-b[1],z=a[2]-b[2];
-    return x*x+y*y+z*z;
-}
-
-static int interaction(const bg_player *p) {
-    if (p->interact_cooldown>0) return -1;
-    if (p->vehicle>=0) return HUD_EXIT;
-    /* Match game.c interaction ranges and pickup priority, so the prompt
-     * names an action that pressing B can actually perform. */
-    for (unsigned i=0;i<bg_pickup_count;i++)
-        if (bg_pickups[i].active&&distance_squared(p->pos,bg_pickups[i].pos)<.85f*.85f)
-            return HUD_PICKUP;
-    for (unsigned i=0;i<bg_vehicle_count;i++) {
-        const bg_vehicle *v=&bg_vehicles[i];
-        if (!v->active||distance_squared(p->pos,v->pos)>=4.f) continue;
-        if(v->physics_valid&&v->up[1]<.2f)return HUD_FLIP;
-        int seats=v->kind==BG_V_WARTHOG||v->kind==BG_V_SCORPION?3:1;
-        for (int s=0;s<seats;s++) if (v->occupants[s]<0) return HUD_ENTER;
+static void interaction_label(const bg_player*p,bg_control_style style,char *out,unsigned size){
+    bg_use_target target=bg_interaction_target(p-bg_players);
+    const char*button=style==BG_CONTROLS_XBOX?"C-LEFT":"B";
+    const char*vehicles[]={"WARTHOG","GHOST","SCORPION","BANSHEE"};
+    out[0]=0;
+    if(target.kind==BG_USE_PICKUP)snprintf(out,size,"HOLD %s TO PICK UP",button);
+    else if(target.kind==BG_USE_EXIT)snprintf(out,size,"HOLD %s TO EXIT",button);
+    else if(target.kind==BG_USE_FLIP)snprintf(out,size,"HOLD %s TO FLIP",button);
+    else if(target.kind==BG_USE_ENTER){
+        const bg_vehicle*v=&bg_vehicles[target.object];
+        const bg_seat_definition*s=&bg_seat_definitions[v->kind][target.seat];
+        const char*role=s->flags&4?"DRIVE":s->flags&8?"GUNNER":"PASSENGER";
+        if(target.seat==0)snprintf(out,size,"HOLD %s - %s %s",button,role,vehicles[v->kind]);
+        else snprintf(out,size,"HOLD %s - %s",button,role);
     }
-    return -1;
 }
 
 static bool scoped(const bg_player *p) {
@@ -357,7 +351,7 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
     unsigned weapon=(unsigned)p->weapon<BG_WEAPON_COUNT?(unsigned)p->weapon:BG_W_AR;
     const bg_vehicle *vehicle=p->vehicle>=0&&(unsigned)p->vehicle<bg_vehicle_count?
         &bg_vehicles[p->vehicle]:NULL;
-    bool personal=!vehicle || p->seat==2 || (p->seat==1&&vehicle->kind==BG_V_SCORPION);
+    bool personal=bg_player_personal_weapon(p);
     float aim_x,aim_y;
     unsigned views=height>=240?1:width<200?4:2;
     bg_hud_aim_point(views,index,x,y,width,height,&aim_x,&aim_y);
@@ -379,8 +373,9 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
     set_filter(true);set_combiner(1);
     rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
     if(p->health>0){
-        int id=personal?(int)reticles[weapon]:
-            vehicle->kind==BG_V_WARTHOG&&p->seat==0?-1:vehicle_reticles[vehicle->kind];
+        const bg_seat_definition*seat=bg_player_seat(p);
+        int id=personal?(int)reticles[weapon]:seat&&(seat->flags&8)?vehicle_reticles[vehicle->kind]:-1;
+        if(p->seat_state!=BG_SEAT_STABLE)id=-1;
         if(id>=0)hud_reticle(id,(int)roundf(aim_x),(int)roundf(aim_y));
     }
     int left=x+margin,top=y+margin,right=x+width-margin;
@@ -404,7 +399,10 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
         }
     } else if (personal&&p->reload>0) status=HUD_RELOAD;
     else if (personal&&p->overheated) status=HUD_OVERHEAT;
-    else status=interaction(p);
+    else {
+        char label[48];interaction_label(p,style,label,sizeof(label));
+        if(label[0])hud_text(label,x+(width-hud_text_width(label))/2,status_y,hud_cyan);
+    }
     status=control_status(status,style);
     if(status>=0){
         const char *label=status_strings[status];

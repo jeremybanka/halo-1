@@ -151,6 +151,7 @@ def pack(source,out,pc_extras=False):
  for name in ANIM_NAMES:
   a=data['weapon_attachment'][name];lines.append(f'{{attachment_{name},{len(a["poses"])},{a["duration"]:.6f}f}},')
  lines.append('};');(out/'models_data.c').write_text('\n'.join(lines)+'\n')
+ (out/'world-mesh-sources.json').write_text(json.dumps({n:meshes[n]['sources'] for n in ('spartan','spartan_lod')}))
  (out/'model-preview.json').write_text(json.dumps(previews))
  lines=['/* Generated from local game audio; do not commit. */','#include "asset_models.h"']
  for name in AUDIO_TAGS:

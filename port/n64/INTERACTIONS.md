@@ -1,0 +1,117 @@
+# Xbox weapon and vehicle interactions
+
+Weapon replacements use the retail seven-tick hold (233 ms at 30 Hz), followed
+by the weapon's original first-person ready animation. Switching inventory
+slots uses that same ready clip. Shooting, melee, grenades and another switch
+wait for the clip to finish. Ammunition and consumables remain walk-over pickups.
+
+The HUD and simulation now share one target resolver. It names driver, gunner
+or passenger, uses the vehicle's original entry/seat markers, rejects occupied
+seats, and requires a driver before boarding a Scorpion bench. All ten seat
+positions are represented: three Warthog, one Ghost, five Scorpion and one
+Banshee. The match still has at most four players.
+
+Hold **B** in N64 controls or **C-left** in Xbox controls. Releasing use, losing
+the target or changing targets resets the hold. A completed use stays latched
+until release, preventing an uninterrupted hold from entering and then exiting.
+Seat reservations last through the entire boarding/dismount clip. Vehicle
+control and weapons become available after boarding finishes.
+
+## Source and deliberate adaptations
+
+The supplied USA Rev 2 `bloodgulch.map` supplies the Spartan graph, weapon
+first-person graphs, globals, seat tags and Scorpion hatch graph. `a30.map`
+supplies the Banshee and canopy graph. Generated asset reports record hashes
+of the inputs and outputs; copyrighted extracted data stays in ignored build
+directories.
+
+- `source/game/player_control.c`, action/reload input processing: held use and
+  `minimum_weapon_swap_ticks`; the extracted globals value is seven.
+- `source/game/players.c`, action handling: vehicle action dispatch and weapon
+  swap latch. Xbox vehicle entry starts directly from held use; the N64 port
+  deliberately applies the same seven-tick hold to vehicles, as requested.
+- `source/items/weapons.c`, `weapon_ready`: original ready-animation duration.
+- `source/units/units.c`, `unit_enter_seat`, `unit_try_and_exit_seat`, seat target
+  search and animation completion: enter/exit graph indices 7/8, six-tick
+  attachment blending, seat marker selection, driver preference and terminal
+  dismount root position. Original seat camera markers are also used.
+
+| Clip | Entry ticks | Exit ticks |
+| --- | ---: | ---: |
+| Warthog driver | 50 | 26 |
+| Warthog gunner | 46 | 24 |
+| Warthog passenger | 28 | 30 |
+| Ghost | 35 | 24 |
+| Scorpion driver | 65 | 55 |
+| Scorpion benches | 30 | 22 |
+| Banshee | 30 | 30 |
+
+Weapon ready clips last 29 ticks for AR/plasma rifle/sniper, 35 for magnum,
+14 for plasma pistol, 23 for Needler/shotgun and 22 for rocket launcher.
+Scorpion hatch motion lasts 16 ticks; the Banshee canopy uses 22 ticks.
+
+Every source frame of each one-shot clip is retained, skinned onto the approved
+reduced meshes. AR digits, the sniper display and all Needler ammunition poses
+follow their original ready motion. Stable seated idle loops use four source
+samples. Third-person ready uses the Spartan rifle-ready graph rescaled to the
+equipped weapon's ready duration. The existing reduced on-foot movement solver
+remains; this change does not port the complete biped physics or camera system.
+In particular, horizontal dismount momentum is not retained by that solver.
+All seat transitions use the existing third-person inspection-friendly boom;
+personal-weapon passengers return to their seat's first-person camera afterward.
+Distant empty vehicle LODs retain the closed hatch approximation. Occupied
+opening/closing transitions retain the articulated model.
+
+## N64 implementation
+
+`pack_interactions.py` emits source timing/seat definitions and a ROM-only pose
+bank. The bank occupies **3,659,856 bytes** of ROM, with a single **7,520-byte**
+shared DMA scratch buffer. Only the requested adjacent frames are read.
+Animation writes use the existing fenced vertex buffers; conservative bounds
+cover both Spartan LODs. Original closed hatch transforms return to the approved
+model, and existing muzzle effects remain suppressed during ready/seat changes.
+
+After the ordinary world, first-person/ammo and micro-LOD packers, run:
+
+```sh
+build/n64-python/bin/python port/n64/pack_interactions.py
+build/n64-python/bin/python port/n64/test_interaction_assets.py
+build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5
+```
+
+If regenerating world models, run `pack_extended.py` and `pack_micro_lods.py`
+first. `pack_extended.py` writes the exact indexed-vertex source mapping used by
+the interaction packer. The build rejects stale animation provenance.
+
+## Verification
+
+`blam/test_vehicle.py` includes sanitizer coverage for held/released/lost-target
+use, contested pickups and seats, every seat's exact entry/exit duration,
+reservations, boarding death, passenger weapons, ready locks, ordinary combat,
+native vehicle physics, replay and all six gameplay showcases. The passenger
+showcase aims forward/right through ordinary controller input so its firing
+sweep does not cross the driver from the corrected seat camera.
+
+The input adapter and paced acquisition checks cover held use across render
+polls/catch-up ticks. The vehicle pose-cache check compares 114,045 cached and
+uncached matrices/bounds, including actual hatch matrices. Asset checks cover
+1,969 frames, DMA alignment/ranges, bounds, exact source clip durations and
+closed-hatch endpoints.
+
+The local Ares gallery is `build/n64/interaction-audit/comparison.html`. Its
+screenshots advance actual use input through the normal simulation and then
+freeze it; vehicle views use inspection cameras. These are visual validation
+fixtures, not performance measurements. The RDP validator reports zero errors
+and warnings in the captured scenes. Reproduce them with:
+
+```sh
+build/n64-python/bin/python port/n64/build.py --interaction-qa 0 --interaction-tick 16 --validate
+build/n64-python/bin/python port/n64/build.py --interaction-qa 1 --interaction-tick 16 --validate
+build/n64-python/bin/python port/n64/build.py --interaction-qa 2 --interaction-tick 30 --validate
+build/n64-python/bin/python port/n64/build.py --interaction-qa 2 --interaction-tick 112 --validate
+build/n64-python/bin/python port/n64/build.py --interaction-qa 3 --interaction-tick 0 --validate
+```
+
+The separate quiet `--vi-benchmark --paced30 --paced30-buffers 5` replay measures
+displayed poses in four-player combat and vehicle scenes on a 4 MiB emulated N64.
+Exact ROM hashes and results accompany the gallery in its manifest.

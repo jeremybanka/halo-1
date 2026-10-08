@@ -40,6 +40,8 @@ static bool input(bg_input in[4]){
     if(fake_now>=5000&&!edge_sent){edge_sent=true;in[0].reload=true;}
     if(fake_now>=11000&&!zoom_sent){zoom_sent=true;in[0].zoom=true;}
     in[0].forward=.75f;in[0].fire=true;
+    /* A released use button must not survive as a latched edge. */
+    in[0].interact=fake_now<16000;
     if(paused||was_paused)memset(in,0,sizeof(bg_input)*4);
     return paused||was_paused;
 }
@@ -63,7 +65,7 @@ static void run(unsigned kind){
     if(kind==0||kind==7){
         assert(ticks==1&&fake_now>=33333&&fake_now<35000);
         assert(in[0].reload&&in[0].zoom&&in[0].fire&&latch[0].reload&&latch[0].zoom);
-        assert(presentation&&!paced_dropped_ticks);
+        assert(presentation&&!paced_dropped_ticks&&!in[0].interact&&!latch[0].interact);
     }else if(kind==1){
         assert(ticks==7&&paced_dropped_ticks>=3&&clock.leftover_dt==0);
         assert(in[0].reload&&in[0].zoom&&in[0].fire);

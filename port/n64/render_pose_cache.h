@@ -7,7 +7,7 @@
 
 /* Raw float representations keep signed zero and every changed input distinct.
  * Two slot bits describe matrix contents, independently of RSP fence ownership. */
-#define BG_VEHICLE_POSE_WORDS 25
+#define BG_VEHICLE_POSE_WORDS 27
 typedef struct {
     uint32_t key[BG_VEHICLE_POSE_WORDS];
     uint8_t last_slot,slot_mask;
@@ -23,5 +23,6 @@ static inline void bg_vehicle_pose_key(uint32_t key[BG_VEHICLE_POSE_WORDS],const
     memcpy(key+8,wheel,4);
     key[9]=v->physics_valid;memcpy(key+10,v->forward,12);memcpy(key+13,v->up,12);
     memcpy(key+16,&v->steering,4);memcpy(key+17,v->suspension,32);
+    memcpy(key+25,&v->hatch,4);key[26]=v->hatch_closing;
 }
 #endif

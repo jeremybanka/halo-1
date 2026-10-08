@@ -27,7 +27,7 @@ extern const bg_model_asset bg_model_assets[BG_M_COUNT];
 extern const bg_model_asset bg_pickup_lods[BG_M_COUNT];
 /* Same Warthog/Ghost/Scorpion/Banshee order as the vehicle game enum. */
 extern const bg_model_asset bg_vehicle_lods[4];
-enum { BG_PART_BODY, BG_PART_WHEEL, BG_PART_TURRET, BG_PART_BARREL };
+enum { BG_PART_BODY, BG_PART_WHEEL, BG_PART_TURRET, BG_PART_BARREL, BG_PART_HATCH };
 /* first/count retain logical triangle-corner ranges for the corresponding
  * whole vehicle. batch_first/batch_count address its packed indexed batches.
  * Odd triangle groups end with one degenerate triangle.

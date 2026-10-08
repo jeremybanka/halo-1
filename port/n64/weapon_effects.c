@@ -26,7 +26,7 @@ void bg_fx_update(float dt){
         if(e->kind!=BG_EVENT_FIRE||e->player<0||e->player>=4||e->weapon<0||e->weapon>=BG_WEAPON_COUNT)continue;
         /* Mounted guns have their own muzzle rigs; never attach their event to
          * the infantry weapon a driver happened to have before boarding. */
-        if(bg_players[e->player].vehicle>=0)continue;
+        if(!bg_player_personal_weapon(&bg_players[e->player]))continue;
         bg_fx_shot*s=&bg_fx_shots[e->player];s->age=0;s->weapon=e->weapon;s->sequence++;s->charged=e->amount>1;
         if(e->weapon==BG_W_SNIPER){
             const bg_shot_trace*trace=bg_sniper_trace(e->player);
@@ -49,13 +49,13 @@ void bg_fx_update(float dt){
 }
 float bg_fx_flash(unsigned player){
     const bg_player*p=&bg_players[player];const bg_fx_shot*s=&bg_fx_shots[player];
-    if(p->health<=0||p->vehicle>=0||p->weapon!=s->weapon||s->weapon<0)return 0;
+    if(p->health<=0||!bg_player_personal_weapon(p)||p->weapon_ready>0||p->weapon!=s->weapon||s->weapon<0)return 0;
     float life=bg_fx_definitions[s->weapon].life;
     return s->age<life?1.f-s->age/life:0;
 }
 float bg_fx_charge(unsigned player){
     const bg_player*p=&bg_players[player];
-    if(p->health<=0||p->vehicle>=0||p->weapon!=BG_W_PLASMA_PISTOL||p->ammo<=0||!p->fire_held||p->overheated||p->reload>0||p->melee_time>0)return 0;
+    if(p->health<=0||!bg_player_personal_weapon(p)||p->weapon_ready>0||p->weapon!=BG_W_PLASMA_PISTOL||p->ammo<=0||!p->fire_held||p->overheated||p->reload>0||p->melee_time>0)return 0;
     /* Runtime release threshold is .7 s. Hold the corona at full size after
      * this point; it must not blink out while the player keeps charging. */
     return fminf(1.f,p->charge/.7f);

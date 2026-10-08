@@ -14,7 +14,7 @@ static void reset(void){
 static void equip(unsigned weapon){
     reset();assert(bg_give_weapon(0,weapon));
     if(bg_players[0].weapon!=(int)weapon){input[0].switch_weapon=true;tick();input[0].switch_weapon=false;}
-    for(unsigned i=0;i<15;i++)tick();
+    for(unsigned i=0;i<40;i++)tick();
 }
 static float length(const float v[3]){return sqrtf(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);}
 int main(void){

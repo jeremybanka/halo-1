@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "world.h"
+#include "interaction.h"
 #define BG_PLAYERS 4
 #define BG_MAX_VEHICLES 12
 #define BG_MAX_PROJECTILES 48
@@ -40,10 +41,15 @@ typedef struct {
     float needle_timer,grenade_cooldown,interact_cooldown,teleport_cooldown;
     bg_animation animation;
     float heats[2];
+    float weapon_ready,use_time,seat_time,seat_blend,seat_offset[3];
+    bg_use_target use_target;
+    uint8_t seat_state;
+    bool use_latched;
     bool overheated,overheated_slots[2],fire_held,crouched;
 } bg_player;
 typedef struct {
     float forward,strafe,turn,look;
+    /* interact is held use; reload and the other discrete actions are edges. */
     bool jump,fire,reload,switch_weapon,grenade,switch_grenade,interact,melee,zoom,crouch,secondary_fire;
 } bg_input;
 typedef struct {
@@ -51,7 +57,8 @@ typedef struct {
     float wreck_time; /* Unpowered, non-boardable body; last two seconds blink. */
     float forward[3],up[3],angular_velocity[3],steering,wheel_phase,suspension[8];
     bool physics_valid;
-    float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch; int kind,health,occupants[3]; bool active;
+    float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch; int kind,health,occupants[BG_VEHICLE_SEATS]; bool active;
+    float hatch;bool hatch_closing;
 } bg_vehicle;
 #define BG_WRECK_LIFE 12.f
 static inline bool bg_vehicle_body_present(const bg_vehicle*v){return v->active||v->wreck_time>0;}
@@ -99,7 +106,12 @@ float bg_raycast(const float origin[3],const float direction[3],float max_distan
 bool bg_give_weapon(unsigned player,bg_weapon weapon);
 /* Local map setup may replace default placements with extracted scenario data. */
 int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw);
-/* Original Warthog seat/entry markers, transformed by the current hull pose. */
+/* Original Xbox seat/entry markers, transformed by the current hull pose. */
 void bg_vehicle_seat_position(const bg_vehicle *vehicle,unsigned seat,bool entry,float out[3]);
 int bg_add_pickup(int weapon,const float pos[3]);
+void bg_vehicle_camera_position(const bg_vehicle *vehicle,unsigned seat,float out[3]);
+bg_use_target bg_interaction_target(unsigned player);
+const bg_seat_definition *bg_player_seat(const bg_player *player);
+bool bg_player_personal_weapon(const bg_player *player);
+bool bg_player_third_person(const bg_player *player);
 #endif

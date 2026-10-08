@@ -81,7 +81,13 @@ void bg_showcase_input(bg_input input[BG_PLAYERS],float seconds){
     }else if(scenario==BG_SHOWCASE_WARTHOG_PASSENGER){
         for(unsigned p=0;p<2;p++)if(seconds>=2&&bg_players[p].vehicle<0)input[p].interact=true;
         if(bg_players[0].vehicle>=0&&seconds>=3&&seconds<20){input[0].forward=.45f;input[0].turn=.5f;}
-        if(bg_players[1].vehicle>=0&&seconds>7&&seconds<9){input[1].turn=.3f;input[1].fire=true;}
+        if(bg_players[1].vehicle>=0){
+            /* Track forward/right from the original passenger camera. A world-
+             * fixed sweep can cross the driver as the Warthog turns. */
+            float error=angle_delta(bg_vehicles[bg_players[1].vehicle].yaw-.4f,bg_players[1].yaw);
+            input[1].turn=clamp(error*4,-1,1);
+            input[1].fire=seconds>7&&seconds<9&&fabsf(error)<.2f;
+        }
     }else if(scenario==BG_SHOWCASE_FRAG_DOUBLE_KILL){
         if(seconds>=2&&!frag_thrown){input[0].grenade=true;frag_thrown=true;}
     }else if(scenario==BG_SHOWCASE_SHOTGUN_KILL){

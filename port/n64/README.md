@@ -24,6 +24,8 @@ Source-based muzzle flashes, sniper smoke trails and sustained plasma charging
 are documented in [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md).
 The source grass/sand bake and 64×64 paletted ground experiment are documented
 in [GROUND_TEXTURES.md](GROUND_TEXTURES.md).
+Held-use weapon pickups, original ready/boarding/dismount animations and
+seat-specific prompts are covered in [INTERACTIONS.md](INTERACTIONS.md).
 
 ## Play
 
@@ -31,10 +33,10 @@ Load `build/n64/halo-blood-gulch-paced30-buffers5.z64` in ares as a Nintendo 64
 cartridge for the recommended four-player presentation profile. Build it with
 `build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5`.
 The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
-The latest quiet four-player Ares replay with the baked 64×64 ground measures
-**28.5 displayed FPS overall / 29.0 in combat / 28.0 around vehicles**, with
-46 KiB heap remaining. The 30 FPS target is not yet met. See
-[GROUND_TEXTURES.md](GROUND_TEXTURES.md) and `build/n64/ground-experiment/`
+The latest quiet four-player Ares replay with source interaction animations measures
+**28.3 displayed FPS overall / 28.9 in combat / 27.8 around vehicles**, with
+64 KiB heap remaining. The 30 FPS target is not yet met. See
+[INTERACTIONS.md](INTERACTIONS.md) and `build/n64/interaction-audit/`
 for matching views and timing. Earlier pacing and model-audit measurements
 predate later changes and are historical comparisons.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
@@ -77,7 +79,7 @@ player count or control style. See [CONTROLS.md](CONTROLS.md) for ownership,
 button-edge behavior and vehicle controls.
 
 Approach the Warthog's left side for the driver, right side for the front
-passenger, or rear for the gunner, then press **B** with N64 controls or **C-left**
+passenger, or rear for the gunner, then hold **B** with N64 controls or **C-left**
 with Xbox style. The nearest available entry marker selects the seat; HUD
 interaction prompts show **B** or **C-LEFT** for that player's selected layout.
 In Xbox style, holding R shows scores in that player's view without pausing.
@@ -88,7 +90,7 @@ original solver. The moving Scorpion steers toward turret aim. Z fires its canno
 L fires the machine gun. The Warthog has a driver,
 independent turret gunner and passenger. Ghost and Banshee have forward plasma
 weapons; the Banshee's L fires its secondary projectile. The tank also carries
-two passengers. Both original rooftop teleporter pairs lead to their original
+four passengers (within the four-player match limit). Both original rooftop teleporter pairs lead to their original
 exits with a short re-entry cooldown.
 
 ## Implemented content
@@ -185,6 +187,7 @@ Then follow the six expanded extraction/reduction/packing commands in
 
 ```sh
 build/n64-python/bin/python port/n64/extract_menu_assets.py
+build/n64-python/bin/python port/n64/pack_interactions.py
 build/n64-python/bin/python port/n64/validate_assets.py
 build/n64-python/bin/python port/n64/build.py
 build/n64-python/bin/python port/n64/build.py --demo

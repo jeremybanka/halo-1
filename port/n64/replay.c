@@ -134,7 +134,7 @@ static void driving_input(bg_input input[BG_PLAYERS],float t){
         /* After the driving overview, the Ghost pilot boards the Warthog's
          * actual gunner seat. Its driver slows to make this possible. */
         if(t>9&&p==0){in->forward=0;in->turn=0;}
-        if(t>10&&p==1&&q->vehicle==vehicle_for[1])in->interact=frame%15==2;
+        if(t>10&&p==1&&q->vehicle==vehicle_for[1])in->interact=frame%30<9;
     }
     if(t>10&&vehicle_for[0]>=0&&bg_players[1].health>0){
         bg_player*q=&bg_players[1];bg_input*in=&input[1];bg_vehicle*hog=&bg_vehicles[vehicle_for[0]];

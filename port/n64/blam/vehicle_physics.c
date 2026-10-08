@@ -231,7 +231,7 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
  }else n->unit.desired_facing_vector=n->object.forward;
  /* units.c powered-seat ramp, in native seconds/ticks. */
  for(int seat=0;seat<2;seat++){
-  bool on=v->occupants[seat]>=0;float time=bg_vehicle_seat_times[v->kind][seat][on?0:1];
+  bool on=v->occupants[seat]>=0&&bg_players[v->occupants[seat]].seat_state==BG_SEAT_STABLE;float time=bg_vehicle_seat_times[v->kind][seat][on?0:1];
   float delta=time>0?1.f/(time*30):1;
   n->unit.seat_power[seat]=PIN(n->unit.seat_power[seat]+(on?delta:-delta),0,1);
  }

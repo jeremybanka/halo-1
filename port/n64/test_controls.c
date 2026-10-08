@@ -39,7 +39,7 @@ static legacy_buttons legacy(uint32_t mask) {
     };
 }
 
-/* Verbatim field mapping from the existing main.c input() implementation,
+/* N64 field mapping, with held use and edge-triggered reload,
  * adapted only from libdragon button structs to this test's decoded booleans. */
 static bg_input original_n64(const bg_control_state *raw,bool mounted) {
     legacy_buttons held=legacy(raw->held),pressed=legacy(raw->pressed);
@@ -47,7 +47,7 @@ static bg_input original_n64(const bg_control_state *raw,bool mounted) {
     if(fabsf(x)<.12f)x=0;if(fabsf(y)<.12f)y=0;
     return (bg_input){.forward=y,.turn=-x,.strafe=held.c_right-held.c_left,
         .look=held.c_up-held.c_down,.jump=mounted?held.a:pressed.a,
-        .fire=held.z,.reload=pressed.b,.interact=pressed.b,.switch_weapon=pressed.r,
+        .fire=held.z,.reload=pressed.b,.interact=held.b,.switch_weapon=pressed.r,
         .grenade=pressed.l,.secondary_fire=held.l,.switch_grenade=pressed.d_left,
         .melee=pressed.d_down,.zoom=pressed.d_up,.crouch=held.d_right};
 }
@@ -71,7 +71,7 @@ static void xbox_buttons(void) {
             {.secondary_fire=true},{.secondary_fire=true}},
         {BG_BUTTON_R,{0},{0},{0}},
         {BG_BUTTON_Z,{.fire=true},{.fire=true},{.fire=true}},
-        {BG_BUTTON_C_LEFT,{.reload=true,.interact=true},{0},{0}},
+        {BG_BUTTON_C_LEFT,{.reload=true,.interact=true},{.interact=true},{.interact=true}},
         {BG_BUTTON_C_RIGHT,{.zoom=true},{0},{0}},
         {BG_BUTTON_C_UP,{.switch_weapon=true},{0},{0}},
         {BG_BUTTON_C_DOWN,{.crouch=true},{.crouch=true},{.crouch=true}},
@@ -98,9 +98,9 @@ static void xbox_buttons(void) {
     raw=(bg_control_state){.pressed=BG_BUTTON_A|BG_BUTTON_R|BG_BUTTON_B|
         BG_BUTTON_L|BG_BUTTON_C_LEFT|BG_BUTTON_C_RIGHT|BG_BUTTON_C_UP};
     check(&raw,BG_CONTROLS_XBOX,false,(bg_input){.jump=true,.reload=true,
-        .interact=true,.melee=true,.grenade=true,.switch_weapon=true,
+        .melee=true,.grenade=true,.switch_weapon=true,
         .zoom=true});
-    check(&raw,BG_CONTROLS_XBOX,true,(bg_input){.reload=true,.interact=true,
+    check(&raw,BG_CONTROLS_XBOX,true,(bg_input){.reload=true,
         .melee=true,.grenade=true,.switch_weapon=true,.zoom=true});
 }
 

@@ -43,11 +43,15 @@ def main():
     parser.add_argument('--hud-qa-page', type=int, choices=range(7), help='Hold one HUD QA page instead of cycling; requires --hud-qa')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
     mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
+    mode.add_argument('--interaction-qa', type=int, choices=range(4), help='Production pickup/seat input with frozen inspection cameras')
+    parser.add_argument('--interaction-tick', type=int, default=25, help='Use/seat simulation tick for --interaction-qa')
     mode.add_argument('--destruction-qa', action='store_true', help='Script four-angle vehicle destruction, wreck settling, blinking and respawn')
     args = parser.parse_args()
+    if args.interaction_qa is not None and not 0<=args.interaction_tick<=240:
+        parser.error('--interaction-tick must be between 0 and 240')
     if args.hud_qa_page is not None and not args.hud_qa:
         parser.error('--hud-qa-page requires --hud-qa')
-    if (args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa or args.hud_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
+    if (args.interaction_qa is not None or args.model_qa or args.weapon_qa or args.geometry_qa or args.ground_qa or args.hud_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Model/weapon QA uses unpaced frozen scenes, not performance measurement')
     if args.paced30_buffers is not None and not args.paced30:
         parser.error('--paced30-buffers requires --paced30')
@@ -147,11 +151,16 @@ def main():
         if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
             parser.error('Stale vehicle destruction bank; rerun port/n64/extract_vehicle_visuals.py: '+name)
 
+    interaction = json.loads((out/'generated/interaction-report.json').read_text())
+    for name, expected in {**interaction['inputs'], **interaction['files']}.items():
+        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
+            parser.error('Stale interaction bank; rerun port/n64/pack_interactions.py: '+name)
+
     objects = []
     run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
     run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py'])
     run([sys.executable, ROOT/'port/n64/blam/export_vehicle.py'])
-    sources = ['weapon_effects.c', 'weapon_effects_draw.c', 'blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    sources = ['interaction_render.c', 'weapon_effects.c', 'weapon_effects_draw.c', 'blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
     if args.effects_qa:
         sources.append('effects_qa.c')
     if args.destruction_qa:
@@ -168,7 +177,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'collision_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
@@ -201,6 +210,7 @@ def main():
              *(['-DBG_WEAPON_QA'] if args.weapon_qa else []),
              *(['-DBG_GROUND_QA'] if args.ground_qa else []),
              *(['-DBG_GEOMETRY_QA'] if args.geometry_qa else []),
+             *(['-DBG_INTERACTION_QA='+str(args.interaction_qa), '-DBG_INTERACTION_TICK='+str(args.interaction_tick), '-DBG_SNAPSHOT_TICK=0u'] if args.interaction_qa is not None else []),
              *(['-DBG_EFFECTS_QA'] if args.effects_qa else []),
              *(['-DBG_DESTRUCTION_QA'] if args.destruction_qa else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
@@ -220,6 +230,8 @@ def main():
     name = 'halo-blood-gulch-showcase-'+args.showcase if args.showcase else 'halo-blood-gulch-replay' if args.demo else 'halo-blood-gulch'
     if args.snapshot_tick is not None:
         name += '-snapshot-'+str(args.snapshot_tick)
+    if args.interaction_qa is not None:
+        name += f'-interaction{args.interaction_qa}-tick{args.interaction_tick}'
     if args.model_qa:
         name += '-model-qa'
     if args.weapon_qa:

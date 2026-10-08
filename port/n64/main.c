@@ -20,6 +20,7 @@
 #endif
 #include "asset_models.h"
 #include "asset_firstperson.h"
+#include "asset_interaction.h"
 #include "firstperson_ammo.h"
 #include "weapon_effects.h"
 #include "weapon_effects_draw.h"
@@ -60,7 +61,7 @@
 #endif
 #ifdef BG_SNAPSHOT_TICK
 #include "replay_snapshot.h"
-#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK) || defined(BG_SHOWCASE) || defined(BG_PROFILE) || (defined(RDPQ_VALIDATE) && !defined(BG_MODEL_QA))
+#if defined(BG_BENCHMARK) || defined(BG_VI_BENCHMARK) || defined(BG_SHOWCASE) || defined(BG_PROFILE) || (defined(RDPQ_VALIDATE) && !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA))
 #error "Snapshot QA requires an overlay-free build without benchmark/showcase/profile/validation"
 #endif
 #endif
@@ -694,7 +695,7 @@ static surface_t*paced_acquire(blam_clock*clock,uint64_t*previous,
             }
             for(unsigned p=0;p<4;p++){
 #define EDGE(field) latch[p].field|=in[p].field;in[p].field=latch[p].field
-                EDGE(jump);EDGE(reload);EDGE(switch_weapon);EDGE(grenade);EDGE(switch_grenade);EDGE(interact);EDGE(melee);EDGE(zoom);
+                EDGE(jump);EDGE(reload);EDGE(switch_weapon);EDGE(grenade);EDGE(switch_grenade);EDGE(melee);EDGE(zoom);
 #undef EDGE
             }
             presentation_mode(views>=3&&!front_active());last_poll=now;
@@ -779,13 +780,12 @@ static void prepare_player_bounds(unsigned p){
         case BG_ANIM_MELEE:clip=BG_A_MELEE;break;case BG_ANIM_DRIVE:clip=BG_A_DRIVE;break;
         default:clip=BG_A_IDLE;break;
     }
-    if(player->health>0&&player->vehicle>=0){
+    const bg_seat_definition*seat=bg_player_seat(player);
+    if(player->health>0&&seat){
         const bg_vehicle*vehicle=&bg_vehicles[player->vehicle];
-        if(vehicle->kind==BG_V_WARTHOG){
-            clip=player->seat==2?BG_A_PASSENGER:player->seat==1?BG_A_GUNNER:BG_A_DRIVE;
-            body_yaw=vehicle->yaw+(player->seat==1?vehicle->turret_yaw:0);
-            body_pitch=vehicle->pitch;
-        }
+        clip=player->seat==2?BG_A_PASSENGER:player->seat==1?BG_A_GUNNER:BG_A_DRIVE;
+        body_yaw=vehicle->yaw+seat->yaw+(vehicle->kind==BG_V_WARTHOG&&player->seat==1?vehicle->turret_yaw:0);
+        body_pitch=vehicle->pitch;
     }
     bool throwing=player->health>0&&player->grenade_cooldown>.55f&&player->vehicle<0;
     if(throwing)clip=BG_A_THROW;
@@ -798,15 +798,20 @@ static void prepare_player_bounds(unsigned p){
         const bg_vehicle*v=&bg_vehicles[player->vehicle];
         if(v->physics_valid){
             const float*f=v->forward,*u=v->up;float r[3]={f[1]*u[2]-f[2]*u[1],f[2]*u[0]-f[0]*u[2],f[0]*u[1]-f[1]*u[0]};
-            float relative=v->kind==BG_V_WARTHOG&&player->seat==1?v->turret_yaw:0,c=cosf(relative),s=sinf(relative);
+            float relative=seat->yaw+(v->kind==BG_V_WARTHOG&&player->seat==1?v->turret_yaw:0),c=cosf(relative),s=sinf(relative);
             for(unsigned a=0;a<3;a++){body->m[0][a]=(f[a]*c-r[a]*s)*size;body->m[1][a]=u[a]*size;body->m[2][a]=(f[a]*s+r[a]*c)*size;}
         }
     }
-    bg_bounds box;bg_bounds_transform(&box,&bg_body_cull_bounds[clip],body->m,BG_SCALE);
+    if(seat&&player->seat_blend>0)for(unsigned a=0;a<3;a++)
+        body->m[3][a]+=player->seat_offset[a]*(player->seat_blend/(6.f/30))*BG_SCALE;
+    const bg_bounds*source_bounds=seat?&bg_seat_poses[seat->pose][player->seat_state][0].bounds:
+        player->weapon_ready>0?&bg_body_ready_poses[0].bounds:&bg_body_cull_bounds[clip];
+    bg_bounds box;bg_bounds_transform(&box,source_bounds,body->m,BG_SCALE);
     bg_bounds_quantize(&body_bounds[p],&box);
     /* Any normalized hand quaternion keeps a weapon within its origin sphere.
      * Marker position interpolation stays inside this clip's endpoint box. */
     bg_bounds marker=bg_attachment_cull_bounds[clip];
+    if(seat||player->weapon_ready>0)marker=(bg_bounds){{-1,-1,-1},{1,1,1}};
     bg_bounds_expand(&marker,bg_model_cull_radii[weapon_model(player->weapon)]);
     bg_bounds_transform(&box,&marker,body->m,BG_SCALE);bg_bounds_quantize(&held_bounds[p],&box);
     T3DMat4 armor_matrix=*body;
@@ -816,13 +821,34 @@ static void prepare_player_bounds(unsigned p){
 static void animate_player(unsigned p){
     if(!wanted_lods[p]&&!(wanted_held&(1u<<p)))return;
     bg_player*player=&bg_players[p];unsigned clip=body_clips[p];
+    const bg_seat_definition*seat=bg_player_seat(player);
+    bool ready=player->weapon_ready>0;
+    if(seat||ready){
+        float ready_seconds=ready?(1-player->weapon_ready/bg_ready_times[player->weapon])*bg_body_ready_poses[0].duration:0;
+        for(unsigned lod=0;lod<2;lod++)if(wanted_lods[p]&(1u<<lod))
+            bg_interaction_pose(CachedAddr(lod?armor_lod[slot][p]:armor[slot][p]),
+                seat?&bg_seat_poses[seat->pose][player->seat_state][lod]:&bg_body_ready_poses[lod],
+                seat?player->anim_time:ready_seconds,seat&&player->seat_state==BG_SEAT_STABLE);
+        if(wanted_held&(1u<<p)){
+            const bg_rom_pose*grip=seat?&bg_seat_grips[seat->pose]:&bg_body_ready_grip;
+            float seconds=seat?fmodf(player->anim_time,grip->duration):ready_seconds;int16_t points[4][3];
+            bg_interaction_points(points,grip,seconds);
+            T3DMat4 hand,world;t3d_mat4_identity(&hand);
+            for(unsigned a=0;a<3;a++){
+                hand.m[3][a]=points[0][a]*(BG_SCALE/4096);
+                for(unsigned c=0;c<3;c++)hand.m[c][a]=points[c+1][a]*(BG_SCALE/BG_OBJECT_SCALE/4096);
+            }
+            t3d_mat4_mul(&world,&body_matrices[p],&hand);t3d_mat4_to_fixed_3x4(&held_matrices[slot][p],&world);
+        }
+        return;
+    }
     const bg_anim_asset*base=&bg_animations[clip];
     float phase=body_throwing[p]?(.9f-player->grenade_cooldown)/.35f:player->anim_time/base->duration;
     bool loop=clip==BG_A_RUN||clip==BG_A_IDLE||clip==BG_A_DRIVE||clip==BG_A_PASSENGER||clip==BG_A_GUNNER;
     if(loop)phase-=floorf(phase);else phase=fminf(fmaxf(phase,0),.9999f);
     float frame=phase*(base->frames-1);unsigned f0=(unsigned)frame,f1=f0+1<base->frames?f0+1:f0;
     int fraction=(frame-f0)*256;
-    for(unsigned lod=0;lod<2;lod++)if(wanted_lods[p]&(1u<<lod)){
+    for(unsigned lod=0;lod<2;lod++)if(!seat&&(wanted_lods[p]&(1u<<lod))){
         const bg_anim_asset*a=lod?&bg_spartan_lod_animations[clip]:base;
         T3DVertPacked*output=CachedAddr(lod?armor_lod[slot][p]:armor[slot][p]);
         animate_mesh(output,a,f0,f1,fraction);
@@ -868,6 +894,17 @@ static void compute_vehicle_pose(unsigned i){
         if(part->kind==BG_PART_BODY)world=base;
         else {
             if(part->kind==BG_PART_TURRET)local=yaw;
+            else if(part->kind==BG_PART_HATCH){
+                t3d_mat4_identity(&local);
+                if(v->active){
+                    const bg_rom_pose*pose=&bg_hatch_poses[v->kind==BG_V_BANSHEE][v->hatch_closing];
+                    int16_t points[4][3];bg_interaction_points(points,pose,v->hatch*pose->duration);
+                    for(unsigned a=0;a<3;a++){
+                        local.m[3][a]=points[0][a]*(BG_OBJECT_SCALE/4096);
+                        for(unsigned c=0;c<3;c++)local.m[c][a]=points[c+1][a]*(1.f/4096);
+                    }
+                }
+            }
             else if(part->kind==BG_PART_WHEEL){
                 /* Wheels rotate about their axle (local Z), then steer with
                  * the original opposite front/rear powered contact groups. */
@@ -1010,7 +1047,8 @@ static void animate_firstperson(unsigned p){
     float phase=fmaxf(0,seconds/a->duration);
     if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
     float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
-    animate_mesh(output,a,f0,f1,fraction);
+    if(player->weapon_ready>0)bg_interaction_pose(output,&bg_ready_poses[w],bg_ready_times[w]-player->weapon_ready,false);
+    else animate_mesh(output,a,f0,f1,fraction);
     bg_fx_pose(p,w,clip,f0,f1,fraction);
     if(w==BG_W_SNIPER){
         T3DVertPacked *scope=scope_vertices[slot][p];
@@ -1020,6 +1058,10 @@ static void animate_firstperson(unsigned p){
             int16_t*point=t3d_vertbuffer_get_pos(scope,v);
             for(unsigned axis=0;axis<3;axis++)point[axis]=a[v][axis]+(((int)b[v][axis]-a[v][axis])*fraction>>8);
             *t3d_vertbuffer_get_color(scope,v)=bg_scope_colors[v];
+        }
+        if(player->weapon_ready>0){
+            int16_t points[12][3];bg_interaction_points(points,&bg_ready_scope,bg_ready_times[w]-player->weapon_ready);
+            for(unsigned v=0;v<12;v++)memcpy(t3d_vertbuffer_get_pos(scope,v),points[v],sizeof(points[v]));
         }
         data_cache_hit_writeback(scope,sizeof(scope_vertices[slot][p]));
     }
@@ -1125,13 +1167,21 @@ static void update_effects(float dt){
 #include "model_qa.h"
 #endif
 #endif
+#ifdef BG_INTERACTION_QA
+#include "interaction_qa.h"
+#endif
 static void prepare_view(unsigned p){
     int w=views>=3?160:320,h=views==1?240:120,x=views>=3?(p%2)*160:0,y=views==1?0:(views>=3?p/2:p)*120;
     bg_player*player=&bg_players[p];float cp=cosf(player->pitch),sy=sinf(player->yaw),cy=cosf(player->yaw);
     float head=player->crouched?.4f:.62f;
     T3DVec3 eye={{player->pos[0]*BG_SCALE,(player->pos[1]+head)*BG_SCALE,player->pos[2]*BG_SCALE}};
     T3DVec3 target={{eye.v[0]+cy*cp,eye.v[1]+sinf(player->pitch),eye.v[2]-sy*cp}};
-    if(player->vehicle>=0){
+    if(player->vehicle>=0&&!bg_player_third_person(player)){
+        float camera[3];bg_vehicle_camera_position(&bg_vehicles[player->vehicle],player->seat,camera);
+        for(unsigned a=0;a<3;a++)eye.v[a]=camera[a]*BG_SCALE;
+        target=(T3DVec3){{eye.v[0]+cy*cp,eye.v[1]+sinf(player->pitch),eye.v[2]-sy*cp}};
+    }
+    if(bg_player_third_person(player)){
         const bg_vehicle*vehicle=&bg_vehicles[player->vehicle];
         /* A shallow hull-relative boom keeps the complete vehicle in view,
          * including the front seats in a half-height split-screen viewport. */
@@ -1163,6 +1213,9 @@ static void prepare_view(unsigned p){
 #ifdef BG_MODEL_QA
     model_qa_camera(p,&eye,&target);
 #endif
+#ifdef BG_INTERACTION_QA
+    interaction_qa_camera(p,&eye,&target);
+#endif
     T3DViewport*vp=&viewports[slot][p];t3d_viewport_set_area(vp,x,y,w,h);
 #ifdef BG_GUARDBAND4
     /* Tiny3D supports factors 1–4. Enlarge only the clipping guard band;
@@ -1185,12 +1238,12 @@ static void prepare_view(unsigned p){
     for(unsigned j=0;j<views;j++){
         bg_player*q=&bg_players[j];body_lods[p][j]=0;
         if(q->invisibility>0)continue;
-#ifndef BG_MODEL_QA
-        if(j==p&&player->vehicle<0&&player->health>0)continue;
+#if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA)
+        if(j==p&&!bg_player_third_person(player)&&player->health>0)continue;
 #endif
-        if(q->vehicle>=0&&bg_vehicles[q->vehicle].kind==BG_V_BANSHEE)continue;
+        if(q->vehicle>=0&&bg_vehicles[q->vehicle].kind==BG_V_BANSHEE&&q->seat_state==BG_SEAT_STABLE)continue;
         float distance=0;for(unsigned a=0;a<3;a++){float d=q->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
-        bool personal=q->vehicle<0||q->seat==2||(q->seat==1&&bg_vehicles[q->vehicle].kind==BG_V_SCORPION);
+        bool personal=bg_player_personal_weapon(q);
         bool held=(distance<=16||player->zoom)&&q->health>0&&personal;
         if(visible_bounds(vp,&body_bounds[j])){
             unsigned lod=distance>(views>=3?4.f:16.f)&&player->zoom==0;
@@ -1203,6 +1256,7 @@ static void prepare_view(unsigned p){
         if(!bg_vehicle_body_visible(v)||!visible_bounds(vp,&vehicle_bounds[i]))continue;
         float distance=0;for(unsigned a=0;a<3;a++){float d=v->pos[a]-eye.v[a]/BG_SCALE;distance+=d*d;}
         unsigned lod=distance>36&&player->zoom==0;
+        if(v->active&&(v->kind==BG_V_BANSHEE||v->kind==BG_V_SCORPION)&&v->occupants[0]>=0&&(!v->hatch_closing||v->hatch<1))lod=0;
         if(lod&&vehicle_micro_available[v->kind]&&bg_micro_lod_below(&vehicle_micro_spheres[i],vp->matCamera.m,vp->matProj.m,
             vp->size[0],vp->size[1],1.4f,BG_MICRO_PIXELS,true,player->zoom!=0,views))lod=2;
         vehicle_view_lods[p][i]=lod+1;
@@ -1344,7 +1398,10 @@ static void draw_view(unsigned p){
     animation_before=animation_us;
     category_triangles[4]+=triangles-before;before=triangles;
 #endif
-    if(player->health>0&&player->vehicle<0&&!player->zoom
+    if(player->health>0&&bg_player_personal_weapon(player)&&!bg_player_third_person(player)&&!player->zoom
+#ifdef BG_INTERACTION_QA
+       &&BG_INTERACTION_QA<2
+#endif
 #ifdef BG_DESTRUCTION_QA
        &&false /* Inspection cameras omit the viewmodel, preserving world effects. */
 #endif
@@ -1656,6 +1713,9 @@ int main(void){
 #ifdef BG_SHOWCASE
     bg_showcase_begin(BG_SHOWCASE);views=bg_showcase_views();menu.player_count=views;
 #endif
+#ifdef BG_INTERACTION_QA
+    interaction_qa_stage();
+#endif
     heap_stats_t heap;sys_get_heap_stats(&heap);
     debugf("HALO N64 world=%u textures=%u RAM=%d free=%d\n",bg_collision_count,bg_material_count,get_memory_size(),heap.total-heap.used);
     uint64_t previous=get_ticks_us(),fps_time=previous;unsigned frames=0;
@@ -1719,7 +1779,7 @@ int main(void){
         bg_input in[4]={0};if(input(in))memset(latch,0,sizeof(latch));clock.paused=paused;
         for(unsigned p=0;p<4;p++){
 #define EDGE(field) latch[p].field|=in[p].field;in[p].field=latch[p].field
-            EDGE(jump);EDGE(reload);EDGE(switch_weapon);EDGE(grenade);EDGE(switch_grenade);EDGE(interact);EDGE(melee);EDGE(zoom);
+            EDGE(jump);EDGE(reload);EDGE(switch_weapon);EDGE(grenade);EDGE(switch_grenade);EDGE(melee);EDGE(zoom);
 #undef EDGE
         }
         unsigned ticks=blam_clock_update(&clock,dt);
@@ -1747,7 +1807,7 @@ int main(void){
             update_effects(BLAM_TICK_SECONDS);bg_sound_update();
             for(unsigned p=0;p<4;p++){
                 if(bg_players[p].vehicle<0)in[p].jump=false;
-                in[p].reload=in[p].switch_weapon=in[p].grenade=in[p].switch_grenade=in[p].interact=in[p].melee=in[p].zoom=false;
+                in[p].reload=in[p].switch_weapon=in[p].grenade=in[p].switch_grenade=in[p].melee=in[p].zoom=false;
             }
             memset(latch,0,sizeof(latch));
         }

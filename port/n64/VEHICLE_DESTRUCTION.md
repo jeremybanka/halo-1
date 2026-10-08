@@ -59,6 +59,8 @@ build/n64-python/bin/python port/n64/build.py --model-qa --validate
 build/n64-python/bin/python port/n64/build.py --destruction-qa --validate
 build/n64-python/bin/python port/n64/build.py --vi-benchmark --paced30 --paced30-buffers 5
 build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 5
+build/n64-python/bin/python port/n64/build.py --frontend-qa 4 --paced30 --paced30-buffers 5
+build/n64-python/bin/python port/n64/build.py --frontend-qa 4 --validate --paced30 --paced30-buffers 4
 ```
 
 The destruction fixture stages one low-health vehicle at a time and fires a real
@@ -72,5 +74,10 @@ vehicle, combat, two-loop replay and six gameplay-showcase checks also pass.
 
 Local imagery, video, source metadata, timing and ROM hashes are kept under
 `build/n64/destruction-audit/`. Original assets remain ignored by Git.
+
+Full front-end graphics validation uses four display buffers in 4 MiB. The
+additional validator instrumentation exceeds the remaining memory when five
+buffers are used, failing at match entry. The production five-buffer build is
+checked separately through the same 37-step menu, match, results and return flow.
 
 The final quiet Ares 148 / NTSC / 4 MiB five-buffer run measures 28.6 FPS overall, 29.1 in combat and 28.2 around vehicles, compared with 28.6 / 29.0 / 28.1 previously. Free heap is 46 KiB versus 65 KiB. Combat P95 is 33.4 ms and vehicle P95 is 66.8 ms. This is one emulator sample; the existing 30 FPS target remains unmet and console timing is unverified.

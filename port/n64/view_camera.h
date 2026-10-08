@@ -27,9 +27,12 @@ static inline void bg_camera_track_offset(const bg_camera_track*track,float yaw,
 static inline float bg_camera_zoom_fov(float fov,float magnification){
     return 2*atanf(tanf(fov*.5f)/magnification);
 }
-/* A bounded scope-only distance extension, with the same far/near ratio to
- * preserve depth precision. The camera-space gun has a separate projection. */
+/* A bounded scope-only distance extension. The camera-space gun has a
+ * separate projection, so close sleeves do not constrain world depth. */
 static inline void bg_camera_depth(bool scoped,float*near,float*far){
-    *near=scoped?2.8f:1.4f;*far=scoped?12400.f:6200.f;
+    /* 1/8 Halo unit stays inside the on-foot collision radius, while
+     * retaining enough RDP depth precision for wall-attached details.
+     * First-person arms keep their separate .125 render-unit projection. */
+    *near=4.f;*far=scoped?12400.f:6200.f;
 }
 #endif

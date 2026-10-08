@@ -25,12 +25,12 @@ Old benchmark results do not certify a newer build.
   - [ ] Animated hit regions, body stun, original fall damage and first-person landing effects.
   - [ ] Retail Xbox video comparison and human controller acceptance.
   - [ ] Current four-player performance check and necessary optimization:
-        after the plasma display repair, 26.7 overall / 28.7 combat / 24.9
+        after the environment surface repair, 26.6 overall / 28.7 combat / 24.7
         vehicle section FPS in Ares. Recover the vehicle phase above 25;
         the preserved previous ROM repeats 26.9 / 28.8 / 25.1.
         These are averages; frame-time spikes and hardware acceptance remain.
   - [ ] Recover release memory headroom before more resident features: the full
-        four-player frontend lifecycle currently shows 12 KiB free in combat.
+        four-player frontend lifecycle currently shows 21 KiB free in combat.
 - [ ] Spawn selection: replace player-index/team cycling with appropriate Slayer
       spawn eligibility and threat-aware selection.
 - [ ] Dropped weapons/grenades and pickup ammunition conservation.
@@ -86,8 +86,8 @@ cached static contact projections. Overall P95 pose interval 66.8 ms and maximum
 234.0 ms; vehicle maximum 66.9 ms. Section averages clear 25 FPS, but this does
 not certify a sustained floor. See the terrain audit timing manifest.
 
-Latest plasma-display repair: 26.7 overall / 28.7 combat / 24.9 vehicle section
-FPS and 53 KiB timing-fixture free heap. The vehicle-heavy section needs its
+Latest environment-surface repair: 26.6 overall / 28.7 combat / 24.7 vehicle section
+FPS and 60 KiB timing-fixture free heap. The vehicle-heavy section needs its
 small regression recovered before checking off the development performance
-gate. See [PLASMA_METERS.md](PLASMA_METERS.md) and
-`build/n64/plasma-audit/comparison.html` for the before/after visual evidence.
+gate. See [ENVIRONMENT_SURFACES.md](ENVIRONMENT_SURFACES.md) and
+`build/n64/environment-audit/comparison.html` for the before/after visual evidence.

@@ -6,10 +6,13 @@ import json
 import math
 from pathlib import Path
 import re
+from environment_geometry import RENDER_SCALE, conform_overlays
+from extract_environment_overlays import NAMES
 
 
 def validate(source, generated):
     data = json.loads(Path(source).read_text())
+    ground_size=json.loads((Path(generated)/'asset-report.json').read_text())['ground_size']
     text = (Path(generated) / 'render_data.c').read_text()
     body = text.split('T3DVertPacked bg_vertices[]', 1)[1].split('};', 1)[0]
     pairs = re.findall(r'\{\{([^}]+)\},0,\{([^}]+)\},0,(0x[0-9a-f]+),(0x[0-9a-f]+),\{([^}]+)\},\{([^}]+)\}\}', body)
@@ -23,12 +26,14 @@ def validate(source, generated):
     chunks = [(int(a), int(b), int(c), tuple(map(int, bounds.split(','))), int(d), int(e))
               for a, b, c, bounds, d, e in re.findall(r'\{(\d+),(\d+),(\d+),\{([^}]+)\},(\d+),(\d+)\}', body)]
     indices = list(map(int, text.split('bg_chunk_indices[]', 1)[1].split('={', 1)[1].split('};', 1)[0].split(',')))
+    overlays={i:m['name'].split('\\')[-1] for i,m in enumerate(data['materials']) if m['name'].split('\\')[-1] in NAMES}
+    repaired,_=conform_overlays(data['triangles'],overlays)
     groups = collections.defaultdict(list)
-    for triangle in data['triangles']:
+    for triangle in repaired:
         points = [(p[0] - 68., p[2], -p[1] - 118.) for p in triangle['p']]
         center = [sum(p[a] for p in points) / 3 for a in range(3)]
         groups[(triangle['material'], int(center[0] // 12), int(center[2] // 12))].append((triangle, points))
-    originals = [(key, tri, points) for key, group in sorted(groups.items()) for tri, points in group]
+    originals = [(key, tri, points) for key, group in sorted(groups.items(),key=lambda item:(item[0][0] in overlays,item[0])) for tri, points in group]
     corner = end = max_error = 0
     for first, count, material, bounds, ii, ic in chunks:
         assert first == end and first % 2 == 0 and 0 < count <= 60
@@ -36,7 +41,7 @@ def validate(source, generated):
         assert ((count + 1) & ~1) * 36 + ((ic + 3) & ~3) * 2 <= 70 * 36
         local = indices[ii:ii + ic]
         assert len(local) == ic and all(0 <= i < count for i in local)
-        assert bounds == tuple(fn(v[0][a] for v in vertices[first:first + count]) for fn in (min, max) for a in range(3))
+        assert bounds == tuple(rounder(fn(v[0][a] for v in vertices[first:first + count])*32/RENDER_SCALE) for fn,rounder in ((min,math.floor),(max,math.ceil)) for a in range(3))
         group_key = None
         for ti in range(0, ic, 3):
             key, triangle, points = originals[corner // 3]
@@ -49,24 +54,26 @@ def validate(source, generated):
             length = math.sqrt(sum(x * x for x in n))
             n = [x / length for x in n] if length > 1e-9 else [0, 1, 0]
             shade = round(255 * (.60 + .40 * max(0, sum(a * b for a, b in zip(n, [.25, .83, .49])))))
+            if material in overlays:shade=255
+            period=ground_size*32 if data['materials'][material]['name'].endswith('\\blood ground') else 1024
             offset = [math.floor(min(v[a] for v in triangle['uv'])) for a in range(2)]
             shifts = []
             for j in range(3):
                 p, rgb, uv = vertices[first + local[ti + j]]
-                assert p == tuple(round(x * 32) for x in points[j])
+                assert p == tuple(round(x * RENDER_SCALE) for x in points[j])
                 max_error = max(max_error, max(abs(x - shade) for x in rgb))
-                expected = [round((triangle['uv'][j][a] - offset[a]) * 1024) for a in range(2)]
+                expected = [round((triangle['uv'][j][a] - offset[a]) * period) for a in range(2)]
                 shift = tuple(expected[a] - uv[a] for a in range(2))
-                assert all(x % 1024 == 0 for x in shift)
+                assert all(x % period == 0 for x in shift)
                 shifts.append(shift)
             assert shifts[0] == shifts[1] == shifts[2]
             actual_uv=[vertices[first + local[ti + j]][2] for j in range(3)]
             assert all(max(v[a] for v in actual_uv)-min(v[a] for v in actual_uv)<=32767 for a in range(2))
             corner += 3
         end = first + ((count + 1) & ~1)
-    assert corner == len(data['triangles']) * 3 and max_error <= 8
+    assert corner == len(repaired) * 3 and max_error <= 8
     count = int(re.search(r'bg_vertex_count=(\d+)', text)[1])
-    assert count == end
+    assert count == end == len(vertices)
     return {'triangles': corner // 3, 'chunks': len(chunks), 'stored_vertices': end, 'max_original_rgb_delta': max_error}
 
 

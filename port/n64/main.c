@@ -126,6 +126,7 @@ static T3DViewport viewports[BG_FRAME_SLOTS][4] __attribute__((aligned(16)));
 static T3DViewport gun_viewports[BG_FRAME_SLOTS][4] __attribute__((aligned(16)));
 static T3DVertPacked scope_vertices[BG_FRAME_SLOTS][4][6] __attribute__((aligned(16)));
 static T3DMat4FP scope_matrices[BG_FRAME_SLOTS][4];
+static T3DMat4FP terrain_matrix;
 static T3DMat4FP transforms[BG_FRAME_SLOTS][4], guns[BG_FRAME_SLOTS][4], vehicle_matrices[BG_FRAME_SLOTS][BG_MAX_VEHICLES],
     pickup_matrices[BG_FRAME_SLOTS][BG_MAX_PICKUPS], projectile_matrices[BG_FRAME_SLOTS][BG_MAX_PROJECTILES], explosion_matrices[BG_FRAME_SLOTS][12];
 static T3DMat4FP held_matrices[BG_FRAME_SLOTS][4];
@@ -486,6 +487,10 @@ static rspq_block_t *record_indexed(const bg_chunk*chunk){
     return rspq_block_end();
 }
 static void init_scene(void){
+    const float terrain_scale=BG_SCALE/BG_TERRAIN_SCALE;
+    t3d_mat4fp_from_srt_euler(&terrain_matrix,(float[]){terrain_scale,terrain_scale,terrain_scale},
+        (float[]){0,0,0},(float[]){0,0,0});
+    data_cache_hit_writeback(&terrain_matrix,sizeof(terrain_matrix));
     assertf(bg_chunk_count<=512&&bg_material_count<=32,"Asset capacity exceeded");
     for(unsigned list=0;list<20;list++){
         unsigned count=(list+1)*3;
@@ -1189,6 +1194,8 @@ static void update_effects(float dt){
 #include "aim_qa.h"
 #elif defined(BG_HUD_QA)
 #include "hud_qa.h"
+#elif defined(BG_ENVIRONMENT_QA)
+#include "environment_qa.h"
 #elif defined(BG_GROUND_QA)
 #include "ground_qa.h"
 #elif defined(BG_GEOMETRY_QA)
@@ -1332,10 +1339,19 @@ static void draw_view(unsigned p){
     rdpq_mode_dithering(DITHER_NONE_NONE);t3d_light_set_ambient((uint8_t[]){255,255,255,255});t3d_light_set_count(0);
     rdpq_mode_tlut(TLUT_NONE);rdpq_mode_combiner(RDPQ_COMBINER_TEX_SHADE);rdpq_mode_persp(true);rdpq_mode_filter(FILTER_BILINEAR);
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_TEXTURED|T3D_FLAG_CULL_FRONT);
-    unsigned bound=~0u;bool palette_mode=false;
+    t3d_matrix_push(&terrain_matrix);
+    unsigned bound=~0u;bool palette_mode=false,overlay_mode=false;
     for(unsigned b=0;b<bg_chunk_count;b++){
         const bg_chunk*c=&bg_chunks[b];if(!t3d_frustum_vs_aabb_s16(&vp->viewFrustum,c->bounds,c->bounds+3))continue;
         if(bound!=c->material){
+            bool overlay=bg_texture_overlay[c->material];
+            if(overlay!=overlay_mode){
+                rdpq_mode_begin();
+                rdpq_mode_zbuf(true,!overlay);rdpq_mode_alphacompare(overlay?128:0);
+                rdpq_mode_blender(0);rdpq_mode_antialias(overlay?AA_NONE:AA_STANDARD);
+                __rdpq_mode_change_som(SOM_ZMODE_MASK,overlay?SOM_ZMODE_TRANSPARENT:SOM_ZMODE_OPAQUE);
+                rdpq_mode_end();overlay_mode=overlay;
+            }
             bool paletted=bg_texture_ci4[c->material];
             if(paletted!=palette_mode){rdpq_mode_tlut(paletted?TLUT_RGBA16:TLUT_NONE);palette_mode=paletted;}
             if(paletted)rdpq_tex_upload_tlut((uint16_t*)bg_ground_palette,0,16);
@@ -1346,6 +1362,11 @@ static void draw_view(unsigned p){
 #ifdef BG_PROFILE
         submitted_vertices+=(c->count+1)&~1u;
 #endif
+    }
+    t3d_matrix_pop(1);
+    if(overlay_mode){
+        rdpq_mode_begin();rdpq_mode_zbuf(true,true);rdpq_mode_alphacompare(0);rdpq_mode_blender(0);rdpq_mode_antialias(AA_STANDARD);
+        __rdpq_mode_change_som(SOM_ZMODE_MASK,SOM_ZMODE_OPAQUE);rdpq_mode_end();
     }
     if(palette_mode)rdpq_mode_tlut(TLUT_NONE);
     /* Extracted model faces are outward-wound. Terrain uses its own winding. */

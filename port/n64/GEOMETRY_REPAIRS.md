@@ -1,5 +1,9 @@
 # Menu, first-person geometry and Blood Gulch bases
 
+Later BSP overlay/depth repairs and the current 1/256 render grid are documented
+in [ENVIRONMENT_SURFACES.md](ENVIRONMENT_SURFACES.md). The measurements below
+are historical results for the original base-restoration pass.
+
 This pass repairs four problems reported during console playtesting. Local
 comparison images and native Ares screenshots are in
 `build/n64/geometry-audit/comparison.html`; extracted assets remain untracked.

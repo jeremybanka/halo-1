@@ -187,6 +187,7 @@ build/n64-python/bin/python port/n64/extract_assets.py \
 blender --background --factory-startup --python port/n64/reduce_assets.py -- \
   build/n64/assets/bloodgulch-raw.json build/n64/assets/bloodgulch-reduced.json
 build/n64-python/bin/python port/n64/extract_ground.py
+build/n64-python/bin/python port/n64/extract_environment_overlays.py
 build/n64-python/bin/python port/n64/pack_assets.py \
   build/n64/assets/bloodgulch-reduced.json
 ```

@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+from environment_geometry import RENDER_SCALE, conform_overlays
 from pack_terrain import TEXTURE_SIZE, UV_PERIOD, indexed_terrain
 
 ORIGIN = (68., -118., 0.)
@@ -54,8 +55,15 @@ def pack(source, output, ground_size=64, ground_style='blended'):
         ground_words=[(ix[i]<<12)|(ix[i+1]<<8)|(ix[i+2]<<4)|ix[i+3] for i in range(0,len(ix),4)]
     elif ground_size!=32:raise ValueError('Only 32 RGBA16 or 64 CI4 fit this single-upload terrain path')
     output.mkdir(parents=True,exist_ok=True)
+    overlay_report_path=source.parent/'environment-overlays/report.json'
+    overlays=json.loads(overlay_report_path.read_text())
+    for name,expected in {**overlays['inputs'],**overlays['files']}.items():
+        if hashlib.sha256((root/name).read_bytes()).hexdigest()!=expected:
+            raise ValueError('Stale environment overlays: '+name)
+    overlay_materials={i:m['name'].split('\\')[-1] for i,m in enumerate(data['materials']) if m['name'] in overlays['materials']}
+    render_triangles,overlay_geometry=conform_overlays(data['triangles'],overlay_materials)
     groups=collections.defaultdict(list)
-    for tri in data['triangles']:
+    for tri in render_triangles:
         p=[position(v) for v in tri['p']]
         center=[sum(v[i] for v in p)/3 for i in range(3)]
         groups[(tri['material'],int(center[0]//12),int(center[2]//12))].append((tri,p))
@@ -68,7 +76,7 @@ def pack(source, output, ground_size=64, ground_style='blended'):
         period=ground_size*32 if global_uv and tri['material']==ground else UV_PERIOD
         offset=[math.floor(min(v[i] for v in uv)) for i in range(2)]
         for point,tex in zip(p,uv):
-            pos=[round(v*SCALE) for v in point]
+            pos=[round(v*(RENDER_SCALE if global_uv else SCALE)) for v in point]
             if not all(-32768<=v<=32767 for v in pos):raise ValueError('Packed position overflow')
             st=[round((tex[i]-offset[i])*period) for i in range(2)]
             if not all(-32768<=v<=32767 for v in st):raise ValueError('Packed UV overflow')
@@ -78,12 +86,12 @@ def pack(source, output, ground_size=64, ground_style='blended'):
                 if any(absolute[i]-st[i]!=offset[i]*period for i in range(2)):
                     raise ValueError('Terrain UV rounding is not integer-wrap equivalent')
                 st=absolute
-            rgb=[round(255*light)]*3
+            rgb=[255 if global_uv and tri['material'] in overlay_materials else round(255*light)]*3
             if model=='spartan' and point[1]>.56 and point[0]>.025:rgb=[238,181,59]
             if model=='rifle':rgb=[round(v*light) for v in [104,112,107]]
             vertices.append((pos,rgb,st))
 
-    for key,triangles in sorted(groups.items()):
+    for key,triangles in sorted(groups.items(),key=lambda item:(item[0][0] in overlay_materials,item[0])):
         first=len(vertices)
         for tri,p in triangles:append_tri(tri,p,global_uv=True)
         expanded=vertices[first:];del vertices[first:]
@@ -96,19 +104,17 @@ def pack(source, output, ground_size=64, ground_style='blended'):
             unique=[(list(v[:3]),list(v[3:6]),list(v[6:])) for v in batch['vertices']]
             local=batch['indices'];vertices.extend(unique);count=len(unique)
             xyz=[v[0] for v in unique]
-            bounds=[min(v[i] for v in xyz) for i in range(3)]+[max(v[i] for v in xyz) for i in range(3)]
+            bounds=[math.floor(min(v[i] for v in xyz)*SCALE/RENDER_SCALE) for i in range(3)]+[math.ceil(max(v[i] for v in xyz)*SCALE/RENDER_SCALE) for i in range(3)]
             index_first=len(terrain_indices);terrain_indices.extend(local)
             while len(terrain_indices)%4:terrain_indices.append(0)
             if index_first>65535:raise ValueError('Terrain index-offset capacity exceeded')
             chunks.append((first,count,key[0],bounds,index_first,len(local)))
             if len(vertices)%2:vertices.append(vertices[-1])
     world_vertices=len(vertices)
-    model_ranges={}
-    for model,triangles in data['models'].items():
-        first=len(vertices)
-        for tri in triangles:append_tri(tri,[position(v,(0,0,0)) for v in tri['p']],model)
-        model_ranges[model]=(first,len(vertices)-first)
-        if len(vertices)%2:vertices.append(vertices[-1])
+    # These prototype models predate the dedicated model/animation banks.
+    # They were never referenced, but sharing bg_vertices kept their bytes
+    # resident despite linker garbage collection.
+    legacy_bytes=sum(((len(triangles)*3+1)&~1)*16 for triangles in data['models'].values())
     lines=['/* Generated from local game data. Do not commit. */','#include <t3d/t3d.h>','#include "world.h"']
     lines.append('T3DVertPacked bg_vertices[] __attribute__((aligned(16))) = {')
     def rgba(rgb):return (rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255
@@ -122,13 +128,15 @@ def pack(source, output, ground_size=64, ground_style='blended'):
         lines.append('{'+f'{first},{count},{material},'+'{'+','.join(map(str,bounds))+'},'+f'{index_first},{index_count}'+'},')
     lines+=['};']
     lines.append('int16_t bg_chunk_indices[] __attribute__((aligned(16)))={'+','.join(map(str,terrain_indices))+'};')
-    for name,(first,count) in model_ranges.items():
-        lines.append(f'T3DVertPacked *bg_{name} = &bg_vertices[{first//2}];')
-        lines.append(f'const unsigned bg_{name}_vertices={count};')
+    lines.append('const uint8_t bg_texture_overlay[]={'+','.join(str(int(i in overlay_materials)) for i in range(len(data['materials'])))+'};')
     lines.append('uint16_t bg_textures[][32*32] __attribute__((aligned(16)))={')
     for material,mat in enumerate(data['materials']):
         if material==ground and ground_size==64:
             lines.append('{'+','.join(hex(v) for v in ground_words)+'},')
+            continue
+        if material in overlay_materials:
+            texture=Image.open(root/overlays['materials'][mat['name']]['texture']).convert('RGBA')
+            lines.append('{'+','.join(hex(((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|int(a>=128)) for r,g,b,a in texture.get_flattened_data())+'},')
             continue
         if mat['texture']:
             texture=ground_image if material==ground else Image.open(mat['texture']).convert('RGB')
@@ -193,21 +201,21 @@ def pack(source, output, ground_size=64, ground_style='blended'):
     (output/'collision_data.c').write_text('\n'.join(lines)+'\n')
     report={'source_sha256':data['source_sha256'],'original_triangles':data['original_triangles'],
             'architecture_triangles':data.get('architecture_triangles',0),
-            'render_triangles':len(collision),'chunks':len(chunks),'world_vertex_bytes':world_vertices*16,
-            'world_unique_vertices':sum(c[1] for c in chunks),'world_corner_count':len(collision)*3,
+            'render_triangles':len(render_triangles),'render_scale':RENDER_SCALE,'overlay_geometry':overlay_geometry,'chunks':len(chunks),'world_vertex_bytes':world_vertices*16,
+            'world_unique_vertices':sum(c[1] for c in chunks),'world_corner_count':len(render_triangles)*3,
             'world_index_bytes':len(terrain_indices)*2,
             'world_color_max_delta':8,'world_uv_period':UV_PERIOD,'world_max_batch_indices':max(c[5] for c in chunks),
             'textures':len(data['materials']),'texture_bytes':len(data['materials'])*2048,
             'ground_size':ground_size,'ground_style':ground_style,'ground_format':'CI4' if ground_size==64 else 'RGBA16',
             'ground_palette_bytes':32,'ground_bake':str(ground_path),
-            'ground_inputs':{**ground_report['inputs'],**{str(p.resolve().relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
-                            for p in [Path(__file__),Path(__file__).with_name('pack_terrain.py'),source,ground_path,ground_path.parent/'report.json']}},
+            'ground_inputs':{**ground_report['inputs'],**overlays['inputs'],**overlays['files'],**{str(p.resolve().relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
+                            for p in [Path(__file__),Path(__file__).with_name('pack_terrain.py'),Path(__file__).with_name('environment_geometry.py'),overlay_report_path,source,ground_path,ground_path.parent/'report.json']}},
             'render_sha256':hashlib.sha256((output/'render_data.c').read_bytes()).hexdigest(),
             'collision_bytes':len(collision)*12+len(collision_vertices)*12+len(indices)*2+GRID*GRID*4,
             'collision_shared_vertices':len(collision_vertices),
             'collision_corner_bytes_saved':len(collision)*24-len(collision_vertices)*12,
             'collision_max_cell':max(map(len,cells)),
-            'spartan_triangles':model_ranges['spartan'][1]//3,'rifle_triangles':model_ranges['rifle'][1]//3}
+            'unused_legacy_vertex_bytes_removed':legacy_bytes}
     (output/'asset-report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report,indent=2))
 

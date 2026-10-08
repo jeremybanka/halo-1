@@ -35,6 +35,8 @@ int main(void){
     }
     assert(roundf(65535*norm*8)==65536*norm*8);
     float n0,f0,n1,f1;bg_camera_depth(false,&n0,&f0);bg_camera_depth(true,&n1,&f1);
-    assert(f1==f0*2&&n1==n0*2&&f0/n0==f1/n1);
-    puts("PASS: source cubic interpolation, all seat tracks/pitch extremes, yaw basis, exact zoom magnification and depth ratio");
+    assert(f1==f0*2&&n1==n0);
+    assert(n0/32.f<.2f); /* Remains inside the original on-foot capsule radius. */
+    assert(f0/n0<6200.f/1.4f&&f1/n1<12400.f/2.8f);
+    puts("PASS: source cubic interpolation, all seat tracks/pitch extremes, yaw basis, exact zoom magnification and world depth precision");
 }

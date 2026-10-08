@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #define BG_SCALE 32.0f
+#define BG_TERRAIN_SCALE 256.0f
 #define BG_GRID 24
 /* Shared immutable float corners retain the exact collision coordinates.
  * Three 32-bit pointers replace nine repeated floats on the N64. */
@@ -30,6 +31,6 @@ extern const bg_chunk bg_chunks[];
  * and references at most120 triangle corners. */
 extern int16_t bg_chunk_indices[];
 extern const uint8_t bg_texture_sizes[], bg_texture_ci4[];
+extern const uint8_t bg_texture_overlay[];
 extern const uint16_t bg_ground_palette[16];
-extern const unsigned bg_spartan_vertices, bg_rifle_vertices;
 #endif

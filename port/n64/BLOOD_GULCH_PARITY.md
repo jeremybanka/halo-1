@@ -27,6 +27,8 @@ Old benchmark results do not certify a newer build.
   - [x] Current four-player performance check and necessary optimization:
         26.9 overall / 28.8 combat / 25.1 vehicle section FPS in Ares.
         These are averages; frame-time spikes and hardware acceptance remain.
+  - [ ] Recover release memory headroom before more resident features: the full
+        four-player frontend lifecycle currently shows 12 KiB free in combat.
 - [ ] Spawn selection: replace player-index/team cycling with appropriate Slayer
       spawn eligibility and threat-aware selection.
 - [ ] Dropped weapons/grenades and pickup ammunition conservation.

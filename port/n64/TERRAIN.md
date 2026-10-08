@@ -76,5 +76,14 @@ Exact ROM identities, captures and timing results: `build/n64/terrain-audit/`.
 The quiet four-player VI replay measured 26.9 FPS overall, 28.8 combat and
 25.1 vehicles on the 4 MiB / four-display-surface build. P95 overall pose
 interval is 66.8 ms; maximum is 234.0 ms (vehicle maximum 66.9 ms). Live free
-heap is 53 KiB. These section averages do not establish a sustained minimum
+heap is 53 KiB in the timing fixture. The full frontend lifecycle fixture shows
+12 KiB during four-player combat, so release memory margin needs attention
+before adding more resident features. These section averages do not establish a sustained minimum
 or physical-console acceptance. The dedicated 30 FPS/latency pass remains open.
+
+The four-buffer release-memory frontend fixture completes all 37 scripted
+steps. The four-buffer RDP-instrumented frontend fixture reaches a black screen
+at match entry; do not treat that attempt as a pass. Rendering validation is
+run separately with three display surfaces, while the release lifecycle and
+quiet performance measurements retain four. Debug instrumentation overhead
+must not be mistaken for the release memory budget.

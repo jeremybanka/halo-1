@@ -41,8 +41,8 @@ The current movement/aiming pass with cached interaction frames measures
 quiet four-player Ares replay, with 108 KiB heap remaining. These are section
 averages, not a sustained minimum: 95th-percentile pose intervals are 66.8 ms
 overall and the worst interval is 334.2 ms. The final 30 FPS/latency pass remains
-open. Use four display surfaces: the five-surface benchmark stalled at startup
-with this expanded runtime. See [MOVEMENT.md](MOVEMENT.md) and
+open. Four display surfaces recover 150 KiB compared with five, providing room
+for the pose cache and useful heap margin. See [MOVEMENT.md](MOVEMENT.md) and
 `build/n64/movement-audit/` for videos, exact ROM hashes and timing evidence.
 Earlier timing results describe older builds.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →

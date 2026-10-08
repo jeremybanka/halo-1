@@ -17,6 +17,7 @@ extern const bg_rom_pose bg_ready_poses[9],bg_ready_ar_digits,bg_ready_scope,bg_
 extern const uint16_t bg_ready_needle_vertices[];
 extern const unsigned bg_interaction_scratch_bytes;
 void bg_interaction_render_init(void);
+void bg_interaction_render_release(void);
 void bg_interaction_pose(T3DVertPacked *out,const bg_rom_pose *pose,float seconds,bool loop);
 void bg_interaction_points(int16_t (*out)[3],const bg_rom_pose *pose,float seconds);
 void bg_interaction_needles(T3DVertPacked *out,unsigned ammo,float seconds);

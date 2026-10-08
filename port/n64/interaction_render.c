@@ -1,6 +1,7 @@
 #include <libdragon.h>
 #include <math.h>
 #include <malloc.h>
+#include <string.h>
 #include "asset_interaction.h"
 #include "asset_firstperson.h"
 #include "interaction_cache.h"
@@ -14,6 +15,11 @@ void bg_interaction_render_init(void){
     scratch=memalign(16,bg_pose_cache_bytes(bg_interaction_scratch_bytes));
     assertf(scratch,"Interaction frame scratch allocation");
     cache.storage=scratch;cache.stride=bg_interaction_scratch_bytes;
+}
+void bg_interaction_render_release(void){
+    /* Only the CPU reads the cached endpoints; RSP geometry contains copies.
+     * Menus can reclaim this working set, and the next match reloads lazily. */
+    free(scratch);scratch=NULL;memset(&cache,0,sizeof(cache));
 }
 static void read_frames(void*out,uint32_t offset,uint32_t bytes){
     data_cache_hit_invalidate(out,bytes);dma_read(out,rom+offset,bytes);

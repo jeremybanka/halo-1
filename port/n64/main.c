@@ -1879,6 +1879,7 @@ int main(void){
             }
         }
         if(front_active()){
+            bg_interaction_render_release();
 #ifdef BG_PACED30
             presentation_mode(false);
 #endif

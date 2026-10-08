@@ -87,8 +87,8 @@ does not. Overall P95 pose interval is 66.8 ms; the maximum is 334.2 ms.
 Average input-sample-to-display latency is 92 ms, with a 345 ms maximum.
 Real-console acceptance and the final 30 FPS/latency pass remain open.
 
-Four display surfaces replace the previous five-surface recommendation, which
-stalled at startup in this benchmark. The 16 KiB command queue remains; doubling
+Four display surfaces replace the previous five-surface recommendation and
+recover 150 KiB for the working set. The 16 KiB command queue remains; doubling
 it did not improve the vehicle section. Without the pose cache the four-surface
 run measured 26.8 overall / 28.7 combat / 24.9 vehicles, with 161 KiB free heap.
 
@@ -97,6 +97,7 @@ run measured 26.8 overall / 28.7 combat / 24.9 vehicles, with 161 KiB free heap.
 Adjacent frames are fetched in one transfer and reused while their endpoints
 remain the same; interpolation, mesh detail and animation timing are unchanged.
 The cache is consumed synchronously into the existing fenced geometry slots.
+It is released while full-screen menus are active and reloaded lazily in play.
 Host sanitizer tests compare every fetched byte with uncached data through
 reuse, length changes and 10,000 evictions. Four-player lifecycle validation
 checks the actual renderer and menu memory transitions separately.

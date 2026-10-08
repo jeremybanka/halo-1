@@ -5,7 +5,7 @@ static unsigned model_qa_page;
 static const char *const model_qa_labels[]={
     "HUD: AR 60 / 59 / 20 / 0", "HUD: PISTOL / NEEDLER / SHOTGUN / SNIPER",
     "HUD: ENERGY / HEAT / ROCKET / RESPAWN", "HUD: SCOPES / WARNINGS",
-    "HUD: ONE PLAYER", "HUD: TWO PLAYERS"};
+    "HUD: ONE PLAYER", "HUD: TWO PLAYERS", "HUD: VEHICLE RETICLES"};
 static bool model_qa_firstperson(void){return true;}
 static void model_qa_camera(unsigned p,T3DVec3 *eye,T3DVec3 *target){(void)p;(void)eye;(void)target;}
 static void model_qa_stage(uint64_t now){
@@ -14,7 +14,7 @@ static void model_qa_stage(uint64_t now){
     (void)now;model_qa_page=BG_HUD_QA_PAGE;
 #else
     static uint64_t start;if(!start)start=now;
-    model_qa_page=(unsigned)((now-start)/20000000)%6;
+    model_qa_page=(unsigned)((now-start)/20000000)%7;
 #endif
     if(previous==model_qa_page)return;
     previous=model_qa_page;bg_reset();views=model_qa_page==4?1:model_qa_page==5?2:4;
@@ -38,6 +38,12 @@ static void model_qa_stage(uint64_t now){
             if(i<2)p->zoom=i+1;
             p->shield=(float[]){100,160,0,35}[i];p->health=(float[]){100,100,22,60}[i];
             if(i==2)p->reload=.5f;
+        }
+        if(model_qa_page==6)for(unsigned v=0;v<bg_vehicle_count;v++){
+            if(bg_vehicles[v].kind!=(int)i)continue;
+            bg_vehicles[v].active=true;p->vehicle=v;p->seat=i==BG_V_WARTHOG?1:0;
+            bg_vehicles[v].occupants[p->seat]=i;memcpy(p->pos,bg_vehicles[v].pos,sizeof(p->pos));
+            break;
         }
     }
 }

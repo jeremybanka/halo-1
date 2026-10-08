@@ -77,9 +77,6 @@ static void mode(color_t tint) {
 static void blit_picture(unsigned id,float x,float y,float scale) {
     const bg_hud_image *im=&bg_hud_images[id];
     x+=im->x*scale;y+=im->y*scale;
-    bool point=(id>=BG_H_RETICLE_AR&&id<=BG_H_RETICLE_ROCKET)||
-        (id>=BG_H_RETICLE_WARTHOG&&id<=BG_H_RETICLE_BANSHEE);
-    if(point){x=roundf(x);y=roundf(y);set_filter(true);}
     /* Moving radar blips are deliberately uncached: their positions can fill
      * an unbounded number of entries. Full caches fall back to ordinary blits. */
     if (id!=BG_H_BLIP) {
@@ -98,14 +95,14 @@ static void blit_picture(unsigned id,float x,float y,float scale) {
             *b=(hud_blit){.id=id,.x=x,.y=y,.scale=scale};
             rspq_block_begin();
             rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
-                .scale_x=scale,.scale_y=scale,.filtering=!point});
+                .scale_x=scale,.scale_y=scale,.filtering=true});
             b->block=rspq_block_end();
             blit_next[i]=0;*link=i+1;
             rspq_block_run(b->block);return;
         }
     }
     rdpq_tex_blit(&images[id],x,y,&(rdpq_blitparms_t){
-        .scale_x=scale,.scale_y=scale,.filtering=!point});
+        .scale_x=scale,.scale_y=scale,.filtering=true});
 }
 
 static void picture(unsigned id, float x, float y, float scale, color_t tint) {
@@ -122,10 +119,29 @@ static void pixel(int x,int y,int w,int h,color_t c) {
 static const color_t hud_cyan={100,220,255,255};
 static const color_t hud_dim={25,62,77,255};
 static const color_t hud_shadow={3,13,22,235};
+static const color_t hud_backing={3,13,22,150};
 static void hud_sprite(int u,int v,int w,int h,int x,int y,color_t color){
     if(w<=0||h<=0)return;
     set_combiner(1);rdpq_set_prim_color(color);
     rdpq_texture_rectangle(TILE0,x,y,x+w,y+h,u,v);
+}
+static void hud_reticle(unsigned id,int cx,int cy){
+    unsigned q=id>=BG_H_RETICLE_WARTHOG?8+id-BG_H_RETICLE_WARTHOG:id-BG_H_RETICLE_AR;
+    unsigned lower=q==2?12:q==11?13:q==9?14:q;
+    set_combiner(1);rdpq_set_prim_color(hud_cyan);
+    /* Even 24px footprint puts its geometric center exactly on the original
+     * integer aim anchor. Each quadrant maps 12 texels to 12 screen pixels.
+     * Explicit negative UV steps mirror texels without flipped-rectangle
+     * endpoint adjustments or fractional scaling of a cropped Xbox bitmap. */
+    for(unsigned bottom=0;bottom<2;bottom++){
+        unsigned tile=bottom?lower:q;
+        int u=(tile%5)*12,v=80+(tile/5)*12;
+        bool flip_y=bottom&&lower==q;
+        if(flip_y)v+=11;
+        int y=cy+(bottom?0:-12);
+        rdpq_texture_rectangle_raw(TILE0,cx-12,y,cx,y+12,u,v,1,flip_y?-1:1);
+        rdpq_texture_rectangle_raw(TILE0,cx,y,cx+12,y+12,u+11,v,-1,flip_y?-1:1);
+    }
 }
 static int hud_text_width(const char *text){return (int)strlen(text)*5-1;}
 static void hud_text(const char *text,int x,int y,color_t color){
@@ -134,6 +150,11 @@ static void hud_text(const char *text,int x,int y,color_t color){
         rdpq_set_prim_color(shadow?hud_shadow:color);
         for(unsigned i=0;text[i];i++){
             int glyph=hud_glyph(text[i]);if(glyph<0)continue;
+            if(shadow&&glyph<10){
+                int px=x+i*5-1,py=y-1;
+                rdpq_texture_rectangle(TILE0,px,py,px+6,py+8,glyph*6,116);
+                continue;
+            }
             int px=x+i*5+shadow,py=y+shadow;
             rdpq_texture_rectangle(TILE0,px,py,px+4,py+6,(glyph%10)*6,(glyph/10)*8);
         }
@@ -160,7 +181,7 @@ static void hud_vitals(const bg_player *p,int x,int y){
         pixel(x+2,y+2,fill,3,RGBA32(248,221,104,255));
     }
     /* Eight upright health cells, aligned to the shield's right edge. */
-    hud_sprite(0,67,31,3,x+14,y+9,hud_shadow);
+    pixel(x+12,y+7,33,5,hud_backing);
     hud_sprite(0,67,31,3,x+13,y+8,hud_dim);
     int cells=(int)ceilf(fminf(fmaxf(p->health,0),100)*.08f);
     if(cells)hud_sprite(0,67,cells*4-1,3,x+13,y+8,
@@ -190,7 +211,7 @@ static void hud_ammunition(const bg_player *p,unsigned weapon,int x,int y){
         return;
     }
     if(weapon==BG_W_AR){
-        hud_sprite(0,32,39,11,x+1,my+1,hud_shadow);
+        pixel(x-1,my-1,41,13,hud_backing);
         hud_sprite(0,32,39,11,x,my,hud_dim);
         /* Twenty columns, each with three rounds: deplete right to left,
          * then bottom to top within a column, as in the source ammo meter.
@@ -211,7 +232,7 @@ static void hud_ammunition(const bg_player *p,unsigned weapon,int x,int y){
         else if(weapon==BG_W_ROCKET){v=61;step=21;w=18;}
         int full=(count-1)*step+w,filled=ammo?(ammo-1)*step+w:0;
         if(filled>full)filled=full;
-        hud_sprite(0,v,full,5,x+1,my+1,hud_shadow);
+        pixel(x-1,my-1,full+2,7,hud_backing);
         hud_sprite(0,v,full,5,x,my,hud_dim);
         if(filled)hud_sprite(0,v,filled,5,x,my,hud_cyan);
         hud_number(p->reserve<0?0:p->reserve,x,my+7,3,hud_cyan);
@@ -351,21 +372,17 @@ void bg_hud_draw(unsigned index,int x,int y,int width,int height,bg_control_styl
 
     if (p->health>0) {
         if (scoped(p)) scope_marks(p,aim_x,aim_y,height);
-        float reticle_scale=scale*.85f;
-        int id=reticles[weapon];
-        if (!personal) id=vehicle->kind==BG_V_WARTHOG&&p->seat==0?-1:
-            vehicle_reticles[vehicle->kind];
-        if (id>=0) {
-            const bg_hud_image *reticle=&bg_hud_images[id];
-            picture(id,aim_x-reticle->w*reticle_scale*.5f,
-                aim_y-reticle->h*reticle_scale*.5f,reticle_scale,hud_cyan);
-        }
         if (!p->zoom) radar(index,x+margin,y+height-margin-bg_hud_images[BG_H_MOTION_BG].h*scale,scale);
     }
 
     /* Pixel HUD: all coordinates and glyph extents are native integers. */
     set_filter(true);set_combiner(1);
     rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
+    if(p->health>0){
+        int id=personal?(int)reticles[weapon]:
+            vehicle->kind==BG_V_WARTHOG&&p->seat==0?-1:vehicle_reticles[vehicle->kind];
+        if(id>=0)hud_reticle(id,(int)roundf(aim_x),(int)roundf(aim_y));
+    }
     int left=x+margin,top=y+margin,right=x+width-margin;
     hud_vitals(p,right-46,top);
     if(personal)hud_ammunition(p,weapon,left,top);

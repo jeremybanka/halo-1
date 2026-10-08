@@ -113,7 +113,7 @@ exits with a short re-entry cooldown.
   weapon parts move; tank hull and turret aim separately.
 - Compact cyan pixel HUD: upright 4×6 type, flatter shield/health bars,
   grenade silhouettes, and all 60 individual AR rounds in three rows.
-  Original weapon/vehicle reticle silhouettes are point sampled; the original
+  Weapon/vehicle reticles use symmetric pixel masks based on the originals; the original
   multiplayer motion sensor retains its artwork, opacity, size and placement.
   Pistol/sniper zoom uses reduced original masks and sniper markings with
   native 2×/10× labels. See [HUD_PIXELS.md](HUD_PIXELS.md).

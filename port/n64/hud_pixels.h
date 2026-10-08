@@ -1,9 +1,10 @@
 #ifndef BG_HUD_PIXELS_H
 #define BG_HUD_PIXELS_H
 /* Native 4x6 upright type and one-bit HUD silhouettes in a single IA4 bank.
- * 2,560 bytes, immutable after init: safe with queued, multi-buffered frames.
+ * 4,096 bytes, immutable after init: safe with queued, multi-buffered frames.
  * No runtime resampling, per-frame bitmap writes, or glyph allocations. */
-enum { HUD_PIXEL_W=64, HUD_PIXEL_H=80 };
+#include "hud_reticles.h"
+enum { HUD_PIXEL_W=64, HUD_PIXEL_H=128 };
 static uint8_t hud_pixels[HUD_PIXEL_W*HUD_PIXEL_H/2] __attribute__((aligned(16)));
 static const uint8_t hud_font[][6]={
     {6,9,9,9,9,6}, {2,6,2,2,2,7}, {6,9,1,2,4,15},
@@ -53,5 +54,12 @@ static void hud_pixels_init(void){
     /* Halo-style shield silhouette without the long diagonal tail. */
     hud_ink_box(1,72,44,1);hud_ink_box(1,78,44,1);
     hud_ink_box(0,73,1,5);hud_ink_box(45,73,1,5);
+    for(unsigned q=0;q<15;q++)for(unsigned y=0;y<12;y++)for(unsigned x=0;x<12;x++)
+        if(hud_reticle_quadrants[q][y]&(1u<<(11-x)))
+            hud_ink((q%5)*12+x,80+(q/5)*12+y);
+    /* Centered 1px digit outlines avoid a directional shadow making the
+     * upright counters appear italic. Ink and outline each cost one quad. */
+    for(unsigned g=0;g<10;g++)for(unsigned y=0;y<6;y++)for(unsigned x=0;x<4;x++)
+        if(hud_font[g][y]&(8u>>x))hud_ink_box(g*6+x,116+y,3,3);
 }
 #endif

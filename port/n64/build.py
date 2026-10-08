@@ -40,7 +40,7 @@ def main():
     mode.add_argument('--weapon-qa', action='store_true', help='Render remaining Xbox weapons in four poses and four world views')
     mode.add_argument('--ground-qa', action='store_true', help='Render matching ground-color and texture-resolution camera fixtures')
     mode.add_argument('--hud-qa', action='store_true', help='Render HUD ammunition, damage, scope and viewport-size fixtures')
-    parser.add_argument('--hud-qa-page', type=int, choices=range(6), help='Hold one HUD QA page instead of cycling; requires --hud-qa')
+    parser.add_argument('--hud-qa-page', type=int, choices=range(7), help='Hold one HUD QA page instead of cycling; requires --hud-qa')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
     mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
     mode.add_argument('--destruction-qa', action='store_true', help='Script four-angle vehicle destruction, wreck settling, blinking and respawn')

@@ -103,4 +103,28 @@ static void flips(void){
         p->pos[0]+=10;assert(bg_interaction_target(0).kind!=BG_USE_FLIP);
     }
 }
-int main(void){pickup();seats();flips();puts("PASS: weapon holds, immediate seat use, Warthog/Ghost/Banshee flips, contention, ready locks and reservations");}
+static void rollover(void){
+    reset();float pos[3]={-12,bg_floor(-12,5,100)+1,5};
+    int vi=bg_add_vehicle(BG_V_WARTHOG,pos,0);bg_vehicle*v=&bg_vehicles[vi];
+    for(unsigned seat=0;seat<3;seat++){
+        v->occupants[seat]=seat;bg_players[seat].vehicle=vi;bg_players[seat].seat=seat;
+        bg_players[seat].seat_state=BG_SEAT_STABLE;
+    }
+    /* A momentary tilt recovers without ejecting anyone. */
+    for(unsigned t=0;t<4;t++){v->pitch=3.14159265f;v->physics_valid=false;tick(1);}
+    assert(v->overturned_ticks==4&&bg_players[0].vehicle==vi);
+    v->pitch=0;v->physics_valid=false;tick(1);
+    assert(v->overturned_ticks==0&&bg_players[0].vehicle==vi);
+    /* Sustained rollover releases driver, gunner and passenger together. */
+    for(unsigned t=0;t<6;t++){v->pitch=3.14159265f;v->physics_valid=false;tick(1);}
+    unsigned exits=0;for(unsigned e=0;e<bg_event_count;e++)exits+=bg_events[e].kind==BG_EVENT_EXIT;
+    assert(exits==3);
+    for(unsigned seat=0;seat<3;seat++){
+        bg_player*p=&bg_players[seat];assert(p->vehicle<0&&v->occupants[seat]<0);
+        assert(p->health>0&&p->seat_state==BG_SEAT_STABLE&&p->weapon_ready>0);
+        float floor=bg_floor(p->pos[0],p->pos[2],p->pos[1]+.8f);
+        assert(p->pos[1]>=floor&&p->vy>=0&&p->interact_cooldown>0);
+        assert(p->exit_grace>0&&p->exit_vehicle==vi);
+    }
+}
+int main(void){pickup();seats();flips();rollover();puts("PASS: weapon holds, immediate seat use, Warthog/Ghost/Banshee flips, contention, ready locks and reservations");}

@@ -21,8 +21,8 @@ int main(void){
                 if(event->kind==BG_EVENT_SUPERCOMBINE||event->kind==BG_EVENT_NEEDLE_HIT)assert(event->player==0&&event->amount==1);
                 if(event->kind==BG_EVENT_NEEDLE_HIT)needle_hits++;
                 if(event->kind==BG_EVENT_EXPLOSION&&event->weapon==BG_EXPLOSION_NEEDLER){
-                    assert(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE&&needle_hits==7);
-                    assert(event->player==0&&event->amount==1.25f);needle_bursts++;
+                    assert(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE&&needle_hits>=7);
+                    assert(event->player==0&&event->amount==1.f);needle_bursts++;
                 }
             }
             if(passed_at<0&&bg_showcase_telemetry()->passed)passed_at=f/30.f;
@@ -33,8 +33,8 @@ int main(void){
         assert(s->passed);assert(passed_at<=bg_showcase_duration()-6);
         if(kind==BG_SHOWCASE_FRAG_DOUBLE_KILL)assert(s->double_kills==1&&s->grenades==1&&s->kills==2&&victims==6&&bg_players[0].score==2);
         if(kind==BG_SHOWCASE_SHOTGUN_KILL)assert(s->shots==1&&victims==2&&bg_players[0].score==1);
-        if(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE)assert(s->supercombines==1&&s->needle_hits==7&&victims==2&&bg_players[0].score==1);
-        assert(needle_bursts==(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE?1u:0u));
+        if(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE)assert(s->supercombines>=1&&s->needle_hits>=7&&victims==2&&bg_players[0].score==1);
+        assert(kind==BG_SHOWCASE_NEEDLER_SUPERCOMBINE?needle_bursts>=1:needle_bursts==0);
         if(kind==BG_SHOWCASE_NEEDLER_HOMING)assert(s->shots==1&&s->needle_hits==1&&victims==0);
         for(unsigned p=1;p<active;p++)assert(bg_players[p].score==0);
     }

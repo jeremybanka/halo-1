@@ -7,8 +7,10 @@
 void bg_vehicle_world_release(void);
 /* Shared original polygon/BVH ray service in demake coordinates. */
 float bg_world_raycast(const float origin[3],const float direction[3],float distance);
+float bg_world_raycast_normal(const float origin[3],const float direction[3],float distance,float normal[3]);
 void bg_vehicle_physics_prepare(void);
 void bg_vehicle_physics_step(unsigned index,const bg_input *input);
+bool bg_vehicle_airborne(unsigned index);
 void bg_vehicle_physics_wreck(unsigned index);
 
 void bg_vehicle_physics_explosion(unsigned index,const float origin[3],int projectile_kind);

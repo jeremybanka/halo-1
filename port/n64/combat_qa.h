@@ -3,6 +3,28 @@
 /* Identical staging in before/after ROMs; all attacks use production input. */
 static void combat_qa_input(bg_input in[4],float time){
     static int previous=-1;int cycle=(int)(time/12);float t=time-cycle*12;
+#if BG_COMBAT_QA == 4
+    static bool tipped;
+    if(cycle!=previous){
+        previous=cycle;tipped=false;bg_reset();bg_set_players(4);bg_set_score_limit(1000);
+        views=4;bg_vehicle_count=bg_pickup_count=0;reset_view_state();
+        float pos[3]={-12,bg_floor(-12,5,100)+.5f,5};
+        bg_add_vehicle(BG_V_WARTHOG,pos,0);
+        for(unsigned p=0;p<3;p++){
+            bg_players[p].vehicle=0;bg_players[p].seat=p;bg_players[p].seat_state=BG_SEAT_STABLE;
+            bg_vehicles[0].occupants[p]=p;bg_players[p].yaw=0;bg_players[p].pitch=0;
+        }
+        bg_players[3].pos[0]=-15;bg_players[3].pos[2]=5;
+        bg_players[3].pos[1]=bg_floor(-15,5,100)+.015f;bg_players[3].yaw=0;bg_players[3].pitch=0;
+    }
+    memset(in,0,sizeof(bg_input)*4);
+    if(t>=2&&!tipped){
+        /* Staged inversion; seat release and recovery run unmodified. */
+        tipped=true;bg_vehicles[0].pitch=3.14159265f;bg_vehicles[0].physics_valid=false;
+        bg_vehicles[0].pos[1]+=.6f;
+    }
+    return;
+#endif
     if(cycle!=previous){
         previous=cycle;bg_reset();bg_set_players(4);bg_set_score_limit(1000);
         views=4;bg_vehicle_count=bg_pickup_count=0;reset_view_state();
@@ -35,6 +57,6 @@ static void combat_qa_input(bg_input in[4],float time){
     }
 }
 static const char*combat_qa_title(void){
-    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK"}[BG_COMBAT_QA];
+    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK","ROLLOVER: THREE OCCUPANTS"}[BG_COMBAT_QA];
 }
 #endif

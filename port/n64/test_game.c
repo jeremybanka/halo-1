@@ -118,7 +118,7 @@ int main(void){
     /* Finite reserve reload; shotgun reloads one shell at a time. */
     reset();bg_players[0].ammo=30;bg_players[0].reserve=5;in[0].reload=true;ticks(1);in[0].reload=false;ticks(105);
     assert(bg_players[0].ammo==35&&bg_players[0].reserve==0);
-    equip(BG_W_SHOTGUN);bg_players[0].ammo=0;in[0].reload=true;ticks(1);in[0].reload=false;ticks(13);
+    equip(BG_W_SHOTGUN);bg_players[0].ammo=0;in[0].reload=true;ticks(1);in[0].reload=false;ticks(15);
     assert(bg_players[0].ammo==1&&bg_players[0].reload>0);
     /* Each weapon has a distinct bounded path and consumes the correct magazine. */
     for(int w=0;w<BG_WEAPON_COUNT;w++){
@@ -139,17 +139,17 @@ int main(void){
     reset();equip(BG_W_PLASMA_RIFLE);in[0].fire=true;ticks(150);assert(bg_players[0].overheated);
     in[0].fire=false;ticks(150);assert(!bg_players[0].overheated&&bg_players[0].heat==0);
     /* Needles supercombine, rockets apply radial damage, and melee is gated. */
-    duel();equip(BG_W_NEEDLER);in[0].fire=true;ticks(40);assert(bg_players[1].health==0);
+    duel();equip(BG_W_NEEDLER);in[0].fire=true;ticks(115);assert(bg_players[1].health==0);
     /* A needle that kills on its delayed detonation still credits its owner;
      * the victim's retained owner must be cleared by death and respawn. */
     duel();equip(BG_W_NEEDLER);bg_players[1].shield=0;bg_players[1].shield_delay=6;bg_players[1].health=9;
     in[0].fire=true;ticks(1);in[0].fire=false;ticks(6);
-    assert(bg_players[1].health==3&&bg_players[1].needles==1&&bg_players[1].needle_owner==0&&bg_players[0].score==0);
+    assert(bg_players[1].health==9&&bg_players[1].needles==1&&bg_players[1].needle_owner==0&&bg_players[0].score==0);
     ticks(40);assert(bg_players[1].health==0&&bg_players[0].score==1&&bg_players[1].needle_owner==-1);
     ticks(100);assert(bg_players[1].health==100&&bg_players[1].needles==0&&bg_players[1].needle_owner==-1);
     duel();equip(BG_W_ROCKET);in[0].fire=true;ticks(5);assert(bg_players[1].health==0);
-    duel();in[0].melee=true;ticks(1);in[0].melee=false;assert(bg_players[1].shield<100);
-    ticks(22);in[0].melee=true;ticks(1);in[0].melee=false;assert(bg_players[1].health<100);
+    duel();in[0].melee=true;ticks(1);in[0].melee=false;assert(bg_players[1].shield==100);ticks(4);assert(bg_players[1].shield<100);
+    ticks(25);in[0].melee=true;ticks(1);in[0].melee=false;ticks(4);assert(bg_players[1].health<100);
     /* Sticky plasma grenades follow a living target before their fuse expires. */
     duel();bg_projectile *sticky=bg_projectile_create();assert(sticky);
     *sticky=(bg_projectile){.active=true,.kind=BG_P_PLASMA_GRENADE,.owner=0,.attached=-1,.life=2.5f,.damage=260,.radius=2.2f};
@@ -176,13 +176,13 @@ int main(void){
      * weapon; the identical damage radius must not be used to infer the sound. */
     for(int kind=BG_P_FRAG;kind<=BG_P_PLASMA_GRENADE;kind++){
         reset();equip(BG_W_SNIPER);bg_clear_events();bg_projectile*q=bg_projectile_create();assert(q);
-        *q=(bg_projectile){.active=true,.kind=kind,.owner=0,.attached=-2,.life=.001f,.damage=260,.radius=2.2f};
+        *q=(bg_projectile){.active=true,.kind=kind,.owner=0,.attached=-2,.age=2,.life=.001f,.damage=260,.radius=2.2f};
         memcpy(q->pos,bg_players[0].pos,12);q->pos[1]+=6;float blast_position[3];memcpy(blast_position,q->pos,sizeof(blast_position));bg_tick(in,1.f/30);
         unsigned explosions=0;
         for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_EXPLOSION){
             const bg_event*event=&bg_events[e];explosions++;
             assert(event->weapon==(kind==BG_P_PLASMA_GRENADE?BG_EXPLOSION_PLASMA:BG_EXPLOSION_NORMAL));
-            assert(event->player==0&&event->amount==2.2f&&distance(event->pos,blast_position)==0);
+            assert(event->player==0&&event->amount==(kind==BG_P_FRAG?2.5f:2.f)&&distance(event->pos,blast_position)==0);
         }
         assert(explosions==1&&bg_projectile_at(0)==NULL);
     }
@@ -192,7 +192,7 @@ int main(void){
     *ghost=(bg_vehicle){.active=true,.kind=BG_V_GHOST,.health=1,.occupants={-1,-1,-1,-1,-1}};
     memcpy(ghost->pos,bg_players[0].pos,12);ghost->pos[0]+=4;
     bg_projectile*blast=bg_projectile_create();assert(blast);
-    *blast=(bg_projectile){.active=true,.kind=BG_P_ROCKET,.owner=0,.attached=-2,.life=.001f,.damage=300,.radius=2.2f};
+    *blast=(bg_projectile){.active=true,.kind=BG_P_ROCKET,.owner=0,.attached=-2,.age=2,.life=.001f,.damage=300,.radius=2.2f};
     memcpy(blast->pos,ghost->pos,12);bg_tick(in,1.f/30);unsigned blast_events=0;
     for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_EXPLOSION){
         assert(bg_events[e].weapon==BG_EXPLOSION_NORMAL);blast_events++;
@@ -270,13 +270,13 @@ int main(void){
     assert(!memcmp(bg_match_stats(),&empty_statistics,sizeof(empty_statistics)));
     /* Two real melee hits from different attackers award the contributor an
      * assist. Respawning clears that victim's damage history. */
-    duel();bg_players[1].shield=0;in[0].melee=true;ticks(1);in[0].melee=false;
+    duel();bg_players[1].shield=0;bg_players[1].shield_delay=6;in[0].melee=true;ticks(1);in[0].melee=false;ticks(4);
     assert(fabsf(bg_players[1].health-(100-40.f*1.4f/75*100))<.001f);
     memcpy(bg_players[2].pos,bg_players[0].pos,12);bg_players[2].yaw=bg_players[2].pitch=0;
-    bg_players[0].pos[2]+=5;in[2].melee=true;ticks(1);in[2].melee=false;
+    bg_players[0].pos[2]+=5;in[2].melee=true;ticks(1);in[2].melee=false;ticks(4);
     assert(bg_match_stats()->kills[2]==1&&bg_match_stats()->assists[0]==1&&bg_match_stats()->deaths[1]==1);
     ticks(100);memcpy(bg_players[1].pos,bg_players[2].pos,12);bg_players[1].pos[0]+=.8f;
-    bg_players[1].shield=0;bg_players[1].health=70;in[2].melee=true;ticks(1);
+    bg_players[1].shield=0;bg_players[1].shield_delay=6;bg_players[1].health=70;in[2].melee=true;ticks(1);in[2].melee=false;ticks(4);
     assert(bg_match_stats()->kills[2]==2&&bg_match_stats()->assists[0]==1);
     bg_set_score_limit(25);
     /* Consecutive real kills announce double/triple kills and a five-kill spree. */

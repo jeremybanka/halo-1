@@ -1,4 +1,5 @@
 #include "movement.h"
+#include "combat.h"
 #include <math.h>
 static float pin(float x,float lo,float hi){return fmaxf(lo,fminf(hi,x));}
 float bg_aim_attenuation(float value,float maximum){
@@ -25,6 +26,7 @@ void bg_start_landing(bg_player*p,float speed){
 void bg_walk_velocity(bg_player*p,float forward,float strafe,float dt){
     float length=hypotf(forward,strafe);if(length>1){forward/=length;strafe/=length;}
     if(p->hard_landing&&p->landing_time>0)forward=strafe=0;
+    float stun=1-p->body_stun*bg_stun_config[0];forward*=stun;strafe*=stun;
     float c=p->crouch_amount;
     float f=forward*(bg_movement.run[forward<0]+(bg_movement.sneak[forward<0]-bg_movement.run[forward<0])*c);
     float s=strafe*(bg_movement.run[2]+(bg_movement.sneak[2]-bg_movement.run[2])*c);
@@ -61,4 +63,5 @@ void bg_look_input(bg_player*p,const bg_input*in,float magnification,float dt,fl
         *yaw*=1+(bg_movement.peg_scale-1)*pin(p->look_peg_time/bg_movement.peg_time,0,1);
         p->look_peg_time=fminf(bg_movement.peg_time,p->look_peg_time+dt);
     }else p->look_peg_time=0;
+    *yaw*=1-p->body_stun*bg_stun_config[1];*pitch*=1-p->body_stun*bg_stun_config[1];
 }

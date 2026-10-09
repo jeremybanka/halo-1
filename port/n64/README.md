@@ -32,18 +32,20 @@ The current on-foot control pass is documented in [MOVEMENT.md](MOVEMENT.md).
 
 ## Play
 
-Load `build/n64/halo-blood-gulch-paced30-buffers4.z64` in ares as a Nintendo 64
-cartridge for the recommended four-player presentation profile. Build it with
-`build/n64-python/bin/python port/n64/build.py --paced30 --paced30-buffers 4`.
-The ordinary `halo-blood-gulch.z64` retains the unpaced presenter.
-The current movement/aiming pass with cached interaction frames measures
-**27.1 displayed FPS overall / 28.8 in combat / 25.5 around vehicles** in the
-quiet four-player Ares replay, with 108 KiB heap remaining. These are section
-averages, not a sustained minimum: 95th-percentile pose intervals are 66.8 ms
-overall and the worst interval is 334.2 ms. The final 30 FPS/latency pass remains
-open. Four display surfaces recover 150 KiB compared with five, providing room
-for the pose cache and useful heap margin. See [MOVEMENT.md](MOVEMENT.md) and
-`build/n64/movement-audit/` for videos, exact ROM hashes and timing evidence.
+Load `build/n64/halo-blood-gulch-paced30-rspq32k.z64` in ares as a Nintendo 64
+cartridge. Build the recommended four-player profile with
+`build/n64-python/bin/python port/n64/build.py --paced30 --rspq-buffer-kib 32`.
+This uses three display surfaces for four player views. The ordinary
+`halo-blood-gulch.z64` retains the unpaced presenter.
+The current combat timing/projectile pass measures **26.4 displayed FPS overall /
+27.7 in combat / 25.1 around vehicles**, with 164 KiB free in the quiet Ares
+fixture. These are averages, not a sustained minimum: P95 pose interval is
+66.8 ms and maximum is 267.4 ms. The final 30 FPS/latency pass remains open.
+The expanded frontend lifecycle cycles all eight weapons, completes a 15-kill
+match and returns to the menu (37/37 pass; 127–128 KiB observed combat free heap,
+424 KiB menu free heap). Four-buffer variants fail this memory stress and remain
+experimental. See [COMBAT.md](COMBAT.md), `build/n64/combat-timing-audit/` and
+`build/n64/release-manifest.json` for evidence and exact ROM identity.
 Earlier timing results describe older builds.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;

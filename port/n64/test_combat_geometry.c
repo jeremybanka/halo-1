@@ -1,0 +1,40 @@
+#include "combat_geometry.h"
+#include "blam/vehicle_physics.h"
+#include <assert.h>
+#include <math.h>
+#include <stdio.h>
+static float dot(const float*a,const float*b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+static void cross(const float*a,const float*b,float*c){for(unsigned k=0;k<3;k++)c[k]=a[(k+1)%3]*b[(k+2)%3]-a[(k+2)%3]*b[(k+1)%3];}
+/* Independent world-space plane/edge oracle, deliberately without a BVH. */
+static float reference(const bg_vehicle*v,const float*o,const float*d){
+ const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];float nearest=20;
+ for(unsigned t=0;t<m->triangle_count;t++){
+  float p[3][3],e[3][3],normal[3],delta[3];
+  for(unsigned j=0;j<3;j++){float local[3];for(unsigned k=0;k<3;k++)local[k]=m->vertices[m->triangles[t][j]][k]/1024.f;bg_vehicle_transform(v,local,p[j]);}
+  for(unsigned j=0;j<3;j++)for(unsigned k=0;k<3;k++)e[j][k]=p[(j+1)%3][k]-p[j][k];
+  cross(e[0],e[1],normal);float den=dot(normal,d);if(fabsf(den)<1e-8f)continue;
+  for(unsigned k=0;k<3;k++)delta[k]=p[0][k]-o[k];float hit=dot(delta,normal)/den;
+  if(hit<0||hit>=nearest)continue;bool inside=true;
+  for(unsigned j=0;j<3;j++){float side[3];for(unsigned k=0;k<3;k++)delta[k]=o[k]+hit*d[k]-p[j][k];cross(e[j],delta,side);if(dot(side,normal)<-1e-7f*dot(normal,normal))inside=false;}
+  if(inside)nearest=hit;
+ }return nearest;
+}
+int main(void){
+ unsigned hits=0,misses=0;
+ for(unsigned kind=0;kind<4;kind++)for(unsigned angle=0;angle<3;angle++){
+  bg_vehicle v={.kind=kind,.yaw=angle*.7f,.pitch=angle*.2f,.pos={2,3,4}};
+  if(angle){
+   const float f[3]={1,0,0},u[3]={0,1,0};bg_vehicle_transform(&v,f,v.forward);bg_vehicle_transform(&v,u,v.up);
+   for(unsigned k=0;k<3;k++){v.forward[k]-=v.pos[k];v.up[k]-=v.pos[k];}v.physics_valid=true;
+  }
+  for(unsigned axis=0;axis<3;axis++)for(int x=-9;x<=9;x++)for(int y=-9;y<=9;y++){
+   float local[3]={0},end[3],o[3],d[3];local[axis]=-4;local[(axis+1)%3]=x*.17391f+.01329f;local[(axis+2)%3]=y*.17173f+.02191f;
+   bg_vehicle_transform(&v,local,o);local[axis]=4;bg_vehicle_transform(&v,local,end);
+   for(unsigned k=0;k<3;k++)d[k]=(end[k]-o[k])/8;
+   float expected=reference(&v,o,d),actual=bg_vehicle_hit_ray(&v,o,d,20);
+   if(fabsf(expected-actual)>.001f)fprintf(stderr,"kind%u axis%u expected%f actual%f\n",kind,axis,expected,actual);
+   assert(fabsf(expected-actual)<.001f);if(actual<20)hits++;else misses++;
+  }
+ }
+ assert(hits&&misses);printf("PASS: collision BVH matches original triangle oracle (%u hits, %u misses, four hulls and rotated poses)\n",hits,misses);
+}

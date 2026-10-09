@@ -51,6 +51,16 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
 }
 void bg_front_qa_tick(bg_input in[4],float seconds){
     memset(in,0,4*sizeof(*in));if(bg_match_finished()||seconds<2)return;
+    /* Exercise both fenced workspaces for all four players, including the
+     * largest Needler mesh, before completing the ordinary staged match. */
+    if(seconds<12){
+        unsigned weapon=((unsigned)seconds-2)%8;
+        for(unsigned p=0;p<bg_player_count();p++)if(bg_players[p].weapon!=(int)weapon){
+            bg_give_weapon(p,weapon);bg_players[p].weapon=bg_players[p].inventory[bg_players[p].slot]=weapon;
+            bg_players[p].ammo=bg_weapon_defs[weapon].magazine;
+        }
+        return;
+    }
     bg_player*a=&bg_players[0],*b=&bg_players[1];
     if(b->health<=0)return;
     if(a->weapon!=BG_W_SHOTGUN||a->ammo==0)bg_give_weapon(0,BG_W_SHOTGUN);

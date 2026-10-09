@@ -26,12 +26,14 @@ typedef struct {
     unsigned header_count,glyph_count,order[BG_PLAYERS];
     int scores[BG_PLAYERS];
     bool text_valid; unsigned profile_key;
-    letter glyphs[SCORE_GLYPHS];
+    letter *glyphs;
 } score_layout;
-/* One permanent block per supported count/owner pair (1 + 2 + 3 + 4). The
- * referenced panel/font pixels and cached glyph pointers never move or change.
- * Blocks are never freed while queued display work might still refer to them. */
+/* Immutable panel blocks retain all ten viewport layouts. Only four owners
+ * can display text at once; share their CPU glyph caches across player counts.
+ * Text submits literal RDP rectangles, never pointers into these caches. */
 static score_layout score_layouts[SCORE_LAYOUTS];
+static letter score_glyphs[BG_PLAYERS][SCORE_GLYPHS];
+static unsigned score_glyph_count_key[BG_PLAYERS];
 /* Resume widget: (40,150,255). Focused text uses the source UI white0.8. */
 static const color_t blue={40,150,255,255},white={204,204,204,255};
 static const color_t muted={85,105,125,255},soft={133,176,216,255};
@@ -213,18 +215,7 @@ static void prepare_score_layout(unsigned count,unsigned owner,int x,int y,int w
     }
     flat();rectangle(bx+7*scale,by+24*scale,bw-14*scale,scale,RGBA32(40,150,255,115));
     layout->panel=rspq_block_end();
-    text(BG_MENU_FONT_SMALL,bx+8*scale,by+18*scale,.9f*scale,white,"SCORES");
-    char value[24];snprintf(value,sizeof(value),"YOU: P%u",owner+1);
-    text(BG_MENU_FONT_SMALL,bx+bw-8*scale-text_width(BG_MENU_FONT_SMALL,value,.6f*scale),
-        by+17*scale,.6f*scale,blue,value);
-    text(BG_MENU_FONT_SMALL,bx+8*scale,by+36*scale,.6f*scale,soft,"#");
-    text(BG_MENU_FONT_SMALL,bx+27*scale,by+36*scale,.6f*scale,soft,"PLAYER");
-    text(BG_MENU_FONT_SMALL,bx+bw-8*scale-text_width(BG_MENU_FONT_SMALL,"SCORE",.6f*scale),
-        by+36*scale,.6f*scale,soft,"SCORE");
-    assert(letter_count<=SCORE_HEADER_LETTERS);
-    layout->header_count=letter_count;
-    for(unsigned i=0;i<letter_count;i++)prepare_score_rectangle(&letters[i]);
-    memcpy(layout->glyphs,letters,letter_count*sizeof(*letters));
+    layout->glyphs=score_glyphs[owner];
 }
 void bg_menu_draw_init(void){
     for(unsigned f=0;f<BG_MENU_FONT_COUNT;f++){
@@ -268,8 +259,23 @@ static void draw_menu_profile(const bg_menu *m,unsigned profile,bool frontend){
 void bg_menu_draw(const bg_menu*m){draw_menu_profile(m,bg_player_profiles[m->owner],false);}
 void bg_menu_draw_profile(const bg_menu*m,unsigned profile){draw_menu_profile(m,profile,true);}
 
+static void score_header(score_layout*layout,unsigned owner){
+    float bx=layout->x,by=layout->y,bw=layout->w,scale=layout->scale;letter_count=0;
+    text(BG_MENU_FONT_SMALL,bx+8*scale,by+18*scale,.9f*scale,white,"SCORES");
+    char value[24];snprintf(value,sizeof(value),"YOU: P%u",owner+1);
+    text(BG_MENU_FONT_SMALL,bx+bw-8*scale-text_width(BG_MENU_FONT_SMALL,value,.6f*scale),
+        by+17*scale,.6f*scale,blue,value);
+    text(BG_MENU_FONT_SMALL,bx+8*scale,by+36*scale,.6f*scale,soft,"#");
+    text(BG_MENU_FONT_SMALL,bx+27*scale,by+36*scale,.6f*scale,soft,"PLAYER");
+    text(BG_MENU_FONT_SMALL,bx+bw-8*scale-text_width(BG_MENU_FONT_SMALL,"SCORE",.6f*scale),
+        by+36*scale,.6f*scale,soft,"SCORE");
+    assert(letter_count<=SCORE_HEADER_LETTERS);
+    layout->header_count=letter_count;
+    for(unsigned i=0;i<letter_count;i++)prepare_score_rectangle(&letters[i]);
+
+}
 static void update_score_text(score_layout *layout,unsigned count,unsigned owner){
-    bool changed=!layout->text_valid;
+    bool changed=!layout->text_valid||score_glyph_count_key[owner]!=count;
     unsigned profile_key=0;for(unsigned p=0;p<count;p++)profile_key|=bg_player_profiles[p]<<(2*p);
     if(layout->profile_key!=profile_key){changed=true;layout->profile_key=profile_key;}
     for(unsigned p=0;p<count;p++)if(layout->scores[p]!=bg_players[p].score)changed=true;
@@ -282,8 +288,7 @@ static void update_score_text(score_layout *layout,unsigned count,unsigned owner
         }
         layout->order[at]=p;
     }
-    letter_count=layout->header_count;
-    memcpy(letters,layout->glyphs,letter_count*sizeof(*letters));
+    score_glyph_count_key[owner]=count;score_header(layout,owner);
     float bx=layout->x,by=layout->y,bw=layout->w,scale=layout->scale;
     char value[24];unsigned rank=1;
     for(unsigned row=0;row<count;row++){

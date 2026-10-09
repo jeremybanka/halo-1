@@ -189,7 +189,7 @@ static bool ray_bounds(const int16_t bounds[6],const float origin[3],const float
  }
  *entry=near;return true;
 }
-float bg_world_raycast(const float origin[3],const float direction[3],float distance){
+float bg_world_raycast_normal(const float origin[3],const float direction[3],float distance,float normal[3]){
  if(distance<=.003f)return distance;
  world_load();
  float bias=.003f;
@@ -220,11 +220,12 @@ float bg_world_raycast(const float origin[3],const float direction[3],float dist
    float t=-plane3d_distance_to_point(&plane,&p)/den;if(t<0||t>nearest)continue;
    real_point3d hit;point_from_line3d(&p,&d,t,&hit);int axis=projection_from_vector3d(&plane.n);
    bool sign=projection_sign_from_vector3d(&plane.n,axis);real_point2d q;project_point3d(&hit,axis,sign,&q);
-   if(collision_surface_test_point(b,0,NULL,si,axis,sign,&q))nearest=t;
+   if(collision_surface_test_point(b,0,NULL,si,axis,sign,&q)){nearest=t;if(normal){normal[0]=plane.n.i;normal[1]=plane.n.k;normal[2]=-plane.n.j;}}
   }
  }
  return bias+nearest*(distance-bias);
 }
+float bg_world_raycast(const float o[3],const float d[3],float distance){return bg_world_raycast_normal(o,d,distance,NULL);}
 static void physics_compute_unit_collisions(int32_t i){
  /* Wrecks keep terrain contacts but do not block or push live vehicles. */
  if(!bg_vehicles[i].active)return;
@@ -338,6 +339,7 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
  else{v->steering=n->vehicle.turn;return;}
  publish(i);
 }
+bool bg_vehicle_airborne(unsigned i){return native[i].vehicle.airborne_ticks>0;}
 void bg_vehicle_physics_wreck(unsigned i){
  /* Original rigid-body integration, contacts and gravity, with no powered
   * mass points: dead Ghosts lose antigravity and dead Banshees fall. */

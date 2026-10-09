@@ -47,9 +47,8 @@ void bg_showcase_begin(bg_showcase_kind kind){
         setup_vehicle(scenario==BG_SHOWCASE_BANSHEE?BG_V_BANSHEE:BG_V_WARTHOG);
     }else if(scenario==BG_SHOWCASE_FRAG_DOUBLE_KILL){
         place(0,-4,4,0);
-        /* The original central terrain bank gives this throw a longer first
-         * bounce than the reduced mesh. Stage both full-shield targets around
-         * its actual landing; grenade physics and damage remain live. */
+        /* Stage a firefight before the frag finishes both opponents. Source
+         * frag damage alone does not kill these full-vitality targets. */
         place(1,2.61144f,3.8f,PI);place(2,2.61144f,4.2f,PI);
         place(3,2.3f,7.2f,PI/2);face(3,2.295127f,.45f,4);
     }else if(scenario==BG_SHOWCASE_SHOTGUN_KILL){
@@ -85,7 +84,13 @@ void bg_showcase_input(bg_input input[BG_PLAYERS],float seconds){
             input[1].fire=seconds>7&&seconds<9&&fabsf(error)<.2f;
         }
     }else if(scenario==BG_SHOWCASE_FRAG_DOUBLE_KILL){
-        if(seconds>=2&&!frag_thrown){input[0].grenade=true;frag_thrown=true;}
+        if(seconds>=.3f&&seconds<1.5f){
+            unsigned target=seconds<.9f?1:2;
+            /* Explicit staging of facing only; bullets, shields and grenade
+             * all use production input and damage, starting at full vitality. */
+            face(0,bg_players[target].pos[0],bg_players[target].pos[1]+.35f,bg_players[target].pos[2]);
+            input[0].fire=true;
+        }else if(seconds>=2&&!frag_thrown){bg_players[0].yaw=bg_players[0].pitch=0;input[0].grenade=true;frag_thrown=true;}
     }else if(scenario==BG_SHOWCASE_SHOTGUN_KILL){
         if(stats.kills==0&&seconds>=2+shots_requested*1.3f&&shots_requested<4){input[0].fire=true;shots_requested++;}
     }else if(scenario==BG_SHOWCASE_NEEDLER_SUPERCOMBINE){

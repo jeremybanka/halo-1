@@ -3,6 +3,7 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "combat.h"
 #include "movement.h"
 #include "view_camera.h"
 #include "sky_draw.h"
@@ -103,6 +104,7 @@ static const color_t colors[4]={{225,45,38,255},{39,92,215,255},{215,179,44,255}
 static surface_t textures[32];
 static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[7][12] __attribute__((aligned(16)));
 static T3DVertPacked *firstperson[BG_FRAME_SLOTS][4];
+static unsigned firstperson_bytes[BG_FRAME_SLOTS][4];
 static int firstperson_weapon[BG_FRAME_SLOTS][4];
 static T3DVertPacked *armor_lod[BG_FRAME_SLOTS][4];
 static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
@@ -1034,33 +1036,37 @@ static void body_buffers_release(void){
 /* Segment-based weapon commands do not retain these addresses. Keep their
  * animation workspace out of the full-screen menu texture peak. */
 static void firstperson_buffers_load(void){
-    if(firstperson[0][0])return;
-    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
-        firstperson[s][p]=malloc_uncached(bg_fp_max_vertices*16);
-        assertf(firstperson[s][p],"First-person buffer allocation");
-        firstperson_weapon[s][p]=-1;
-    }
+    /* Allocate only the current mesh, at the already fenced frame slot.
+     * Four small weapons no longer reserve four maximum-size Needlers. */
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++)if(!firstperson[s][p])firstperson_weapon[s][p]=-1;
 }
 #ifdef BG_FRONTEND
 static void firstperson_buffers_release(void){
-    if(!firstperson[0][0])return;
     /* The RSP consumes vertices; the RDP only retains transformed triangles. */
     rspq_wait();
     for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++){
-        free_uncached(firstperson[s][p]);firstperson[s][p]=NULL;
+        if(firstperson[s][p])free_uncached(firstperson[s][p]);
+        firstperson[s][p]=NULL;firstperson_bytes[s][p]=0;
         firstperson_weapon[s][p]=-1;
     }
 }
 #endif
+static void firstperson_buffer_resize(unsigned p,unsigned bytes){
+    if(firstperson_bytes[slot][p]!=bytes){
+        if(firstperson[slot][p])free_uncached(firstperson[slot][p]);
+        firstperson[slot][p]=malloc_uncached(bytes);assertf(firstperson[slot][p],"First-person mesh allocation");
+        firstperson_bytes[slot][p]=bytes;firstperson_weapon[slot][p]=-1;
+    }
+}
 static void animate_firstperson(unsigned p){
     if(p>=views)return;
     bg_player*player=&bg_players[p];unsigned w=player->weapon;
     if(player->vehicle>=0||player->health<=0||player->zoom||p>=views)return;
     const bg_model_asset*m=&bg_fp_models[w];
-    T3DVertPacked*output=CachedAddr(firstperson[slot][p]);
     unsigned bytes=((m->vertex_count+1)&~1u)*16;
+    firstperson_buffer_resize(p,bytes);
+    T3DVertPacked*output=CachedAddr(firstperson[slot][p]);
     if(firstperson_weapon[slot][p]!=(int)w){
-        memset((uint8_t*)output+bytes,0,bg_fp_max_vertices*16-bytes);
         memcpy(output,m->vertices,bytes);
         tint_team(output,m->vertex_count,bg_fp_team_masks[w],p);
         /* The slot fence protects this buffer. Commands are shared and
@@ -1072,10 +1078,10 @@ static void animate_firstperson(unsigned p){
         clip=BG_FP_RELOAD;seconds=player->anim_time;
         /* Fit the source needle-regrowth timeline to the game's reload
          * duration; mesh motion and ammunition overlay share that clock. */
-        if(w==BG_W_NEEDLER)seconds*=bg_fp_animations[w][clip].duration/bg_weapon_defs[w].reload;
+        if(player->reload_duration>0)seconds*=bg_fp_animations[w][clip].duration/player->reload_duration;
     }
     else if(player->overheated){clip=BG_FP_RELOAD;seconds=(1-player->heat)/.85f*bg_fp_animations[w][clip].duration;}
-    else if(player->melee_time>0){clip=BG_FP_MELEE;seconds=.7f-player->melee_time;}
+    else if(player->melee_time>0){clip=BG_FP_MELEE;seconds=player->anim_time*bg_fp_animations[w][clip].duration/bg_melee_duration(w);}
     else if(game_time>=fired_at[p]&&game_time-fired_at[p]<bg_fp_animations[w][BG_FP_FIRE].duration){clip=BG_FP_FIRE;seconds=game_time-fired_at[p];}
     const bg_anim_asset*a=&bg_fp_animations[w][clip];
     float phase=fmaxf(0,seconds/a->duration);

@@ -40,6 +40,11 @@ typedef struct {
     bool shield_charging,shield_overcharging;
     float velocity[3],last_pos[3];
     float crouch_amount,look_peg_time,airborne_time;
+    float trigger_error[2],trigger_rate[2],reload_duration;
+    uint8_t melee_tick;
+    uint16_t fire_ticks[2];
+    float body_stun,stun_time;
+    float exit_grace;int exit_vehicle;
     float ground_normal[3],landing_time,landing_duration;
     bool hard_landing;
     int reserve,weapon,inventory[2],magazines[2],reserves[2],slot,zoom;
@@ -65,14 +70,14 @@ typedef struct {
     bool physics_valid;
     float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch; int kind,health,occupants[BG_VEHICLE_SEATS]; bool active;
     float hatch;bool hatch_closing,flipping;
-    uint8_t flip_elapsed;
+    uint8_t flip_elapsed,overturned_ticks;
 } bg_vehicle;
 #define BG_WRECK_LIFE 12.f
 static inline bool bg_vehicle_body_present(const bg_vehicle*v){return v->active||v->wreck_time>0;}
 static inline bool bg_vehicle_body_visible(const bg_vehicle*v){return v->active||(v->wreck_time>0&&(v->wreck_time>2||((unsigned)(v->wreck_time*4)&1)));}
 typedef struct {
     float pos[3],velocity[3],life,damage,radius; int kind,owner,attached;
-    float attached_offset[3],distance; uint8_t damage_profile; bool active;
+    float attached_offset[3],distance,age; int8_t tracked; uint8_t damage_profile; bool active,countdown,combined;
 } bg_projectile;
 typedef struct { float pos[3],respawn; int weapon; bool active; } bg_pickup;
 typedef struct { float source[3],destination[3],yaw; } bg_teleporter;

@@ -22,15 +22,18 @@ Old benchmark results do not certify a newer build.
   - [x] Original collision surfaces in the 4 MiB spatial-grid adapter.
   - [x] Posture-aware clearance, crouch/landing poses and hard-landing recovery.
   - [ ] Moving supports, player/player contacts and source step-up orchestration.
-  - [ ] Animated hit regions, body stun, original fall damage and first-person landing effects.
+  - [x] Source body stun and original falling-damage thresholds.
+  - [ ] Animated hit regions and first-person landing effects.
   - [ ] Retail Xbox video comparison and human controller acceptance.
   - [ ] Current four-player performance check and necessary optimization:
-        the direct-damage pass measures 27.7 overall / 28.8 combat / 26.6
+        the timing/projectile pass measures 26.4 overall / 27.7 combat / 25.1
         vehicle section FPS in Ares. Both section averages clear 25, but
         the overall P95 is 66.8 ms and maximum is 267.4 ms. Sustained floor
         and hardware acceptance remain; changed deaths alter the replay load.
-  - [ ] Recover release memory headroom before more resident features: the full
-        four-player frontend lifecycle currently shows 17 KiB free in combat.
+  - [x] Recover release memory headroom: three display buffers retain four-player
+        splitscreen; the expanded all-weapons lifecycle passes. Final memory
+        measurements and the 32 KiB graphics queue are recorded in the manifest. Four-buffer builds currently fail that stress
+        case and are not the recommended release configuration.
 - [ ] Spawn selection: replace player-index/team cycling with appropriate Slayer
       spawn eligibility and threat-aware selection.
 - [ ] Dropped weapons/grenades and pickup ammunition conservation.
@@ -40,8 +43,9 @@ Old benchmark results do not certify a newer build.
   - [x] Shield/headshot breakpoints, overcharge EMP and damage-range falloff.
   - [x] Forward/airborne melee strength and rear force-kill.
   - [x] Four staged N64 before/after encounter videos and sanitizer checks.
-  - [ ] Spread/bloom, firing cadence, reload interruption and timed melee sweep.
-  - [ ] Grenade/rocket damage, bounce/fuses/cover and Needler tracking/detonation.
+  - [x] Source spread/bloom limits, firing cadence, reload interruption and timed melee sweep.
+  - [x] Source grenade/rocket damage, bounce/fuses/cover and Needler tracking/detonation adapters.
+  - [ ] Certify explosive/Needler breakpoints against retail Xbox (see COMBAT.md).
   - [ ] Animated hit regions, vehicle materials and Xbox/controller acceptance.
 - [ ] Camouflage visibility transitions and interaction with targeting/radar.
 - [ ] Vehicle edge cases: exposed occupants, damage, blast cover, splatters,
@@ -101,3 +105,14 @@ gate. See [ENVIRONMENT_SURFACES.md](ENVIRONMENT_SURFACES.md) and
 Combat direct-damage pass: 27.7 overall / 28.8 combat / 26.6 vehicle FPS,
 56 KiB timing-fixture free heap; changed damage affects replay composition.
 See [COMBAT.md](COMBAT.md) and `build/n64/combat-audit/comparison.html`.
+
+Combat continuation: source timing/projectile adapters and original vehicle hull
+ray geometry implemented; sustained rollover ejects occupants. Animated player
+regions, moving hull parts, mounted weapon profiles and retail acceptance remain
+open. See COMBAT.md and the current release manifest for explicit boundaries.
+
+Latest timing/projectile run: 26.4 overall / 27.7 combat / 25.1 vehicle FPS,
+164 KiB free in the timing fixture, three display surfaces and 32 KiB queue
+buffers. P95 66.8 ms, maximum 267.4 ms; this clears section averages, not a
+sustained 25 FPS floor. Four-buffer variants fail the expanded all-weapons
+lifecycle and are not recommended.

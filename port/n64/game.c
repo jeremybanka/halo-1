@@ -1,6 +1,7 @@
 #include "blam/vehicle_physics.h"
 #include "game.h"
 #include "combat.h"
+#include "pickup_rules.h"
 #include "combat_geometry.h"
 #include "movement.h"
 #include "terrain.h"
@@ -40,7 +41,9 @@ bg_projectile *bg_projectile_create(void){
 bg_pickup bg_pickups[BG_MAX_PICKUPS];
 bg_event bg_events[BG_MAX_EVENTS];
 unsigned bg_vehicle_count,bg_pickup_count,bg_event_count;
-static unsigned spawn_cycle,active_players=4;
+static unsigned active_players=4;
+static uint16_t pickup_generation;
+static uint32_t spawn_random=0x53504157,item_random=0x4954454d;
 static uint32_t random_state=0xCE064;
 static float match_time,last_kill_time[BG_PLAYERS];
 static unsigned kill_chain[BG_PLAYERS],kill_spree[BG_PLAYERS];
@@ -193,30 +196,56 @@ bool bg_give_weapon(unsigned player,bg_weapon weapon){
     p->heat=0;p->charge=0;p->overheated=false;p->reload=0;p->zoom=0;p->cooldown=.35f;
     store_inventory(p);event(BG_EVENT_PICKUP,player,weapon,p->pos,1);return true;
 }
-static void spawn(unsigned player){
-    bg_player*p=&bg_players[player];int score=p->score;
-    memset(damage_history[player],0,sizeof(damage_history[player]));
-    unsigned start=(spawn_cycle*13+player*5)%bg_spawn_count,index=start;
-    for(unsigned i=0;i<bg_spawn_count;i++){
-        unsigned j=(start+i)%bg_spawn_count;if(bg_spawns[j].team==(int)(player%2)){index=j;break;}
+float bg_spawn_rating(unsigned player,unsigned index){
+    if(player>=active_players||index>=bg_spawn_count||!bg_slayer_spawns[index])return 0;
+    const float*pos=bg_spawns[index].pos;float rating=1;
+    /* Free-for-all: no red/blue partition or friendly bonus. Recovered source
+     * rejects enemies within 2 units and ramps the rating to 1 over 2..5. */
+    for(unsigned i=0;i<active_players;i++)if(i!=player&&bg_players[i].health>0){
+        float d2=distance2(pos,bg_players[i].pos);if(d2<4)return 0;
+        if(d2<=25)rating*=(sqrtf(d2)-2)*(1.f/3);
     }
+    /* Nearby-vehicle exclusion, using the authored local collision bounds.
+     * Expanded by the source .1 query radius plus the player capsule radius. */
+    for(unsigned i=0;i<bg_vehicle_count;i++)if(bg_vehicle_body_present(&bg_vehicles[i])){
+        const bg_vehicle*v=&bg_vehicles[i];const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];
+        if(distance2(pos,v->pos)>36)continue;
+        float delta[3];sub(delta,pos,v->pos);bool inside=true;
+        for(unsigned axis=0;axis<3;axis++){
+            float unit[3]={0},basis[3];unit[axis]=1;bg_vehicle_transform(v,unit,basis);sub(basis,basis,v->pos);
+            float q=dot(delta,basis),margin=.3f;
+            if(q<m->bounds[axis]/1024.f-margin||q>m->bounds[axis+3]/1024.f+margin){inside=false;break;}
+        }
+        if(inside)return 0;
+    }
+    return rating;
+}
+int bg_select_spawn(unsigned player){
+    float best=0;int selected=-1;
+    for(unsigned i=0;i<bg_spawn_count;i++){
+        float rating=bg_spawn_rating(player,i)*sqrtf(blam_real_seed_random_range(&spawn_random,0,1));
+        if(rating>best){best=rating;selected=i;}
+    }
+    return selected;
+}
+static void spawn(unsigned player){
+    int index=bg_select_spawn(player);bg_player*p=&bg_players[player];
+    if(index<0){p->respawn=1.f/30;return;} /* retry rather than spawn inside danger */
+    int score=p->score;memset(damage_history[player],0,sizeof(damage_history[player]));
     memset(p,0,sizeof(*p));p->fire_ticks[0]=p->fire_ticks[1]=65535;p->score=score;p->health=100;p->shield=100;
-    p->inventory[0]=BG_W_AR;p->inventory[1]=BG_W_PISTOL;
-    for(int j=0;j<2;j++){p->magazines[j]=bg_weapon_defs[p->inventory[j]].magazine;p->reserves[j]=bg_weapon_defs[p->inventory[j]].reserve;}
-    p->weapon=BG_W_AR;p->ammo=p->magazines[0];p->reserve=p->reserves[0];p->vehicle=-1;p->seat=-1;p->needle_owner=-1;
-    p->grenades[0]=2;p->grenades[1]=2;
+    for(int j=0;j<2;j++){
+        int w=p->inventory[j]=bg_start_weapons[j];
+        if(w>=0){p->magazines[j]=bg_ammo_rules[w].loaded;p->reserves[j]=bg_ammo_rules[w].reserve;}
+        p->grenades[j]=bg_start_grenades[j];
+    }
+    p->weapon=p->inventory[0];p->ammo=p->magazines[0];p->reserve=p->reserves[0];p->vehicle=-1;p->seat=-1;p->needle_owner=-1;
     memcpy(p->pos,bg_spawns[index].pos,sizeof(p->pos));
     float floor=bg_floor(p->pos[0],p->pos[2],p->pos[1]+.5f);if(floor>-999)p->pos[1]=floor+.015f;
     memcpy(p->last_pos,p->pos,sizeof(p->pos));p->yaw=bg_spawns[index].yaw;p->grounded=true;p->ground_normal[1]=1;
+    p->weapon_ready=bg_ready_times[p->weapon];p->cooldown=p->weapon_ready;
     event(BG_EVENT_RESPAWN,player,p->weapon,p->pos,1);
 }
-int bg_add_pickup(int weapon,const float pos[3]){
-    if(bg_pickup_count>=BG_MAX_PICKUPS)return -1;
-    int index=bg_pickup_count++;bg_pickup*p=&bg_pickups[index];memset(p,0,sizeof(*p));
-    memcpy(p->pos,pos,sizeof(p->pos));p->weapon=weapon;p->active=true;
-    float floor=bg_floor(pos[0],pos[2],pos[1]+.4f);if(floor>-999)p->pos[1]=floor+.12f;
-    return index;
-}
+#include "pickups.inc"
 int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw){
     if(bg_vehicle_count>=BG_MAX_VEHICLES||kind>=BG_VEHICLE_COUNT)return -1;
     int index=bg_vehicle_count++;bg_vehicle*v=&bg_vehicles[index];memset(v,0,sizeof(*v));
@@ -233,11 +262,11 @@ void bg_reset(void){
     memset(bg_players,0,sizeof(bg_players));memset(bg_vehicles,0,sizeof(bg_vehicles));
     blam_objects_init(&projectile_store,projectile_headers,BG_MAX_PROJECTILES,&projectile_arena,sizeof(projectile_arena));
     memset(bg_pickups,0,sizeof(bg_pickups));
-    bg_clear_events();bg_vehicle_count=bg_pickup_count=spawn_cycle=0;random_state=0xCE064;
+    bg_clear_events();bg_vehicle_count=bg_pickup_count=0;pickup_generation=0;random_state=0xCE064;spawn_random=0x53504157;item_random=0x4954454d;
     match_time=0;match_winner=-1;memset(kill_chain,0,sizeof(kill_chain));memset(kill_spree,0,sizeof(kill_spree));
     for(int i=0;i<BG_PLAYERS;i++)last_kill_time[i]=-10;
-    for(int i=0;i<BG_PLAYERS;i++)spawn(i);
     load_scenario();
+    for(unsigned i=0;i<active_players;i++)spawn(i);
 }
 const bg_seat_definition *bg_player_seat(const bg_player*p){
     return p->vehicle>=0&&(unsigned)p->vehicle<bg_vehicle_count&&p->seat>=0&&p->seat<bg_seat_counts[bg_vehicles[p->vehicle].kind]?&bg_seat_definitions[bg_vehicles[p->vehicle].kind][p->seat]:NULL;
@@ -304,8 +333,9 @@ static void eject_overturned(unsigned vehicle){
 static void kill(unsigned victim,int owner){
     bg_player*p=&bg_players[victim];if(p->health<=0)return;
     if(p->vehicle>=0)eject(victim);
+    drop_inventory(victim);
     p->weapon_ready=p->use_time=0;p->use_latched=false;p->use_target.kind=BG_USE_NONE;
-    p->melee_tick=0;p->health=0;p->shield=0;p->respawn=3;p->zoom=0;statistics.deaths[victim]++;
+    p->melee_tick=0;p->health=0;p->shield=0;p->respawn=owner<0||owner==(int)victim?10:3;p->zoom=0;statistics.deaths[victim]++;
     p->needles=0;p->needle_timer=0;p->needle_owner=-1;
     p->animation=BG_ANIM_DIE;p->anim_time=0;
     kill_chain[victim]=kill_spree[victim]=0;
@@ -693,8 +723,10 @@ bg_use_target bg_interaction_target(unsigned player){
     float nearest=.85f*.85f;
     for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].active&&bg_pickups[i].weapon<BG_WEAPON_COUNT){
         const bg_pickup*q=&bg_pickups[i];
-        if(p->inventory[0]==q->weapon||p->inventory[1]==q->weapon)continue;
-        float d=distance2(p->pos,q->pos);if(d<nearest){result=(bg_use_target){BG_USE_PICKUP,i,-1};nearest=d;}
+        if(q->ignore_time>0&&q->ignore_player==(int)player)continue;
+        if((p->inventory[0]==q->weapon||p->inventory[1]==q->weapon)&&!bg_weapon_defs[q->weapon].energy)continue;
+        if(bg_weapon_defs[q->weapon].energy&&q->ammo<=0)continue;
+        float d=distance2(p->pos,q->pos);if(d<nearest){result=(bg_use_target){BG_USE_PICKUP,i,q->generation};nearest=d;}
     }
     if(result.kind)return result;
     nearest=1.f;
@@ -721,9 +753,9 @@ static void interact(unsigned player,bg_use_target target){
     bg_player*p=&bg_players[player];
     if(!same_target(target,bg_interaction_target(player)))return;
     if(target.kind==BG_USE_PICKUP){
-        bg_pickup*q=&bg_pickups[target.object];bg_give_weapon(player,q->weapon);
+        bg_pickup*q=&bg_pickups[target.object];pickup_weapon(player,q);
         p->weapon_ready=bg_ready_times[p->weapon];p->cooldown=p->weapon_ready;
-        q->active=false;q->respawn=30;p->interact_cooldown=.5f;
+        p->interact_cooldown=.5f;
     }else if(target.kind==BG_USE_FLIP){
         bg_vehicle_physics_flip(target.object,p->pos);p->interact_cooldown=.5f;
     }else if(target.kind==BG_USE_EXIT){
@@ -883,8 +915,7 @@ static void advance_reload(bg_player*p,const bg_input*in,float dt){
 void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
     dt=clamp(dt,0,1.0f/30);if(dt<=0||bg_match_finished())return;
     match_time+=dt;
-    for(unsigned i=0;i<bg_pickup_count;i++)if(!bg_pickups[i].active){
-        bg_pickups[i].respawn-=dt;if(bg_pickups[i].respawn<=0)bg_pickups[i].active=true;}
+    update_pickups(dt);
     for(unsigned i=0;i<active_players;i++){
         bg_player*p=&bg_players[i];const bg_input*in=&inputs[i];
         p->exit_grace=fmaxf(0,p->exit_grace-dt);
@@ -905,7 +936,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
                 else {p->seat_state=BG_SEAT_STABLE;p->anim_time=0;}
             }
         }
-        if(p->health<=0){p->respawn-=dt;if(p->respawn<=0){spawn_cycle++;spawn(i);}continue;}
+        if(p->health<=0){p->respawn-=dt;if(p->respawn<=0){spawn(i);}continue;}
         bool was_charging=p->shield_charging;p->shield_charging=false;
         if(p->shield_overcharging){
             p->shield=fminf(300,p->shield+100*dt);
@@ -920,7 +951,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
         int stowed=1-p->slot;p->heats[stowed]=fmaxf(0,p->heats[stowed]-dt*.2f);
         if(p->heats[stowed]<.15f)p->overheated_slots[stowed]=false;
         advance_reload(p,in,dt);
-        if(in->switch_weapon&&p->weapon_ready<=0&&bg_player_personal_weapon(p))select_slot(p,1-p->slot);
+        if(in->switch_weapon&&p->inventory[1-p->slot]>=0&&p->weapon_ready<=0&&bg_player_personal_weapon(p))select_slot(p,1-p->slot);
         if(in->switch_grenade)p->grenade_kind=1-p->grenade_kind;
         if(in->zoom){if(bg_weapon_defs[p->weapon].zoom>1)p->zoom=(p->zoom+1)%(p->weapon==BG_W_SNIPER?3:2);else p->zoom=0;}
         player_look(i,in,dt);
@@ -975,6 +1006,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
                 if(p->reserve>0)start_reload(i);else{event(BG_EVENT_EMPTY,i,p->weapon,p->pos,1);p->cooldown=.5f;}}
         }
         for(unsigned slot=0;slot<2;slot++){
+            if(p->inventory[slot]<0)continue;
             const bg_trigger_profile*t=&bg_trigger_profiles[p->inventory[slot]];
             bool down=personal&&slot==(unsigned)p->slot&&in->fire;
             float rate=t->rate_min+(t->rate_max-t->rate_min)*p->trigger_rate[slot];
@@ -983,28 +1015,8 @@ void bg_tick(const bg_input inputs[BG_PLAYERS],float dt){
             p->trigger_error[slot]=bg_trigger_step(p->trigger_error[slot],(down||recovering)?t->error_up:-t->error_down);
         }
         p->fire_held=in->fire;teleport(i);memcpy(p->last_pos,p->pos,sizeof(p->pos));
-        /* Ammunition, health and grenades are collected by walking over them;
-         * replacing a carried weapon always requires the interact button. */
-        if(p->vehicle<0)for(unsigned j=0;j<bg_pickup_count;j++){
-            bg_pickup*q=&bg_pickups[j];if(!q->active||distance2(p->pos,q->pos)>.38f*.38f)continue;
-            bool consume=false;
-            if(q->weapon==BG_PICK_HEALTH&&p->health<100){p->health=100;consume=true;}
-            if(q->weapon==BG_PICK_FRAG&&p->grenades[0]<4){p->grenades[0]=4;consume=true;}
-            if(q->weapon==BG_PICK_PLASMA&&p->grenades[1]<4){p->grenades[1]=4;consume=true;}
-            if(q->weapon==BG_PICK_OVERSHIELD&&p->shield<=100&&!p->shield_overcharging){
-                p->shield=fmaxf(1,p->shield);p->shield_delay=0;
-                p->shield_overcharging=p->shield_charging=true;consume=true;
-                event(BG_EVENT_SHIELD,i,p->weapon,p->pos,1);
-            }
-            if(q->weapon==BG_PICK_CAMO){p->invisibility=30;consume=true;}
-            if(q->weapon<BG_WEAPON_COUNT&&(q->weapon==p->inventory[0]||q->weapon==p->inventory[1])){
-                int slot=q->weapon==p->inventory[0]?0:1;
-                int reserve=slot==p->slot?p->reserve:p->reserves[slot];
-                int ammo=slot==p->slot?p->ammo:p->magazines[slot];
-                if(reserve<bg_weapon_defs[q->weapon].reserve||ammo<bg_weapon_defs[q->weapon].magazine){bg_give_weapon(i,q->weapon);consume=true;}}
-            if(consume){q->active=false;q->respawn=q->weapon>=BG_PICK_OVERSHIELD?60:30;
-                if(q->weapon>=BG_WEAPON_COUNT)event(BG_EVENT_PICKUP,i,q->weapon,p->pos,1);}
-        }
+        if(p->vehicle<0)collect_nearby(i);
+
     }
     if(!bg_match_finished()){update_vehicles(inputs,dt);update_projectiles(dt);}
 }

@@ -7,7 +7,7 @@
 #define BG_PLAYERS 4
 #define BG_MAX_VEHICLES 12
 #define BG_MAX_PROJECTILES 48
-#define BG_MAX_PICKUPS 40
+#define BG_MAX_PICKUPS 56
 #define BG_MAX_EVENTS 64
 
 typedef enum { BG_W_AR, BG_W_PISTOL, BG_W_PLASMA_PISTOL, BG_W_PLASMA_RIFLE,
@@ -79,7 +79,13 @@ typedef struct {
     float pos[3],velocity[3],life,damage,radius; int kind,owner,attached;
     float attached_offset[3],distance,age; int8_t tracked; uint8_t damage_profile; bool active,countdown,combined;
 } bg_projectile;
-typedef struct { float pos[3],respawn; int weapon; bool active; } bg_pickup;
+/* Map slots are permanent schedule owners. Dynamic slots are a bounded pool;
+ * meshes are shared, so dropping never allocates a model or animation buffer. */
+typedef struct {
+    float pos[3],respawn,yaw,age,unseen,visible_until,ignore_time,heat;
+    int weapon,base_weapon,ammo,reserve,quantity,period,alternate,first_weight,total_weight,ignore_player;
+    uint16_t generation;bool active,dropped,overheated;
+} bg_pickup;
 typedef struct { float source[3],destination[3],yaw; } bg_teleporter;
 typedef struct { bg_event_kind kind; int player,weapon; float pos[3],amount; } bg_event;
 /* Presentation consumes the exact last sniper ray, including spread and hit
@@ -114,7 +120,7 @@ float bg_match_time(void);
 void bg_tick(const bg_input input[BG_PLAYERS],float dt);
 float bg_floor(float x,float z,float ceiling);
 float bg_raycast(const float origin[3],const float direction[3],float max_distance);
-/* Picking up a weapon replaces the current slot; matching weapons replenish it. */
+/* Explicit grant for fixtures/setup. Actual world pickups conserve inventory. */
 bool bg_give_weapon(unsigned player,bg_weapon weapon);
 /* Local map setup may replace default placements with extracted scenario data. */
 int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw);

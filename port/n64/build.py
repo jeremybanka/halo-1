@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--libdragon-source', type=Path, help='Matching libdragon source checkout for the local queue override; defaults to SDK sibling libdragon-src')
     parser.add_argument('--blam-bsp', action='store_true', help='Use original Blam BSP collision; requires an 8 MiB Expansion Pak')
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--combat-qa', type=int, choices=range(5), help='Staged combat and rollover comparisons through production gameplay')
+    mode.add_argument('--combat-qa', type=int, choices=range(7), help='Staged combat and rollover comparisons through production gameplay')
     mode.add_argument('--movement-qa', type=int, choices=[0,1,2,3], help='Scripted movement, aiming, terrain clearance and landing comparisons')
     mode.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
     mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')
@@ -225,7 +225,7 @@ def main():
         sources.append('menu_qa.c')
     if args.frontend_qa:
         sources.append('frontend_qa.c')
-    generated = ['combat_data.c', 'movement_data.c', 'sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'terrain_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+    generated = ['pickup_data.c', 'combat_data.c', 'movement_data.c', 'sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'terrain_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
     if args.blam_bsp:
         if not (out/'generated/blam_collision_data.c').exists():
             parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')

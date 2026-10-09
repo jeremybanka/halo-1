@@ -3,6 +3,7 @@
 /* Deterministic QA only. Shots enter the production collision/damage path;
  * overshield comes from a real world pickup, never a presentation override. */
 #include "game.h"
+#include "rifle_fixture.h"
 #include <string.h>
 #include <assert.h>
 static void shield_fixture_ticks(unsigned count){
@@ -16,7 +17,7 @@ static void shield_fixture_shot(unsigned victim,float damage){
     q->velocity[0]=30;
 }
 static void shield_fixture_reset(void){
-    bg_set_players(4);bg_reset();bg_set_score_limit(1000);bg_pickup_count=bg_vehicle_count=0;
+    bg_set_players(4);bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);bg_set_score_limit(1000);bg_pickup_count=bg_vehicle_count=0;
     for(unsigned p=0;p<4;p++){
         bg_player*q=&bg_players[p];q->pos[0]=p*6;q->pos[2]=4;
         q->pos[1]=bg_floor(q->pos[0],4,100)+.015f;q->yaw=0;q->pitch=0;

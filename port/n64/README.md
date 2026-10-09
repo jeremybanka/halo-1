@@ -26,6 +26,8 @@ The source grass/sand bake and 64×64 paletted ground experiment are documented
 in [GROUND_TEXTURES.md](GROUND_TEXTURES.md).
 Held-use weapon pickups, original ready/boarding/dismount animations and
 seat-specific prompts are covered in [INTERACTIONS.md](INTERACTIONS.md).
+Source Slayer starts, dropped equipment, ammunition transfers and bounded
+cleanup are covered in [SPAWNS_PICKUPS.md](SPAWNS_PICKUPS.md).
 
 Progress toward the next milestone is tracked in [BLOOD_GULCH_PARITY.md](BLOOD_GULCH_PARITY.md).
 The current on-foot control pass is documented in [MOVEMENT.md](MOVEMENT.md).
@@ -37,15 +39,15 @@ cartridge. Build the recommended four-player profile with
 `build/n64-python/bin/python port/n64/build.py --paced30 --rspq-buffer-kib 32`.
 This uses three display surfaces for four player views. The ordinary
 `halo-blood-gulch.z64` retains the unpaced presenter.
-The current combat timing/projectile pass measures **26.4 displayed FPS overall /
-27.7 in combat / 25.1 around vehicles**, with 164 KiB free in the quiet Ares
+The current spawn/pickup pass measures **26.8 displayed FPS overall /
+27.8 in combat / 25.9 around vehicles**, with 153 KiB free in the quiet Ares
 fixture. These are averages, not a sustained minimum: P95 pose interval is
-66.8 ms and maximum is 267.4 ms. The final 30 FPS/latency pass remains open.
+66.8 ms and maximum is 234.0 ms. The final 30 FPS/latency pass remains open.
 The expanded frontend lifecycle cycles all eight weapons, completes a 15-kill
-match and returns to the menu (37/37 pass; 127–128 KiB observed combat free heap,
-424 KiB menu free heap). Four-buffer variants fail this memory stress and remain
-experimental. See [COMBAT.md](COMBAT.md), `build/n64/combat-timing-audit/` and
-`build/n64/release-manifest.json` for evidence and exact ROM identity.
+match and returns to the menu. Four-buffer variants previously failed this
+memory stress and remain experimental. See [SPAWNS_PICKUPS.md](SPAWNS_PICKUPS.md),
+`build/n64/pickup-audit/` and `build/n64/release-manifest.json` for evidence and
+exact ROM identity.
 Earlier timing results describe older builds.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
@@ -56,6 +58,8 @@ player's Start transfers ownership; the current owner's Start resumes.
 **Setup** is enabled only for Player 1 and offers Restart Match or Quit Game.
 **Controls** changes only the menu owner's layout. Player count is set by joining
 controllers in the front end.
+Slayer uses the supplied map’s starting profile: **plasma pistol, no secondary
+weapon and no grenades**. Find additional weapons and equipment on the map.
 Every player starts with **N64** controls. Each player's choice survives match
 restarts and player-count changes, but is not saved across power cycles.
 The front-end Slayer preset ends at **15 kills**, followed by the original

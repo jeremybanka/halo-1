@@ -34,10 +34,12 @@ Old benchmark results do not certify a newer build.
         splitscreen; the expanded all-weapons lifecycle passes. Final memory
         measurements and the 32 KiB graphics queue are recorded in the manifest. Four-buffer builds currently fail that stress
         case and are not the recommended release configuration.
-- [ ] Spawn selection: replace player-index/team cycling with appropriate Slayer
-      spawn eligibility and threat-aware selection.
-- [ ] Dropped weapons/grenades and pickup ammunition conservation.
-- [ ] Original map pickup timing, starting equipment and respawn rules.
+- [x] Source Slayer spawn eligibility and distance-weighted selection;
+      conservative vehicle-bound exclusion. See [SPAWNS_PICKUPS.md](SPAWNS_PICKUPS.md).
+- [x] Dropped weapons/grenades and pickup ammunition conservation; bounded
+      pool with faster unseen cleanup. Physical item trajectories remain simplified.
+- [x] Original map pickup timing, starting equipment and basic Slayer respawn
+      delays. One object per map pedestal is a deliberate memory limit.
 - [ ] Combat audit — **active**, see [COMBAT.md](COMBAT.md).
   - [x] Source direct-damage profiles, fractional vitality and material modifiers.
   - [x] Shield/headshot breakpoints, overcharge EMP and damage-range falloff.
@@ -116,3 +118,9 @@ Latest timing/projectile run: 26.4 overall / 27.7 combat / 25.1 vehicle FPS,
 buffers. P95 66.8 ms, maximum 267.4 ms; this clears section averages, not a
 sustained 25 FPS floor. Four-buffer variants fail the expanded all-weapons
 lifecycle and are not recommended.
+
+Spawn/pickup pass: 26.8 overall / 27.8 combat / 25.9 vehicle FPS, 153 KiB
+live free heap, three display surfaces and 32 KiB queue buffers. P95 66.8 ms,
+maximum 234.0 ms; the sustained-floor checkbox remains open. The fixed item
+pool restores source map placements and conserves dropped ammunition while
+cleaning unseen drops sooner. See [SPAWNS_PICKUPS.md](SPAWNS_PICKUPS.md).

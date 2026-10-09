@@ -1,5 +1,6 @@
 /* Host integration tests against the selected Blood Gulch collision backend. */
 #include "game.h"
+#include "rifle_fixture.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -8,7 +9,7 @@
 static bg_input in[BG_PLAYERS];
 static void ticks(unsigned n){for(unsigned i=0;i<n;i++){bg_tick(in,1.f/30);bg_clear_events();}}
 static float distance(const float a[3],const float b[3]){float x=a[0]-b[0],y=a[1]-b[1],z=a[2]-b[2];return sqrtf(x*x+y*y+z*z);}
-static void reset(void){memset(in,0,sizeof(in));bg_set_players(4);bg_reset();bg_pickup_count=bg_vehicle_count=0;bg_clear_events();}
+static void reset(void){memset(in,0,sizeof(in));bg_set_players(4);bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);bg_pickup_count=bg_vehicle_count=0;bg_clear_events();}
 static void duel(void){reset();bg_players[0].yaw=bg_players[0].pitch=0;
     memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;bg_players[1].yaw=3.14159265f;}
 static void equip(bg_weapon weapon){assert(bg_give_weapon(0,weapon));if(bg_players[0].weapon!=(int)weapon){in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;}ticks(40);}
@@ -190,7 +191,8 @@ int main(void){
      * its normal explosion without confusing Ghost with the plasma enum. */
     reset();bg_vehicle_count=1;bg_vehicle*ghost=&bg_vehicles[0];
     *ghost=(bg_vehicle){.active=true,.kind=BG_V_GHOST,.health=1,.occupants={-1,-1,-1,-1,-1}};
-    memcpy(ghost->pos,bg_players[0].pos,12);ghost->pos[0]+=4;
+    /* Keep this destruction fixture on known open support, independent of spawn selection. */
+    ghost->pos[0]=-12;ghost->pos[2]=5;ghost->pos[1]=bg_floor(-12,5,100)+.15f;
     bg_projectile*blast=bg_projectile_create();assert(blast);
     *blast=(bg_projectile){.active=true,.kind=BG_P_ROCKET,.owner=0,.attached=-2,.age=2,.life=.001f,.damage=300,.radius=2.2f};
     memcpy(blast->pos,ghost->pos,12);bg_tick(in,1.f/30);unsigned blast_events=0;
@@ -200,7 +202,7 @@ int main(void){
     unsigned destroyed=0;for(unsigned e=0;e<bg_event_count;e++)destroyed+=bg_events[e].kind==BG_EVENT_VEHICLE_DESTROYED;
     assert(blast_events==1&&destroyed==1&&!ghost->active&&ghost->wreck_time>0);
     /* Authentic scenario vehicles offer driver, turret and passenger seats. */
-    memset(in,0,sizeof(in));bg_reset();bg_pickup_count=0;bg_vehicle*v=&bg_vehicles[0];assert(bg_vehicle_count==10);
+    memset(in,0,sizeof(in));bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);bg_pickup_count=0;bg_vehicle*v=&bg_vehicles[0];assert(bg_vehicle_count==10);
     for(int i=0;i<3;i++){
         bg_vehicle_seat_position(v,i,true,bg_players[i].pos);
         in[i].interact=true;ticks(7);in[i].interact=false;assert(bg_players[i].vehicle==0&&bg_players[i].seat==i);
@@ -211,7 +213,7 @@ int main(void){
     in[0].interact=true;ticks(7);in[0].interact=false;ticks(30);assert(bg_players[0].vehicle==-1&&v->occupants[0]==-1);
     /* All four vehicle types move; Banshee can gain altitude. */
     for(int kind=BG_V_GHOST;kind<BG_VEHICLE_COUNT;kind++){
-        memset(in,0,sizeof(in));bg_reset();bg_pickup_count=0;
+        memset(in,0,sizeof(in));bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);bg_pickup_count=0;
         unsigned j=0;while(j<bg_vehicle_count&&bg_vehicles[j].kind!=kind)j++;assert(j<bg_vehicle_count);v=&bg_vehicles[j];
         bg_vehicle_seat_position(v,0,true,bg_players[0].pos);in[0].interact=true;ticks(7);in[0].interact=false;ticks(70);
         assert(bg_players[0].vehicle==(int)j&&bg_players[0].seat==0);memcpy(start,v->pos,12);in[0].forward=1;bg_players[0].yaw=v->yaw;bg_players[0].pitch=kind==BG_V_BANSHEE?.35f:0;ticks(60);
@@ -234,7 +236,7 @@ int main(void){
     duel();bg_set_players(1);in[0].fire=true;ticks(70);assert(bg_players[1].health==100&&bg_players[1].shield==100);
     /* Pickups respect explicit replacement and respawn. */
     reset();int pickup=bg_add_pickup(BG_W_ROCKET,bg_players[0].pos);in[0].interact=true;ticks(7);in[0].interact=false;
-    assert(bg_players[0].weapon==BG_W_ROCKET&&!bg_pickups[pickup].active);ticks(905);assert(bg_pickups[pickup].active);
+    assert(bg_players[0].weapon==BG_W_ROCKET&&!bg_pickups[pickup].active);bg_players[0].pos[0]+=2;ticks(905);assert(bg_pickups[pickup].active);
     /* Both original roof-pad teleporters land at their own scenario exit,
      * turn the player toward its exit direction, and enforce a cooldown.
      * The wider source capsule can depenetrate the pad frame and settle
@@ -259,13 +261,13 @@ int main(void){
     assert(game_over==1);
     bg_player finished[4];memcpy(finished,bg_players,sizeof(finished));float end_time=bg_match_time();
     in[0].forward=1;ticks(120);assert(memcmp(finished,bg_players,sizeof(finished))==0&&bg_match_time()==end_time);
-    bg_reset();assert(!bg_match_finished()&&bg_match_time()==0&&bg_players[0].score==0);
+    bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);assert(!bg_match_finished()&&bg_match_time()==0&&bg_players[0].score==0);
     /* The retail Slayer preset uses 15 kills and reports actual statistics. */
     bg_set_score_limit(15);duel();equip(BG_W_PISTOL);
     bg_players[0].score=14;bg_players[1].shield=0;in[0].fire=true;ticks(1);
     assert(bg_match_finished()&&bg_players[0].score==15);
     assert(bg_match_stats()->kills[0]==1&&bg_match_stats()->deaths[1]==1);
-    bg_reset();assert(bg_score_limit()==15&&!bg_match_finished());
+    bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);assert(bg_score_limit()==15&&!bg_match_finished());
     const bg_match_statistics empty_statistics={0};
     assert(!memcmp(bg_match_stats(),&empty_statistics,sizeof(empty_statistics)));
     /* Two real melee hits from different attackers award the contributor an

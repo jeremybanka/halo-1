@@ -1,4 +1,5 @@
 #include "game.h"
+#include "rifle_fixture.h"
 #include "blam/vehicle_physics.h"
 #include <assert.h>
 #include <math.h>
@@ -6,7 +7,7 @@
 #include <string.h>
 static bg_input input[4];
 static void tick(unsigned n){while(n--){bg_clear_events();bg_tick(input,1.f/30);}}
-static void reset(void){bg_set_players(4);bg_reset();bg_pickup_count=bg_vehicle_count=0;memset(input,0,sizeof(input));
+static void reset(void){bg_set_players(4);bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);bg_pickup_count=bg_vehicle_count=0;memset(input,0,sizeof(input));
     for(unsigned i=0;i<4;i++){bg_players[i].pos[0]=i*4;bg_players[i].pos[2]=4;bg_players[i].pos[1]=bg_floor(i*4,4,100)+.015f;}}
 static void pickup(void){
     reset();bg_player*p=&bg_players[0];float pos[3]={p->pos[0]+.5f,p->pos[1],p->pos[2]};

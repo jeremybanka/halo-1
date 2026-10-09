@@ -4,6 +4,7 @@
 #include <string.h>
 #include "game.h"
 #include "combat.h"
+#include "pickup_rules.h"
 #include "movement.h"
 #include "view_camera.h"
 #include "sky_draw.h"
@@ -988,15 +989,18 @@ static void prepare_vehicle(unsigned i){
     cache->last_slot=slot;
 }
 static void prepare_pickup_bounds(void){
-    T3DMat4 rotation;float scale=BG_SCALE/BG_OBJECT_SCALE;
-    t3d_mat4_from_srt_euler(&rotation,(float[]){scale,scale,scale},
+    float scale=BG_SCALE/BG_OBJECT_SCALE;
+    T3DMat4 map_rotation;
+    t3d_mat4_from_srt_euler(&map_rotation,(float[]){scale,scale,scale},
         (float[]){0,-game_time*.5f,0},(float[]){0,0,0});
-    T3DMat4FP fixed;t3d_mat4_to_fixed_3x4(&fixed,&rotation);
     for(unsigned i=0;i<bg_pickup_count;i++){
         const bg_pickup*q=&bg_pickups[i];if(!q->active)continue;
-        float pos[3];memcpy(pos,q->pos,sizeof(pos));pos[1]+=.035f*sinf(game_time*2+i);
-        for(unsigned a=0;a<3;a++){pos[a]*=BG_SCALE;rotation.m[3][a]=pos[a];}
-        pickup_matrices[slot][i]=fixed;t3d_mat4fp_set_pos(&pickup_matrices[slot][i],pos);
+        T3DMat4 rotation=map_rotation;
+        if(q->dropped)t3d_mat4_from_srt_euler(&rotation,(float[]){scale,scale,scale},
+            (float[]){0,q->yaw,0},(float[]){0,0,0});
+        float pos[3];memcpy(pos,q->pos,sizeof(pos));if(!q->dropped)pos[1]+=.035f*sinf(game_time*2+i);
+        for(unsigned a=0;a<3;a++)rotation.m[3][a]=pos[a]*BG_SCALE;
+        t3d_mat4_to_fixed_3x4(&pickup_matrices[slot][i],&rotation);
         bg_bounds box;bg_bounds_transform(&box,&bg_pickup_micro_gate_bounds[pickup_model(q->weapon)],rotation.m,BG_OBJECT_SCALE);
         bg_bounds_quantize(&pickup_bounds[i],&box);
     }
@@ -1336,6 +1340,7 @@ static void prepare_view(unsigned p){
     }
     for(unsigned i=0;i<bg_pickup_count;i++){
         pickup_visible[p][i]=bg_pickups[i].active&&visible_bounds(vp,&pickup_bounds[i]);
+        if(pickup_visible[p][i])bg_pickup_mark_visible(i);
     }
 }
 static void draw_view(unsigned p){
@@ -1795,7 +1800,7 @@ int main(void){
 #ifndef BG_SNAPSHOT_TICK
     bg_menu_draw_init();
 #endif
-    surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_reset();bg_set_players(views);bg_sound_init();
+    surface_t depth=surface_alloc(FMT_RGBA16,320,240);init_scene();bg_hud_init();bg_set_players(views);bg_reset();bg_sound_init();
     assertf(dfs_init(DFS_DEFAULT_LOCATION)==DFS_ESUCCESS,"Game filesystem");
 #ifdef BG_FRONTEND
     bg_front_init(&front);paused=true;bg_vehicle_world_release();firstperson_buffers_release();bg_sound_frontend(true);
@@ -2040,7 +2045,14 @@ int main(void){
         rdpq_text_printf(NULL,1,4,237,"SCRIPTED FRONTEND COMBAT");
 #endif
 #ifdef BG_COMBAT_QA
-        rdpq_set_mode_standard();rdpq_text_printf(NULL,1,4,225,"TARGETS S/H: %.1f/%.1f | %.1f/%.1f",bg_players[1].shield,(double)bg_players[1].health,bg_players[3].shield,(double)bg_players[3].health);
+        rdpq_set_mode_standard();
+#if BG_COMBAT_QA == 5
+        rdpq_text_printf(NULL,1,4,225,"P3 AMMO %d / %d | FRAG %d PLASMA %d",bg_players[2].ammo,bg_players[2].reserve,bg_players[2].grenades[0],bg_players[2].grenades[1]);
+#elif BG_COMBAT_QA == 6
+        rdpq_text_printf(NULL,1,4,225,"16 SLAYER POINTS | THREE CAMPERS");
+#else
+        rdpq_text_printf(NULL,1,4,225,"TARGETS S/H: %.1f/%.1f | %.1f/%.1f",bg_players[1].shield,(double)bg_players[1].health,bg_players[3].shield,(double)bg_players[3].health);
+#endif
         rdpq_text_printf(NULL,1,4,237,"SCRIPTED | %s",combat_qa_title());
 #endif
 #ifdef BG_MOVEMENT_QA

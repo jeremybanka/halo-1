@@ -2,7 +2,43 @@
 #define BG_COMBAT_QA_H
 /* Identical staging in before/after ROMs; all attacks use production input. */
 static void combat_qa_input(bg_input in[4],float time){
-    static int previous=-1;int cycle=(int)(time/12);float t=time-cycle*12;
+    static int previous=-1;const float duration=BG_COMBAT_QA>=5?24:12;int cycle=(int)(time/duration);float t=time-cycle*duration;
+#if BG_COMBAT_QA == 5
+    if(cycle!=previous){
+        previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);views=4;
+        bg_vehicle_count=bg_pickup_count=0;reset_view_state();
+        for(unsigned p=0;p<4;p++){
+            bg_player*q=&bg_players[p];q->pos[0]=-12+(p==1?1.2f:p==2?1.5f:p==3?-2.f:0);
+            q->pos[2]=5+(p==3?2.f:0);q->pos[1]=bg_floor(q->pos[0],q->pos[2],100)+.015f;
+            q->yaw=p==2?3.14159265f:0;q->pitch=0;q->weapon_ready=q->cooldown=0;
+            memcpy(q->last_pos,q->pos,12);
+        }
+        bg_give_weapon(0,BG_W_PISTOL);bg_players[0].cooldown=0;
+        bg_give_weapon(1,BG_W_AR);bg_players[1].ammo=7;bg_players[1].reserve=19;
+        bg_players[1].inventory[1]=BG_W_PLASMA_PISTOL;bg_players[1].magazines[1]=23;bg_players[1].reserves[1]=0;
+        bg_players[1].grenades[0]=2;bg_players[1].grenades[1]=3;bg_players[1].health=1;bg_players[1].shield=0;bg_players[1].shield_delay=30;
+        bg_players[0].pitch=atan2f(bg_players[1].pos[1]+.35f-bg_players[0].pos[1]-bg_eye_height(&bg_players[0]),1.2f);
+        bg_players[3].yaw=atan2f(2.f,3.2f);
+    }
+    memset(in,0,sizeof(bg_input)*4);in[0].fire=t>=2&&t<2.05f;in[2].interact=t>=3&&t<4;
+    return;
+#endif
+#if BG_COMBAT_QA == 6
+    static int death_stage;
+    if(cycle!=previous){
+        previous=cycle;death_stage=-1;bg_set_players(4);bg_reset();bg_set_score_limit(1000);views=4;reset_view_state();
+        unsigned point=0;
+        for(unsigned p=1;p<4;p++){
+            while(point<bg_spawn_count&&!bg_slayer_spawns[point])point++;
+            memcpy(bg_players[p].pos,bg_spawns[point].pos,12);bg_players[p].yaw=bg_spawns[point].yaw;point++;
+        }
+    }
+    memset(in,0,sizeof(bg_input)*4);
+    int stage=(int)(t/6);if(t>=1&&stage!=death_stage){
+        death_stage=stage;bg_players[0].health=0;bg_players[0].respawn=3;
+    }
+    return;
+#endif
 #if BG_COMBAT_QA == 4
     static bool tipped;
     if(cycle!=previous){
@@ -57,6 +93,6 @@ static void combat_qa_input(bg_input in[4],float time){
     }
 }
 static const char*combat_qa_title(void){
-    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK","ROLLOVER: THREE OCCUPANTS"}[BG_COMBAT_QA];
+    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK","ROLLOVER: THREE OCCUPANTS","DEATH DROP / P3 RECOVERY","STAGED DEATHS / SLAYER SPAWNS"}[BG_COMBAT_QA];
 }
 #endif

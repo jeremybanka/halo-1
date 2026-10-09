@@ -1,4 +1,5 @@
 #include "showcase.h"
+#include "rifle_fixture.h"
 #include <math.h>
 #include <string.h>
 
@@ -37,7 +38,8 @@ void bg_showcase_begin(bg_showcase_kind kind){
     scenario=kind<BG_SHOWCASE_COUNT?kind:BG_SHOWCASE_BANSHEE;
     memset(&stats,0,sizeof(stats));shots_requested=0;now=0;
     previous_valid=needle_valid=frag_thrown=false;vehicle_index=tracked_needle=-1;
-    bg_reset();bg_set_players(scenario==BG_SHOWCASE_BANSHEE?1:scenario==BG_SHOWCASE_FRAG_DOUBLE_KILL?4:2);
+    bg_set_players(scenario==BG_SHOWCASE_BANSHEE?1:scenario==BG_SHOWCASE_FRAG_DOUBLE_KILL?4:2);bg_reset();
+    for(unsigned p=0;p<4;p++)bg_fixture_rifle_loadout(p);
     /* Each recorded scene begins with ordinary full-health players and a
      * deliberately arranged local encounter. All subsequent motion, damage,
      * boarding and deaths run through the same live simulation. */

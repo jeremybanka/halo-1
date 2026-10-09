@@ -27,7 +27,7 @@ def main():
              '-Wno-multichar', '-Wno-unused-function', '-Wno-unused-parameter',
              '-Wno-unused-variable', '-Wno-incompatible-pointer-types',
              '-Iport/n64', '-Ibuild/n64/blam-core', '-Ibuild/n64/blam-vehicle']
-    shared = ['port/n64/combat_geometry.c','build/n64/generated/combat_data.c', 'port/n64/terrain.c', 'port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
+    shared = ['build/n64/generated/pickup_data.c','port/n64/combat_geometry.c','build/n64/generated/combat_data.c', 'port/n64/terrain.c', 'port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
               'port/n64/blam/vehicle_physics.c', 'build/n64/generated/vehicle_data.c',
               'build/n64/generated/terrain_data.c']
     suites = {
@@ -48,6 +48,7 @@ def main():
         'game': ['port/n64/test_game.c', *shared],
         'combat-geometry': ['port/n64/test_combat_geometry.c', *shared],
         'combat': ['port/n64/test_combat.c', *shared],
+        'pickups': ['port/n64/test_pickups.c', *shared],
         'weapon-effects': ['port/n64/test_weapon_effects.c', 'port/n64/weapon_effects.c',
                            'build/n64/generated/weapon_effects_data.c', *shared],
         'effects-staging': ['port/n64/test_effects_qa.c', 'port/n64/effects_qa.c',

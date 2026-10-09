@@ -50,6 +50,7 @@ def main():
         'game': ['port/n64/test_game.c', *shared],
         'combat-geometry': ['port/n64/test_combat_geometry.c', *shared],
         'combat': ['port/n64/test_combat.c', *shared],
+        'fidelity': ['port/n64/test_fidelity.c', *shared],
         'pickups': ['port/n64/test_pickups.c', *shared],
         'weapon-effects': ['port/n64/test_weapon_effects.c', 'port/n64/weapon_effects.c',
                            'build/n64/generated/weapon_effects_data.c', *shared],

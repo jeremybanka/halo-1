@@ -122,8 +122,44 @@ bool bg_can_stand(const bg_player*p){
     }
     return true;
 }
+/* biped_update_physics' neighboring-support recovery after a contact-free
+ * move. Preserve its 2*radius edge reach, radius/2 plane tolerance and
+ * 1.6 units/s outward-speed gate; never snap an airborne jump or a gap. */
+static bool recover_support(bg_player*p,unsigned previous,float normal[3]){
+    if(!previous||previous>bg_collision_count)return false;
+    const bg_triangle*old=&bg_collision[previous-1];float ab[3],ac[3],old_n[3];sub(ab,old->p[1],old->p[0]);sub(ac,old->p[2],old->p[0]);cross(old_n,ab,ac);
+    float length=sqrtf(dot(old_n,old_n));if(length<1e-8f)return false;for(unsigned a=0;a<3;a++)old_n[a]/=length;
+    float r=bg_movement.radius,center[3]={p->pos[0],p->pos[1]+r,p->pos[2]},offset[3],projected[3];sub(offset,center,old->p[0]);float distance=dot(offset,old_n);
+    for(unsigned a=0;a<3;a++)projected[a]=center[a]-old_n[a]*distance;
+    float best=1e9f,best_n[3]={0},best_plane=0,best_speed=0;unsigned selected=0;int grid[4];cells(p->pos,2*r,grid);
+    for(int z=grid[2];z<=grid[3];z++)for(int x=grid[0];x<=grid[1];x++){
+        bg_cell cell=bg_grid[z*BG_GRID+x];
+        for(unsigned entry=0;entry<cell.count;entry++){
+            unsigned id=bg_grid_indices[cell.first+entry];if(id+1==previous)continue;const bg_triangle*t=&bg_collision[id];
+            unsigned shared[2],count=0;
+            for(unsigned i=0;i<3&&count<2;i++)for(unsigned j=0;j<3;j++){float delta[3];sub(delta,old->p[i],t->p[j]);if(dot(delta,delta)<1e-12f){shared[count++]=i;break;}}
+            if(count<2)continue;
+            float n[3];sub(ab,t->p[1],t->p[0]);sub(ac,t->p[2],t->p[0]);cross(n,ab,ac);length=sqrtf(dot(n,n));if(length<1e-8f)continue;
+            for(unsigned a=0;a<3;a++)n[a]/=length;
+            if(n[1]<0)for(unsigned a=0;a<3;a++)n[a]=-n[a];
+            if(n[1]<bg_movement.slope[0])continue;
+            float speed=dot(n,p->velocity),plane=dot(n,t->p[0]);if(speed<=0||dot(n,center)-plane<=-r*.5f)continue;
+            const float*a=old->p[shared[0]],*b=old->p[shared[1]];float edge[3],delta[3];sub(edge,b,a);sub(delta,projected,a);float extent=dot(edge,edge);if(extent<1e-12f)continue;
+            float fraction=pin(dot(delta,edge)/extent,0,1);for(unsigned k=0;k<3;k++)delta[k]-=edge[k]*fraction;
+            float d2=dot(delta,delta);if(d2<best){best=d2;selected=id+1;memcpy(best_n,n,12);best_plane=plane;best_speed=speed;}
+        }
+    }
+    if(!selected||best>4*r*r||best_speed>1.6f)return false;
+    distance=dot(best_n,center)-(best_plane+r+.015f);if(fabsf(distance)>r*.5f)return false;
+    bg_player candidate=*p;for(unsigned a=0;a<3;a++)candidate.pos[a]-=best_n[a]*distance;
+    if(!bg_terrain_clearance(&candidate))return false;
+    memcpy(p->pos,candidate.pos,12);float outward=dot(best_n,p->velocity);
+    if(outward>-1)for(unsigned a=0;a<3;a++)p->velocity[a]-=best_n[a]*(outward+1);
+    p->support_triangle=selected;memcpy(normal,best_n,12);return true;
+}
 float bg_move_capsule(bg_player*p,float dt){
     float r=bg_movement.radius,h=bg_body_height(p),impact=0;
+    bool was_grounded=p->grounded;unsigned previous=p->support_triangle;p->support_triangle=0;bool contacted=false;
     float distance=sqrtf(dot(p->velocity,p->velocity))*dt;
     unsigned steps=(unsigned)ceilf(distance/(r*.4f));if(steps<1)steps=1;if(steps>64)steps=64;
     float step=dt/steps;bool supported=false;float support[3]={0,1,0};
@@ -139,13 +175,13 @@ float bg_move_capsule(bg_player*p,float dt){
                     float a[3],b[3],n[3];float d2=bg_capsule_triangle(p->pos,h,r,t,a,b);
                     const float skin=.015f;
                     if(d2>(r+skin+.0005f)*(r+skin+.0005f))continue;
-                    float d=sqrtf(d2);sub(n,a,b);
+                    contacted=true;float d=sqrtf(d2);sub(n,a,b);
                     if(d<1e-6f){float ab[3],ac[3];sub(ab,t->p[1],t->p[0]);sub(ac,t->p[2],t->p[0]);cross(n,ab,ac);float len=sqrtf(dot(n,n));if(len<1e-8f)continue;for(int k=0;k<3;k++)n[k]/=len;if(dot(n,p->velocity)>0)for(int k=0;k<3;k++)n[k]=-n[k];}
                     else for(int k=0;k<3;k++)n[k]/=d;
                     float into=dot(p->velocity,n);
                     if(n[1]>=bg_movement.slope[0]-.0001f&&into<=.01f){
                         if(!supported||n[1]>support[1])memcpy(support,n,12);
-                        supported=true;impact=fmaxf(impact,-into);
+                        supported=true;p->support_triangle=(c->count==UINT16_MAX?j:c->ids[j])+1;impact=fmaxf(impact,-into);
                     }
                     if(d<r+skin-.00001f){for(int k=0;k<3;k++)p->pos[k]+=n[k]*(r+skin-d);adjusted=true;}
                     if(into<0)for(int k=0;k<3;k++)p->velocity[k]-=n[k]*into;
@@ -153,6 +189,7 @@ float bg_move_capsule(bg_player*p,float dt){
             if(!adjusted)break;
         }
     }
+    if(!contacted&&was_grounded&&recover_support(p,previous,support))supported=true;
     p->grounded=supported;if(supported)memcpy(p->ground_normal,support,12);
     p->vy=p->velocity[1];return impact;
 }

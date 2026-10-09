@@ -39,15 +39,14 @@ cartridge. Build the recommended four-player profile with
 `build/n64-python/bin/python port/n64/build.py --paced30 --rspq-buffer-kib 32`.
 This uses three display surfaces for four player views. The ordinary
 `halo-blood-gulch.z64` retains the unpaced presenter.
-The current spawn/pickup pass measures **26.8 displayed FPS overall /
-27.8 in combat / 25.9 around vehicles**, with 153 KiB free in the quiet Ares
-fixture. These are averages, not a sustained minimum: P95 pose interval is
-66.8 ms and maximum is 234.0 ms. The final 30 FPS/latency pass remains open.
-The expanded frontend lifecycle cycles all eight weapons, completes a 15-kill
-match and returns to the menu. Four-buffer variants previously failed this
-memory stress and remain experimental. See [SPAWNS_PICKUPS.md](SPAWNS_PICKUPS.md),
-`build/n64/pickup-audit/` and `build/n64/release-manifest.json` for evidence and
-exact ROM identity.
+The current source-fidelity pass measures **24.4 displayed FPS overall /
+26.3 in combat / 22.7 around vehicles**, with 52 KiB free in the quiet Ares
+fixture. The vehicle section is below the >25 FPS development target. P95 pose
+interval is 66.8 ms and maximum is 200.5 ms; the final 30 FPS/latency pass remains
+open. The expanded frontend lifecycle cycles all eight weapons, completes a
+15-kill match and returns to the menu. See [FIDELITY_EDGES.md](FIDELITY_EDGES.md),
+`build/n64/fidelity-audit/` and `build/n64/release-manifest.json` for verification
+status and exact ROM identity.
 Earlier timing results describe older builds.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;

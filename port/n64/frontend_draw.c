@@ -21,6 +21,10 @@ static surface_t fonts[2][4],mesh_textures[8];
 static void *font_pixels[2],*vertices[8];
 static T3DViewport viewport;
 static bool loaded;
+/* Menu text commands copy their glyph coordinates into the RDP queue. Keep
+ * the batching workspace resident only while the front end is open. */
+typedef struct {const bg_menu_glyph*g;float x,y;unsigned font;color_t color;} glyph;
+static glyph *letters;static unsigned letter_count;
 static volatile bool graphics_done;
 static void graphics_complete(void*unused){(void)unused;graphics_done=true;}
 static void graphics_wait(void){graphics_done=false;rdpq_sync_full(graphics_complete,NULL);rspq_flush();while(!graphics_done){}rspq_wait();}
@@ -41,12 +45,14 @@ static void clear_cache(void){
 void bg_front_draw_release(void){
     if(!loaded)return;
     graphics_wait();clear_cache();
+    free(letters);letters=NULL;
     for(unsigned f=0;f<2;f++){free(font_pixels[f]);font_pixels[f]=NULL;}
     for(unsigned m=0;m<bg_shell_mesh_count;m++){free(vertices[m]);surface_free(&mesh_textures[m]);}
     fclose(bank);bank=NULL;loaded=false;
 }
 static void load(void){
     if(loaded)return;
+    letters=malloc(1200*sizeof(*letters));assertf(letters,"Front-end glyph workspace");
     bank=fopen("rom:/shell.bin","rb");assertf(bank,"Missing front-end ROM bank");
     for(unsigned f=0;f<2;f++){
         unsigned size=bg_shell_font_pages[f]*BG_MENU_ATLAS_BYTES;
@@ -112,8 +118,6 @@ static void art(unsigned tag,unsigned frame,int dx,int dy,unsigned alpha){
 }
 /* Glyphs are batched by immutable atlas page; source font metrics and case
  * are preserved, including original multiline descriptions. */
-typedef struct {const bg_menu_glyph*g;float x,y;unsigned font;color_t color;} glyph;
-static glyph letters[1200];static unsigned letter_count;
 static unsigned code(unsigned c){return c>=32&&c<127?c-32:'?'-32;}
 static float width(unsigned font,const char*s,unsigned n){
     float w=0;for(unsigned i=0;i<n;i++)w+=bg_shell_glyphs[font][code((uint8_t)s[i])].advance;return w;

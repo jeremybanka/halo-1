@@ -201,7 +201,7 @@ def main():
     combat_path=out/'generated/combat-report.json'
     if not combat_path.exists():parser.error('Extract Xbox damage first: port/n64/extract_combat.py')
     combat=json.loads(combat_path.read_text())
-    for name,expected in {**combat['inputs'],'build/n64/generated/combat_data.c':combat['generated_sha256']}.items():
+    for name,expected in {**combat['inputs'],**combat['files'],'build/n64/generated/combat_data.c':combat['generated_sha256']}.items():
         if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
             parser.error('Stale combat bank; rerun port/n64/extract_combat.py: '+name)
     objects = []

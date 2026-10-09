@@ -44,5 +44,16 @@ int main(){
     bg_terrain_reset();p=(bg_player){.pos={0,.22f,0}};
     for(int j=0;j<60;j++){bg_walk_velocity(&p,1,0,1.f/30);p.velocity[1]=p.vy-bg_movement.gravity/30;bg_move_capsule(&p,1.f/30);assert(!p.grounded);}
     assert(p.pos[0]<-.1f&&p.pos[1]<0);
+    /* Original adjacent-support recovery: stay attached across a shallow
+     * convex seam, but never snap a fast outward move or airborne jump. */
+    const float previous[3][3]={{-10,0,-10},{0,0,-10},{0,0,10}};
+    const float next[3][3]={{0,0,-10},{10,-3,0},{0,0,10}};
+    memcpy(floor_p,previous,sizeof(floor_p));memcpy(roof_p,next,sizeof(roof_p));bg_terrain_reset();
+    p=(bg_player){.pos={.25f,.015f,0},.velocity={2,0,0},.grounded=true,.support_triangle=1};
+    bg_move_capsule(&p,0);assert(p.grounded&&p.support_triangle==2&&p.pos[1]<0&&p.ground_normal[1]>.95f);
+    p=(bg_player){.pos={.25f,.015f,0},.velocity={10,0,0},.grounded=true,.support_triangle=1};
+    bg_move_capsule(&p,0);assert(!p.grounded);
+    p=(bg_player){.pos={.25f,.015f,0},.velocity={2,0,0},.grounded=false,.support_triangle=1};
+    bg_move_capsule(&p,0);assert(!p.grounded);
     puts("PASS terrain: continuous capsule axis, wall/ceiling clearance, high-speed contacts, slope projection/curve and original landing recovery");
 }

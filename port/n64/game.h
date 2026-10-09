@@ -46,6 +46,9 @@ typedef struct {
     uint16_t fire_ticks[2];
     float body_stun,stun_time;
     float exit_grace;int exit_vehicle;
+    uint16_t support_triangle;
+    uint8_t support_vehicle; /* one-based; zero means no moving support */
+    float support_local[3];
     float ground_normal[3],landing_time,landing_duration;
     bool hard_landing;
     int reserve,weapon,inventory[2],magazines[2],reserves[2],slot,zoom;
@@ -69,7 +72,9 @@ typedef struct {
     float wreck_time; /* Unpowered, non-boardable body; last two seconds blink. */
     float forward[3],up[3],angular_velocity[3],steering,wheel_phase,suspension[8];
     bool physics_valid;
-    float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch; int kind,health,occupants[BG_VEHICLE_SEATS]; bool active;
+    float home[3],home_yaw,secondary_cooldown,turret_yaw,turret_pitch,health;
+    int kind,occupants[BG_VEHICLE_SEATS];bool active;
+    float gun_rate[2],gun_error[2];
     float hatch;bool hatch_closing,flipping;
     uint8_t flip_elapsed,overturned_ticks;
 } bg_vehicle;

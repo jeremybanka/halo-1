@@ -21,14 +21,16 @@ Old benchmark results do not certify a newer build.
   - [x] Slope projection/falloff, steep-surface sliding and terrain capsule contacts.
   - [x] Original collision surfaces in the 4 MiB spatial-grid adapter.
   - [x] Posture-aware clearance, crouch/landing poses and hard-landing recovery.
-  - [ ] Moving supports, player/player contacts and source step-up orchestration.
+  - [x] Moving vehicle supports, player/player contacts and adjacent-ground recovery.
+        The bounded capsule adapter still differs from the full source contact solver; see [FIDELITY_EDGES.md](FIDELITY_EDGES.md).
   - [x] Source body stun and original falling-damage thresholds.
-  - [ ] Animated hit regions and first-person landing effects.
+  - [x] Animated original hit regions and first-person landing-effect source audit.
+        The owned tags/source do not define an extra landing camera shake.
   - [ ] Retail Xbox video comparison and human controller acceptance.
   - [ ] Current four-player performance check and necessary optimization:
-        the timing/projectile pass measures 26.4 overall / 27.7 combat / 25.1
-        vehicle section FPS in Ares. Both section averages clear 25, but
-        the overall P95 is 66.8 ms and maximum is 267.4 ms. Sustained floor
+        the source-fidelity pass measures 24.4 overall / 26.3 combat / 22.7
+        vehicle section FPS in Ares. Vehicles are below the development target;
+        the overall P95 is 66.8 ms and maximum is 200.5 ms. Sustained floor
         and hardware acceptance remain; changed deaths alter the replay load.
   - [x] Recover release memory headroom: three display buffers retain four-player
         splitscreen; the expanded all-weapons lifecycle passes. Final memory
@@ -48,7 +50,8 @@ Old benchmark results do not certify a newer build.
   - [x] Source spread/bloom limits, firing cadence, reload interruption and timed melee sweep.
   - [x] Source grenade/rocket damage, bounce/fuses/cover and Needler tracking/detonation adapters.
   - [ ] Certify explosive/Needler breakpoints against retail Xbox (see COMBAT.md).
-  - [ ] Animated hit regions, vehicle materials and Xbox/controller acceptance.
+  - [x] Animated hit regions, vehicle material modifiers and direct rider transfer.
+  - [ ] Xbox/controller acceptance.
 - [x] Camouflage visibility transitions and interaction with targeting/radar;
       requested full-invisibility/reveal timing. See [POWERUPS_VEHICLE_EDGES.md](POWERUPS_VEHICLE_EDGES.md).
 - [ ] Vehicle edge cases: exposed occupants, damage, blast cover, splatters,
@@ -58,8 +61,9 @@ Old benchmark results do not certify a newer build.
   - [x] Swept hull/capsule splatters and rotating plasma attachments.
   - [x] Camera shoulder clearance and neighboring-hull obstruction.
   - [ ] Recover >25 FPS in the vehicle-heavy replay after clearance/contact changes.
-  - [ ] Animated hull parts, original material/mounted-weapon damage profiles,
-        full contact impulses and retail/controller acceptance.
+  - [x] Animated hull parts, original material/mounted-weapon damage profiles,
+        source collision shove and original vehicle-pair force/torque transfer.
+  - [ ] Retail/controller acceptance of the bounded contact adapter.
 - [ ] Four-person hardware acceptance session: repeated full matches, all
       controller subsets, disconnects, pause ownership, audio under load,
       menu transitions, long-session stability and memory margin.
@@ -121,7 +125,7 @@ ray geometry implemented; sustained rollover ejects occupants. Animated player
 regions, moving hull parts, mounted weapon profiles and retail acceptance remain
 open. See COMBAT.md and the current release manifest for explicit boundaries.
 
-Latest timing/projectile run: 26.4 overall / 27.7 combat / 25.1 vehicle FPS,
+Earlier timing/projectile run: 26.4 overall / 27.7 combat / 25.1 vehicle FPS,
 164 KiB free in the timing fixture, three display surfaces and 32 KiB queue
 buffers. P95 66.8 ms, maximum 267.4 ms; this clears section averages, not a
 sustained 25 FPS floor. Four-buffer variants fail the expanded all-weapons
@@ -140,3 +144,10 @@ section is below the development gate. P95 is 66.8 ms; maximum 267.4 ms overall,
 validator needs a 16 KiB queue to fit its additional memory overhead in 4 MiB.
 See [POWERUPS_VEHICLE_EDGES.md](POWERUPS_VEHICLE_EDGES.md) and
 `build/n64/powerup-vehicle-audit/comparison.html` for current evidence and limits.
+
+October 9 source fidelity closure: [FIDELITY_EDGES.md](FIDELITY_EDGES.md).
+Retail explosive/Needler comparison is deferred by explicit user instruction.
+
+Source-fidelity quiet replay: **24.4 overall / 26.3 combat / 22.7 vehicle FPS**,
+52 KiB live free heap. P95 66.8 ms, maximum 200.5 ms. Source contact and hit-region
+work is implemented; the >25 FPS development gate remains open.

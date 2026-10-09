@@ -87,3 +87,10 @@ at match entry; do not treat that attempt as a pass. Rendering validation is
 run separately with three display surfaces, while the release lifecycle and
 quiet performance measurements retain four. Debug instrumentation overhead
 must not be mistaken for the release memory budget.
+
+## October 9 source-audit follow-up
+
+[FIDELITY_EDGES.md](FIDELITY_EDGES.md) supersedes the earlier open items about
+animated hit regions, moving supports, mounted damage/materials, contact impulses
+and the landing-camera audit. Retail comparison remains deferred. Consult the
+current release manifest for performance; earlier numbers describe older ROMs.

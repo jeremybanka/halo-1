@@ -156,3 +156,10 @@ queue did not fix it. The final lifecycle passes 37/37, with 127–128 KiB free 
 frames and 424 KiB after returning to the menu; screenshots are retained in the
 audit and manifest.
 Keep four/five-surface variants experimental until this exact stress passes.
+
+## October 9 source-audit follow-up
+
+[FIDELITY_EDGES.md](FIDELITY_EDGES.md) supersedes the earlier open items about
+animated hit regions, moving supports, mounted damage/materials, contact impulses
+and the landing-camera audit. Retail comparison remains deferred. Consult the
+current release manifest for performance; earlier numbers describe older ROMs.

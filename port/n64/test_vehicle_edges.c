@@ -17,12 +17,15 @@ static void exposure(void){
   reset();float pos[3]={-12,bg_floor(-12,5,100),5};int vi=bg_add_vehicle(kind,pos,0);tick(45);
   bg_vehicle*v=&bg_vehicles[vi];bg_player*p=&bg_players[0];p->vehicle=vi;p->seat=seat;v->occupants[seat]=0;tick(1);
   float dir[3]={side==0?1:side==1?-1:0,0,side==2?1:side==3?-1:0};
-  float origin[3]={p->pos[0]-dir[0]*2,p->pos[1]+.58f,p->pos[2]-dir[2]*2};
-  if(bg_raycast(origin,dir,2)<1.88f)continue;
-  bool blocked=bg_vehicle_hit_ray(v,origin,dir,2)<1.88f;
+  float origin[3]={p->pos[0]-dir[0]*2,p->pos[1],p->pos[2]-dir[2]*2},body=3;
+  /* Aim at the animated seated body, rather than the removed three-sphere proxy. */
+  for(unsigned h=0;h<40;h++){origin[1]=p->pos[1]-.2f+h*.03f;int region=1;body=bg_player_hit_ray(0,origin,dir,3,&region);if(body<3)break;}
+  assert(body<3);
+  if(bg_raycast(origin,dir,body)<body)continue;
+  bool blocked=bg_vehicle_hit_ray(v,origin,dir,body)<body;
   float shield=p->shield;bg_projectile*q=bg_projectile_create();assert(q);
   q->kind=BG_P_FLAME;q->owner=3;q->life=1;q->damage=10;memcpy(q->pos,origin,12);
-  for(unsigned a=0;a<3;a++)q->velocity[a]=dir[a]*60;tick(1);
+  for(unsigned a=0;a<3;a++)q->velocity[a]=dir[a]*90;tick(1);
   if(blocked){assert(p->shield==shield);covered++;}else{assert(p->shield<shield);exposed++;}
  }
  assert(exposed&&covered);printf("Seat exposure: %u exposed rays / %u hull-blocked rays across all seats\n",exposed,covered);

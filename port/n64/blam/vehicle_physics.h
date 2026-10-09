@@ -15,6 +15,7 @@ void bg_vehicle_physics_step(unsigned index,const bg_input *input);
 bool bg_vehicle_airborne(unsigned index);
 void bg_vehicle_physics_wreck(unsigned index);
 
+void bg_vehicle_physics_damage(unsigned index,const float origin[3],float acceleration,bool explosive);
 void bg_vehicle_physics_explosion(unsigned index,const float origin[3],int projectile_kind);
 void bg_vehicle_physics_flip(unsigned index,const float player_position[3]);
 void bg_vehicle_transform(const bg_vehicle *vehicle,const float local[3],float out[3]);

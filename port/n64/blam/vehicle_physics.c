@@ -8,7 +8,9 @@
 static struct vehicle_datum native[BG_MAX_VEHICLES];
 static float body_radius[BG_VEHICLE_COUNT];
 static float vehicle_steering[BG_MAX_VEHICLES];
+struct surface_candidates {int32_t bounds[6];uint16_t ids[64],count;bool valid;};
 struct vehicle_workspace {
+ struct surface_candidates candidates[16];
  struct mass_point_datum contact[22];
  struct powered_mass_point_datum power[2];
  struct collision_feature_list features;
@@ -90,15 +92,16 @@ void bg_vehicle_world_release(void){}
 /* The BVH only selects candidates; all contacts use original feature tests. */
 static uint8_t stamp;
 static unsigned next_stamp(void){if(++stamp==0){memset(vehicle_workspace->stamps,0,sizeof(vehicle_workspace->stamps));stamp=1;}return stamp;}
-struct surface_query {uint16_t stack[32],pending,first,remaining;int32_t bounds[6];};
-static void query_begin(struct surface_query*q,const float lo[3],const float hi[3]){
+struct surface_query {uint16_t stack[32],pending,first,remaining;int32_t bounds[6];const struct surface_candidates*cached;};
+static void query_begin_raw(struct surface_query*q,const float lo[3],const float hi[3]){
+ q->cached=NULL;
  q->pending=1;q->stack[0]=0;q->remaining=0;
  for(int a=0;a<3;a++){q->bounds[a]=(int32_t)floorf(lo[a]*64);q->bounds[a+3]=(int32_t)ceilf(hi[a]*64);}
 }
 static bool overlaps(const int32_t a[6],const int16_t b[6]){
  return a[3]>=b[0]&&a[0]<=b[3]&&a[4]>=b[1]&&a[1]<=b[4]&&a[5]>=b[2]&&a[2]<=b[5];
 }
-static int query_next(struct surface_query*q){
+static int query_next_raw(struct surface_query*q){
  for(;;){
   while(q->remaining){q->remaining--;unsigned si=bg_vehicle_surface_indices[q->first++];if(overlaps(q->bounds,bg_vehicle_surface_bounds[si]))return si;}
   if(!q->pending)return -1;
@@ -107,6 +110,30 @@ static int query_next(struct surface_query*q){
   if(n->count){q->first=n->first;q->remaining=n->count;}
   else{assert(q->pending+2<=32);q->stack[q->pending++]=n->first;q->stack[q->pending++]=ni+1;}
  }
+}
+/* Cache immutable candidate indices, never contacts or impulses. Small
+ * mass-point/suspension queries share a two-unit cell; short camera fans
+ * use a proportionally larger cell. Exact bounds filtering
+ * and original BVH order are retained; overflow takes the uncached path. */
+static void query_begin(struct surface_query*q,const float lo[3],const float hi[3]){
+ query_begin_raw(q,lo,hi);
+ float extent=MAX(hi[0]-lo[0],MAX(hi[1]-lo[1],hi[2]-lo[2]));if(extent>8)return;
+ int32_t half=extent>4?4:extent>2?2:1,cell[3];uint32_t hash=half-1;
+ for(unsigned a=0;a<3;a++){cell[a]=(int32_t)floorf((lo[a]+hi[a])*(.25f/half));hash=hash*31u+(uint32_t)cell[a];}
+ struct surface_candidates*c=&vehicle_workspace->candidates[(hash^(hash>>4))&15u];
+ int32_t bounds[6];for(unsigned a=0;a<3;a++){bounds[a]=(cell[a]*2-1)*half*64;bounds[a+3]=(cell[a]*2+3)*half*64;}
+ if(!c->valid||memcmp(c->bounds,bounds,sizeof(bounds))){
+  struct surface_query collect=*q;memcpy(collect.bounds,bounds,sizeof(bounds));
+  c->count=0;c->valid=false;int id;
+  while((id=query_next_raw(&collect))>=0){if(c->count==64)return;c->ids[c->count++]=id;}
+  memcpy(c->bounds,bounds,sizeof(bounds));c->valid=true;
+ }
+ q->cached=c;q->first=0;q->remaining=c->count;
+}
+static int query_next(struct surface_query*q){
+ if(!q->cached)return query_next_raw(q);
+ while(q->remaining){q->remaining--;unsigned id=q->cached->ids[q->first++];if(overlaps(q->bounds,bg_vehicle_surface_bounds[id]))return id;}
+ return -1;
 }
 /* Static zero-height polygon projections are independent of the query point
  * and width. Cache their original result; refresh only the prism thickness. */
@@ -412,13 +439,18 @@ void bg_vehicle_physics_flip(unsigned i,const float player_position[3]){
  bg_vehicles[i].flip_elapsed=0;
 }
 
-void bg_vehicle_physics_explosion(unsigned i,const float origin[3],int kind){
- if(kind<0||kind>=7||!bg_vehicles[i].active)return;
- const struct vehicle_damage_kick*k=&bg_vehicle_damage_kicks[kind];float scale=bg_vehicle_acceleration_scale[bg_vehicles[i].kind];
- if(k->acceleration<=_real_epsilon||scale<=_real_epsilon)return;
+void bg_vehicle_physics_damage(unsigned i,const float origin[3],float strength,bool explosive){
+ if(!bg_vehicles[i].active)return;
+ float scale=bg_vehicle_acceleration_scale[bg_vehicles[i].kind];
+ if(strength<=_real_epsilon||scale<=_real_epsilon)return;
  bg_vehicle_physics_prepare();
  real_vector3d direction={.n={native[i].object.position.x-(origin[0]+68),native[i].object.position.y-(-origin[2]-118),native[i].object.position.z-origin[1]}},acceleration;
- normalize3d(&direction);vehicle_damage_acceleration(&direction,k->acceleration,scale,&acceleration);
- if(TEST_FLAG(k->flags,5))scale_vector3d(&acceleration,2,&acceleration);
+ normalize3d(&direction);vehicle_damage_acceleration(&direction,strength,scale,&acceleration);
+ if(explosive)scale_vector3d(&acceleration,2,&acceleration);
  vehicle_accelerate(i,&acceleration);publish(i);
+}
+void bg_vehicle_physics_explosion(unsigned i,const float origin[3],int kind){
+ if(kind<0||kind>=7)return;
+ const struct vehicle_damage_kick*k=&bg_vehicle_damage_kicks[kind];
+ bg_vehicle_physics_damage(i,origin,k->acceleration,TEST_FLAG(k->flags,5));
 }

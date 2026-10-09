@@ -19,6 +19,23 @@ static void check_axes(const bg_vehicle*v){
 static void step(unsigned count,bg_input in){for(unsigned i=0;i<count;i++){bg_vehicle_physics_step(0,&in);check_axes(bg_vehicles);}}
 static uint32_t random_seed=0xC064;
 static float random_float(float lo,float hi){random_seed=random_seed*1664525u+1013904223u;return lo+(hi-lo)*(random_seed>>8)*(1.f/16777216);}
+static void test_surface_candidates(void){
+ unsigned cached=0;
+ for(unsigned i=0;i<12000;i++){
+  float lo[3],hi[3];
+  for(unsigned a=0;a<3;a++){
+   float center=a==0?random_float(25,110):a==1?random_float(-160,-65):random_float(-2,20);
+   float radius=i%7==0?random_float(0,5):random_float(0,.8f);lo[a]=center-radius;hi[a]=center+radius;
+  }
+  /* Repeated neighboring queries exercise reuse, not only cold misses. */
+  for(unsigned repeat=0;repeat<4;repeat++){
+   struct surface_query actual,reference;query_begin(&actual,lo,hi);query_begin_raw(&reference,lo,hi);cached+=actual.cached!=NULL;
+   for(;;){int a=query_next(&actual),b=query_next_raw(&reference);assert(a==b);if(a<0)break;}
+   for(unsigned a=0;a<3;a++){lo[a]+=.01f;hi[a]+=.01f;}
+  }
+ }
+ assert(cached>10000);printf("Surface candidate cache: 48000 ordered queries agree with uncached BVH (%u cached)\n",cached);
+}
 static void test_world_bank(void){
  /* Independently compare every packed scalar against the compiler's typed
   * arrays. This catches offset/stride/endianness drift in the N64-only loader. */
@@ -139,6 +156,7 @@ static void test_feature_candidates(void){
 }
 
 int main(void){
+ test_surface_candidates();
  _Static_assert(sizeof(struct mass_point_definition)==128,"Xbox mass-point stride");
  _Static_assert(sizeof(struct physics_mass_point_definition)==128,"vehicle mass-point view");
  _Static_assert(sizeof(struct powered_mass_point_definition)==128,"Xbox powered-point stride");

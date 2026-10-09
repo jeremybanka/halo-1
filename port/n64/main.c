@@ -4,6 +4,7 @@
 #include <string.h>
 #include "game.h"
 #include "combat.h"
+#include "combat_geometry.h"
 #include "pickup_rules.h"
 #include "movement.h"
 #include "view_camera.h"
@@ -1039,8 +1040,7 @@ static void body_buffers_release(void){
 /* Segment-based weapon commands do not retain these addresses. Keep their
  * animation workspace out of the full-screen menu texture peak. */
 static void firstperson_buffers_load(void){
-    /* Allocate only the current mesh, at the already fenced frame slot.
-     * Four small weapons no longer reserve four maximum-size Needlers. */
+    /* Buffers are acquired lazily when a personal weapon is first visible. */
     for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++)if(!firstperson[s][p])firstperson_weapon[s][p]=-1;
 }
 #ifdef BG_FRONTEND
@@ -1055,11 +1055,20 @@ static void firstperson_buffers_release(void){
 }
 #endif
 static void firstperson_buffer_resize(unsigned p,unsigned bytes){
-    if(firstperson_bytes[slot][p]!=bytes){
-        if(firstperson[slot][p])free_uncached(firstperson[slot][p]);
-        firstperson[slot][p]=malloc_uncached(bytes);assertf(firstperson[slot][p],"First-person mesh allocation");
-        firstperson_bytes[slot][p]=bytes;firstperson_weapon[slot][p]=-1;
+    if(!firstperson[slot][p]){
+        /* Eight independently resized meshes fragmented the 4 MiB heap:
+         * enough total free memory remained, but not one pistol-sized hole.
+         * Reserve the authored maximum once per live slot/player. Menu entry
+         * still fences and releases all buffers, and mesh detail is unchanged. */
+        unsigned capacity=0;
+        for(unsigned w=0;w<BG_FP_WEAPONS;w++){
+            unsigned required=((bg_fp_models[w].vertex_count+1)&~1u)*16;
+            if(required>capacity)capacity=required;
+        }
+        firstperson[slot][p]=malloc_uncached(capacity);assertf(firstperson[slot][p],"First-person mesh allocation");
+        firstperson_bytes[slot][p]=capacity;firstperson_weapon[slot][p]=-1;
     }
+    assertf(bytes<=firstperson_bytes[slot][p],"First-person mesh capacity");
 }
 static void animate_firstperson(unsigned p){
     if(p>=views)return;
@@ -1622,7 +1631,7 @@ static void benchmark_page(surface_t*screen,bool completed){
     for(unsigned p=0;p<BG_BENCHMARK_PHASES;p++)average_phases[p]=r->frames?r->phase_us[p]/r->frames:0;
     rdpq_text_printf(NULL,1,8,180,"TRIANGLES AVG %u / MAX %u",r->frames?(unsigned)(r->triangles/r->frames):0,r->max_triangles);
     rdpq_text_printf(NULL,1,8,192,"SIM %u ANIM %u WORLD %u OBJ %u MS",average_phases[0]/1000,average_phases[2]/1000,average_phases[4]/1000,average_phases[5]/1000);
-    rdpq_text_printf(NULL,1,8,204,"HUD %u AUDIO %u WAIT %u QUEUE %u",average_phases[7]/1000,average_phases[8]/1000,average_phases[9]/1000,average_phases[12]/1000);
+    rdpq_text_printf(NULL,1,8,204,"HULL %u POSE %u PILL %u PLAYER %u US",average_phases[13],average_phases[14],average_phases[15],average_phases[16]);
 #ifdef BG_GPU_DIAGNOSTIC
     rdpq_text_printf(NULL,1,8,216,"GPU WAIT RSP %u RDP %u MS",average_phases[10]/1000,average_phases[11]/1000);
 #else
@@ -1745,6 +1754,9 @@ static void benchmark_results(surface_t*screen){
     disable_interrupts();unregister_VI_handler(paced_vi);enable_interrupts();
 #endif
     audio_close();
+    /* Results retain their measured live heap value. Retire scene residency
+     * before allocating text for the diagnostic pages. */
+    bg_vehicle_world_release();
 #ifdef BG_BENCHMARK
     unsigned page=0;
 #endif
@@ -1841,6 +1853,7 @@ int main(void){
 #ifdef BG_PROFILE
         uint64_t profile_start=get_ticks_us();
         camera_us=animation_us=matrix_us=world_us=object_us=fp_us=hud_us=audio_us=0;
+        memset(bg_geometry_profile,0,sizeof(bg_geometry_profile));
         geometry_rsp_us=geometry_rdp_us=0;memset(category_triangles,0,sizeof(category_triangles));
         animated_vertices=animated_tracks=0;
 #endif
@@ -2123,7 +2136,7 @@ int main(void){
 #endif
 #ifdef BG_BENCHMARK
         benchmark_vehicle=fmodf(game_time,75.f)>=36.f;benchmark_triangles=triangles;benchmark_vertices=submitted_vertices;
-        const unsigned phase_values[BG_BENCHMARK_PHASES]={sim_us,camera_us,animation_us,matrix_us,world_us,object_us,fp_us,hud_us,audio_us,wait_us,geometry_rsp_us,geometry_rdp_us,queue_us};
+        const unsigned phase_values[BG_BENCHMARK_PHASES]={sim_us,camera_us,animation_us,matrix_us,world_us,object_us,fp_us,hud_us,audio_us,wait_us,geometry_rsp_us,geometry_rdp_us,queue_us,bg_geometry_profile[0],bg_geometry_profile[1],bg_geometry_profile[2],bg_geometry_profile[3]};
         memcpy(benchmark_phases,phase_values,sizeof(benchmark_phases));
         memcpy(benchmark_categories,category_triangles,sizeof(benchmark_categories));
 #endif

@@ -1,3 +1,5 @@
+#include "combat_geometry.h"
+#include "movement.h"
 /* Host integration tests against the selected Blood Gulch collision backend. */
 #include "game.h"
 #include "rifle_fixture.h"
@@ -13,6 +15,13 @@ static void reset(void){memset(in,0,sizeof(in));bg_set_players(4);bg_reset();for
 static void duel(void){reset();bg_players[0].yaw=bg_players[0].pitch=0;
     memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;bg_players[1].yaw=3.14159265f;}
 static void equip(bg_weapon weapon){assert(bg_give_weapon(0,weapon));if(bg_players[0].weapon!=(int)weapon){in[0].switch_weapon=true;ticks(1);in[0].switch_weapon=false;}ticks(40);}
+static void aim_head(void){
+    bg_player*p=&bg_players[0],*q=&bg_players[1];float origin[3]={p->pos[0],p->pos[1]+bg_eye_height(p),p->pos[2]},sum[3]={0};unsigned count=0;
+    for(unsigned y=0;y<32;y++)for(int z=-10;z<=10;z++){
+        float d[3]={q->pos[0]-origin[0],q->pos[1]+.4f+y*.0125f-origin[1],q->pos[2]+z*.0125f-origin[2]};float length=sqrtf(d[0]*d[0]+d[1]*d[1]+d[2]*d[2]);for(unsigned a=0;a<3;a++)d[a]/=length;
+        int region=-1;if(bg_player_hit_ray(1,origin,d,2,&region)<2&&region==2){for(unsigned a=0;a<3;a++)sum[a]+=d[a];count++;}
+    }assert(count);p->yaw=atan2f(-sum[2],sum[0]);p->pitch=atan2f(sum[1],hypotf(sum[0],sum[2]));
+}
 static unsigned projectiles(int kind){
     unsigned n=0;for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
         const bg_projectile*q=bg_projectile_at(i);if(q&&q->active&&(kind<0||q->kind==kind))n++;
@@ -129,12 +138,12 @@ int main(void){
     }
     duel();equip(BG_W_PLASMA_PISTOL);in[0].fire=true;ticks(30);in[0].fire=false;ticks(5);
     assert(bg_players[0].ammo==90&&bg_players[1].shield==0&&bg_players[1].health==100);
-    duel();equip(BG_W_PISTOL);bg_players[1].shield=0;in[0].fire=true;ticks(1);
+    duel();equip(BG_W_PISTOL);bg_players[1].shield=0;aim_head();in[0].fire=true;ticks(1);
     assert(bg_players[1].health==0); /* Unshielded precision headshot. */
     duel();equip(BG_W_PISTOL);
-    for(int shot=0;shot<3;shot++){in[0].fire=true;ticks(1);in[0].fire=false;ticks(10);}
+    for(int shot=0;shot<3;shot++){aim_head();in[0].fire=true;ticks(1);in[0].fire=false;ticks(10);}
     assert(bg_players[1].health==0); /* Retail three-shot pistol headshot. */
-    duel();equip(BG_W_SNIPER);in[0].fire=true;ticks(1);assert(bg_players[1].health==0);
+    duel();equip(BG_W_SNIPER);aim_head();in[0].fire=true;ticks(1);assert(bg_players[1].health==0);
     reset();equip(BG_W_SNIPER);in[0].zoom=true;ticks(1);assert(bg_players[0].zoom==1);
     ticks(1);assert(bg_players[0].zoom==2);ticks(1);assert(bg_players[0].zoom==0);in[0].zoom=false;
     reset();equip(BG_W_PLASMA_RIFLE);in[0].fire=true;ticks(150);assert(bg_players[0].overheated);
@@ -154,7 +163,7 @@ int main(void){
     /* Sticky plasma grenades follow a living target before their fuse expires. */
     duel();bg_projectile *sticky=bg_projectile_create();assert(sticky);
     *sticky=(bg_projectile){.active=true,.kind=BG_P_PLASMA_GRENADE,.owner=0,.attached=-1,.life=2.5f,.damage=260,.radius=2.2f};
-    memcpy(sticky->pos,bg_players[1].pos,12);sticky->pos[0]-=.3f;sticky->pos[1]+=.4f;sticky->velocity[0]=5;
+    memcpy(sticky->pos,bg_players[1].pos,12);sticky->pos[0]-=.3f;sticky->pos[1]+=.4f;sticky->velocity[0]=15;
     ticks(1);sticky=bg_projectile_at(0);assert(sticky&&sticky->attached==1);in[1].strafe=1;ticks(5);
     sticky=bg_projectile_at(0);assert(sticky);
     for(int a=0;a<3;a++)assert(fabsf(sticky->pos[a]-bg_players[1].pos[a]-sticky->attached_offset[a])<.0001f);
@@ -255,7 +264,7 @@ int main(void){
     duel();equip(BG_W_PISTOL);bg_players[0].score=24;bg_players[1].shield=0;
     assert(bg_score_limit()==25&&!bg_match_finished()&&bg_match_winner()==-1);
     bg_clear_events();for(unsigned e=0;e<BG_MAX_EVENTS;e++)bg_give_weapon(1,BG_W_AR);
-    in[0].fire=true;bg_tick(in,1.f/30);
+    aim_head();in[0].fire=true;bg_tick(in,1.f/30);
     assert(bg_match_finished()&&bg_match_winner()==0&&bg_players[0].score==25);
     unsigned game_over=0;for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_GAME_OVER){game_over++;assert(bg_events[e].player==0);}
     assert(game_over==1);
@@ -264,7 +273,7 @@ int main(void){
     bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);assert(!bg_match_finished()&&bg_match_time()==0&&bg_players[0].score==0);
     /* The retail Slayer preset uses 15 kills and reports actual statistics. */
     bg_set_score_limit(15);duel();equip(BG_W_PISTOL);
-    bg_players[0].score=14;bg_players[1].shield=0;in[0].fire=true;ticks(1);
+    bg_players[0].score=14;bg_players[1].shield=0;aim_head();in[0].fire=true;ticks(1);
     assert(bg_match_finished()&&bg_players[0].score==15);
     assert(bg_match_stats()->kills[0]==1&&bg_match_stats()->deaths[1]==1);
     bg_reset();for(unsigned f=0;f<4;f++)bg_fixture_rifle_loadout(f);assert(bg_score_limit()==15&&!bg_match_finished());
@@ -285,7 +294,7 @@ int main(void){
     duel();equip(BG_W_PISTOL);unsigned announcement_mask=0;
     for(unsigned kill=0;kill<5;kill++){
         memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;bg_players[1].shield=0;
-        bg_clear_events();in[0].fire=true;bg_tick(in,1.f/30);in[0].fire=false;
+        aim_head();bg_clear_events();in[0].fire=true;bg_tick(in,1.f/30);in[0].fire=false;
         assert(bg_players[1].health==0);
         for(unsigned e=0;e<bg_event_count;e++){
             if(bg_events[e].kind==BG_EVENT_DOUBLE_KILL)announcement_mask|=1;

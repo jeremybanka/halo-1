@@ -6,7 +6,7 @@
 /* NTSC can present at most 4500 frames in the 75-second sample window.
  * Store the phase in the high bit so the complete sample bank uses 20 KiB. */
 #define BG_BENCHMARK_CAPACITY 5120
-#define BG_BENCHMARK_PHASES 13
+#define BG_BENCHMARK_PHASES 17
 #define BG_BENCHMARK_CATEGORIES 6
 typedef struct {
     uint64_t elapsed,triangles,vertices,phase_us[BG_BENCHMARK_PHASES];

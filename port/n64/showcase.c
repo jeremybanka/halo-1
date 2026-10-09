@@ -86,8 +86,8 @@ void bg_showcase_input(bg_input input[BG_PLAYERS],float seconds){
             input[1].fire=seconds>7&&seconds<9&&fabsf(error)<.2f;
         }
     }else if(scenario==BG_SHOWCASE_FRAG_DOUBLE_KILL){
-        if(seconds>=.3f&&seconds<1.5f){
-            unsigned target=seconds<.9f?1:2;
+        if(seconds>=.3f&&seconds<1.9f){
+            unsigned target=seconds<1.1f?1:2;
             /* Explicit staging of facing only; bullets, shields and grenade
              * all use production input and damage, starting at full vitality. */
             face(0,bg_players[target].pos[0],bg_players[target].pos[1]+.35f,bg_players[target].pos[2]);

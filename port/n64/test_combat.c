@@ -53,7 +53,7 @@ static void timing_tests(void){
 static void projectile_tests(void){
     /* No impact damage; fuse starts on attachment and credits original owner. */
     shield_fixture_reset();bg_projectile*q=bg_projectile_create();q->kind=BG_P_NEEDLE;q->owner=0;q->life=8;
-    memcpy(q->pos,bg_players[1].pos,12);q->pos[0]-=.3f;q->pos[1]+=.35f;q->velocity[0]=4;
+    memcpy(q->pos,bg_players[1].pos,12);q->pos[0]-=.3f;q->pos[1]+=.35f;q->velocity[0]=15;
     shield_fixture_ticks(1);assert(bg_players[1].needles==1&&bg_players[1].shield==100);
     shield_fixture_ticks(21);assert(bg_players[1].shield==100);
     shield_fixture_ticks(2);close_to(bg_players[1].shield,100-10.f/75*100);assert(bg_players[1].needles==0);
@@ -62,7 +62,7 @@ static void projectile_tests(void){
     shield_fixture_reset();bg_input in[4]={0};
     for(unsigned n=0;n<7;n++){
         q=bg_projectile_create();q->kind=BG_P_NEEDLE;q->owner=0;q->life=8;memcpy(q->pos,bg_players[1].pos,12);
-        q->pos[0]-=.3f;q->pos[1]+=.35f;q->velocity[0]=4;frame(in);assert(!events(BG_EVENT_SUPERCOMBINE));
+        q->pos[0]-=.3f;q->pos[1]+=.35f;q->velocity[0]=15;frame(in);assert(!events(BG_EVENT_SUPERCOMBINE));
         for(unsigned t=0;t<2;t++)frame(in);
     }
     assert(bg_players[1].shield==100);unsigned bursts=0;

@@ -111,3 +111,10 @@ vehicle performance acceptance item open; the final evidence records both the
 overall and vehicle-section figures rather than treating the overall average
 as a passing vehicle result. Full retail/controller parity and the final 30 FPS
 pass are also still open.
+
+## October 9 source-audit follow-up
+
+[FIDELITY_EDGES.md](FIDELITY_EDGES.md) supersedes the earlier open items about
+animated hit regions, moving supports, mounted damage/materials, contact impulses
+and the landing-camera audit. Retail comparison remains deferred. Consult the
+current release manifest for performance; earlier numbers describe older ROMs.

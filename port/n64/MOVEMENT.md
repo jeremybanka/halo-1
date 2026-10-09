@@ -98,3 +98,10 @@ It is released while full-screen menus are active and reloaded lazily in play.
 Host sanitizer tests compare every fetched byte with uncached data through
 reuse, length changes and 10,000 evictions. Four-player lifecycle validation
 checks the actual renderer and menu memory transitions separately.
+
+## October 9 source-audit follow-up
+
+[FIDELITY_EDGES.md](FIDELITY_EDGES.md) supersedes the earlier open items about
+animated hit regions, moving supports, mounted damage/materials, contact impulses
+and the landing-camera audit. Retail comparison remains deferred. Consult the
+current release manifest for performance; earlier numbers describe older ROMs.

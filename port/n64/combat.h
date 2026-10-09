@@ -7,11 +7,12 @@
  * explicit while weapon impacts migrate to source-backed profiles. */
 typedef enum {BG_D_LEGACY, BG_D_AR, BG_D_PISTOL, BG_D_PLASMA_PISTOL,
     BG_D_PLASMA_RIFLE, BG_D_SHOTGUN, BG_D_SNIPER, BG_D_OVERCHARGE,
-    BG_D_MELEE, BG_D_FRAG, BG_D_PLASMA_GRENADE, BG_D_ROCKET, BG_D_NEEDLE, BG_D_SUPERCOMBINE, BG_D_STICK, BG_D_FALL, BG_D_DISTANCE, BG_D_COUNT} bg_damage_kind;
-enum {BG_DAMAGE_HEADSHOT=1, BG_DAMAGE_DOUBLE_HEAD=2, BG_DAMAGE_EMP=4, BG_DAMAGE_BACKSTAB=8, BG_DAMAGE_SKIP_SHIELDS=16};
+    BG_D_MELEE, BG_D_FRAG, BG_D_PLASMA_GRENADE, BG_D_ROCKET, BG_D_NEEDLE, BG_D_SUPERCOMBINE, BG_D_STICK, BG_D_FALL, BG_D_DISTANCE, BG_D_HOG, BG_D_GHOST, BG_D_TANK, BG_D_TANK_MG, BG_D_BANSHEE, BG_D_FUEL_ROD, BG_D_COLLISION, BG_D_VEHICLE_KILL, BG_D_COUNT} bg_damage_kind;
+enum {BG_DAMAGE_HEADSHOT=1, BG_DAMAGE_DOUBLE_HEAD=2, BG_DAMAGE_EMP=4, BG_DAMAGE_BACKSTAB=8, BG_DAMAGE_SKIP_SHIELDS=16, BG_DAMAGE_NO_OWNER=32, BG_DAMAGE_EXPLOSIVE=64};
 typedef struct {
     float minimum,lower,upper,body,shield,range_start,range_end,speed_start,speed_end,range;
     float falloff,cutoff,core,stun,stun_max,stun_time;
+    float vehicle_material[4],passthrough,acceleration,gravity;
     unsigned flags;
 } bg_damage_profile;
 typedef struct {
@@ -21,6 +22,9 @@ typedef struct {
     bool zoom_accurate,automatic;
 } bg_trigger_profile;
 typedef struct {float arming,fuse,gravity,parallel,perpendicular;} bg_grenade_profile;
+typedef struct {bg_trigger_profile trigger;float chamber;uint8_t profile;} bg_mounted_profile;
+extern const bg_mounted_profile bg_mounted_profiles[6];
+extern const float bg_vehicle_child_damage[4];
 extern const bg_grenade_profile bg_grenade_profiles[2];
 extern const float bg_needle_fuse,bg_needle_turn,bg_needle_range;
 extern const float bg_fall_distances[3],bg_stun_config[5];
@@ -37,6 +41,7 @@ static inline void bg_combat_cone(const float axis[3],float inner,float outer,fl
     for(unsigned k=0;k<3;k++)out[k]=axis[k]*cosf(angle)+(right[k]*cosf(phi)+up[k]*sinf(phi))*sinf(angle);
 }
 extern const bg_damage_profile bg_damage_profiles[BG_D_COUNT];
+extern const float bg_player_acceleration_scale;
 extern const float bg_combat_body_max,bg_combat_shield_max,bg_combat_leg_scale;
 static inline float bg_combat_amount(const bg_damage_profile*d,float scale,float random){
     return (1-scale)*d->minimum+(d->lower+(d->upper-d->lower)*random)*scale;

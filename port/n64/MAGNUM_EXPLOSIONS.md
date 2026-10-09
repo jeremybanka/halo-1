@@ -13,14 +13,28 @@ side panels. A white final row preserves existing hand vertex colors and
 solid dark sights/muzzle. Point sampling preserves crisp surface detail.
 The world proxy uses colors sampled from this same adapted atlas.
 
-The first-person gun has 236 triangles versus 231 previously; with hands,
-434 versus 429. UV seams increase packed loaded vertices from 536 to 672
-and batches from 11 to 13. Sharing UV planes across coplanar triangles avoids
-76 redundant vertices; ready-animation scratch stays at 8,064 bytes. The near world proxy has 224
+The silhouette follow-up matches the raised barrel's side profile and narrow
+upper section to the source, and carries the magazine's diagonal through its
+lower section and base plate. World conversion now uses the common gun-root
+basis: source vertices already contain each part's bind rotation. Applying
+the differing world magazine bind rotation again had straightened the model.
+First-person animation still uses each part's original bone transform.
+
+`audit_magnum_silhouette.py` overlays source, previous and revised meshes with
+identical coordinates, scale and camera. It covers side, top, front and
+three-quarter views for both the world mesh and original first-person idle
+pose. World silhouette IoU changes from .773/.926/.855/.823 to
+.851/.925/.878/.886; FP idle from .813/.928/.895/.872 to .852/.929/.924/.884.
+This measures occupied silhouette area, not texture fidelity or every pose.
+
+The first-person gun now has 268 triangles; with hands, 466. The barrel/profile
+follow-up adds 32 triangles over the first rectangular proxy. UV seams use
+728 loaded vertices; ready-animation scratch is 8,736 bytes within a bounded
+9 KiB bank budget. The near world proxy has 256
 triangles and omits the FP reload cartridge. Original far and micro pickup
 silhouettes remain; they are not used for the held/first-person gun.
-The full first-person bank, including the atlas, grows by 4,458 bytes compared
-with the previous reduction.
+The texture remains 4 KiB. Sharing UV planes across coplanar triangles avoids
+unnecessary seams and animation vertices.
 
 `magnum_geometry.py` is the reproducible Blender recipe. Reapply it after
 both general model reduction passes, before packing:
@@ -78,13 +92,20 @@ Ares validation through all five four-player effects pages reports zero RDP
 errors/warnings. The primed-projectile page stages positions/fuses solely to
 expose blast color stages; it is not a gameplay or performance benchmark.
 
-The final quiet 4 MiB Ares paced30 replay presented 1,989 poses in 75.017 s:
-26.5 FPS overall, 27.8 combat, 25.3 vehicles, with 143 KiB live free. P95 was
+The silhouette revision's quiet 4 MiB Ares paced30 replay presented 1,998 poses
+in 75.017 s: 26.6 FPS overall, 27.7 combat, 25.6 vehicles, with 135 KiB live free. P95 was
 66.8 ms and the worst presentation interval was 267.4 ms. These are averages,
-not evidence of a 25/30 FPS floor. The prior flat proxy measured 26.4/27.7/25.1.
+not evidence of a 25/30 FPS floor. The preceding textured proxy measured
+26.5/27.8/25.3 with 143 KiB live free. The prior flat proxy measured 26.4/27.7/25.1.
 The pre-refinement release measured 26.8/27.8/25.9 in the preceding audit.
 
-Local evidence: `build/n64/magnum-explosion-audit/comparison.html`, including
+Silhouette evidence: `build/n64/magnum-silhouette-audit/comparison.html`, with
+registered overlays, matching idle/reload/melee captures and a fresh quiet
+timing run. All four model-pose pages report zero RDP errors/warnings. The
+first-person bank adds 2,548 bytes and ready scratch grows from 8,064 to 8,736
+bytes; texture bytes are unchanged. Asset, DMA and hand-seam checks pass.
+
+Earlier texture/explosion evidence: `build/n64/magnum-explosion-audit/comparison.html`, including
 matching Ares poses, a multi-angle source audit, recordings, decoder logs and
 the native performance screenshot. The playable ROM is
 `build/n64/halo-blood-gulch-paced30-rspq32k.z64`.

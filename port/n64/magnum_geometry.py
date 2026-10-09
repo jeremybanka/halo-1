@@ -36,11 +36,14 @@ def build_magnum(scene):
     # Keep broad, parallel planes; spend corners on silhouette breaks, not
     # fragmented texture/material islands. Dimensions are source Halo units.
     prism('slide',[(-.037,.020),(-.034,.0188),(.026,.0188),(.026,.029),(.021,.0325),(-.033,.0325),(-.037,.029)],.0068,2,0)
-    prism('barrel housing',[(.025,.018),(.0505,.018),(.0505,.033),(.045,.0375),(.032,.0375),(.025,.034)],.0073,0,0)
+    prism('barrel housing',[(.0164,.0263),(.0271,.0186),(.0507,.0186),(.0507,.0299),(.049,.0314),(.0217,.0331),(.0164,.0275)],.0067,0,0)
+    # The source's raised barrel is narrower than the housing underneath.
+    # Keep that stepped front silhouette instead of widening the entire roof.
+    prism('raised barrel',[(.0216,.030),(.0495,.030),(.0495,.0372),(.0436,.0379),(.0284,.0379),(.0216,.0362)],.0032,0,0)
     prism('lower receiver',[(-.035,.011),(.050,.011),(.050,.0176),(-.033,.0176),(-.0365,.015)],.0068,0,3)
     prism('grip',[(-.014,.011),(.010,.011),(.004,-.0245),(-.012,-.0245),(-.015,-.019),(-.009,.001)],.0054,0,1)
-    prism('magazine',[(-.007,.017),(.009,.017),(-.003,-.048),(-.017,-.048)],.0048,1,0)
-    prism('magazine base',[(-.0185,-.047),(.001,-.050),(.001,-.053),(-.0185,-.050)],.0058,1,1)
+    prism('magazine',[(-.0071,.0141),(.0103,.0141),(.0065,-.0345),(.0007,-.0504),(-.0187,-.0482),(-.0175,-.0261)],.0048,1,0)
+    prism('magazine base',[(-.0187,-.0482),(.0007,-.0504),(.0007,-.0532),(-.0187,-.051)],.0059,1,1)
     # Thick enough for the N64 grid, with the original open trigger guard.
     outer=[(.008,.011),(.038,.011),(.032,-.020),(.026,-.024),(.003,-.024)]
     inner=[(.012,.007),(.034,.007),(.028,-.017),(.024,-.020),(.008,-.020)]
@@ -85,10 +88,15 @@ def install_firstperson(data,raw,triangles):
 
 def install_world(data,raw,fpraw,triangles):
     w=data['models']['pistol'];nodes=raw['models']['pistol']['nodes'];fpgun=fpraw['weapons']['pistol']['gun'];bind=globals_for(nodes,nodes);inverse=np.linalg.inv(globals_for(fpgun['nodes'],fpgun['nodes']));lookup={n['name']:i for i,n in enumerate(nodes)}
+    # Raw source vertices already include each part's bind rotation. World
+    # and FP gun geometry share this basis (only the root height differs).
+    # Applying the world magazine's different bind rotation a second time
+    # straightens its diagonal, even though the original vertices do not.
+    root_transform=bind[0]@inverse[0]
     # The cartridge is visible only during the first-person reload.
     converted=[deepcopy(t) for t in triangles if t["part"]!="cartridge"]
     for t in converted:
-        bone=t['weights'][0][0][0];worldbone=lookup[fpgun['nodes'][bone]['name']];mat=bind[worldbone]@inverse[bone]
+        bone=t['weights'][0][0][0];worldbone=lookup[fpgun['nodes'][bone]['name']];mat=root_transform
         t['p']=[(mat@np.array([*p,1]))[:3].tolist() for p in t['p']];t['weights']=[[[worldbone,1.0]]]*3
     w['triangles']=converted
     for key in ('textures','textures_fullres','multipurpose_fullres','team_masks','team_mask_channels','material_metadata'):

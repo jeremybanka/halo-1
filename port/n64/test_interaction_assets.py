@@ -27,7 +27,9 @@ for name in ['bg_seat_poses','bg_seat_grips','bg_body_ready_poses','bg_body_read
    assert not any(bank[offset+stride*frame+vertices*6:offset+stride*(frame+1)])
    allpoints.append(points)
   maximum=max(maximum,stride*2);checked+=frames
-assert maximum==r['scratch_bytes'] and maximum<8192
+# The source-profile M6D adds a raised barrel and angled magazine: its two
+# ready frames need 8,736 bytes. Keep a bounded 9 KiB budget for this bank.
+assert maximum==r['scratch_bytes'] and maximum<9*1024
 for definition,pair in zip(r['body_clips'],array('bg_seat_poses')):
  for state in [1,2]:
   assert pair[state][0][3]==pair[state][1][3]==definition[state]['frames']

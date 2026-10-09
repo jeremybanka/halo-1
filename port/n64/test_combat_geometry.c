@@ -1,5 +1,7 @@
 #include "combat_geometry.h"
 #include "blam/vehicle_physics.h"
+#include "terrain.h"
+#include "movement.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -19,6 +21,15 @@ static float reference(const bg_vehicle*v,const float*o,const float*d){
   if(inside)nearest=hit;
  }return nearest;
 }
+static bool capsule_reference(const bg_vehicle*v,const bg_player*p){
+ const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];
+ for(unsigned t=0;t<m->triangle_count;t++){
+  float points[3][3];bg_triangle tri={{points[0],points[1],points[2]}};
+  for(unsigned j=0;j<3;j++){float local[3];for(unsigned a=0;a<3;a++)local[a]=m->vertices[m->triangles[t][j]][a]/1024.f;bg_vehicle_transform(v,local,points[j]);}
+  float a[3],b[3];if(bg_capsule_triangle(p->pos,bg_body_height(p),bg_movement.radius,&tri,a,b)<bg_movement.radius*bg_movement.radius)return true;
+ }
+ return false;
+}
 int main(void){
  unsigned hits=0,misses=0;
  for(unsigned kind=0;kind<4;kind++)for(unsigned angle=0;angle<3;angle++){
@@ -26,6 +37,10 @@ int main(void){
   if(angle){
    const float f[3]={1,0,0},u[3]={0,1,0};bg_vehicle_transform(&v,f,v.forward);bg_vehicle_transform(&v,u,v.up);
    for(unsigned k=0;k<3;k++){v.forward[k]-=v.pos[k];v.up[k]-=v.pos[k];}v.physics_valid=true;
+  }
+  for(unsigned i=0;i<200;i++){
+   bg_player p={.pos={2+2.5f*sinf(i*1.231f),3+1.5f*cosf(i*.517f),4+2.5f*cosf(i*1.217f)},.crouch_amount=(i%3)*.5f};
+   assert(bg_vehicle_contacts_player(&v,&p)==capsule_reference(&v,&p));
   }
   for(unsigned axis=0;axis<3;axis++)for(int x=-9;x<=9;x++)for(int y=-9;y<=9;y++){
    float local[3]={0},end[3],o[3],d[3];local[axis]=-4;local[(axis+1)%3]=x*.17391f+.01329f;local[(axis+2)%3]=y*.17173f+.02191f;
@@ -36,5 +51,5 @@ int main(void){
    assert(fabsf(expected-actual)<.001f);if(actual<20)hits++;else misses++;
   }
  }
- assert(hits&&misses);printf("PASS: collision BVH matches original triangle oracle (%u hits, %u misses, four hulls and rotated poses)\n",hits,misses);
+ assert(hits&&misses);printf("PASS: collision BVH matches 2400 exhaustive capsule checks and original triangle ray oracle (%u hits, %u misses, four hulls and rotated poses)\n",hits,misses);
 }

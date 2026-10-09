@@ -18,6 +18,7 @@ int main(){
     near(bg_capsule_triangle(p.pos,.7f,.2f,&bg_collision[0],a,b),.215f*.215f);
     /* Wall crosses the middle of the capsule where the old samples had gaps. */
     near(bg_capsule_triangle((float[]){.85f,0,0},.7f,.2f,&bg_collision[2],a,b),.15f*.15f);
+    assert(bg_terrain_clearance(&p));p.pos[0]=.95f;assert(!bg_terrain_clearance(&p));p.pos[0]=0;
     p.crouch_amount=1;for(int i=0;i<3;i++)roof_p[i][1]=.6f;
     bg_terrain_reset();assert(!bg_can_stand(&p));p.pos[0]=-3;assert(!bg_can_stand(&p));
     p.pos[0]=0;for(int i=0;i<3;i++)roof_p[i][1]=3;bg_terrain_reset();assert(bg_can_stand(&p));

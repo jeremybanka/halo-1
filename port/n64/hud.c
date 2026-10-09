@@ -1,6 +1,7 @@
 #include "hud.h"
 #include "asset_hud.h"
 #include "game.h"
+#include "camouflage.h"
 #include <libdragon.h>
 #include <math.h>
 
@@ -258,9 +259,7 @@ static void radar(unsigned p, int x, int y, float scale) {
     float sn=sinf(viewer->yaw),cs=cosf(viewer->yaw);
     for (unsigned j=0;j<bg_player_count();j++) {
         bg_player *other=&bg_players[j];
-        if (j==p || other->health<=0 || other->crouched) continue;
-        float speed=other->velocity[0]*other->velocity[0]+other->velocity[2]*other->velocity[2];
-        if (speed<.01f && other->flash<=0.f && other->vehicle<0) continue;
+        if (j==p || !bg_motion_sensor_visible(other)) continue;
         float dx=other->pos[0]-viewer->pos[0],dz=other->pos[2]-viewer->pos[2];
         if (dx*dx+dz*dz>range*range) continue;
         int bx=(int)roundf(cx+(dx*sn+dz*cs)*radius/range);

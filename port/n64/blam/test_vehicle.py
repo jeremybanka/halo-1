@@ -44,6 +44,8 @@ def main():
         'sound-mix': ['port/n64/test_sound_mix.c', 'port/n64/sound_mix.c'],
         'shield-audio': ['port/n64/test_shield_audio.c', 'port/n64/sound_mix.c', 'build/n64/generated/shield_data.c'],
         'shields': ['port/n64/test_shields.c', *shared],
+        'powerups': ['port/n64/test_powerups.c', *shared],
+        'vehicle-edges': ['port/n64/test_vehicle_edges.c', *shared],
         'view-camera': ['port/n64/test_view_camera.c', 'build/n64/generated/camera_data.c'],
         'game': ['port/n64/test_game.c', *shared],
         'combat-geometry': ['port/n64/test_combat_geometry.c', *shared],

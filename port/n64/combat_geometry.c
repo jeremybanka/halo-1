@@ -1,7 +1,10 @@
 #include "combat_geometry.h"
 #include "blam/vehicle_physics.h"
 #include <math.h>
+#include "terrain.h"
+#include "movement.h"
 #include <assert.h>
+#include <string.h>
 static float dot3(const float*a,const float*b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
 static void cross3(const float*a,const float*b,float*out){out[0]=a[1]*b[2]-a[2]*b[1];out[1]=a[2]*b[0]-a[0]*b[2];out[2]=a[0]*b[1]-a[1]*b[0];}
 float bg_vehicle_hit_ray(const bg_vehicle*v,const float origin[3],const float direction[3],float distance){
@@ -48,4 +51,44 @@ float bg_vehicle_hit_ray(const bg_vehicle*v,const float origin[3],const float di
         float t=dot3(e2,q)*inverse;if(t>=0&&t<distance)distance=t;
       }
     }return distance;
+}
+
+/* Bounded narrow phase shared by splatters and exit clearance. Broadly reject
+ * using the authored hull bounds before touching its triangles. */
+bool bg_vehicle_contacts_player(const bg_vehicle*v,const bg_player*p){
+    const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];float r=bg_movement.radius,h=bg_body_height(p);
+    float extent2=0,d2=0;
+    for(unsigned a=0;a<3;a++){
+        float e=fmaxf(fabsf(m->bounds[a]/1024.f),fabsf(m->bounds[a+3]/1024.f));extent2+=e*e;
+        float d=p->pos[a]+(a==1?h*.5f:0)-v->pos[a];d2+=d*d;
+    }
+    float reach=sqrtf(extent2)+h*.5f+r;if(d2>reach*reach)return false;
+    float basis[3][3];
+    if(v->physics_valid){
+        memcpy(basis[0],v->forward,12);memcpy(basis[1],v->up,12);cross3(basis[0],basis[1],basis[2]);
+    }else for(unsigned axis=0;axis<3;axis++){
+        float unit[3]={0};unit[axis]=1;bg_vehicle_transform(v,unit,basis[axis]);
+        for(unsigned a=0;a<3;a++)basis[axis][a]-=v->pos[a];
+    }
+    float bounds[6],delta[3];for(unsigned a=0;a<3;a++)delta[a]=p->pos[a]-v->pos[a];
+    for(unsigned axis=0;axis<3;axis++){
+        float base=dot3(delta,basis[axis]),lo=base+r*basis[axis][1],hi=base+(h-r)*basis[axis][1];
+        bounds[axis]=fminf(lo,hi)-r;bounds[axis+3]=fmaxf(lo,hi)+r;
+    }
+    uint16_t stack[16]={0};unsigned pending=1;
+    while(pending){
+        const bg_hit_node*node=&m->nodes[stack[--pending]];bool overlap=true;
+        for(unsigned a=0;a<3;a++)if(bounds[a]>node->bounds[a+3]/1024.f||bounds[a+3]<node->bounds[a]/1024.f){overlap=false;break;}
+        if(!overlap)continue;
+        if(!node->count){assert(pending+2<=16);stack[pending++]=node->right;stack[pending++]=node->first;continue;}
+        for(unsigned t=node->first;t<node->first+node->count;t++){
+            float points[3][3];bg_triangle tri={{points[0],points[1],points[2]}};
+            for(unsigned j=0;j<3;j++){
+                const int16_t*local=m->vertices[m->triangles[t][j]];
+                for(unsigned a=0;a<3;a++)points[j][a]=v->pos[a]+(basis[0][a]*local[0]+basis[1][a]*local[1]+basis[2][a]*local[2])/1024.f;
+            }
+            float a[3],b[3];if(bg_capsule_triangle(p->pos,h,r,&tri,a,b)<r*r)return true;
+        }
+    }
+    return false;
 }

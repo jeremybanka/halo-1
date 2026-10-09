@@ -32,7 +32,7 @@ def main():
     parser.add_argument('--libdragon-source', type=Path, help='Matching libdragon source checkout for the local queue override; defaults to SDK sibling libdragon-src')
     parser.add_argument('--blam-bsp', action='store_true', help='Use original Blam BSP collision; requires an 8 MiB Expansion Pak')
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--combat-qa', type=int, choices=range(7), help='Staged combat and rollover comparisons through production gameplay')
+    mode.add_argument('--combat-qa', type=int, choices=range(8), help='Staged combat and rollover comparisons through production gameplay')
     mode.add_argument('--movement-qa', type=int, choices=[0,1,2,3], help='Scripted movement, aiming, terrain clearance and landing comparisons')
     mode.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
     mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')

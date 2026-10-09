@@ -49,9 +49,17 @@ Old benchmark results do not certify a newer build.
   - [x] Source grenade/rocket damage, bounce/fuses/cover and Needler tracking/detonation adapters.
   - [ ] Certify explosive/Needler breakpoints against retail Xbox (see COMBAT.md).
   - [ ] Animated hit regions, vehicle materials and Xbox/controller acceptance.
-- [ ] Camouflage visibility transitions and interaction with targeting/radar.
+- [x] Camouflage visibility transitions and interaction with targeting/radar;
+      requested full-invisibility/reveal timing. See [POWERUPS_VEHICLE_EDGES.md](POWERUPS_VEHICLE_EDGES.md).
 - [ ] Vehicle edge cases: exposed occupants, damage, blast cover, splatters,
       boarding/dismount clearance and camera obstruction.
+  - [x] Exposed-seat/hull-ray and blast-cover regression coverage for all seats.
+  - [x] Safe voluntary exits, late obstruction, boarding approach checks.
+  - [x] Swept hull/capsule splatters and rotating plasma attachments.
+  - [x] Camera shoulder clearance and neighboring-hull obstruction.
+  - [ ] Recover >25 FPS in the vehicle-heavy replay after clearance/contact changes.
+  - [ ] Animated hull parts, original material/mounted-weapon damage profiles,
+        full contact impulses and retail/controller acceptance.
 - [ ] Four-person hardware acceptance session: repeated full matches, all
       controller subsets, disconnects, pause ownership, audio under load,
       menu transitions, long-session stability and memory margin.
@@ -124,3 +132,11 @@ live free heap, three display surfaces and 32 KiB queue buffers. P95 66.8 ms,
 maximum 234.0 ms; the sustained-floor checkbox remains open. The fixed item
 pool restores source map placements and conserves dropped ammunition while
 cleaning unseen drops sooner. See [SPAWNS_PICKUPS.md](SPAWNS_PICKUPS.md).
+
+Power-up/vehicle-edge pass: **25.7 overall / 27.6 combat / 23.9 vehicle FPS**,
+125 KiB live free heap, three display buffers and 32 KiB queues. The vehicle
+section is below the development gate. P95 is 66.8 ms; maximum 267.4 ms overall,
+100.2 ms in vehicles. Both release and diagnostic lifecycles pass 37/37; the
+validator needs a 16 KiB queue to fit its additional memory overhead in 4 MiB.
+See [POWERUPS_VEHICLE_EDGES.md](POWERUPS_VEHICLE_EDGES.md) and
+`build/n64/powerup-vehicle-audit/comparison.html` for current evidence and limits.

@@ -3,6 +3,29 @@
 /* Identical staging in before/after ROMs; all attacks use production input. */
 static void combat_qa_input(bg_input in[4],float time){
     static int previous=-1;const float duration=BG_COMBAT_QA>=5?24:12;int cycle=(int)(time/duration);float t=time-cycle*duration;
+#if BG_COMBAT_QA == 7
+    if(cycle!=previous){
+        previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);views=4;
+        bg_vehicle_count=bg_pickup_count=0;reset_view_state();
+        for(unsigned p=0;p<4;p++){
+            bg_player*q=&bg_players[p];q->pos[0]=-15+(p%2?3:0);q->pos[2]=5+(p/2)*6;
+            q->pos[1]=bg_floor(q->pos[0],q->pos[2],100)+.015f;
+            q->yaw=p%2?1.57079633f:0;q->pitch=0;
+            bg_give_weapon(p,BG_W_AR);q->weapon_ready=q->cooldown=0;
+            memcpy(q->last_pos,q->pos,12);
+        }
+        bg_add_pickup(BG_PICK_CAMO,bg_players[1].pos);
+        bg_add_pickup(BG_PICK_CAMO,bg_players[3].pos);
+        bg_add_pickup(BG_PICK_OVERSHIELD,bg_players[3].pos);
+        const bg_input quiet[4]={0};bg_tick(quiet,1.f/30);
+        float pos[3]={-12,bg_floor(-12,11,100),11};int vi=bg_add_vehicle(BG_V_WARTHOG,pos,0);
+        bg_player*q=&bg_players[3];q->vehicle=vi;q->seat=1;q->seat_state=BG_SEAT_STABLE;bg_vehicles[vi].occupants[1]=3;
+        bg_players[2].pitch=.14f;
+    }
+    memset(in,0,sizeof(bg_input)*4);
+    in[1].fire=in[3].fire=(t>=3&&t<4.5f)||(t>=11&&t<11.05f);
+    return;
+#endif
 #if BG_COMBAT_QA == 5
     if(cycle!=previous){
         previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);views=4;
@@ -93,6 +116,6 @@ static void combat_qa_input(bg_input in[4],float time){
     }
 }
 static const char*combat_qa_title(void){
-    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK","ROLLOVER: THREE OCCUPANTS","DEATH DROP / P3 RECOVERY","STAGED DEATHS / SLAYER SPAWNS"}[BG_COMBAT_QA];
+    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK","ROLLOVER: THREE OCCUPANTS","DEATH DROP / P3 RECOVERY","STAGED DEATHS / SLAYER SPAWNS","CAMO: INFANTRY / TURRET"}[BG_COMBAT_QA];
 }
 #endif

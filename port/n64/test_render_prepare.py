@@ -10,35 +10,43 @@ import re
 from test_render_matrix import compact, function
 
 ROOT = Path(__file__).resolve().parents[2]
-EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast
+EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast model_qa_camera interaction_qa_camera bg_player_personal_weapon bg_pickup_mark_visible bg_camera_clearance bg_body_height bg_eye_height bg_interaction_points bg_player_seat bg_player_third_person bg_camera_track_offset bg_vehicle_transform bg_vehicle_camera_position hypotf fmodf tanf atanf
     bg_bounds_expand bg_bounds_quantize bg_bounds_transform bg_bounds_union
     bg_motion_decode bg_motion_scatter blam_quaternions_interpolate_and_normalize
     data_cache_hit_writeback floorf fmaxf fminf fabsf sqrtf sinf cosf get_ticks_us memcpy memset memcmp bg_vehicle_pose_key
-    t3d_mat4_from_srt_euler t3d_mat4_from_srt t3d_mat4_to_fixed_3x4 t3d_mat4_mul
+    t3d_mat4_identity t3d_mat4_from_srt_euler t3d_mat4_from_srt t3d_mat4_to_fixed_3x4 t3d_mat4_mul
     t3d_mat4fp_set_pos t3d_mat3_mul_vec3 t3d_mat4fp_from_srt_euler
     t3d_vertbuffer_get_color t3d_frustum_vs_aabb_s16 t3d_viewport_look_at
-    t3d_viewport_set_area t3d_viewport_set_projection'''.split())
+    t3d_viewport_set_area t3d_viewport_set_w_normalize t3d_viewport_set_projection'''.split())
+
+
+def definition(source, name):
+    # A call inside an if-condition can otherwise resemble a definition.
+    match = re.search(r'^[ \t]*(?:(?:static|inline|const)\s+)*\w+[ \t*]+' + re.escape(name)
+                      + r'\([^;{}]*\)\s*\{', source, re.M)
+    assert match, name
+    return function(source[match.start():], name)
 
 
 def calls(body):
     body = re.sub(r'/\*.*?\*/|//[^\n]*', '', body, flags=re.S)
     # A pointer-to-array cast such as (float (*)[4]) is not a function call.
-    return set(re.findall(r'\b([A-Za-z_]\w*)\s*\(', body)) - {'if', 'for', 'while', 'switch', 'sizeof', 'return', 'float'}
+    return set(re.findall(r'\b([A-Za-z_]\w*)\s*\(', body)) - {'if', 'for', 'while', 'switch', 'sizeof', 'return', 'float', 'defined'}
 
 
 def check(main, sdk, tiny, before=None):
     source = main.read_text()
     # Follow the actual inline projection helpers too, rather than allowing an
     # unchecked external call across the CPU-only preparation boundary.
-    helpers = source + '\n' + '\n'.join((main.parent/name).read_text() for name in
-        ('render_micro_lod.h', 'render_lod.h', 'hud_layout.h', 'render_visibility.h'))
+    helpers = '\n'.join((main.parent/name).read_text() for name in
+        ('render_micro_lod.h', 'render_lod.h', 'hud_layout.h', 'render_visibility.h', 'game.h', 'movement.h', 'camouflage.h', 'view_camera.h')) + '\n' + source
     visited = set()
 
     def visit(name):
         if name in visited:
             return
         visited.add(name)
-        for call in calls(function(helpers, name)):
+        for call in calls(definition(helpers, name)):
             if call not in EXTERNAL:
                 # Unknown calls must resolve to a reviewed local CPU helper.
                 # A new draw/queue call fails instead of silently crossing this boundary.
@@ -61,8 +69,8 @@ def check(main, sdk, tiny, before=None):
     loop = compact(function(source, 'main'))
     clear = 'rdpq_attach(screen,&depth);rdpq_clear_z(ZBUF_MAX);'
     fence = 'if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();'
-    assert loop.count(clear) == 1
-    assert loop.index(fence) < loop.index(clear) < loop.index('prepare_frame();') < loop.index('draw_view(p);')
+    assert loop.count(clear) == 2  # Frontend and gameplay have separate paths.
+    assert loop.index(fence) < loop.rindex(clear) < loop.index('prepare_frame();') < loop.index('draw_view(p);')
     if before:
         old = compact(before.read_text()).replace(clear, '')
         new = compact(source).replace(clear, '')

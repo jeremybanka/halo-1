@@ -9,6 +9,7 @@
 #include "view_camera.h"
 #include "sky_draw.h"
 #include "shields.h"
+#include "camouflage.h"
 #include "blam/vehicle_physics.h"
 #include "controls.h"
 #include "menu.h"
@@ -1229,8 +1230,8 @@ static void prepare_view(unsigned p){
         bg_camera_track_offset(track,player->yaw,player->pitch,offset);
         float length=sqrtf(offset[0]*offset[0]+offset[1]*offset[1]+offset[2]*offset[2]);
         float direction[3];for(unsigned a=0;a<3;a++)direction[a]=offset[a]/fmaxf(length,.001f);
-        /* Keep the existing bounded terrain obstruction test. */
-        float distance=fmaxf(.15f,fminf(length,bg_raycast(origin,direction,length)-.15f));
+        /* Shared terrain search for five near-plane probes, plus neighboring hulls. */
+        float distance=bg_camera_clearance(origin,direction,length,player->vehicle);
         for(unsigned a=0;a<3;a++)eye.v[a]=(origin[a]+direction[a]*distance)*BG_SCALE;
         /* Mounted weapons start one unit ahead of the player's aim origin.
          * Follow that pitch-aware trajectory so the reticle tracks the shot. */
@@ -1293,7 +1294,7 @@ static void prepare_view(unsigned p){
     view_eyes[p]=eye;held_masks[p]=0;
     for(unsigned j=0;j<views;j++){
         bg_player*q=&bg_players[j];body_lods[p][j]=0;
-        if(q->invisibility>0)continue;
+        if(bg_player_visibility(q)<=0)continue;
 #if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA)
         if(j==p&&!bg_player_third_person(player)&&player->health>0)continue;
 #endif
@@ -1419,6 +1420,13 @@ static void draw_view(unsigned p){
 #endif
     for(unsigned j=0;j<views;j++){
         if(body_lods[p][j]||(held_masks[p]&(1u<<j)))ensure_player_animation(j);
+        float opacity=bg_player_visibility(&bg_players[j]);
+        bool fading=opacity>0&&opacity<1&&(body_lods[p][j]||(held_masks[p]&(1u<<j)));
+        if(fading){
+            rdpq_sync_pipe();rdpq_set_env_color(RGBA32(255,255,255,(unsigned)(opacity*255)));
+            rdpq_mode_begin();rdpq_mode_antialias(AA_NONE);rdpq_mode_alphacompare(-1);
+            rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,SHADE),(0,0,0,ENV)));rdpq_mode_end();
+        }
         if(body_lods[p][j]){
             bool lod=body_lods[p][j]==2;
             float shield=bg_shield_glow(&bg_players[j]);
@@ -1427,16 +1435,21 @@ static void draw_view(unsigned p){
                  * extra triangles, transparent sorting, or z fighting. */
                 unsigned intensity=(unsigned)(shield*(.48f+.04f*sinf(game_time*31+j))*255);
                 rdpq_sync_pipe();rdpq_set_prim_color(RGBA32(255,139,62,intensity));
-                rdpq_mode_combiner(RDPQ_COMBINER1((PRIM,SHADE,PRIM_ALPHA,SHADE),(0,0,0,SHADE)));
+                if(fading)rdpq_mode_combiner(RDPQ_COMBINER1((PRIM,SHADE,PRIM_ALPHA,SHADE),(0,0,0,ENV)));
+                else rdpq_mode_combiner(RDPQ_COMBINER1((PRIM,SHADE,PRIM_ALPHA,SHADE),(0,0,0,SHADE)));
             }
             t3d_matrix_set(&transforms[slot][j],true);rspq_block_run(lod?armor_lod_blocks[slot][j]:player_blocks[slot][j]);
             triangles+=lod?bg_spartan_lod.triangle_count:bg_model_assets[BG_M_SPARTAN].triangle_count;
-            if(shield>0){rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);}
+            if(shield>0){rdpq_sync_pipe();if(fading)rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,SHADE),(0,0,0,ENV)));else rdpq_mode_combiner(RDPQ_COMBINER_SHADE);}
 #ifdef BG_PROFILE
             submitted_vertices+=lod?spartan_lod_vertex_loads:model_vertex_loads[BG_M_SPARTAN];
 #endif
         }
         if(held_masks[p]&(1u<<j))small_model_instance(weapon_model(bg_players[j].weapon),&held_matrices[slot][j],vp,&eye,player->zoom!=0,NULL);
+        if(fading){
+            rdpq_sync_pipe();rdpq_mode_begin();rdpq_mode_alphacompare(0);rdpq_mode_antialias(AA_STANDARD);
+            rdpq_mode_combiner(RDPQ_COMBINER_SHADE);rdpq_mode_end();
+        }
     }
 #ifdef BG_PROFILE
     category_triangles[2]+=triangles-before;before=triangles;
@@ -1613,7 +1626,7 @@ static void benchmark_page(surface_t*screen,bool completed){
 #ifdef BG_GPU_DIAGNOSTIC
     rdpq_text_printf(NULL,1,8,216,"GPU WAIT RSP %u RDP %u MS",average_phases[10]/1000,average_phases[11]/1000);
 #else
-    rdpq_text_printf(NULL,1,8,216,"VERTICES AVG %u / MAX %u",r->frames?(unsigned)(r->vertices/r->frames):0,r->max_vertices);
+    rdpq_text_printf(NULL,1,8,216,"CAM %u MATRIX %u FP %u US",average_phases[1],average_phases[3],average_phases[6]);
 #endif
     unsigned cats[BG_BENCHMARK_CATEGORIES];for(unsigned c=0;c<BG_BENCHMARK_CATEGORIES;c++)cats[c]=r->frames?r->category_triangles[c]/r->frames:0;
     rdpq_text_print(NULL,1,8,228,"RDP PAGE IN 8S / A TO SWITCH");
@@ -2030,7 +2043,9 @@ int main(void){
 #endif
 #ifdef BG_COMBAT_QA
         rdpq_set_mode_standard();
-#if BG_COMBAT_QA == 5
+#if BG_COMBAT_QA == 7
+        rdpq_text_printf(NULL,1,4,225,"CAMO VISIBILITY %d%% / %d%%",(int)(bg_player_visibility(&bg_players[1])*100),(int)(bg_player_visibility(&bg_players[3])*100));
+#elif BG_COMBAT_QA == 5
         rdpq_text_printf(NULL,1,4,225,"P3 AMMO %d / %d | FRAG %d PLASMA %d",bg_players[2].ammo,bg_players[2].reserve,bg_players[2].grenades[0],bg_players[2].grenades[1]);
 #elif BG_COMBAT_QA == 6
         rdpq_text_printf(NULL,1,4,225,"16 SLAYER POINTS | THREE CAMPERS");

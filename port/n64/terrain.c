@@ -98,6 +98,17 @@ static const terrain_candidates *nearby(const bg_player*p){
     }
     return c;
 }
+bool bg_terrain_clearance(const bg_player*p){
+    float r=bg_movement.radius,h=bg_body_height(p);const terrain_candidates*c=nearby(p);
+    unsigned count=c->count==UINT16_MAX?bg_collision_count:c->count;
+    for(unsigned j=0;j<count;j++){
+        const bg_triangle*t=&bg_collision[c->count==UINT16_MAX?j:c->ids[j]];
+        if(!near_triangle(t,p->pos,h,r))continue;
+        float a[3],b[3];
+        if(bg_capsule_triangle(p->pos,h,r,t,a,b)<(r-.003f)*(r-.003f))return false;
+    }
+    return true;
+}
 bool bg_can_stand(const bg_player*p){
     float r=bg_movement.radius,h=bg_movement.height[0];const terrain_candidates*c=nearby(p);
     unsigned count=c->count==UINT16_MAX?bg_collision_count:c->count;

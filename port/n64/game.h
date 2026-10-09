@@ -37,6 +37,7 @@ typedef struct {
     float shield,shield_delay,heat,charge,recoil,gait,anim_time,melee_time,invisibility;
     /* Source damage flash decays independently of remaining shield vitality. */
     float shield_hit,shield_break,shield_break_pos[3];
+    float camo_opacity,camo_quiet;
     bool shield_charging,shield_overcharging;
     float velocity[3],last_pos[3];
     float crouch_amount,look_peg_time,airborne_time;
@@ -127,6 +128,8 @@ int bg_add_vehicle(bg_vehicle_kind kind,const float pos[3],float yaw);
 /* Original Xbox seat/entry markers, transformed by the current hull pose. */
 void bg_vehicle_seat_position(const bg_vehicle *vehicle,unsigned seat,bool entry,float out[3]);
 int bg_add_pickup(int weapon,const float pos[3]);
+bool bg_vehicle_exit_position(unsigned player,float out[3]);
+float bg_camera_clearance(const float origin[3],const float direction[3],float length,int ignore_vehicle);
 void bg_vehicle_camera_position(const bg_vehicle *vehicle,unsigned seat,float out[3]);
 bg_use_target bg_interaction_target(unsigned player);
 const bg_seat_definition *bg_player_seat(const bg_player *player);

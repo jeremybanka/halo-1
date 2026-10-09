@@ -226,6 +226,45 @@ float bg_world_raycast_normal(const float origin[3],const float direction[3],flo
  return bias+nearest*(distance-bias);
 }
 float bg_world_raycast(const float o[3],const float d[3],float distance){return bg_world_raycast_normal(o,d,distance,NULL);}
+void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]){
+ world_load();real_point3d p[5];real_vector3d d[5];float lo[3],hi[3],nearest[5];
+ for(unsigned i=0;i<5;i++){
+  p[i]=(real_point3d){.n={origin[0]+rays[i][0]*.003f+68,-origin[2]-rays[i][2]*.003f-118,origin[1]+rays[i][1]*.003f}};
+  float length=MAX(0,reaches[i]-.003f);
+  d[i]=(real_vector3d){.n={rays[i][0]*length,-rays[i][2]*length,rays[i][1]*length}};nearest[i]=1;
+  for(unsigned a=0;a<3;a++){
+   float end=p[i].n[a]+d[i].n[a],lower=MIN(p[i].n[a],end),upper=MAX(p[i].n[a],end);
+   if(i==0){lo[a]=lower;hi[a]=upper;}else{lo[a]=MIN(lo[a],lower);hi[a]=MAX(hi[a],upper);}
+  }
+ }
+ struct surface_query query;query_begin(&query,lo,hi);int si;const struct collision_bsp*b=&bg_vehicle_bsp;
+ while((si=query_next(&query))>=0){
+  const struct collision_surface*s=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
+  real_plane3d plane;bsp3d_get_plane_from_designator(&b->bsp3d,s->plane_designator,&plane);
+  int axis=projection_from_vector3d(&plane.n);bool sign=projection_sign_from_vector3d(&plane.n,axis);
+  float fractions[5];real_point2d points[5];unsigned mask=0;
+  for(unsigned i=0;i<5;i++){
+   float den=dot_product3d(&plane.n,&d[i]);if(fabsf(den)<1e-9f)continue;
+   float t=-plane3d_distance_to_point(&plane,&p[i])/den;if(t<0||t>nearest[i])continue;
+   real_point3d hit;point_from_line3d(&p[i],&d[i],t,&hit);project_point3d(&hit,axis,sign,&points[i]);
+   fractions[i]=t;mask|=1u<<i;
+  }
+  /* Original directed-edge test, sharing projection across the five rays. */
+  int edge=s->first_edge_index;
+  while(mask){
+   const struct collision_edge*e=TAG_BLOCK_GET_ELEMENT(&b->edges,edge,struct collision_edge);
+   bool reverse=e->surface_indices[1]==si;
+   const struct collision_vertex*v0=TAG_BLOCK_GET_ELEMENT(&b->vertices,e->vertex_indices[reverse],struct collision_vertex);
+   const struct collision_vertex*v1=TAG_BLOCK_GET_ELEMENT(&b->vertices,e->vertex_indices[!reverse],struct collision_vertex);
+   real_point2d a,c;project_point3d(&v0->point,axis,sign,&a);project_point3d(&v1->point,axis,sign,&c);
+   float dx=c.x-a.x,dy=c.y-a.y;
+   for(unsigned i=0;i<5;i++)if((mask&(1u<<i))&&((points[i].x-a.x)*dy-(points[i].y-a.y)*dx)>0)mask&=~(1u<<i);
+   edge=e->edge_indices[reverse];if(edge==s->first_edge_index)break;
+  }
+  for(unsigned i=0;i<5;i++)if(mask&(1u<<i))nearest[i]=fractions[i];
+ }
+ for(unsigned i=0;i<5;i++)hits[i]=reaches[i]<=.003f?reaches[i]:.003f+nearest[i]*(reaches[i]-.003f);
+}
 static void physics_compute_unit_collisions(int32_t i){
  /* Wrecks keep terrain contacts but do not block or push live vehicles. */
  if(!bg_vehicles[i].active)return;

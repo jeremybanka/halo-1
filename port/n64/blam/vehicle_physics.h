@@ -8,6 +8,8 @@ void bg_vehicle_world_release(void);
 /* Shared original polygon/BVH ray service in demake coordinates. */
 float bg_world_raycast(const float origin[3],const float direction[3],float distance);
 float bg_world_raycast_normal(const float origin[3],const float direction[3],float distance,float normal[3]);
+/* Five short camera rays share a single conservative surface query. */
+void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]);
 void bg_vehicle_physics_prepare(void);
 void bg_vehicle_physics_step(unsigned index,const bg_input *input);
 bool bg_vehicle_airborne(unsigned index);

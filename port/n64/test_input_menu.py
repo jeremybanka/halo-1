@@ -5,6 +5,7 @@ and the normal frame's input-latch block are extracted from main.c; the actual
 menu and controls implementations are linked. This checks CPU behavior, not
 controller hardware or rendered menu appearance.
 """
+from runtime_source import read_runtime, validation_output
 import argparse
 import hashlib
 import json
@@ -15,7 +16,7 @@ import subprocess
 from test_render_matrix import function
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT / 'build/n64/test-input-menu'
+OUT = validation_output('input-menu')
 
 PRELUDE = r'''
 #include <assert.h>
@@ -42,7 +43,7 @@ static joypad_inputs_t joypad_get_inputs(unsigned p){assert(p<4);reads[0][p]++;r
 static joypad_buttons_t joypad_get_buttons(unsigned p){assert(p<4);reads[1][p]++;return snapshot[p].btn;}
 static joypad_buttons_t joypad_get_buttons_pressed(unsigned p){assert(p<4);reads[2][p]++;return edges[p];}
 void bg_reset(void){resets++;for(unsigned p=0;p<4;p++)bg_players[p].vehicle=-1;}
-static void reset_view_state(void){view_resets++;}
+static void bg_scene_reset(void){view_resets++;}
 void bg_set_players(unsigned n){sets++;last_set=n;assert(n==1||n==2||n==4);}
 '''
 
@@ -242,12 +243,15 @@ if __name__ == '__main__':
         offset = sdk.index(start)
         typedefs.append(sdk[offset:sdk.index(end, offset)+len(end)])
     main_path = ROOT/'port/n64/main.c'
-    main = main_path.read_text()
+    main = read_runtime(main_path)
     functions = ('static uint32_t control_buttons(joypad_buttons_t buttons){'+function(main, 'control_buttons')+'}\n'
                  'static bool input(bg_input in[4]){'+function(main, 'input')+'}\n')
     marker = 'bg_input in[4]={0};if(input(in))memset(latch,0,sizeof(latch));clock.paused=paused;'
-    start = main.index(marker)
-    block = main[start:main.index('unsigned ticks=blam_clock_update', start)]
+    match=re.search(r'bg_input\s+in\[4\]\s*=\s*\{0\};\s*if\s*\(input\(in\)\)',main)
+    assert match
+    start=match.start()
+    end=start+re.search(r'unsigned ticks\s*=\s*blam_clock_update',main[start:]).start()
+    block=main[start:end]
     # sizeof(latch) was an array in main; retain that actual type inside this wrapper.
     wrapper = ('static void poll_latched(bg_input out[4],bg_input pending[4]){\n'
                'struct {bool paused;} clock={0};bg_input latch[4];memcpy(latch,pending,sizeof(latch));\n'+block+

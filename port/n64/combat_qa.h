@@ -5,8 +5,8 @@ static void combat_qa_input(bg_input in[4],float time){
     static int previous=-1;const float duration=BG_COMBAT_QA>=5?24:12;int cycle=(int)(time/duration);float t=time-cycle*duration;
 #if BG_COMBAT_QA == 7
     if(cycle!=previous){
-        previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);views=4;
-        bg_vehicle_count=bg_pickup_count=0;reset_view_state();
+        previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);(*qa.views)=4;
+        bg_vehicle_count=bg_pickup_count=0;bg_scene_reset();
         for(unsigned p=0;p<4;p++){
             bg_player*q=&bg_players[p];q->pos[0]=-15+(p%2?3:0);q->pos[2]=5+(p/2)*6;
             q->pos[1]=bg_floor(q->pos[0],q->pos[2],100)+.015f;
@@ -28,8 +28,8 @@ static void combat_qa_input(bg_input in[4],float time){
 #endif
 #if BG_COMBAT_QA == 5
     if(cycle!=previous){
-        previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);views=4;
-        bg_vehicle_count=bg_pickup_count=0;reset_view_state();
+        previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);(*qa.views)=4;
+        bg_vehicle_count=bg_pickup_count=0;bg_scene_reset();
         for(unsigned p=0;p<4;p++){
             bg_player*q=&bg_players[p];q->pos[0]=-12+(p==1?1.2f:p==2?1.5f:p==3?-2.f:0);
             q->pos[2]=5+(p==3?2.f:0);q->pos[1]=bg_floor(q->pos[0],q->pos[2],100)+.015f;
@@ -49,7 +49,7 @@ static void combat_qa_input(bg_input in[4],float time){
 #if BG_COMBAT_QA == 6
     static int death_stage;
     if(cycle!=previous){
-        previous=cycle;death_stage=-1;bg_set_players(4);bg_reset();bg_set_score_limit(1000);views=4;reset_view_state();
+        previous=cycle;death_stage=-1;bg_set_players(4);bg_reset();bg_set_score_limit(1000);(*qa.views)=4;bg_scene_reset();
         unsigned point=0;
         for(unsigned p=1;p<4;p++){
             while(point<bg_spawn_count&&!bg_slayer_spawns[point])point++;
@@ -66,7 +66,7 @@ static void combat_qa_input(bg_input in[4],float time){
     static bool tipped;
     if(cycle!=previous){
         previous=cycle;tipped=false;bg_reset();bg_set_players(4);bg_set_score_limit(1000);
-        views=4;bg_vehicle_count=bg_pickup_count=0;reset_view_state();
+        (*qa.views)=4;bg_vehicle_count=bg_pickup_count=0;bg_scene_reset();
         float pos[3]={-12,bg_floor(-12,5,100)+.5f,5};
         bg_add_vehicle(BG_V_WARTHOG,pos,0);
         for(unsigned p=0;p<3;p++){
@@ -86,7 +86,7 @@ static void combat_qa_input(bg_input in[4],float time){
 #endif
     if(cycle!=previous){
         previous=cycle;bg_reset();bg_set_players(4);bg_set_score_limit(1000);
-        views=4;bg_vehicle_count=bg_pickup_count=0;reset_view_state();
+        (*qa.views)=4;bg_vehicle_count=bg_pickup_count=0;bg_scene_reset();
         for(unsigned p=0;p<4;p++){
             bg_player*q=&bg_players[p];unsigned pair=p/2;
             float distance=BG_COMBAT_QA==2?(pair?3.8f:.9f):BG_COMBAT_QA==3?.6f:1.4f;

@@ -11,6 +11,7 @@ from pack_assets import position, floats
 from pack_firstperson import prepare_model, split_details
 from pack_fp_ammo import globals_for, overlay_states, prepare_ar
 from extract_extended import MODEL_PATHS
+from asset_ids import service_keys, SERVICE_SCHEMA
 ROOT=Path(__file__).resolve().parents[2]
 A=ROOT/'build/n64/assets'; G=ROOT/'build/n64/generated'; F=ROOT/'build/n64/frontend-files'
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
@@ -148,12 +149,8 @@ def run():
                 frames.append([[p[0],-p[2],p[1]] for p in points])
             pair.append(emit(frames,c['duration'],4096))
         hatches.append(pair)
-    # Explicit slots match asset_interaction.h; source model iteration is unrelated.
-    service_keys=[('ar','reload-full'),('plasma_pistol','overheating'),('plasma_pistol','o-h-s-enter'),
-        ('plasma_pistol','overheated'),('plasma_pistol','o-h-exit'),('rocket','reload-full'),('rocket','reload-empty'),
-        ('plasma_rifle','overheating'),('plasma_rifle','overheated'),('plasma_rifle','o-h-exit'),
-        ('pistol','reload-full'),('pistol','reload-empty'),('sniper','reload-full'),('sniper','reload-empty'),('shotgun','fire-1')]
-    service=[None]*len(service_keys);service_details=service.copy();service_vents=service.copy();service_report=service.copy()
+    service_slots=service_keys()
+    service=[None]*len(service_slots);service_details=service.copy();service_vents=service.copy();service_report=service.copy()
     reload_ar=shotgun_muzzle=None
     ready=[];readytimes=[];fp_report={};needle_defs=[];needle_indices=[];ar_def=scope_def=None;plasma_defs=[]
     for name,w in fp['weapons'].items():
@@ -195,9 +192,9 @@ def run():
             ar_def=emit([[[p[0]/4096,-p[2]/4096,p[1]/4096] for p in f] for f in ar['poses'][0]],c['duration'],4096)
         # Preserve every Xbox 30 Hz frame for contact-sensitive reloads and
         # the plasma pistol's separate enter / vent loop / exit states.
-        service_names=['first-person '+label for weapon,label in service_keys if weapon==name]
+        service_names=['first-person '+label for weapon,label in service_slots if weapon==name]
         for clip_name in service_names:
-            index=service_keys.index((name,clip_name.removeprefix('first-person ')))
+            index=service_slots.index((name,clip_name.removeprefix('first-person ')))
             sc=clip(g,next(i for i,a in enumerate(g.animations.STEPTREE) if a.name==clip_name))
             full=[skin_fp(states) for states in sc['frames']]
             # Terminal hold (or loop seam) supplies exactly one sample per
@@ -243,7 +240,7 @@ def run():
     assert len(ready)==8 and len(seats[2])==5
     ready.append(ready[0]);readytimes.append(readytimes[0]) # Optional PC extra aliases Xbox AR.
     F.mkdir(exist_ok=True);(F/'interactions.bin').write_bytes(bank)
-    lines=['/* Generated owned Xbox animation metadata. */','#include "asset_interaction.h"']
+    lines=['/* Generated owned Xbox animation metadata. */','#include "interaction_poses.h"']
     lines.append('const bg_rom_pose bg_locomotion_poses[6][2]={'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in locomotion)+'};')
     lines.append('const bg_rom_pose bg_locomotion_grips[6]={'+','.join(init(d) for d in locomotion_grips)+'};')
     lines.append('const bg_rom_pose bg_hatch_poses[2][2]={'+','.join('{'+','.join(init(d) for d in pair)+'}' for pair in hatches)+'};')
@@ -262,7 +259,7 @@ def run():
             defs.append('{'+','.join([floats(s['anchor']),floats(s['entry']),floats(s['camera']),f'{s["yaw"]:.7f}f',floats(s['exit_offset']),floats(s['exit_velocity']),floats(s['enter_start']),f'{s["enter_time"]:.7f}f',f'{s["exit_time"]:.7f}f',str(s['flags']),str(s['pose'])])+'},')
         defs.append('},')
     defs.append('};');(G/'interaction_defs.c').write_text('\n'.join(defs)+'\n')
-    inputs={str(p.relative_to(ROOT)):sha(p) for p in [A/'extended-raw.json',A/'extended-reduced.json',A/'firstperson-raw.json',A/'firstperson-reduced.json',A/'firstperson-ammo.json',A/'bloodgulch-decompressed.map',A/'a30-decompressed.map',G/'models_data.c',G/'firstperson_data.c',G/'world-mesh-sources.json',Path(__file__)]}
+    inputs={str(p.relative_to(ROOT)):sha(p) for p in [A/'extended-raw.json',A/'extended-reduced.json',A/'firstperson-raw.json',A/'firstperson-reduced.json',A/'firstperson-ammo.json',A/'bloodgulch-decompressed.map',A/'a30-decompressed.map',G/'models_data.c',G/'firstperson_data.c',G/'world-mesh-sources.json',Path(__file__),SERVICE_SCHEMA,Path(__file__).with_name('asset_ids.py')]}
     files={str(p.relative_to(ROOT)):sha(p) for p in [G/'interaction_assets.c',G/'interaction_defs.c',F/'interactions.bin']}
     report={'inputs':inputs,'files':files,'rom_bytes':len(bank),'scratch_bytes':scratch,'seats':seats,'locomotion':locomotion_report,'body_clips':clip_report,'ready':fp_report,'service':service_report,'hold_ticks':7}
     (G/'interaction-report.json').write_text(json.dumps(report,indent=2)+'\n')

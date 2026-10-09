@@ -5,13 +5,14 @@ entry with address>>24, adds that entry, then DMA uses the low 24 bits.
 Check every generated batch against the exact direct-address equivalent,
 including the highest possible base addresses in 4 MiB and 8 MiB RDRAM.
 """
+from runtime_source import read_runtime
 import argparse
 from pathlib import Path
 import re
 
 
 def verify(path):
-    source = path.read_text()
+    source = read_runtime(path)
     capacity = int(re.search(r'bg_fp_max_vertices\s*=\s*(\d+)', source)[1])
     body = re.search(r'bg_fp_models\[BG_FP_WEAPONS\]\s*=\s*\{(.*?)\n\};', source, re.S)[1]
     models = re.findall(r'\{(\w+),(\d+),[^,]+,(\w+),(\w+),(\d+),(\d+)\}', body)

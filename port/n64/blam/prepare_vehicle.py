@@ -5,7 +5,7 @@ No drive/contact/integration equations are substituted. Presentation and world
 services are implemented at the explicit boundary in vehicle_physics.c.
 """
 from pathlib import Path
-import hashlib,json,re
+import argparse,hashlib,json,re
 from prepare_collision import function as source_function
 def function(source,name):
     source=re.sub(r"(?m)^((?:static )?(?:void|boolean|real|short|long))\n(?=\w)",r"\1 ",source)
@@ -153,4 +153,8 @@ def prepare():
    'Vehicle explosion selection and biped damage remain demake gameplay services'])
  (OUT/'vehicle-boundary-manifest.json').write_text(json.dumps(provenance,indent=2)+'\n')
  print('Retained',len(funcs),'functions/blocks')
-if __name__=='__main__':prepare()
+if __name__=='__main__':
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument('--output',type=Path,default=OUT)
+ OUT=parser.parse_args().output
+ prepare()

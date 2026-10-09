@@ -17,8 +17,8 @@ static void model_qa_stage(uint64_t now){
     model_qa_page=(unsigned)((now-start)/20000000)%7;
 #endif
     if(previous==model_qa_page)return;
-    previous=model_qa_page;bg_reset();views=model_qa_page==4?1:model_qa_page==5?2:4;
-    bg_set_players(views);reset_view_state();game_time=0;
+    previous=model_qa_page;bg_reset();(*qa.views)=model_qa_page==4?1:model_qa_page==5?2:4;
+    bg_set_players((*qa.views));bg_scene_reset();(*qa.seconds)=0;
     for(unsigned i=0;i<bg_vehicle_count;i++)bg_vehicles[i].active=false;
     for(unsigned i=0;i<bg_pickup_count;i++)bg_pickups[i].active=false;
     for(unsigned i=0;i<4;i++){
@@ -31,7 +31,7 @@ static void model_qa_stage(uint64_t now){
         if(model_qa_page==2)weapon=(unsigned[]){BG_W_PLASMA_PISTOL,BG_W_PLASMA_RIFLE,BG_W_ROCKET,BG_W_AR}[i];
         if(model_qa_page==3)weapon=i==0?BG_W_PISTOL:i==1?BG_W_SNIPER:BG_W_AR;
         bg_give_weapon(i,weapon);p->weapon=weapon;p->ammo=bg_weapon_defs[weapon].magazine;
-        p->reserve=240;p->animation=BG_ANIM_IDLE;p->anim_time=0;fired_at[i]=-100;
+        p->reserve=240;p->animation=BG_ANIM_IDLE;p->anim_time=0;bg_scene_fired(i,-100);
         if(!model_qa_page)p->ammo=(int[]){60,59,20,0}[i];
         if(model_qa_page==2){p->heat=i==1?1:.4f;p->overheated=i==1;if(i==3){p->health=0;p->respawn=3;}}
         if(model_qa_page==3){

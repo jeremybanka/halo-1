@@ -15,7 +15,7 @@ static void reload_qa_input(bg_input in[4],float seconds){
             q->ammo=(cycle&1)?(p==0?17:p==1?100:p==2?0:1):(p==0?((cycle&2)?0:3):p==1?100:p==2?((cycle&2)?0:2):8);q->reserve=240;
             q->pos[0]=p*2;q->pos[2]=4;q->pos[1]=bg_floor(q->pos[0],4,100)+.015f;
             q->yaw=-1.5707963f;q->pitch=.04f;memcpy(q->last_pos,q->pos,sizeof(q->pos));
-            fired_at[p]=-100;
+            bg_scene_fired(p,-100);
         }
     }
     if((cycle%4)==3&&t>=1&&t<1.75f)in[1].fire=true;

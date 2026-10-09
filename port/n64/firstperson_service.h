@@ -2,7 +2,7 @@
 #define BG_FIRSTPERSON_SERVICE_H
 #include <math.h>
 #include "game.h"
-#include "asset_interaction.h"
+#include "interaction_poses.h"
 /* Gameplay retains CE's empty-reload timer even for a partial magazine.
  * Visual reload-full finishes at its own rate, holding its terminal pose.
  * Heat cooling is 0.2/sec; the last source exit clip leads into unlock at .15. */

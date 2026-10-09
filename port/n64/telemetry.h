@@ -1,0 +1,29 @@
+#ifndef BG_TELEMETRY_H
+#define BG_TELEMETRY_H
+#include <stdint.h>
+typedef enum {
+    BG_COUNT_POSE_HIT,
+    BG_COUNT_POSE_MISS,
+    BG_COUNT_DMA_READS,
+    BG_COUNT_DMA_BYTES,
+    BG_COUNT_TERRAIN_HIT,
+    BG_COUNT_TERRAIN_MISS,
+    BG_COUNT_TERRAIN_OVERFLOW,
+    BG_COUNT_FLOOR_HIT,
+    BG_COUNT_FLOOR_MISS,
+    BG_COUNT_PROJECTILE_FULL,
+    BG_COUNT_EVENTS_FULL,
+    BG_COUNT_DROP_RECLAIM,
+    BG_COUNT_DROP_FULL,
+    BG_COUNT_POSE_ALLOC,
+    BG_COUNT_POSE_FREE,
+    BG_COUNTER_COUNT
+} bg_counter;
+#ifdef BG_TELEMETRY
+extern uint32_t bg_counters[BG_COUNTER_COUNT];
+#define BG_COUNT(counter, amount) (bg_counters[(counter)] += (uint32_t)(amount))
+void bg_telemetry_report(void);
+#else
+#define BG_COUNT(counter, amount) ((void)0)
+#endif
+#endif

@@ -33,6 +33,7 @@ static int drop_slot(void){
         float score=q->age+(q->unseen>2&&!pickup_near_player(q)?1000:0);
         if(score>best){best=score;candidate=i;}
     }
+    BG_COUNT(candidate<0?BG_COUNT_DROP_FULL:BG_COUNT_DROP_RECLAIM,1);
     return candidate;
 }
 static void drop_item(unsigned owner,int weapon,int ammo,int reserve,float heat,bool overheated,int quantity,unsigned offset){

@@ -1,10 +1,11 @@
 """Compile the actual acquisition gate with deterministic input/audio/display mocks."""
+from runtime_source import read_runtime, validation_output
 from pathlib import Path
 import subprocess
 from test_render_matrix import function
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT/'build/n64/test-paced-acquire'
+OUT = validation_output('paced-acquire')
 PRELUDE = r'''
 #include <assert.h>
 #include <stdio.h>
@@ -27,7 +28,10 @@ static void pump_audio(void){
     if(scenario==5&&fake_now>=80000)present_tracker.draining=0;
 #endif
 }
-static void presentation_mode(bool enabled){presentation=enabled;}
+static void bg_presentation_mode(bool enabled){presentation=enabled;}
+#ifdef BG_PRESENT_TRACK
+static bool bg_presentation_draining(void){return present_tracker.draining;}
+#endif
 static surface_t*display_try_get(void){
     if(fake_now<available_at)return NULL;
     assert(!acquired);acquired++;return &screen;
@@ -97,7 +101,7 @@ int main(void){
 '''
 
 if __name__ == '__main__':
-    main=(ROOT/'port/n64/main.c').read_text()
+    main=read_runtime(ROOT/'port/n64/main.c')
     body=function(main,'paced_acquire')
     signature='static surface_t*paced_acquire(blam_clock*clock,uint64_t*previous,bg_input latch[4],bg_input in[4],unsigned*ticks,bool*first,uint64_t*ui_deadline)'
     OUT.mkdir(parents=True,exist_ok=True)

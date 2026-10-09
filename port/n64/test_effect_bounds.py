@@ -4,22 +4,24 @@ The harness extracts the current preparation loops, helper and Tiny3D AABB
 test. It exercises all four views, negative coordinates, overflow, and slots
 becoming inactive then active with different positions. No GPU timing claim.
 """
+from runtime_source import read_runtime, validation_output
 from pathlib import Path
 import hashlib
 import json
+import re
 import subprocess
 from test_render_matrix import compact, function
 
 ROOT = Path(__file__).resolve().parents[2]
-OUT = ROOT/'build/n64/visibility-weapon-qa/effect-bounds-cache'
+OUT = validation_output('effect-bounds-cache')
 OUT.mkdir(parents=True, exist_ok=True)
-main = (ROOT/'port/n64/main.c').read_text()
+main = read_runtime(ROOT/'port/n64/main.c')
 sdk = ROOT.parent/'n64-3d-splitscreen/.build/tiny3d/src/t3d/t3dmath.c'
 prepare = function(main, 'prepare_frame')
-start = prepare.index('for(unsigned i=0;i<BG_MAX_PROJECTILES;i++)')
+start=re.search(r'for\s*\(unsigned i\s*=\s*0;\s*i\s*<\s*BG_MAX_PROJECTILES;',prepare).start()
 end = prepare.index('data_cache_hit_writeback(transforms[slot]')
 loops = prepare[start:end]
-assert loops.count('prepare_effect_bounds(&projectile_bounds[i],q->pos,.2f);') == 1
+assert compact(loops).count('prepare_effect_bounds(&projectile_bounds[i],q->pos,.2f);') == 1
 draw = compact(function(main, 'draw_view'))
 assert '!q||!q->active||!visible_bounds(vp,&projectile_bounds[i])' in draw
 assert 'prepare_effect_bounds(' not in draw

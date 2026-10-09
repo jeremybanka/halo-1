@@ -31,29 +31,12 @@ def load_builder():
 class QuietBuild(unittest.TestCase):
     def build(self, flags):
         builder = load_builder()
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            sdk, tiny = root / 'sdk', root / 'tiny'
-            for file in (sdk / 'bin/mips64-elf-gcc', tiny / 'build/libt3d.a',
-                         root / 'build/n64/generated/render_data.c'):
-                file.parent.mkdir(parents=True, exist_ok=True)
-                file.touch()
-            calls = []
-
-            def run(command, **unused):
-                command = list(map(str, command))
-                calls.append(command)
-                if Path(command[0]).name == 'mips64-elf-g++':
-                    Path(command[command.index('-o') + 1]).touch()
-                if Path(command[0]).name == 'n64tool':
-                    Path(command[command.index('--output') + 1]).touch()
-
-            arguments = ['build.py', '--sdk', str(sdk), '--tiny3d', str(tiny), *flags]
-            with patch.object(builder, 'ROOT', root), patch.object(sys, 'argv', arguments), \
-                    patch.object(builder.subprocess, 'run', side_effect=run), \
-                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-                builder.main()
-            return calls
+        with contextlib.redirect_stderr(io.StringIO()):
+            args=builder.parse_args(flags)
+        sdk,tiny=Path('/dummy/sdk'),Path('/dummy/tiny')
+        compiles=[[str(sdk/'bin/mips64-elf-gcc'),*builder.compile_options(args,sdk,tiny,Path('/dummy/out'),Path(name))]
+                  for name in ('main.c','scene.c','presentation.c','runtime.c','vehicle_physics.c')]
+        return [*compiles,['n64tool','--output',builder.rom_name(args)+'.z64']]
 
     def test_quiet_unpaced(self):
         calls = self.build(['--vi-benchmark'])
@@ -128,8 +111,10 @@ def check_preprocessed(sdk, tiny, before=None):
               '-I' + str(ROOT / 'port/n64'), '-I' + str(ROOT / 'build/n64/blam-core')]
 
     def preprocess(path, flags):
-        result = subprocess.run([*common, *['-D' + flag for flag in flags], str(path)],
-                                capture_output=True, text=True, check=True)
+        from runtime_source import RUNTIME_UNITS
+        paths=[path.parent/name for name in RUNTIME_UNITS if name.endswith('.c')] if path.name=='main.c' and (path.parent/'scene.c').exists() else [path]
+        outputs=[subprocess.run([*common,*['-D'+flag for flag in flags],str(unit)],capture_output=True,text=True,check=True).stdout for unit in paths]
+        result=type('Result',(),{'stdout':'\n'.join(outputs)})()
         # Assert diagnostics embed source paths and line numbers. They affect
         # no successful execution and are the sole normalization here.
         import re
@@ -140,7 +125,7 @@ def check_preprocessed(sdk, tiny, before=None):
     release = preprocess(main, ['BG_DEMO', 'BG_PACED30'])
     quiet = preprocess(main, ['BG_DEMO', 'BG_PACED30', 'BG_VI_BENCHMARK'])
     helpers = ('pump_audio', 'paced_acquire', 'prepare_frame', 'prepare_view', 'draw_view',
-               'frame_complete', 'frame_present', 'presentation_mode', 'paced_vi',
+               'frame_complete', 'frame_present', 'bg_presentation_mode', 'paced_vi',
                'animate_mesh', 'prepare_vehicle', 'input')
     for name in helpers:
         assert compact(function(release, name)) == compact(function(quiet, name)), name
@@ -157,14 +142,16 @@ def check_preprocessed(sdk, tiny, before=None):
     for text in ('REPLAY %u FPS', 'PERF views=', 'PHASE camera='):
         assert text not in quiet, 'Live diagnostic output: ' + text
     body = compact(function(quiet, 'main'))
-    assert 'if(bg_vi_complete(&visible_meter))benchmark_results(screen);' in body
+    assert 'if(bg_vi_complete(bg_presentation_meter()))benchmark_results(screen);' in body
     results = compact(function(quiet, 'benchmark_results'))
-    assert 'bg_cadence_finish(&visible_meter.fresh);' in results
+    assert 'bg_presentation_finish_metrics();' in results
+    assert 'bg_cadence_finish(&visible_meter.fresh);' in compact(function(quiet,'bg_presentation_finish_metrics'))
     assert 'benchmark_vi_page(screen);' in results
     assert 'benchmark_page(' not in results and 'benchmark_tail_page(' not in results
-    assert 'register_VI_handler(observe_vi);' in body
-    assert body.index('register_VI_handler(observe_vi);') < body.index('display_init(')
-    assert body.index('display_init(') < body.index('register_VI_handler(paced_vi);')
+    assert 'register_VI_handler(observe_vi);' in compact(function(quiet,'bg_presentation_observer_init'))
+    assert 'register_VI_handler(paced_vi);' in compact(function(quiet,'bg_presentation_paced_init'))
+    assert body.index('bg_presentation_observer_init();') < body.index('display_init(')
+    assert body.index('display_init(') < body.index('bg_presentation_paced_init();')
     if before:
         for flags in ([], ['BG_PACED30'], ['BG_DEMO'],
                       ['BG_DEMO', 'BG_BENCHMARK'], ['BG_DEMO', 'BG_BENCHMARK', 'BG_PACED30']):

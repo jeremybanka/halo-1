@@ -7,6 +7,7 @@ asset build. Emulator timing and presentation must be verified separately.
 from pathlib import Path
 import subprocess
 import sys
+import argparse
 
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / 'build/n64/vehicle-tests'
@@ -16,10 +17,12 @@ def run(args):
     subprocess.run([str(x) for x in args], cwd=ROOT, check=True)
 
 
-def main():
+def validate(out, regenerate=False):
+    global OUT
+    OUT=Path(out)
     OUT.mkdir(parents=True, exist_ok=True)
-    for script in ('prepare_core.py', 'prepare_collision.py', 'prepare_vehicle.py',
-                   'tags/export_collision.py', 'export_vehicle.py'):
+    for script in (('prepare_core.py', 'prepare_collision.py', 'prepare_vehicle.py',
+                   'tags/export_collision.py', 'export_vehicle.py') if regenerate else ()):
         run([sys.executable, ROOT/'port/n64/blam'/script])
     flags = ['-std=c17', '-O1', '-g', '-Wall', '-Wextra', '-Werror',
              '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
@@ -69,4 +72,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--regenerate',action='store_true',help='Explicitly refresh original-source adapters and the private asset bank')
+    parser.add_argument('--output-dir',type=Path,default=ROOT/'build/n64-validation/host')
+    args=parser.parse_args()
+    validate(args.output_dir,args.regenerate)

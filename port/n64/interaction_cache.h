@@ -1,3 +1,4 @@
+#include "telemetry.h"
 #ifndef BG_INTERACTION_CACHE_H
 #define BG_INTERACTION_CACHE_H
 #include <stdbool.h>
@@ -21,7 +22,8 @@ static inline const uint8_t *bg_pose_cache_fetch(bg_pose_cache*c,uint32_t offset
     uint32_t stride=small?BG_POSE_CACHE_SMALL:c->stride;
     uint8_t *base=c->storage+(small?c->stride*BG_POSE_CACHE_SLOTS:0);
     for(unsigned i=0;i<BG_POSE_CACHE_SLOTS;i++)
-        if(c->entries[first+i].bytes==bytes&&c->entries[first+i].offset==offset)return base+i*stride;
+        if(c->entries[first+i].bytes==bytes&&c->entries[first+i].offset==offset){BG_COUNT(BG_COUNT_POSE_HIT,1);return base+i*stride;}
+    BG_COUNT(BG_COUNT_POSE_MISS,1);
     unsigned slot=c->next[small]++%BG_POSE_CACHE_SLOTS;
     uint8_t *data=base+slot*stride;read(data,offset,bytes);
     c->entries[first+slot].offset=offset;c->entries[first+slot].bytes=bytes;

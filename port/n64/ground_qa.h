@@ -8,7 +8,7 @@ static void model_qa_stage(uint64_t now){
  static uint64_t start;static bool ready;if(!start)start=now;
  model_qa_page=(unsigned)((now-start)/12000000)%2;
  if(ready)return;
- ready=true;bg_reset();bg_set_players(4);reset_view_state();game_time=0;
+ ready=true;bg_reset();bg_set_players(4);bg_scene_reset();(*qa.seconds)=0;
  for(unsigned i=0;i<bg_vehicle_count;i++)bg_vehicles[i].active=false;
  for(unsigned i=0;i<bg_pickup_count;i++)bg_pickups[i].active=false;
  for(unsigned p=0;p<4;p++){bg_players[p].invisibility=1;bg_players[p].pos[0]=0;bg_players[p].pos[2]=0;}

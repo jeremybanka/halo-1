@@ -19,7 +19,8 @@ void bg_sound_mix(bg_sound_voice *voices, unsigned voice_count, int16_t *output,
         for (unsigned channel = 0; channel < voice_count; channel++) {
             bg_sound_voice *v = &voices[channel];
             const bg_audio_asset *asset = v->asset;
-            if (!asset) continue;
+            if (!asset)
+                continue;
             const int8_t *samples = asset->samples;
             uint32_t frame = v->frame, fraction = v->fraction, step = v->step;
             uint32_t length = asset->count;
@@ -27,30 +28,36 @@ void bg_sound_mix(bg_sound_voice *voices, unsigned voice_count, int16_t *output,
             /* Most owned PCM is 1/2 or 1/4 output rate. Reuse its scaled
              * stereo sample until the source cursor advances; output and
              * phase are bit-identical to the sample-major reference. */
-            int sample=samples[frame],scaled_left=sample*left,scaled_right=sample*right;
+            int sample = samples[frame], scaled_left = sample * left, scaled_right = sample * right;
             for (unsigned f = 0; f < count; f++) {
-                mixed[f*2] += scaled_left;
-                mixed[f*2+1] += scaled_right;
+                mixed[f * 2] += scaled_left;
+                mixed[f * 2 + 1] += scaled_right;
                 fraction += step;
-                unsigned advance=fraction>>16;
+                unsigned advance = fraction >> 16;
                 fraction &= 65535;
-                if(advance){
-                    frame+=advance;
+                if (advance) {
+                    frame += advance;
                     if (frame >= length) {
-                        if (v->loop) frame %= length;
-                        else { v->asset = NULL; break; }
+                        if (v->loop)
+                            frame %= length;
+                        else {
+                            v->asset = NULL;
+                            break;
+                        }
                     }
-                    sample=samples[frame];scaled_left=sample*left;scaled_right=sample*right;
+                    sample = samples[frame];
+                    scaled_left = sample * left;
+                    scaled_right = sample * right;
                 }
             }
             v->frame = frame;
             v->fraction = fraction;
         }
-        for (unsigned f = 0; f < count*2; f++) {
+        for (unsigned f = 0; f < count * 2; f++) {
             int sample = mixed[f] / 2;
             output[f] = sample > 32767 ? 32767 : sample < -32768 ? -32768 : sample;
         }
-        output += count*2;
+        output += count * 2;
         frames -= count;
     }
 }

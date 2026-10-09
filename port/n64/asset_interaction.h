@@ -2,28 +2,7 @@
 #define BG_ASSET_INTERACTION_H
 #include "asset_models.h"
 #include "interaction.h"
-/* Frames are read from DragonFS, never copied wholesale into RDRAM. Each
- * frame is padded to 16 bytes and contains big-endian XYZ int16 positions. */
-typedef struct {
-    uint32_t offset,stride;
-    uint16_t vertices,frames;
-    float duration;
-    bg_bounds bounds;
-} bg_rom_pose;
-extern const bg_rom_pose bg_locomotion_poses[6][2],bg_locomotion_grips[6];
-extern const bg_rom_pose bg_seat_poses[][3][2];
-extern const bg_rom_pose bg_body_ready_poses[2],bg_body_ready_grip;
-extern const bg_rom_pose bg_seat_grips[],bg_hatch_poses[2][2];
-extern const bg_rom_pose bg_ready_poses[9],bg_ready_ar_digits,bg_ready_scope,bg_ready_needles[21];
-extern const bg_rom_pose bg_ready_plasma[2];
-extern const uint16_t bg_ready_needle_vertices[];
-enum { BG_SERVICE_AR, BG_SERVICE_HEAT_ENTER, BG_SERVICE_HEAT_CHARGED,
-    BG_SERVICE_HEAT_LOOP, BG_SERVICE_HEAT_EXIT, BG_SERVICE_ROCKET_FULL,
-    BG_SERVICE_ROCKET_EMPTY, BG_SERVICE_RIFLE_ENTER, BG_SERVICE_RIFLE_LOOP,
-    BG_SERVICE_RIFLE_EXIT, BG_SERVICE_PISTOL_FULL, BG_SERVICE_PISTOL_EMPTY,
-    BG_SERVICE_SNIPER_FULL, BG_SERVICE_SNIPER_EMPTY, BG_SERVICE_SHOTGUN_FIRE, BG_SERVICE_COUNT };
-extern const bg_rom_pose bg_service_poses[BG_SERVICE_COUNT],bg_service_details[BG_SERVICE_COUNT],bg_service_vents[BG_SERVICE_COUNT],bg_reload_ar_digits,bg_shotgun_fire_muzzle;
-extern const unsigned bg_interaction_scratch_bytes;
+#include "interaction_poses.h"
 void bg_interaction_render_init(void);
 void bg_interaction_render_release(void);
 void bg_interaction_pose(T3DVertPacked *out,const bg_rom_pose *pose,float seconds,bool loop);

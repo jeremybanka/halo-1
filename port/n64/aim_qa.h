@@ -7,7 +7,7 @@ static bool model_qa_firstperson(void){return true;}
 static void model_qa_camera(unsigned p,T3DVec3*eye,T3DVec3*target){(void)p;(void)eye;(void)target;}
 static void model_qa_stage(uint64_t now){
     (void)now;static bool ready;if(ready)return;ready=true;
-    bg_set_players(4);bg_reset();views=4;reset_view_state();game_time=0;
+    bg_set_players(4);bg_reset();(*qa.views)=4;bg_scene_reset();(*qa.seconds)=0;
     bg_vehicle_count=bg_pickup_count=0;
     if(BG_AIM_QA<3){
         for(unsigned p=0;p<4;p++){

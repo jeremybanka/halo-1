@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Build the standalone N64 demake with an installed libdragon/Tiny3D SDK."""
+
 import argparse
 import hashlib
 import json
@@ -11,358 +12,970 @@ import sys
 from setup_assets import connect_assets
 
 ROOT = Path(__file__).resolve().parents[2]
-SHOWCASES = ['banshee', 'frag-double-kill', 'warthog-passenger', 'shotgun-kill',
-             'needler-supercombine', 'needler-homing']
+SHOWCASES = [
+    "banshee",
+    "frag-double-kill",
+    "warthog-passenger",
+    "shotgun-kill",
+    "needler-supercombine",
+    "needler-homing",
+]
 
 
-def main():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--sdk', type=Path, default=os.environ.get('N64_INST', ROOT.parent/'n64-2048/.build/libdragon'))
-    parser.add_argument('--tiny3d', type=Path, default=os.environ.get('TINY3D_DIR', ROOT.parent/'n64-3d-splitscreen/.build/tiny3d'))
-    parser.add_argument('--validate', action='store_true')
-    parser.add_argument('--profile', action='store_true', help='Show N64 frame timing and memory counters')
-    parser.add_argument('--benchmark', action='store_true', help='Measure one four-player replay without live debug overlays, then show frame statistics')
-    parser.add_argument('--vi-benchmark', action='store_true', help='Quiet four-player replay measuring actual VI presentation only; no CPU/RDP profiling or live debug overlays')
-    parser.add_argument('--scores-benchmark', action='store_true', help='With --vi-benchmark, hold the Xbox score overlays open in all four views throughout the replay')
-    parser.add_argument('--gpu-diagnostic', action='store_true', help='Serialize RSP/RDP before the HUD to diagnose queue backpressure; not a release FPS measurement')
-    parser.add_argument('--guard-band4', action='store_true', help='Test Tiny3D guard-band 4 for four-player viewports; projection and scissor are unchanged')
-    parser.add_argument('--paced30', action='store_true', help='Experimental four-view two-retrace FIFO presentation with a two-frame prefill; NTSC/MPAL only, ignored by frozen snapshots')
-    parser.add_argument('--paced30-buffers', type=int, choices=[3, 4, 5], help='Display surfaces for --paced30 (default 3); 4/5 are opt-in acquisition/latency experiments with the same two-frame prefill')
-    parser.add_argument('--rspq-buffer-kib', type=int, choices=[0, 2, 4, 8, 16, 32], default=16, help='KiB per local low-priority queue buffer (default 16); 2 is the baseline, 0 uses the installed SDK without its source checkout')
-    parser.add_argument('--libdragon-source', type=Path, help='Matching libdragon source checkout for the local queue override; defaults to SDK sibling libdragon-src')
-    parser.add_argument('--blam-bsp', action='store_true', help='Use original Blam BSP collision; requires an 8 MiB Expansion Pak')
+    parser.add_argument(
+        "--preset",
+        choices=["release"],
+        help="Maintained 4 MiB release: paced presentation, three surfaces, 32 KiB queues",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Isolate objects, generated source, filesystem and ROMs from the shared asset bank",
+    )
+    parser.add_argument(
+        "--sdk",
+        type=Path,
+        default=os.environ.get("N64_INST", ROOT.parent / "n64-2048/.build/libdragon"),
+    )
+    parser.add_argument(
+        "--tiny3d",
+        type=Path,
+        default=os.environ.get("TINY3D_DIR", ROOT.parent / "n64-3d-splitscreen/.build/tiny3d"),
+    )
+    parser.add_argument("--validate", action="store_true")
+    parser.add_argument(
+        "--telemetry",
+        action="store_true",
+        help="Log cumulative cache/DMA/pool-pressure counters; excluded from release and quiet VI runs",
+    )
+    parser.add_argument(
+        "--profile", action="store_true", help="Show N64 frame timing and memory counters"
+    )
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Measure one four-player replay without live debug overlays, then show frame statistics",
+    )
+    parser.add_argument(
+        "--vi-benchmark",
+        action="store_true",
+        help="Quiet four-player replay measuring actual VI presentation only; no CPU/RDP profiling or live debug overlays",
+    )
+    parser.add_argument(
+        "--scores-benchmark",
+        action="store_true",
+        help="With --vi-benchmark, hold the Xbox score overlays open in all four views throughout the replay",
+    )
+    parser.add_argument(
+        "--gpu-diagnostic",
+        action="store_true",
+        help="Serialize RSP/RDP before the HUD to diagnose queue backpressure; not a release FPS measurement",
+    )
+    parser.add_argument(
+        "--guard-band4",
+        action="store_true",
+        help="Test Tiny3D guard-band 4 for four-player viewports; projection and scissor are unchanged",
+    )
+    parser.add_argument(
+        "--paced30",
+        action="store_true",
+        help="Experimental four-view two-retrace FIFO presentation with a two-frame prefill; NTSC/MPAL only, ignored by frozen snapshots",
+    )
+    parser.add_argument(
+        "--paced30-buffers",
+        type=int,
+        choices=[3, 4, 5],
+        help="Display surfaces for --paced30 (default 3); 4/5 are opt-in acquisition/latency experiments with the same two-frame prefill",
+    )
+    parser.add_argument(
+        "--rspq-buffer-kib",
+        type=int,
+        choices=[0, 2, 4, 8, 16, 32],
+        default=None,
+        help="KiB per local low-priority queue buffer (default 16); 2 is the baseline, 0 uses the installed SDK without its source checkout",
+    )
+    parser.add_argument(
+        "--libdragon-source",
+        type=Path,
+        help="Matching libdragon source checkout for the local queue override; defaults to SDK sibling libdragon-src",
+    )
+    parser.add_argument(
+        "--blam-bsp",
+        action="store_true",
+        help="Use original Blam BSP collision; requires an 8 MiB Expansion Pak",
+    )
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument('--combat-qa', type=int, choices=range(8), help='Staged combat and rollover comparisons through production gameplay')
-    mode.add_argument('--movement-qa', type=int, choices=[0,1,2,3], help='Scripted movement, aiming, terrain clearance and landing comparisons')
-    mode.add_argument('--demo', action='store_true', help='Build a separately labeled deterministic replay ROM')
-    mode.add_argument('--showcase', choices=SHOWCASES, help='Build a focused gameplay recording scenario')
-    mode.add_argument('--snapshot-tick', type=int, help='QA only: fast-forward exactly N fixed replay ticks, then redraw the frozen four-player scene without overlays')
-    mode.add_argument('--menu-qa', action='store_true', help='QA only: script raw controller inputs through the real pause menu and verify all four owners, styles, and setup permissions')
-    mode.add_argument('--frontend-qa', type=int, choices=[3,4], help='Script the original front-end flow and a staged 15-kill match, using three or four controllers')
-    mode.add_argument('--aim-qa', type=int, choices=range(4), help='Frozen production vehicle cameras and long-range scope views')
-    mode.add_argument('--model-qa', action='store_true', help='Render fixed multi-angle model and occlusion fixtures; not a timing run')
-    mode.add_argument('--plasma-qa', type=int, choices=range(4), help='Freeze plasma pistol/rifle idle, firing, overheat and melee views')
-    mode.add_argument('--weapon-qa', action='store_true', help='Render remaining Xbox weapons in four poses and four world views')
-    mode.add_argument('--environment-qa', action='store_true', help='Moving base-panel and canyon seam inspection cameras')
-    mode.add_argument('--ground-qa', action='store_true', help='Render matching ground-color and texture-resolution camera fixtures')
-    mode.add_argument('--hud-qa', action='store_true', help='Render HUD ammunition, damage, scope and viewport-size fixtures')
-    parser.add_argument('--hud-qa-page', type=int, choices=range(7), help='Hold one HUD QA page instead of cycling; requires --hud-qa')
-    mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
-    mode.add_argument('--reload-qa', action='store_true', help='Live magazine reloads, both plasma vent sequences and shotgun pump action')
-    mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
-    mode.add_argument('--shield-qa', type=int, choices=range(3), help='Frozen original shield transition fixtures with inspection cameras')
-    mode.add_argument('--interaction-qa', type=int, choices=range(5), help='Production pickup/seat/flip input with frozen inspection cameras')
-    parser.add_argument('--interaction-tick', type=int, default=25, help='Use/seat simulation tick for --interaction-qa')
-    mode.add_argument('--destruction-qa', action='store_true', help='Script four-angle vehicle destruction, wreck settling, blinking and respawn')
-    args = parser.parse_args()
-    if args.interaction_qa is not None and not 0<=args.interaction_tick<=240:
-        parser.error('--interaction-tick must be between 0 and 240')
+    mode.add_argument(
+        "--combat-qa",
+        type=int,
+        choices=range(8),
+        help="Staged combat and rollover comparisons through production gameplay",
+    )
+    mode.add_argument(
+        "--movement-qa",
+        type=int,
+        choices=[0, 1, 2, 3],
+        help="Scripted movement, aiming, terrain clearance and landing comparisons",
+    )
+    mode.add_argument(
+        "--demo", action="store_true", help="Build a separately labeled deterministic replay ROM"
+    )
+    mode.add_argument(
+        "--showcase", choices=SHOWCASES, help="Build a focused gameplay recording scenario"
+    )
+    mode.add_argument(
+        "--snapshot-tick",
+        type=int,
+        help="QA only: fast-forward exactly N fixed replay ticks, then redraw the frozen four-player scene without overlays",
+    )
+    mode.add_argument(
+        "--menu-qa",
+        action="store_true",
+        help="QA only: script raw controller inputs through the real pause menu and verify all four owners, styles, and setup permissions",
+    )
+    mode.add_argument(
+        "--frontend-qa",
+        type=int,
+        choices=[3, 4],
+        help="Script the original front-end flow and a staged 15-kill match, using three or four controllers",
+    )
+    mode.add_argument(
+        "--aim-qa",
+        type=int,
+        choices=range(4),
+        help="Frozen production vehicle cameras and long-range scope views",
+    )
+    mode.add_argument(
+        "--model-qa",
+        action="store_true",
+        help="Render fixed multi-angle model and occlusion fixtures; not a timing run",
+    )
+    mode.add_argument(
+        "--plasma-qa",
+        type=int,
+        choices=range(4),
+        help="Freeze plasma pistol/rifle idle, firing, overheat and melee views",
+    )
+    mode.add_argument(
+        "--weapon-qa",
+        action="store_true",
+        help="Render remaining Xbox weapons in four poses and four world views",
+    )
+    mode.add_argument(
+        "--environment-qa",
+        action="store_true",
+        help="Moving base-panel and canyon seam inspection cameras",
+    )
+    mode.add_argument(
+        "--ground-qa",
+        action="store_true",
+        help="Render matching ground-color and texture-resolution camera fixtures",
+    )
+    mode.add_argument(
+        "--hud-qa",
+        action="store_true",
+        help="Render HUD ammunition, damage, scope and viewport-size fixtures",
+    )
+    parser.add_argument(
+        "--hud-qa-page",
+        type=int,
+        choices=range(7),
+        help="Hold one HUD QA page instead of cycling; requires --hud-qa",
+    )
+    mode.add_argument(
+        "--geometry-qa",
+        action="store_true",
+        help="Render sleeves, sniper scope and both bases from fixed views",
+    )
+    mode.add_argument(
+        "--reload-qa",
+        action="store_true",
+        help="Live magazine reloads, both plasma vent sequences and shotgun pump action",
+    )
+    mode.add_argument(
+        "--effects-qa",
+        action="store_true",
+        help="Script live weapon firing, charging and sniper trails in four views",
+    )
+    mode.add_argument(
+        "--shield-qa",
+        type=int,
+        choices=range(3),
+        help="Frozen original shield transition fixtures with inspection cameras",
+    )
+    mode.add_argument(
+        "--interaction-qa",
+        type=int,
+        choices=range(5),
+        help="Production pickup/seat/flip input with frozen inspection cameras",
+    )
+    parser.add_argument(
+        "--interaction-tick",
+        type=int,
+        default=25,
+        help="Use/seat simulation tick for --interaction-qa",
+    )
+    mode.add_argument(
+        "--destruction-qa",
+        action="store_true",
+        help="Script four-angle vehicle destruction, wreck settling, blinking and respawn",
+    )
+    args = parser.parse_args(argv)
+    if args.preset == "release":
+        args.paced30 = True
+        args.paced30_buffers = args.paced30_buffers or 3
+    if args.rspq_buffer_kib is None:
+        args.rspq_buffer_kib = 32 if args.preset == "release" else 16
+    if args.interaction_qa is not None and not 0 <= args.interaction_tick <= 240:
+        parser.error("--interaction-tick must be between 0 and 240")
     if args.hud_qa_page is not None and not args.hud_qa:
-        parser.error('--hud-qa-page requires --hud-qa')
-    if (args.aim_qa is not None or args.shield_qa is not None or args.interaction_qa is not None or args.plasma_qa is not None or args.model_qa or args.weapon_qa or args.geometry_qa or args.environment_qa or args.ground_qa or args.hud_qa) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
-        parser.error('Inspection QA uses unpaced staged scenes, not performance measurement')
+        parser.error("--hud-qa-page requires --hud-qa")
+    if (
+        args.aim_qa is not None
+        or args.shield_qa is not None
+        or args.interaction_qa is not None
+        or args.plasma_qa is not None
+        or args.model_qa
+        or args.weapon_qa
+        or args.geometry_qa
+        or args.environment_qa
+        or args.ground_qa
+        or args.hud_qa
+    ) and (args.paced30 or args.benchmark or args.vi_benchmark or args.profile):
+        parser.error("Inspection QA uses unpaced staged scenes, not performance measurement")
     if args.paced30_buffers is not None and not args.paced30:
-        parser.error('--paced30-buffers requires --paced30')
+        parser.error("--paced30-buffers requires --paced30")
     if args.scores_benchmark and not args.vi_benchmark:
-        parser.error('--scores-benchmark requires --vi-benchmark')
+        parser.error("--scores-benchmark requires --vi-benchmark")
     args.paced30_buffers = args.paced30_buffers or 3
     if args.snapshot_tick is not None:
         args.paced30 = False
         args.paced30_buffers = 3
-        if not 0 <= args.snapshot_tick <= 0xffffffff:
-            parser.error('--snapshot-tick must be an unsigned 32-bit tick count')
-        if args.benchmark or args.vi_benchmark or args.profile or args.validate or args.gpu_diagnostic:
-            parser.error('--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds')
+        if not 0 <= args.snapshot_tick <= 0xFFFFFFFF:
+            parser.error("--snapshot-tick must be an unsigned 32-bit tick count")
+        if (
+            args.benchmark
+            or args.vi_benchmark
+            or args.profile
+            or args.validate
+            or args.gpu_diagnostic
+        ):
+            parser.error(
+                "--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds"
+            )
     if args.gpu_diagnostic and not args.benchmark:
-        parser.error('--gpu-diagnostic requires --benchmark')
-    if (args.combat_qa is not None or args.menu_qa or args.frontend_qa or args.effects_qa or args.reload_qa or args.destruction_qa) and (args.benchmark or args.vi_benchmark or args.profile):
-        parser.error('Scripted menu/effects QA cannot combine with timing or profiling modes')
+        parser.error("--gpu-diagnostic requires --benchmark")
+    if (
+        args.combat_qa is not None
+        or args.menu_qa
+        or args.frontend_qa
+        or args.effects_qa
+        or args.reload_qa
+        or args.destruction_qa
+    ) and (args.benchmark or args.vi_benchmark or args.profile):
+        parser.error("Scripted menu/effects QA cannot combine with timing or profiling modes")
     if args.vi_benchmark:
-        if args.benchmark or args.profile or args.validate or args.gpu_diagnostic or args.showcase:
-            parser.error('--vi-benchmark is a quiet four-player replay and cannot combine with benchmark/profile/validation/diagnostic/showcase modes')
+        if (
+            args.benchmark
+            or args.profile
+            or args.telemetry
+            or args.validate
+            or args.gpu_diagnostic
+            or args.showcase
+        ):
+            parser.error(
+                "--vi-benchmark is a quiet four-player replay and cannot combine with benchmark/profile/validation/diagnostic/showcase modes"
+            )
         args.demo = True
     if args.benchmark:
         if args.showcase or args.validate:
-            parser.error('--benchmark is a four-player replay measurement and cannot combine with --showcase or --validate')
+            parser.error(
+                "--benchmark is a four-player replay measurement and cannot combine with --showcase or --validate"
+            )
         args.demo = True
+    return args
+
+
+def compile_options(args, sdk, tiny, out, source):
+    sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
+    return [
+        "-march=vr4300",
+        "-mtune=vr4300",
+        "-mabi=o64",
+        "-O2",
+        "-g",
+        "-std=gnu17",
+        "-falign-functions=32",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-ffast-math",
+        "-ftrapping-math",
+        "-fno-associative-math",
+        "-DN64",
+        *(["-fno-finite-math-only"] if source.name in ("scene.c", "weapon_effects_draw.c") else []),
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        *(["-ftrivial-auto-var-init=pattern"] if args.validate else []),
+        "-I" + str(sdk / "mips64-elf/include"),
+        "-I" + str(tiny / "src"),
+        "-I" + str(ROOT / "port/n64"),
+        "-I" + str(out / "blam-core"),
+        "-I" + str(out / "blam-vehicle"),
+        *(
+            [
+                "-I" + str(sdk_source / "src"),
+                "-I" + str(sdk_source / "src/rspq"),
+                "-ftrivial-auto-var-init=pattern",
+                "-Wno-unused-parameter",
+                "-Wno-override-init",
+                "-Wno-sign-compare",
+            ]
+            if source.name == "rspq_override.c"
+            else []
+        ),
+        *(["-DRDPQ_VALIDATE"] if args.validate else []),
+        *(["-DBG_COMBAT_QA=" + str(args.combat_qa)] if args.combat_qa is not None else []),
+        *(["-DBG_MOVEMENT_QA=" + str(args.movement_qa)] if args.movement_qa is not None else []),
+        *(["-DBG_DEMO"] if args.demo else []),
+        *(["-DBG_SHOWCASE=" + str(SHOWCASES.index(args.showcase))] if args.showcase else []),
+        *(["-DBG_MENU_QA"] if args.menu_qa else []),
+        *(
+            ["-DBG_FRONTEND_QA", "-DBG_FRONTEND_QA_PLAYERS=" + str(args.frontend_qa)]
+            if args.frontend_qa
+            else []
+        ),
+        *(
+            ["-DBG_SNAPSHOT_TICK=" + str(args.snapshot_tick) + "u"]
+            if args.snapshot_tick is not None
+            else []
+        ),
+        *(
+            ["-DBG_MODEL_QA", "-DBG_SNAPSHOT_TICK=0u"]
+            if args.aim_qa is not None
+            or args.plasma_qa is not None
+            or args.model_qa
+            or args.weapon_qa
+            or args.geometry_qa
+            or args.environment_qa
+            or args.ground_qa
+            or args.hud_qa
+            else []
+        ),
+        *(["-DBG_AIM_QA=" + str(args.aim_qa)] if args.aim_qa is not None else []),
+        *(["-DBG_HUD_QA"] if args.hud_qa else []),
+        *(["-DBG_HUD_QA_PAGE=" + str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
+        *(["-DBG_PLASMA_QA=" + str(args.plasma_qa)] if args.plasma_qa is not None else []),
+        *(["-DBG_WEAPON_QA"] if args.weapon_qa else []),
+        *(["-DBG_ENVIRONMENT_QA"] if args.environment_qa else []),
+        *(["-DBG_GROUND_QA"] if args.ground_qa else []),
+        *(["-DBG_GEOMETRY_QA"] if args.geometry_qa else []),
+        *(
+            ["-DBG_SHIELD_QA=" + str(args.shield_qa), "-DBG_SNAPSHOT_TICK=0u"]
+            if args.shield_qa is not None
+            else []
+        ),
+        *(
+            [
+                "-DBG_INTERACTION_QA=" + str(args.interaction_qa),
+                "-DBG_INTERACTION_TICK=" + str(args.interaction_tick),
+                "-DBG_SNAPSHOT_TICK=0u",
+            ]
+            if args.interaction_qa is not None
+            else []
+        ),
+        *(["-DBG_RELOAD_QA"] if args.reload_qa else []),
+        *(["-DBG_EFFECTS_QA"] if args.effects_qa else []),
+        *(["-DBG_DESTRUCTION_QA"] if args.destruction_qa else []),
+        *(["-DBG_TELEMETRY"] if args.telemetry else []),
+        *(["-DBG_PROFILE"] if args.profile or args.benchmark else []),
+        *(["-DBG_RSPQ_OVERRIDE"] if args.rspq_buffer_kib else []),
+        *(["-DBG_BENCHMARK"] if args.benchmark else []),
+        *(["-DBG_VI_BENCHMARK"] if args.vi_benchmark else []),
+        *(["-DBG_SCORES_BENCHMARK"] if args.scores_benchmark else []),
+        *(["-DBG_GPU_DIAGNOSTIC"] if args.gpu_diagnostic else []),
+        *(["-DBG_GUARDBAND4"] if args.guard_band4 else []),
+        *(["-DBG_PACED30"] if args.paced30 else []),
+        *([f"-DBG_PACED30_BUFFERS={args.paced30_buffers}"] if args.paced30_buffers > 3 else []),
+        *(["-DBG_BLAM_BSP"] if args.blam_bsp else []),
+        *(["-fno-fast-math", "-ffp-contract=off"] if source.name == "runtime.c" else []),
+        *(
+            [
+                "-fno-fast-math",
+                "-ffp-contract=off",
+                "-fno-strict-aliasing",
+                "-fwrapv",
+                "-Wno-unused-parameter",
+                "-Wno-unused-function",
+                "-Wno-unused-variable",
+                "-Wno-incompatible-pointer-types",
+                "-Wno-sign-compare",
+            ]
+            if source.name == "vehicle_physics.c"
+            else []
+        ),
+        *(
+            ["-fno-fast-math", "-ffp-contract=off", "-fno-strict-aliasing"]
+            if source.name == "collision.c"
+            else []
+        ),
+        *(
+            ["-Wno-multichar", "-Wno-unused-function", "-fno-strict-aliasing", "-fwrapv"]
+            if source.name == "core.c"
+            else []
+        ),
+    ]
+
+
+def rom_name(args):
+    name = (
+        "halo-blood-gulch-showcase-" + args.showcase
+        if args.showcase
+        else "halo-blood-gulch-replay" if args.demo else "halo-blood-gulch"
+    )
+    if args.snapshot_tick is not None:
+        name += "-snapshot-" + str(args.snapshot_tick)
+    if args.shield_qa is not None:
+        name += f"-shield{args.shield_qa}"
+    if args.interaction_qa is not None:
+        name += f"-interaction{args.interaction_qa}-tick{args.interaction_tick}"
+    if args.combat_qa is not None:
+        name += "-combat" + str(args.combat_qa)
+    if args.movement_qa is not None:
+        name += "-movement" + str(args.movement_qa)
+    if args.aim_qa is not None:
+        name += "-aim" + str(args.aim_qa)
+    if args.model_qa:
+        name += "-model-qa"
+    if args.plasma_qa is not None:
+        name += "-plasma" + str(args.plasma_qa)
+    if args.weapon_qa:
+        name += "-weapon-qa"
+    if args.environment_qa:
+        name += "-environment-qa"
+    if args.ground_qa:
+        name += "-ground-qa"
+    if args.hud_qa:
+        name += "-hud-qa"
+        if args.hud_qa_page is not None:
+            name += "-page" + str(args.hud_qa_page)
+    if args.geometry_qa:
+        name += "-geometry-qa"
+    if args.reload_qa:
+        name += "-reload-qa"
+    if args.effects_qa:
+        name += "-effects-qa"
+    if args.destruction_qa:
+        name += "-destruction-qa"
+    if args.menu_qa:
+        name += "-menu-qa"
+    if args.frontend_qa:
+        name += "-frontend-qa" + str(args.frontend_qa)
+    if args.blam_bsp:
+        name += "-blam-bsp"
+    if args.vi_benchmark:
+        name += "-vi-benchmark"
+        if args.scores_benchmark:
+            name += "-scores"
+    elif args.benchmark:
+        name += "-benchmark"
+        if args.gpu_diagnostic:
+            name += "-gpu-diagnostic"
+    elif args.validate:
+        name += "-validation"
+    elif args.profile:
+        name += "-profile"
+    if args.telemetry:
+        name += "-telemetry"
+    if args.guard_band4:
+        name += "-guard4"
+    if args.paced30:
+        name += "-paced30"
+        if args.paced30_buffers > 3:
+            name += f"-buffers{args.paced30_buffers}"
+    if args.rspq_buffer_kib != 16:
+        name += f"-rspq{args.rspq_buffer_kib}k" if args.rspq_buffer_kib else "-rspq-stock"
+    return name
+
+
+def build_error(message):
+    raise SystemExit("build.py: error: " + message)
+
+
+def main():
+    args = parse_args()
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     connect_assets(required=False)
-    out = ROOT/'build/n64'
+    out = ROOT / "build/n64"
     out.mkdir(parents=True, exist_ok=True)
-    terrain_report=out/'generated/terrain-report.json'
-    if not terrain_report.exists():parser.error('Extract collision terrain first: port/n64/extract_terrain.py')
-    terrain=json.loads(terrain_report.read_text())
-    for name,expected in {**terrain['inputs'],'build/n64/generated/terrain_data.c':terrain['sha256']}.items():
-        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:parser.error('Stale terrain bank; run port/n64/extract_terrain.py: '+name)
-    movement_report = out/'generated/movement-report.json'
+    terrain_report = out / "generated/terrain-report.json"
+    if not terrain_report.exists():
+        build_error("Extract collision terrain first: port/n64/extract_terrain.py")
+    terrain = json.loads(terrain_report.read_text())
+    for name, expected in {
+        **terrain["inputs"],
+        "build/n64/generated/terrain_data.c": terrain["sha256"],
+    }.items():
+        if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error("Stale terrain bank; run port/n64/extract_terrain.py: " + name)
+    movement_report = out / "generated/movement-report.json"
     if not movement_report.exists():
-        parser.error('Extract player controls first: port/n64/extract_movement.py')
+        build_error("Extract player controls first: port/n64/extract_movement.py")
     movement = json.loads(movement_report.read_text())
-    for name, expected in {**movement['inputs'], 'build/n64/generated/movement_data.c': movement['generated_sha256']}.items():
-        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest() != expected:
-            parser.error('Stale player control bank; run port/n64/extract_movement.py: '+name)
-    sky_report = out/'generated/sky-report.json'
+    for name, expected in {
+        **movement["inputs"],
+        "build/n64/generated/movement_data.c": movement["generated_sha256"],
+    }.items():
+        if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error("Stale player control bank; run port/n64/extract_movement.py: " + name)
+    sky_report = out / "generated/sky-report.json"
     if not sky_report.exists():
-        parser.error('Extract the original sky color ramp first: port/n64/extract_sky.py')
+        build_error("Extract the original sky color ramp first: port/n64/extract_sky.py")
     sky = json.loads(sky_report.read_text())
-    for name, expected in {**sky['inputs'], 'build/n64/generated/sky_data.c': sky['generated_sha256']}.items():
-        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest() != expected:
-            parser.error('Stale sky color ramp; run port/n64/extract_sky.py: '+name)
-    if not all((out/'generated'/name).exists() for name in ('render_data.c','micro_data.c')):
-        parser.error('Generate local assets, including the micro bank, first; see port/n64/README.md and port/n64/MICRO_LODS.md')
-    terrain=json.loads((out/'generated/asset-report.json').read_text())
-    if not terrain.get('ground_inputs'):
-        parser.error('Pack the ground color bank first: extract_ground.py, then pack_assets.py')
-    for name,expected in {**terrain['ground_inputs'],'build/n64/generated/render_data.c':terrain['render_sha256']}.items():
-        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
-            parser.error('Stale ground/terrain bank; rerun extract_ground.py and pack_assets.py: '+name)
-    camera_report=out/'generated/camera-report.json'
+    for name, expected in {
+        **sky["inputs"],
+        "build/n64/generated/sky_data.c": sky["generated_sha256"],
+    }.items():
+        if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error("Stale sky color ramp; run port/n64/extract_sky.py: " + name)
+    if not all((out / "generated" / name).exists() for name in ("render_data.c", "micro_data.c")):
+        build_error(
+            "Generate local assets, including the micro bank, first; see port/n64/README.md and port/n64/MICRO_LODS.md"
+        )
+    terrain = json.loads((out / "generated/asset-report.json").read_text())
+    if not terrain.get("ground_inputs"):
+        build_error("Pack the ground color bank first: extract_ground.py, then pack_assets.py")
+    for name, expected in {
+        **terrain["ground_inputs"],
+        "build/n64/generated/render_data.c": terrain["render_sha256"],
+    }.items():
+        if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error(
+                "Stale ground/terrain bank; rerun extract_ground.py and pack_assets.py: " + name
+            )
+    camera_report = out / "generated/camera-report.json"
     if not camera_report.exists():
-        parser.error('Extract original camera tracks first: port/n64/extract_camera.py')
-    camera=json.loads(camera_report.read_text())
-    for name,expected in {**camera['inputs'],'build/n64/generated/camera_data.c':camera['generated_sha256']}.items():
-        if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
-            parser.error('Stale camera bank; run port/n64/extract_camera.py: '+name)
-    micro_report = out/'generated/micro-report.json'
+        build_error("Extract original camera tracks first: port/n64/extract_camera.py")
+    camera = json.loads(camera_report.read_text())
+    for name, expected in {
+        **camera["inputs"],
+        "build/n64/generated/camera_data.c": camera["generated_sha256"],
+    }.items():
+        if hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error("Stale camera bank; run port/n64/extract_camera.py: " + name)
+    micro_report = out / "generated/micro-report.json"
     if not micro_report.exists():
-        parser.error('Missing micro asset provenance; run port/n64/pack_micro_lods.py')
+        build_error("Missing micro asset provenance; run port/n64/pack_micro_lods.py")
     report = json.loads(micro_report.read_text())
-    for name, key in [('models_data.c', 'baseline_c_sha256'),
-                      ('model-preview.json', 'baseline_preview_sha256'),
-                      ('micro_data.c', 'generated_c_sha256')]:
-        if hashlib.sha256((out/'generated'/name).read_bytes()).hexdigest() != report.get(key):
-            parser.error('Stale micro bank after model changes; regenerate and pack micro LODs (port/n64/MICRO_LODS.md)')
-    ammo_report = out/'generated/firstperson-ammo-report.json'
+    for name, key in [
+        ("models_data.c", "baseline_c_sha256"),
+        ("model-preview.json", "baseline_preview_sha256"),
+        ("micro_data.c", "generated_c_sha256"),
+    ]:
+        if hashlib.sha256((out / "generated" / name).read_bytes()).hexdigest() != report.get(key):
+            build_error(
+                "Stale micro bank after model changes; regenerate and pack micro LODs (port/n64/MICRO_LODS.md)"
+            )
+    ammo_report = out / "generated/firstperson-ammo-report.json"
     if not ammo_report.exists():
-        parser.error('Generate the on-weapon ammo displays first: extract_fp_ammo.py, then pack_fp_ammo.py')
+        build_error(
+            "Generate the on-weapon ammo displays first: extract_fp_ammo.py, then pack_fp_ammo.py"
+        )
     ammo = json.loads(ammo_report.read_text())
-    fp_sha = next((value for name, value in ammo.get('inputs', {}).items()
-                   if Path(name).name == 'firstperson_data.c'), None)
-    for name, expected in [('firstperson_data.c', fp_sha),
-                           ('firstperson_ammo_data.c', ammo.get('generated_sha256'))]:
-        path = out/'generated'/name
+    fp_sha = next(
+        (
+            value
+            for name, value in ammo.get("inputs", {}).items()
+            if Path(name).name == "firstperson_data.c"
+        ),
+        None,
+    )
+    for name, expected in [
+        ("firstperson_data.c", fp_sha),
+        ("firstperson_ammo_data.c", ammo.get("generated_sha256")),
+    ]:
+        path = out / "generated" / name
         if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
-            parser.error('Stale on-weapon ammo bank; run port/n64/pack_fp_ammo.py after packing first-person models')
-    menu_report = out/'generated/menu-report.json'
+            build_error(
+                "Stale on-weapon ammo bank; run port/n64/pack_fp_ammo.py after packing first-person models"
+            )
+    menu_report = out / "generated/menu-report.json"
     if not menu_report.exists():
-        parser.error('Generate the original menu fonts and panel first: port/n64/extract_menu_assets.py')
+        build_error(
+            "Generate the original menu fonts and panel first: port/n64/extract_menu_assets.py"
+        )
     menu = json.loads(menu_report.read_text())
-    menu_inputs = {**menu.get('inputs', {}),
-                   'build/n64/generated/menu_data.c': menu.get('generated_sha256')}
+    menu_inputs = {
+        **menu.get("inputs", {}),
+        "build/n64/generated/menu_data.c": menu.get("generated_sha256"),
+    }
     for name, expected in menu_inputs.items():
-        path = ROOT/name
+        path = ROOT / name
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
-            parser.error('Stale menu bank; regenerate with port/n64/extract_menu_assets.py')
-    front_report = out/'generated/frontend-report.json'
+            build_error("Stale menu bank; regenerate with port/n64/extract_menu_assets.py")
+    front_report = out / "generated/frontend-report.json"
     if not front_report.exists():
-        parser.error('Extract the original front end first: port/n64/extract_frontend.py')
-    front_files = json.loads(front_report.read_text()).get('files', {})
+        build_error("Extract the original front end first: port/n64/extract_frontend.py")
+    front_files = json.loads(front_report.read_text()).get("files", {})
     if not front_files:
-        parser.error('Missing front-end provenance; run port/n64/extract_frontend.py')
+        build_error("Missing front-end provenance; run port/n64/extract_frontend.py")
     for name, expected in front_files.items():
-        path = ROOT/name
+        path = ROOT / name
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
-            parser.error('Stale front-end bank; regenerate with port/n64/extract_frontend.py: '+name)
-    if not (sdk/'bin/mips64-elf-gcc').exists() or not (tiny/'build/libt3d.a').exists():
-        parser.error('Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D')
+            build_error(
+                "Stale front-end bank; regenerate with port/n64/extract_frontend.py: " + name
+            )
+    if not (sdk / "bin/mips64-elf-gcc").exists() or not (tiny / "build/libt3d.a").exists():
+        build_error("Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D")
 
     def run(command):
-        subprocess.run([str(x) for x in command], check=True, cwd=ROOT,
-                       env={**os.environ, 'N64_INST': str(sdk)})
+        subprocess.run(
+            [str(x) for x in command],
+            check=True,
+            cwd=ROOT,
+            env={**os.environ, "N64_INST": str(sdk)},
+        )
 
-    shield_report = out/'generated/shield-report.json'
+    shield_report = out / "generated/shield-report.json"
     if not shield_report.exists():
-        parser.error('Extract Xbox shields first: port/n64/extract_shields.py')
-    shields=json.loads(shield_report.read_text())
-    for name, expected in {**shields['inputs'], 'build/n64/generated/shield_data.c':shields['generated_sha256']}.items():
-        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
-            parser.error('Stale shield bank; rerun port/n64/extract_shields.py: '+name)
+        build_error("Extract Xbox shields first: port/n64/extract_shields.py")
+    shields = json.loads(shield_report.read_text())
+    for name, expected in {
+        **shields["inputs"],
+        "build/n64/generated/shield_data.c": shields["generated_sha256"],
+    }.items():
+        if (
+            not (ROOT / name).is_file()
+            or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected
+        ):
+            build_error("Stale shield bank; rerun port/n64/extract_shields.py: " + name)
 
-    fx_report = out/'generated/weapon-effects-report.json'
+    fx_report = out / "generated/weapon-effects-report.json"
     if not fx_report.exists():
-        parser.error('Extract original weapon effects first: port/n64/extract_weapon_effects.py')
+        build_error("Extract original weapon effects first: port/n64/extract_weapon_effects.py")
     fx = json.loads(fx_report.read_text())
-    for name, expected in {**fx['inputs'], 'build/n64/generated/weapon_effects_data.c':fx['generated_sha256']}.items():
-        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
-            parser.error('Stale weapon effects bank; rerun port/n64/extract_weapon_effects.py: '+name)
+    for name, expected in {
+        **fx["inputs"],
+        "build/n64/generated/weapon_effects_data.c": fx["generated_sha256"],
+    }.items():
+        if (
+            not (ROOT / name).is_file()
+            or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected
+        ):
+            build_error(
+                "Stale weapon effects bank; rerun port/n64/extract_weapon_effects.py: " + name
+            )
 
-    vehicle_report = out/'generated/vehicle-visuals-report.json'
+    vehicle_report = out / "generated/vehicle-visuals-report.json"
     if not vehicle_report.exists():
-        parser.error('Extract vehicle destruction visuals first: port/n64/extract_vehicle_visuals.py')
+        build_error(
+            "Extract vehicle destruction visuals first: port/n64/extract_vehicle_visuals.py"
+        )
     vehicle_fx = json.loads(vehicle_report.read_text())
-    for name, expected in {**vehicle_fx['inputs'], 'build/n64/generated/vehicle_visuals_data.c':vehicle_fx['generated_sha256']}.items():
-        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
-            parser.error('Stale vehicle destruction bank; rerun port/n64/extract_vehicle_visuals.py: '+name)
+    for name, expected in {
+        **vehicle_fx["inputs"],
+        "build/n64/generated/vehicle_visuals_data.c": vehicle_fx["generated_sha256"],
+    }.items():
+        if (
+            not (ROOT / name).is_file()
+            or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected
+        ):
+            build_error(
+                "Stale vehicle destruction bank; rerun port/n64/extract_vehicle_visuals.py: " + name
+            )
 
-    interaction = json.loads((out/'generated/interaction-report.json').read_text())
-    for name, expected in {**interaction['inputs'], **interaction['files']}.items():
-        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
-            parser.error('Stale interaction bank; rerun port/n64/pack_interactions.py: '+name)
+    interaction = json.loads((out / "generated/interaction-report.json").read_text())
+    for name, expected in {**interaction["inputs"], **interaction["files"]}.items():
+        if (
+            not (ROOT / name).is_file()
+            or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected
+        ):
+            build_error("Stale interaction bank; rerun port/n64/pack_interactions.py: " + name)
 
-    combat_path=out/'generated/combat-report.json'
-    if not combat_path.exists():parser.error('Extract Xbox damage first: port/n64/extract_combat.py')
-    combat=json.loads(combat_path.read_text())
-    for name,expected in {**combat['inputs'],**combat['files'],'build/n64/generated/combat_data.c':combat['generated_sha256']}.items():
-        if not (ROOT/name).is_file() or hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=expected:
-            parser.error('Stale combat bank; rerun port/n64/extract_combat.py: '+name)
+    combat_path = out / "generated/combat-report.json"
+    if not combat_path.exists():
+        build_error("Extract Xbox damage first: port/n64/extract_combat.py")
+    combat = json.loads(combat_path.read_text())
+    for name, expected in {
+        **combat["inputs"],
+        **combat["files"],
+        "build/n64/generated/combat_data.c": combat["generated_sha256"],
+    }.items():
+        if (
+            not (ROOT / name).is_file()
+            or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected
+        ):
+            build_error("Stale combat bank; rerun port/n64/extract_combat.py: " + name)
+    asset_root = out
+    out = args.output_dir.resolve() if args.output_dir else asset_root
+    out.mkdir(parents=True, exist_ok=True)
     objects = []
-    run([sys.executable, ROOT/'port/n64/blam/prepare_core.py'])
-    run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py'])
-    run([sys.executable, ROOT/'port/n64/blam/export_vehicle.py'])
-    sources = ['combat_geometry.c','terrain.c', 'movement.c', 'interaction_render.c', 'weapon_effects.c', 'weapon_effects_draw.c', 'blam/vehicle_physics.c', 'main.c', 'game.c', 'controls.c', 'menu.c', 'menu_draw.c', 'frontend.c', 'frontend_draw.c', 'hud.c', 'firstperson_ammo.c', 'sound.c', 'sound_mix.c', 'replay.c', 'blam/runtime.c', 'blam/core.c']
+    run([sys.executable, ROOT / "port/n64/blam/prepare_core.py", "--output", out / "blam-core"])
+    run(
+        [
+            sys.executable,
+            ROOT / "port/n64/blam/prepare_vehicle.py",
+            "--output",
+            out / "blam-vehicle",
+        ]
+    )
+    run(
+        [
+            sys.executable,
+            ROOT / "port/n64/blam/export_vehicle.py",
+            "--output",
+            out / "generated",
+            "--rom-files",
+            out / "frontend-files",
+        ]
+    )
+    sources = [
+        "combat_geometry.c",
+        "terrain.c",
+        "movement.c",
+        "interaction_render.c",
+        "weapon_effects.c",
+        "weapon_effects_draw.c",
+        "blam/vehicle_physics.c",
+        "main.c",
+        "scene.c",
+        "presentation.c",
+        "residency.c",
+        "telemetry.c",
+        "runtime_qa.c",
+        "game.c",
+        "controls.c",
+        "menu.c",
+        "menu_draw.c",
+        "frontend.c",
+        "frontend_draw.c",
+        "hud.c",
+        "firstperson_ammo.c",
+        "sound.c",
+        "sound_mix.c",
+        "replay.c",
+        "blam/runtime.c",
+        "blam/core.c",
+    ]
     if args.effects_qa:
-        sources.append('effects_qa.c')
+        sources.append("effects_qa.c")
     if args.destruction_qa:
-        sources.append('destruction_qa.c')
+        sources.append("destruction_qa.c")
     sdk_extra_sources = []
     if args.rspq_buffer_kib:
-        sdk_source = (args.libdragon_source or sdk.parent/'libdragon-src').resolve()
-        run([sys.executable, ROOT/'port/n64/prepare_rspq.py', '--source', sdk_source,
-             '--sdk', sdk, '--output', out/'rspq-override', '--buffer-kib', args.rspq_buffer_kib])
-        sdk_extra_sources.append(out/'rspq-override/rspq_override.c')
+        sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
+        run(
+            [
+                sys.executable,
+                ROOT / "port/n64/prepare_rspq.py",
+                "--source",
+                sdk_source,
+                "--sdk",
+                sdk,
+                "--output",
+                out / "rspq-override",
+                "--buffer-kib",
+                args.rspq_buffer_kib,
+            ]
+        )
+        sdk_extra_sources.append(out / "rspq-override/rspq_override.c")
     if args.showcase:
-        sources.append('showcase.c')
+        sources.append("showcase.c")
     if args.menu_qa:
-        sources.append('menu_qa.c')
+        sources.append("menu_qa.c")
     if args.frontend_qa:
-        sources.append('frontend_qa.c')
-    generated = ['pickup_data.c', 'combat_data.c', 'movement_data.c', 'sky_data.c', 'camera_data.c', 'shield_data.c', 'interaction_defs.c', 'interaction_assets.c', 'vehicle_visuals_data.c', 'weapon_effects_data.c', 'vehicle_data.c', 'render_data.c', 'terrain_data.c', 'models_data.c', 'audio_data.c', 'hud_data.c', 'menu_data.c', 'frontend_data.c', 'firstperson_data.c', 'firstperson_ammo_data.c', 'micro_data.c']
+        sources.append("frontend_qa.c")
+    generated = [
+        "pickup_data.c",
+        "combat_data.c",
+        "movement_data.c",
+        "sky_data.c",
+        "camera_data.c",
+        "shield_data.c",
+        "interaction_defs.c",
+        "interaction_assets.c",
+        "vehicle_visuals_data.c",
+        "weapon_effects_data.c",
+        "vehicle_data.c",
+        "render_data.c",
+        "terrain_data.c",
+        "models_data.c",
+        "audio_data.c",
+        "hud_data.c",
+        "menu_data.c",
+        "frontend_data.c",
+        "firstperson_data.c",
+        "firstperson_ammo_data.c",
+        "micro_data.c",
+    ]
     if args.blam_bsp:
-        if not (out/'generated/blam_collision_data.c').exists():
-            parser.error('Export the original BSP first: port/n64/blam/tags/export_collision.py')
-        run([sys.executable, ROOT/'port/n64/blam/prepare_collision.py'])
-        sources.append('blam/collision.c')
-        generated.append('blam_collision_data.c')
-    for source in [*(ROOT/'port/n64'/name for name in sources), *(out/'generated'/name for name in generated), *sdk_extra_sources]:
-        obj = out/(source.stem+'.o')
+        if not (asset_root / "generated/blam_collision_data.c").exists():
+            build_error("Export the original BSP first: port/n64/blam/tags/export_collision.py")
+        run(
+            [
+                sys.executable,
+                ROOT / "port/n64/blam/prepare_collision.py",
+                "--output",
+                out / "blam-core",
+            ]
+        )
+        sources.append("blam/collision.c")
+        generated.append("blam_collision_data.c")
+    for source in [
+        *(ROOT / "port/n64" / name for name in sources),
+        *(
+            (out if name == "vehicle_data.c" else asset_root) / "generated" / name
+            for name in generated
+        ),
+        *sdk_extra_sources,
+    ]:
+        obj = out / "objects" / (source.stem + ".o")
+        obj.parent.mkdir(parents=True, exist_ok=True)
         objects.append(obj)
-        run([sdk/'bin/mips64-elf-gcc', '-c', source, '-o', obj,
-             '-march=vr4300', '-mtune=vr4300', '-mabi=o64', '-O2', '-g', '-std=gnu17',
-             '-falign-functions=32', '-ffunction-sections', '-fdata-sections',
-             '-ffast-math', '-ftrapping-math', '-fno-associative-math', '-DN64',
-             '-Wall', '-Wextra', '-Werror',
-             *(['-ftrivial-auto-var-init=pattern'] if args.validate else []),
-             '-I'+str(sdk/'mips64-elf/include'), '-I'+str(tiny/'src'), '-I'+str(ROOT/'port/n64'),
-             '-I'+str(out/'blam-core'), '-I'+str(out/'blam-vehicle'),
-             *(['-I'+str(sdk_source/'src'), '-I'+str(sdk_source/'src/rspq'),
-                '-ftrivial-auto-var-init=pattern', '-Wno-unused-parameter',
-                '-Wno-override-init', '-Wno-sign-compare'] if source.name == 'rspq_override.c' else []),
-             *(['-DRDPQ_VALIDATE'] if args.validate else []),
-             *(['-DBG_COMBAT_QA='+str(args.combat_qa)] if args.combat_qa is not None else []),
-             *(['-DBG_MOVEMENT_QA='+str(args.movement_qa)] if args.movement_qa is not None else []),
-             *(['-DBG_DEMO'] if args.demo else []),
-             *(['-DBG_SHOWCASE='+str(SHOWCASES.index(args.showcase))] if args.showcase else []),
-             *(['-DBG_MENU_QA'] if args.menu_qa else []),
-             *(['-DBG_FRONTEND_QA', '-DBG_FRONTEND_QA_PLAYERS='+str(args.frontend_qa)] if args.frontend_qa else []),
-             *(['-DBG_SNAPSHOT_TICK='+str(args.snapshot_tick)+'u'] if args.snapshot_tick is not None else []),
-             *(['-DBG_MODEL_QA', '-DBG_SNAPSHOT_TICK=0u'] if args.aim_qa is not None or args.plasma_qa is not None or args.model_qa or args.weapon_qa or args.geometry_qa or args.environment_qa or args.ground_qa or args.hud_qa else []),
-             *(['-DBG_AIM_QA='+str(args.aim_qa)] if args.aim_qa is not None else []),
-             *(['-DBG_HUD_QA'] if args.hud_qa else []),
-             *(['-DBG_HUD_QA_PAGE='+str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
-             *(['-DBG_PLASMA_QA='+str(args.plasma_qa)] if args.plasma_qa is not None else []),
-             *(['-DBG_WEAPON_QA'] if args.weapon_qa else []),
-             *(['-DBG_ENVIRONMENT_QA'] if args.environment_qa else []),
-             *(['-DBG_GROUND_QA'] if args.ground_qa else []),
-             *(['-DBG_GEOMETRY_QA'] if args.geometry_qa else []),
-             *(['-DBG_SHIELD_QA='+str(args.shield_qa), '-DBG_SNAPSHOT_TICK=0u'] if args.shield_qa is not None else []),
-             *(['-DBG_INTERACTION_QA='+str(args.interaction_qa), '-DBG_INTERACTION_TICK='+str(args.interaction_tick), '-DBG_SNAPSHOT_TICK=0u'] if args.interaction_qa is not None else []),
-             *(['-DBG_RELOAD_QA'] if args.reload_qa else []),
-             *(['-DBG_EFFECTS_QA'] if args.effects_qa else []),
-             *(['-DBG_DESTRUCTION_QA'] if args.destruction_qa else []),
-             *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
-             *(['-DBG_RSPQ_OVERRIDE'] if args.rspq_buffer_kib else []),
-             *(['-DBG_BENCHMARK'] if args.benchmark else []),
-             *(['-DBG_VI_BENCHMARK'] if args.vi_benchmark else []),
-             *(['-DBG_SCORES_BENCHMARK'] if args.scores_benchmark else []),
-             *(['-DBG_GPU_DIAGNOSTIC'] if args.gpu_diagnostic else []),
-             *(['-DBG_GUARDBAND4'] if args.guard_band4 else []),
-             *(['-DBG_PACED30'] if args.paced30 else []),
-             *([f'-DBG_PACED30_BUFFERS={args.paced30_buffers}'] if args.paced30_buffers > 3 else []),
-             *(['-DBG_BLAM_BSP'] if args.blam_bsp else []),
-             *(['-fno-fast-math', '-ffp-contract=off'] if source.name == 'runtime.c' else []),
-             *(['-fno-fast-math', '-ffp-contract=off', '-fno-strict-aliasing', '-fwrapv', '-Wno-unused-parameter', '-Wno-unused-function', '-Wno-unused-variable', '-Wno-incompatible-pointer-types', '-Wno-sign-compare'] if source.name == 'vehicle_physics.c' else []),
-             *(['-fno-fast-math', '-ffp-contract=off', '-fno-strict-aliasing'] if source.name == 'collision.c' else []),
-             *(['-Wno-multichar', '-Wno-unused-function', '-fno-strict-aliasing', '-fwrapv'] if source.name == 'core.c' else [])])
-    name = 'halo-blood-gulch-showcase-'+args.showcase if args.showcase else 'halo-blood-gulch-replay' if args.demo else 'halo-blood-gulch'
-    if args.snapshot_tick is not None:
-        name += '-snapshot-'+str(args.snapshot_tick)
-    if args.shield_qa is not None:
-        name += f'-shield{args.shield_qa}'
-    if args.interaction_qa is not None:
-        name += f'-interaction{args.interaction_qa}-tick{args.interaction_tick}'
-    if args.combat_qa is not None:
-        name += '-combat'+str(args.combat_qa)
-    if args.movement_qa is not None:
-        name += '-movement'+str(args.movement_qa)
-    if args.aim_qa is not None:
-        name += '-aim'+str(args.aim_qa)
-    if args.model_qa:
-        name += '-model-qa'
-    if args.plasma_qa is not None:
-        name += '-plasma'+str(args.plasma_qa)
-    if args.weapon_qa:
-        name += '-weapon-qa'
-    if args.environment_qa:
-        name += '-environment-qa'
-    if args.ground_qa:
-        name += '-ground-qa'
-    if args.hud_qa:
-        name += '-hud-qa'
-        if args.hud_qa_page is not None:
-            name += '-page'+str(args.hud_qa_page)
-    if args.geometry_qa:
-        name += '-geometry-qa'
-    if args.reload_qa:
-        name += '-reload-qa'
-    if args.effects_qa:
-        name += '-effects-qa'
-    if args.destruction_qa:
-        name += '-destruction-qa'
-    if args.menu_qa:
-        name += '-menu-qa'
-    if args.frontend_qa:
-        name += '-frontend-qa'+str(args.frontend_qa)
-    if args.blam_bsp:
-        name += '-blam-bsp'
-    if args.vi_benchmark:
-        name += '-vi-benchmark'
-        if args.scores_benchmark:
-            name += '-scores'
-    elif args.benchmark:
-        name += '-benchmark'
-        if args.gpu_diagnostic:
-            name += '-gpu-diagnostic'
-    elif args.validate:
-        name += '-validation'
-    elif args.profile:
-        name += '-profile'
-    if args.guard_band4:
-        name += '-guard4'
-    if args.paced30:
-        name += '-paced30'
-        if args.paced30_buffers > 3:
-            name += f'-buffers{args.paced30_buffers}'
-    if args.rspq_buffer_kib != 16:
-        name += f'-rspq{args.rspq_buffer_kib}k' if args.rspq_buffer_kib else '-rspq-stock'
-    elf = out/(name+'.elf')
-    run([sdk/'bin/mips64-elf-g++', '-o', elf, *objects, tiny/'build/libt3d.a', '-lc', '-mabi=o64',
-         '-Wl,-g', '-Wl,-L'+str(sdk/'mips64-elf/lib'), '-Wl,-ldragon', '-Wl,-lm', '-Wl,-ldragonsys',
-         '-Wl,-Tn64.ld', '-Wl,--gc-sections', '-Wl,--wrap,__do_global_ctors', '-Wl,-Map='+str(elf.with_suffix('.map'))])
-    run([sdk/'bin/mips64-elf-size', elf])
-    sym = elf.with_suffix('.sym')
-    run([sdk/'bin/n64sym', elf, sym])
-    stripped = elf.with_suffix('.stripped')
+        run(
+            [
+                sdk / "bin/mips64-elf-gcc",
+                "-c",
+                source,
+                "-o",
+                obj,
+                *compile_options(args, sdk, tiny, out, source),
+            ]
+        )
+    name = rom_name(args)
+    elf = out / (name + ".elf")
+    run(
+        [
+            sdk / "bin/mips64-elf-g++",
+            "-o",
+            elf,
+            *objects,
+            tiny / "build/libt3d.a",
+            "-lc",
+            "-mabi=o64",
+            "-Wl,-g",
+            "-Wl,-L" + str(sdk / "mips64-elf/lib"),
+            "-Wl,-ldragon",
+            "-Wl,-lm",
+            "-Wl,-ldragonsys",
+            "-Wl,-Tn64.ld",
+            "-Wl,--gc-sections",
+            "-Wl,--wrap,__do_global_ctors",
+            "-Wl,-Map=" + str(elf.with_suffix(".map")),
+        ]
+    )
+    run([sdk / "bin/mips64-elf-size", elf])
+    sym = elf.with_suffix(".sym")
+    run([sdk / "bin/n64sym", elf, sym])
+    stripped = elf.with_suffix(".stripped")
     shutil.copy2(elf, stripped)
-    run([sdk/'bin/mips64-elf-strip', '-s', stripped])
-    run([sdk/'bin/n64elfcompress', '-o', out, '-c', '1', stripped])
-    rom = elf.with_suffix('.z64')
-    run([sdk/'bin/mkdfs', out/'frontend.dfs', out/'frontend-files'])
-    run([sdk/'bin/n64tool', '--title', 'HALO BLOOD GULCH', '--toc', '--output', rom,
-         '--align', '256', stripped, '--align', '8', sym, '--align', '16', out/'frontend.dfs'])
-    run([sdk/'bin/ed64romconfig', '--savetype', 'none', '--regionfree',
-         '--controller1', 'n64', '--controller2', 'n64', '--controller3', 'n64', '--controller4', 'n64', rom])
-    print(f'Built {rom} ({rom.stat().st_size:,} bytes)')
+    run([sdk / "bin/mips64-elf-strip", "-s", stripped])
+    run([sdk / "bin/n64elfcompress", "-o", out, "-c", "1", stripped])
+    rom = elf.with_suffix(".z64")
+    if out != asset_root:
+        for source in (asset_root / "frontend-files").iterdir():
+            target = out / "frontend-files" / source.name
+            if not target.exists():
+                target.symlink_to(source.resolve())
+    run([sdk / "bin/mkdfs", out / "frontend.dfs", out / "frontend-files"])
+    run(
+        [
+            sdk / "bin/n64tool",
+            "--title",
+            "HALO BLOOD GULCH",
+            "--toc",
+            "--output",
+            rom,
+            "--align",
+            "256",
+            stripped,
+            "--align",
+            "8",
+            sym,
+            "--align",
+            "16",
+            out / "frontend.dfs",
+        ]
+    )
+    run(
+        [
+            sdk / "bin/ed64romconfig",
+            "--savetype",
+            "none",
+            "--regionfree",
+            "--controller1",
+            "n64",
+            "--controller2",
+            "n64",
+            "--controller3",
+            "n64",
+            "--controller4",
+            "n64",
+            rom,
+        ]
+    )
+
+    def revision(directory):
+        result = subprocess.run(
+            ["git", "-C", str(directory), "rev-parse", "HEAD"], capture_output=True, text=True
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+
+    manifest = {
+        "preset": args.preset,
+        "runtime_commit": revision(ROOT),
+        "asset_commit": revision(ROOT / "halo64-assets"),
+        "toolchain": {
+            "gcc": subprocess.check_output(
+                [str(sdk / "bin/mips64-elf-gcc"), "--version"], text=True
+            ).splitlines()[0],
+            "tiny3d_commit": revision(tiny),
+            "libdragon_commit": revision(args.libdragon_source or sdk.parent / "libdragon-src"),
+        },
+        "headers": {
+            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in (ROOT / "port/n64").rglob("*.h")
+        },
+        "included_data": {
+            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for suffix in ("*.inc", "*.def")
+            for path in (ROOT / "port/n64").rglob(suffix)
+        },
+        "generated_adapters": {
+            str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+            for directory in ("blam-core", "blam-vehicle", "rspq-override")
+            for path in (out / directory).rglob("*")
+            if path.is_file() and path.suffix in (".c", ".h")
+        },
+        "service_ids": hashlib.sha256(
+            (ROOT / "port/n64/interaction_services.def").read_bytes()
+        ).hexdigest(),
+        "options": {
+            name: str(value) if isinstance(value, Path) else value
+            for name, value in vars(args).items()
+        },
+        "rom": {
+            "path": str(rom),
+            "bytes": rom.stat().st_size,
+            "sha256": hashlib.sha256(rom.read_bytes()).hexdigest(),
+        },
+        "sources": {
+            str(source): hashlib.sha256(source.read_bytes()).hexdigest()
+            for source in [
+                *(ROOT / "port/n64" / name for name in sources),
+                *(
+                    (out if name == "vehicle_data.c" else asset_root) / "generated" / name
+                    for name in generated
+                ),
+                *sdk_extra_sources,
+            ]
+        },
+    }
+    rom.with_suffix(".build.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    print(f"Built {rom} ({rom.stat().st_size:,} bytes)")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

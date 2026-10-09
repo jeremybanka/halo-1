@@ -15,6 +15,14 @@ int main(void){
     bg_bounds overflow={{-32768,0,0},{1,1,1}};
     bg_bounds_quantize(&rounded,&overflow);assert(!rounded.valid);
     overflow.min[0]=NAN;bg_bounds_quantize(&rounded,&overflow);assert(!rounded.valid);
+    const uint32_t bad[]={0x7f800000,0xff800000,0x7fc00000,0x7f800001,0xffc12345};
+    for(unsigned i=0;i<sizeof(bad)/sizeof(*bad);i++){
+        float value;memcpy(&value,&bad[i],sizeof(value));
+        assert(!bg_render_finite(value));
+        overflow=(bg_bounds){{0,0,0},{1,1,1}};overflow.max[1]=value;
+        bg_bounds_quantize(&rounded,&overflow);assert(!rounded.valid);
+    }
+    assert(bg_render_finite(0)&&bg_render_finite(-0.f)&&bg_render_finite(FLT_MAX));
     unsigned vertices=0;
     for(unsigned trial=0;trial<10000;trial++){
         bg_bounds local;

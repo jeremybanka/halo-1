@@ -6,7 +6,7 @@ static unsigned movement_qa_phase;
 static void movement_qa_input(bg_input in[4],float time){
     static int previous=-1;int cycle=(int)(time/12.f);float t=time-cycle*12.f;
     if(cycle!=previous){
-        previous=cycle;bg_reset();bg_set_players(2);views=2;reset_view_state();
+        previous=cycle;bg_reset();bg_set_players(2);(*qa.views)=2;bg_scene_reset();
         bg_vehicle_count=bg_pickup_count=0;
         for(unsigned i=0;i<2;i++){
             bg_player*p=&bg_players[i];p->pos[0]=i?(BG_MOVEMENT_QA?-5:-8):-12;

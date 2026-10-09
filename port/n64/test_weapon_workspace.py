@@ -3,13 +3,14 @@
 Host ASan/UBSan checks size changes, reuse, slot independence and full teardown.
 Ares frontend QA separately cycles all eight meshes in four views.
 """
+from runtime_source import read_runtime
 from pathlib import Path
 import subprocess
 import tempfile
 from test_render_matrix import function
 
 ROOT = Path(__file__).resolve().parents[2]
-source = (ROOT/'port/n64/main.c').read_text()
+source = read_runtime(ROOT/'port/n64/main.c')
 code = r'''
 #include <assert.h>
 #include <stdlib.h>
@@ -22,6 +23,8 @@ static T3DVertPacked *firstperson[2][4];
 static unsigned firstperson_bytes[2][4];
 static int firstperson_weapon[2][4];
 static unsigned slot,allocated,fences;
+#define BG_FP_WEAPONS 8
+static struct {unsigned vertex_count;} bg_fp_models[8]={{504},{536},{512},{576},{626},{466},{576},{566}};
 static bool busy[2];
 static void *malloc_uncached(unsigned n){assert(!busy[slot]);allocated++;return malloc(n);}
 static void free_uncached(void*p){assert(!busy[slot]);assert(allocated);allocated--;free(p);}
@@ -39,7 +42,7 @@ int main(void){
    for(unsigned p=0;p<4;p++){
     unsigned bytes=sizes[(frame/2+p)%8]*16;
     firstperson_buffer_resize(p,bytes);
-    assert(firstperson_bytes[slot][p]==bytes&&firstperson_weapon[slot][p]==-1);
+    assert(firstperson_bytes[slot][p]==626*16&&firstperson_weapon[slot][p]==-1);
     firstperson[slot][p][bytes-1]=42;
     void*old=firstperson[slot][p];firstperson_weapon[slot][p]=3;
     firstperson_buffer_resize(p,bytes);assert(firstperson[slot][p]==old&&firstperson_weapon[slot][p]==3);

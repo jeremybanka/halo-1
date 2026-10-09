@@ -6,14 +6,15 @@ and SDK matrix math. Separate output banks prevent the reference from filling a
 missing cached slot. Host libm replaces N64 trig; all fixed16.16 coefficients and
 active part/union bounds are compared exactly. This is not a target speed test.
 """
+from runtime_source import read_runtime, validation_output
 from pathlib import Path
 import sys,re,subprocess,json,hashlib
-ROOT=Path(__file__).resolve().parents[2];OUT=ROOT/'build/n64/performance-audit/vehicle-pose-cache'
+ROOT=Path(__file__).resolve().parents[2];OUT=validation_output('vehicle-pose-cache')
 OUT.mkdir(parents=True,exist_ok=True)
 sys.path.insert(0,str(ROOT/'port/n64'))
 from test_render_matrix import function
 from test_vehicle_culling import declaration
-main=(ROOT/'port/n64/main.c').read_text();assets=(ROOT/'port/n64/asset_models.h').read_text();bank=(ROOT/'build/n64/generated/models_data.c').read_text()
+main=read_runtime(ROOT/'port/n64/main.c');assets=(ROOT/'port/n64/asset_models.h').read_text();bank=(ROOT/'build/n64/generated/models_data.c').read_text()
 sdk=ROOT.parent/'n64-3d-splitscreen/.build/tiny3d/src/t3d'
 header=(sdk/'t3dmath.h').read_text();math=(sdk/'t3dmath.c').read_text()
 pre=r'''
@@ -58,7 +59,7 @@ for name in ('parts_warthog','parts_ghost','parts_scorpion','parts_banshee','bg_
  c+='\n'+declaration(bank,name)
 c+='\nconst bg_bounds bg_vehicle_micro_gate_bounds[4]='+declaration((ROOT/'build/n64/generated/micro_data.c').read_text(),'bg_vehicle_micro_gate_bounds').split('=',1)[1]
 c+='\n'+declaration((ROOT/'build/n64/generated/vehicle_visuals_data.c').read_text(),'bg_covenant_wreck_bounds')
-interaction=(ROOT/'port/n64/asset_interaction.h').read_text()
+interaction=(ROOT/'port/n64/interaction_poses.h').read_text()
 c+='\n'+interaction[interaction.index('typedef struct {'):interaction.index('extern const bg_rom_pose')]
 c+='\n'+re.search(r'const bg_rom_pose bg_hatch_poses[^;]+;', (ROOT/'build/n64/generated/interaction_assets.c').read_text()).group()
 c+=r'''
@@ -152,7 +153,7 @@ int main(void){
 }
 '''
 (OUT/'probe.c').write_text(c)
-cmd=['clang','-std=c17','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-Wno-multichar','-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-incompatible-pointer-types','-Ibuild/n64/blam-vehicle','-fno-strict-aliasing','-fwrapv','-Iport/n64','-Ibuild/n64/blam-core',str(OUT/'probe.c'),'port/n64/game.c','build/n64/generated/interaction_defs.c','port/n64/replay.c','port/n64/blam/runtime.c','port/n64/blam/core.c','port/n64/blam/vehicle_physics.c','build/n64/generated/vehicle_data.c','build/n64/generated/collision_data.c','-lm','-o',str(OUT/'probe')]
+cmd=['clang','-std=c17','-O1','-g','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-fno-omit-frame-pointer','-Wno-multichar','-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-incompatible-pointer-types','-Ibuild/n64/blam-vehicle','-fno-strict-aliasing','-fwrapv','-Iport/n64','-Ibuild/n64/blam-core',str(OUT/'probe.c'),'port/n64/game.c','build/n64/generated/interaction_defs.c','port/n64/replay.c','port/n64/blam/runtime.c','port/n64/blam/core.c','port/n64/blam/vehicle_physics.c','build/n64/generated/vehicle_data.c','build/n64/generated/terrain_data.c','build/n64/generated/pickup_data.c','build/n64/generated/combat_data.c','build/n64/generated/movement_data.c','port/n64/terrain.c','port/n64/movement.c','port/n64/combat_geometry.c','-lm','-o',str(OUT/'probe')]
 subprocess.run(cmd,check=True)
 p=subprocess.run([str(OUT/'probe')],capture_output=True,text=True);print(p.stdout+p.stderr);(OUT/'probe.log').write_text(p.stdout+p.stderr);assert p.returncode==0
 results={}

@@ -33,15 +33,17 @@ cleanup are covered in [SPAWNS_PICKUPS.md](SPAWNS_PICKUPS.md).
 
 Progress toward the next milestone is tracked in [BLOOD_GULCH_PARITY.md](BLOOD_GULCH_PARITY.md).
 The current on-foot control pass is documented in [MOVEMENT.md](MOVEMENT.md).
+The maintained cleanup, validation baseline, module ownership and compiler
+contracts are documented in [RUNTIME.md](RUNTIME.md).
 
 ## Play
 
-Load `build/n64/halo-blood-gulch-paced30-rspq32k.z64` in ares as a Nintendo 64
+Load `build/n64-release/halo-blood-gulch-paced30-rspq32k.z64` in ares as a Nintendo 64
 cartridge. Build the recommended four-player profile with
-`build/n64-python/bin/python port/n64/build.py --paced30 --rspq-buffer-kib 32`.
+`build/n64-python/bin/python port/n64/build.py --preset release --output-dir build/n64-release`.
 This uses three display surfaces for four player views. The ordinary
 `halo-blood-gulch.z64` retains the unpaced presenter.
-The current reload/overheat refinement measures **23.9 displayed FPS overall /
+The merged reload/overheat checkpoint measured **23.9 displayed FPS overall /
 26.1 in combat / 21.9 around vehicles**, with 43 KiB free in the quiet Ares
 fixture. The vehicle section is below the >25 FPS development target. P95 pose
 interval is 66.8 ms and maximum is 200.5 ms; the final 30 FPS/latency pass remains
@@ -49,6 +51,9 @@ open. The expanded frontend lifecycle cycles all eight weapons, completes a
 15-kill match and returns to the menu. See [FIDELITY_EDGES.md](FIDELITY_EDGES.md),
 `build/n64/weapon-animation-audit/` and `build/n64/release-manifest.json` for verification
 status and exact ROM identity.
+The behavior-preserving cleanup measured **24.1 / 26.2 / 22.2 FPS** in the
+same quiet fixture, with 42 KiB free. This remains within the checkpoint range;
+the >25 FPS vehicle gate and final 30 FPS pass are still open.
 Earlier timing results describe older builds.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
@@ -177,7 +182,8 @@ Elsewhere pass `build.py --sdk /path/to/libdragon --tiny3d /path/to/tiny3d`,
 or set `N64_INST` and `TINY3D_DIR`.
 The normal build also needs the matching libdragon source checkout, defaulting
 to the SDK's sibling `libdragon-src`, or supplied with `--libdragon-source`.
-It builds a local CPU command-queue override with two 16 KiB buffers so CPU
+It builds a local CPU command-queue override with two 32 KiB buffers in the
+release preset (16 KiB with legacy defaults) so CPU
 work can overlap queued graphics. The shared SDK is unchanged. Use
 `--rspq-buffer-kib 0` for the slower unmodified-SDK fallback; see
 [RSPQ.md](RSPQ.md) for provenance checks and controlled comparisons.

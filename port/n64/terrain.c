@@ -1,3 +1,4 @@
+#include "telemetry.h"
 #include "terrain.h"
 #include "movement.h"
 #include <math.h>
@@ -83,7 +84,8 @@ static const terrain_candidates *nearby(const bg_player*p){
     terrain_candidates*c=NULL;
     for(unsigned slot=0;slot<4;slot++)if(candidates[slot].valid&&candidates[slot].key==p){c=&candidates[slot];break;}
     if(!c)c=&candidates[candidate_next++%4];
-    if(c->valid&&c->key==p&&fabsf(c->anchor[0]-p->pos[0])<=.25f&&fabsf(c->anchor[1]-p->pos[1])<=.25f&&fabsf(c->anchor[2]-p->pos[2])<=.25f)return c;
+    if(c->valid&&c->key==p&&fabsf(c->anchor[0]-p->pos[0])<=.25f&&fabsf(c->anchor[1]-p->pos[1])<=.25f&&fabsf(c->anchor[2]-p->pos[2])<=.25f){BG_COUNT(BG_COUNT_TERRAIN_HIT,1);return c;}
+    BG_COUNT(BG_COUNT_TERRAIN_MISS,1);
     c->key=p;c->valid=true;c->count=0;memcpy(c->anchor,p->pos,12);
     float anchor[3]={p->pos[0],p->pos[1]-.25f,p->pos[2]},radius=bg_movement.radius+.27f;int bounds[4];cells(anchor,radius,bounds);
     for(int z=bounds[2];z<=bounds[3];z++)for(int x=bounds[0];x<=bounds[1];x++){
@@ -92,7 +94,7 @@ static const terrain_candidates *nearby(const bg_player*p){
             unsigned id=bg_grid_indices[cell.first+j];if(!near_triangle(&bg_collision[id],anchor,bg_movement.height[0]+.5f,radius))continue;
             bool found=false;for(unsigned k=0;k<c->count;k++)if(c->ids[k]==id){found=true;break;}
             if(found)continue;
-            if(c->count==128){c->count=UINT16_MAX;return c;}
+            if(c->count==128){BG_COUNT(BG_COUNT_TERRAIN_OVERFLOW,1);c->count=UINT16_MAX;return c;}
             c->ids[c->count++]=id;
         }
     }

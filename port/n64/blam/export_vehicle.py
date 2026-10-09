@@ -4,9 +4,10 @@
 Only the world broad phase is replaced by a BVH. Original face/edge/vertex
 features and material responses are retained; no render LOD is used for physics.
 """
-import contextlib,hashlib,json,math,struct,sys
+import argparse,contextlib,hashlib,json,math,struct,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3];OUT=ROOT/'build/n64/generated'
+ROM_FILES=ROOT/'build/n64/frontend-files'
 sys.path.insert(0,str(Path(__file__).parent/'tags'))
 from audit import CacheGraph
 from export_collision import decode,check,polygons,number,row
@@ -111,7 +112,7 @@ def export():
    packed=struct.pack('>'+fmt,*value)
    assert tuple(struct.unpack('>'+fmt,packed))==tuple(value)
    blob.extend(packed)
- bank=ROOT/'build/n64/frontend-files/vehicle-world.bin';bank.parent.mkdir(parents=True,exist_ok=True);bank.write_bytes(blob)
+ bank=ROM_FILES/'vehicle-world.bin';bank.parent.mkdir(parents=True,exist_ok=True);bank.write_bytes(blob)
  lines=lines[:geometry_start]+['#ifndef N64']+lines[geometry_start:]+['#else',
   'struct collision_bsp bg_vehicle_bsp;',
   'const struct vehicle_bvh_node *bg_vehicle_bvh;',
@@ -122,4 +123,9 @@ def export():
  out=OUT/'vehicle_data.c';out.write_text('\n'.join(lines)+'\n')
  record=dict(world_bank_bytes=len(blob),world_bank_sha256=hashlib.sha256(blob).hexdigest(),vehicles=report,bvh_nodes=len(tree),bvh_depth=max_depth,surface_count=len(indices),source_maps=g.sources,files={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__),ROOT/'port/n64/blam/vehicle_private.h',out]})
  (OUT/'vehicle-report.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record['vehicles'],indent=2))
-if __name__=='__main__':export()
+if __name__=='__main__':
+ parser=argparse.ArgumentParser(description=__doc__)
+ parser.add_argument('--output',type=Path,default=OUT)
+ parser.add_argument('--rom-files',type=Path,default=ROM_FILES)
+ args=parser.parse_args();OUT=args.output;ROM_FILES=args.rom_files
+ export()

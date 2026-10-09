@@ -1,4 +1,5 @@
 """Check deferred first-view pumping without changing PCM or voice progression."""
+from runtime_source import read_runtime, validation_output
 import argparse
 from pathlib import Path
 import re
@@ -9,11 +10,11 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def check_source(before=None):
-    source = (ROOT/'port/n64/main.c').read_text()
+    source = read_runtime(ROOT/'port/n64/main.c')
     main = compact(function(source, 'main'))
     assert 'pump_audio();#ifdefBG_PROFILEsim_us=' not in main
     assert 'if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();' in main
-    assert 'for(unsignedp=0;p<views;p++){draw_view(p);rspq_flush();pump_audio();}' in main
+    assert 'for(unsignedp=0;p<views;p++){triangles=bg_scene_draw(p);rspq_flush();pump_audio();}' in main
     assert 'while(!(screen=display_try_get()))pump_audio();' in main
     assert 'pump_audio();' in function(source, 'paced_acquire')
     # Between the removed refill and the retained first-view refill there is
@@ -78,7 +79,7 @@ if __name__ == '__main__':
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--before',type=Path)
     args=p.parse_args();check_source(args.before)
-    out=ROOT/'build/n64/performance-audit/audio-after-view';out.mkdir(parents=True,exist_ok=True)
+    out=validation_output('audio-after-view');out.mkdir(parents=True,exist_ok=True)
     test=out/'test_refill.c';test.write_text(C_TEST)
     binary=out/'test_refill'
     subprocess.run(['clang','-std=c17','-O1','-g','-Wall','-Wextra','-Werror',

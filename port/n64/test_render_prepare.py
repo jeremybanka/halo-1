@@ -4,13 +4,14 @@ This checks the reviewed call boundary and SDK implementation, not GPU timing.
 Optional before/after comparison requires every rendering command to remain
 identical; only the attach/clear placement and its profiling attribution move.
 """
+from runtime_source import read_runtime
 import argparse
 from pathlib import Path
 import re
 from test_render_matrix import compact, function
 
 ROOT = Path(__file__).resolve().parents[2]
-EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast model_qa_camera interaction_qa_camera bg_player_personal_weapon bg_pickup_mark_visible bg_camera_clearance bg_body_height bg_eye_height bg_interaction_points bg_player_seat bg_player_third_person bg_camera_track_offset bg_vehicle_transform bg_vehicle_camera_position hypotf fmodf tanf atanf
+EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast bg_qa_camera bg_qa_interaction_camera bg_player_personal_weapon bg_pickup_mark_visible bg_camera_clearance bg_body_height bg_eye_height bg_interaction_points bg_player_seat bg_player_third_person bg_camera_track_offset bg_vehicle_transform bg_vehicle_camera_position hypotf fmodf tanf atanf
     bg_bounds_expand bg_bounds_quantize bg_bounds_transform bg_bounds_union
     bg_motion_decode bg_motion_scatter blam_quaternions_interpolate_and_normalize
     data_cache_hit_writeback floorf fmaxf fminf fabsf sqrtf sinf cosf get_ticks_us memcpy memset memcmp bg_vehicle_pose_key
@@ -35,7 +36,7 @@ def calls(body):
 
 
 def check(main, sdk, tiny, before=None):
-    source = main.read_text()
+    source = read_runtime(main)
     # Follow the actual inline projection helpers too, rather than allowing an
     # unchecked external call across the CPU-only preparation boundary.
     helpers = '\n'.join((main.parent/name).read_text() for name in
@@ -70,7 +71,7 @@ def check(main, sdk, tiny, before=None):
     clear = 'rdpq_attach(screen,&depth);rdpq_clear_z(ZBUF_MAX);'
     fence = 'if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();'
     assert loop.count(clear) == 2  # Frontend and gameplay have separate paths.
-    assert loop.index(fence) < loop.rindex(clear) < loop.index('prepare_frame();') < loop.index('draw_view(p);')
+    assert loop.index(fence) < loop.rindex(clear) < loop.index('bg_scene_prepare(slot,views,game_time);') < loop.index('triangles=bg_scene_draw(p);')
     if before:
         old = compact(before.read_text()).replace(clear, '')
         new = compact(source).replace(clear, '')

@@ -1,9 +1,11 @@
+from runtime_source import read_runtime, validation_output
 from pathlib import Path
+from test_render_matrix import compact
 import hashlib,json,re,subprocess
-ROOT=Path(__file__).resolve().parents[2];P=ROOT/'build/n64/tests/model-index-aliases';P.mkdir(parents=True,exist_ok=True);s=(ROOT/'port/n64/main.c').read_text();a=s.index('static void prepare_model(');brace=s.index('{',a);depth=1;end=brace+1
+ROOT=Path(__file__).resolve().parents[2];P=validation_output('model-index-aliases');P.mkdir(parents=True,exist_ok=True);s=read_runtime(ROOT/'port/n64/main.c');a=s.index('static void prepare_model(');brace=s.index('{',a);depth=1;end=brace+1
 while depth:
  depth+=(s[end]=='{')-(s[end]=='}');end+=1
-function=s[a:end];assert 'converted[96]' in function and 'converted_count<96' in function
+function=s[a:end];assert 'converted[96]' in function and 'converted_count<96' in compact(function)
 header=r'''
 #include <assert.h>
 #include <stdint.h>

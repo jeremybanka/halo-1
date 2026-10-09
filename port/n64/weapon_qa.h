@@ -13,7 +13,7 @@ static void model_qa_stage(uint64_t now){
  if(!started)started=now;
  model_qa_page=(unsigned)((now-started)/6000000)%13;
  if(model_qa_page==previous)return;
- previous=model_qa_page;bg_reset();bg_set_players(4);reset_view_state();game_time=0;
+ previous=model_qa_page;bg_reset();bg_set_players(4);bg_scene_reset();(*qa.seconds)=0;
  model_qa_floor=bg_floor(0,4,100)+.015f;
  for(unsigned i=0;i<bg_vehicle_count;i++)bg_vehicles[i].active=false;
  for(unsigned i=0;i<bg_pickup_count;i++)bg_pickups[i].active=false;
@@ -23,10 +23,10 @@ static void model_qa_stage(uint64_t now){
   bg_player*q=&bg_players[p];q->pos[0]=0;q->pos[1]=model_qa_floor;q->pos[2]=4;
   q->yaw=q->pitch=q->gait=0;q->invisibility=1;q->zoom=0;
   bg_give_weapon(p,weapon);q->weapon=weapon;q->ammo=bg_weapon_defs[weapon].magazine;
-  q->animation=BG_ANIM_IDLE;q->anim_time=0;fired_at[p]=-100;
+  q->animation=BG_ANIM_IDLE;q->anim_time=0;bg_scene_fired(p,-100);
   if(model_qa_page==10)q->ammo=(int[]){0,5,10,20}[p];
   else if(model_qa_firstperson()){
-   if(p==1)fired_at[p]=-.08f;
+   if(p==1)bg_scene_fired(p,-.08f);
    if(p==2){q->animation=BG_ANIM_RELOAD;q->reload=.5f;
     q->anim_time=.35f*(weapon==BG_W_NEEDLER?bg_weapon_defs[weapon].reload:bg_fp_animations[weapon][BG_FP_RELOAD].duration);}
    if(p==3){q->animation=BG_ANIM_MELEE;q->melee_time=.7f-.35f*bg_fp_animations[weapon][BG_FP_MELEE].duration;}

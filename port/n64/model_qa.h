@@ -14,7 +14,7 @@ static void model_qa_stage(uint64_t now){
     if(!started)started=now;
     model_qa_page=(unsigned)((now-started)/6000000)%8;
     if(model_qa_page==previous)return;
-    previous=model_qa_page;bg_reset();bg_set_players(4);reset_view_state();
+    previous=model_qa_page;bg_reset();bg_set_players(4);bg_scene_reset();
     model_qa_floor=bg_floor(0,4,100)+.015f;
     for(unsigned i=0;i<bg_vehicle_count;i++)bg_vehicles[i].active=false;
     for(unsigned i=0;i<bg_pickup_count;i++)bg_pickups[i].active=false;

@@ -662,7 +662,7 @@ static void fire(unsigned index,bool charged){
     bg_player*p=&bg_players[index];const bg_weapon_def*w=&bg_weapon_defs[p->weapon];
     const bg_trigger_profile*t=&bg_trigger_profiles[p->weapon];
     p->fire_ticks[p->slot]=0;p->flash=.08f;p->recoil=.06f;p->ammo-=charged?10:1;if(p->ammo<0)p->ammo=0;
-    p->heat+=charged?.65f:w->heat;if(p->heat>=1){p->heat=1;p->overheated=true;}
+    p->heat+=charged?.65f:w->heat;if(p->heat>=1){p->heat=1;p->overheated=true;p->overheat_charged[p->slot]=charged;}
     p->animation=BG_ANIM_FIRE;p->anim_time=0;
     float direction[3],origin[3];aim(p,direction,origin);assisted_shot(index,direction,origin);
     float spread=t->cone_min+(t->cone_max-t->cone_min)*p->trigger_error[p->slot];

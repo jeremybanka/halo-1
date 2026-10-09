@@ -79,6 +79,12 @@ def extract():
     world_points.append(position(transform_point(bind[marker['node']],marker['p']),(0,0,0)))
    world.append(world_points)
    report['weapons'][name]={'weapon_tag':wi,'effect':effect.filepath,'particle':p.particle_type.filepath,'bitmap':pm.bitmap.filepath,'life':life,'source_radius':radius,'color':tint,'markers':marker_names,'firstperson_model':mi,'marker_offsets':weapon_offsets}
+  _,vent=tag(r'effects\particles\energy\plasma overheat','particle')
+  vent_texture=texture(vent.bitmap,vent.rendering.first_sequence_index)
+  _,vent_effect=tag(r'weapons\plasma pistol\effects\overheated','effect')
+  report['overheat']={'effect':r'weapons\plasma pistol\effects\overheated',
+      'particle':r'effects\particles\energy\plasma overheat','source':tag_values(vent_effect),
+      'texture':vent_texture,'note':'Three bounded green wisps at original animated vent markers replace the repeated six-jet emitter.'}
   _,charge=tag(r'weapons\plasma rifle\overcharge','lens_flare');reflection=charge.reflections.STEPTREE[0]
   charge_texture=texture(charge.bitmaps.bitmap,bitmap_override=reflection.bitmap_index)
   glow_texture=texture(charge.bitmaps.bitmap,bitmap_override=0)
@@ -109,7 +115,7 @@ def extract():
  for im in textures:lines.append('{'+','.join(f'0x{r:02x}{g:02x}{b:02x}{a:02x}' for r,g,b,a in im.getdata())+'},')
  lines+=['};','const bg_fx_definition bg_fx_definitions[9]={']
  for radius,life,tex,r,g,b in defs+[defs[0]]:lines.append(f'{{{radius:.7f}f,{life:.7f}f,{tex},{{{r},{g},{b}}}}},')
- lines+=['};','const unsigned bg_fx_energy_texture='+str(energy_texture)+';','const bg_fx_blast_definition bg_fx_blast_definitions[3]={']
+ lines+=['};','const unsigned bg_fx_vent_texture='+str(vent_texture)+';','const unsigned bg_fx_energy_texture='+str(energy_texture)+';','const bg_fx_blast_definition bg_fx_blast_definitions[3]={']
  for firelife,life,colors,alpha in blast_defs:lines.append('{'+f'{firelife:.7f}f,{life:.7f}f,'+array(colors)+','+array(alpha)+'},')
  lines+=['};','const float bg_fx_world_markers[9][2][3]='+array(world+[world[0]])+';','const uint16_t bg_fx_marker_offsets[9][4]='+array(offsets+[offsets[0]])+';','const int16_t bg_fx_marker_poses[][2][3]='+array(poses)+';']
  assert all(-32768<=v<=32767 for frame in poses for point in frame for v in point)

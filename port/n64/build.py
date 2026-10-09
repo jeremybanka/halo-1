@@ -48,6 +48,7 @@ def main():
     mode.add_argument('--hud-qa', action='store_true', help='Render HUD ammunition, damage, scope and viewport-size fixtures')
     parser.add_argument('--hud-qa-page', type=int, choices=range(7), help='Hold one HUD QA page instead of cycling; requires --hud-qa')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
+    mode.add_argument('--reload-qa', action='store_true', help='Live AR reload, plasma overheat and full/empty rocket reloads')
     mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
     mode.add_argument('--shield-qa', type=int, choices=range(3), help='Frozen original shield transition fixtures with inspection cameras')
     mode.add_argument('--interaction-qa', type=int, choices=range(5), help='Production pickup/seat/flip input with frozen inspection cameras')
@@ -74,7 +75,7 @@ def main():
             parser.error('--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds')
     if args.gpu_diagnostic and not args.benchmark:
         parser.error('--gpu-diagnostic requires --benchmark')
-    if (args.combat_qa is not None or args.menu_qa or args.frontend_qa or args.effects_qa or args.destruction_qa) and (args.benchmark or args.vi_benchmark or args.profile):
+    if (args.combat_qa is not None or args.menu_qa or args.frontend_qa or args.effects_qa or args.reload_qa or args.destruction_qa) and (args.benchmark or args.vi_benchmark or args.profile):
         parser.error('Scripted menu/effects QA cannot combine with timing or profiling modes')
     if args.vi_benchmark:
         if args.benchmark or args.profile or args.validate or args.gpu_diagnostic or args.showcase:
@@ -265,6 +266,7 @@ def main():
              *(['-DBG_GEOMETRY_QA'] if args.geometry_qa else []),
              *(['-DBG_SHIELD_QA='+str(args.shield_qa), '-DBG_SNAPSHOT_TICK=0u'] if args.shield_qa is not None else []),
              *(['-DBG_INTERACTION_QA='+str(args.interaction_qa), '-DBG_INTERACTION_TICK='+str(args.interaction_tick), '-DBG_SNAPSHOT_TICK=0u'] if args.interaction_qa is not None else []),
+             *(['-DBG_RELOAD_QA'] if args.reload_qa else []),
              *(['-DBG_EFFECTS_QA'] if args.effects_qa else []),
              *(['-DBG_DESTRUCTION_QA'] if args.destruction_qa else []),
              *(['-DBG_PROFILE'] if args.profile or args.benchmark else []),
@@ -310,6 +312,8 @@ def main():
             name += '-page'+str(args.hud_qa_page)
     if args.geometry_qa:
         name += '-geometry-qa'
+    if args.reload_qa:
+        name += '-reload-qa'
     if args.effects_qa:
         name += '-effects-qa'
     if args.destruction_qa:

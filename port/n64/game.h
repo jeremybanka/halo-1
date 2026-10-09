@@ -60,7 +60,7 @@ typedef struct {
     bg_use_target use_target;
     uint8_t seat_state;
     bool use_latched;
-    bool overheated,overheated_slots[2],fire_held,crouched;
+    bool overheat_charged[2],overheated,overheated_slots[2],fire_held,crouched;
 } bg_player;
 typedef struct {
     float forward,strafe,turn,look;

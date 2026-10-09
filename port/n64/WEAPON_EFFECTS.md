@@ -75,3 +75,49 @@ NTSC, 4 MiB, five-buffer VI benchmark measures 28.6 FPS overall, 29.0 combat,
 P95 is 66.8 ms. The existing four-player 30 FPS target remains unmet.
 
 The later [magnum/explosion pass](MAGNUM_EXPLOSIONS.md) adds one 16×16 energy-cloud sprite to this bank and reuses the vehicle fire/smoke textures for ordinary detonations. The labeled effects fixture now includes a fifth page of staged primed frag, plasma, rocket and cannon projectiles; detonation and drawing run through production code.
+
+## First-person reload / overheat refinement (2026-10-09)
+
+The AR and rocket reloads previously retained only eight evenly spaced poses.
+Linear interpolation across these large gaps rounded off the hand contacts and
+rigid magazine/cartridge turns. `pack_interactions.py` now skins every original
+30 Hz frame onto the approved meshes, keeping the existing indexed geometry.
+AR reload uses 87 frames; rocket partial/empty reloads use 111/125 frames. The
+AR counter shares the same dense timeline. Gameplay retains the original
+empty-reload timer even when the visual partial-reload sequence finishes early
+(`source/items/weapons.c`, `weapon_magazine_start_reload`).
+
+The plasma pistol previously stretched its nine-frame overheated loop across
+the entire cooldown. It now uses the original normal and supercharge entry
+clips (34/24 frames), vent loop (9), and closing clip (24). Three bounded green
+wisps use the owned `plasma overheat` particle and original animated vent
+markers. The existing demake heat accumulation/cooling rules remain; closing
+is aligned to their recovery threshold, so this is not a claim of full retail
+heat-state parity.
+
+Rocket labels have white RGB and carry their lettering in alpha. Baking only
+RGB made solid white sheets, which also intersected the quantized shell. The
+renderer now samples the original mask in a 64×32 RGBA16 atlas with point
+filtering and alpha rejection. Label planes sit 1.5 coordinate steps above
+the shell, with their original rigid bone attachments retained for all poses.
+`repair_rocket_decals.py` makes this separation reproducible and idempotent.
+
+The streamed pose cache remains 8 × (8,736 + 128) = 70,912 bytes, and all
+first-person vertex counts are unchanged. Added resident textures are 4 KiB
+for rocket lettering and 1 KiB for the vent particle; service metadata adds
+less than 1 KiB. At most six extra triangles draw for the local vent effect.
+The larger animation bank lives on ROM.
+
+`--reload-qa --paced30 --rspq-buffer-kib 32` stages AR, plasma pistol, empty
+rocket and partial rocket reloads in four views; alternating cycles exercise
+normal and charged overheat entries. Use `--validate --rspq-buffer-kib 8` for
+the diagnostic build. Local videos, comparisons and ROM identities are in
+`build/n64/reload-audit/`. Native sanitizers, pose bounds/DMA checks and dense
+keyframe preservation checks are separate from Ares visual/performance QA.
+
+Final Ares verification (4 MiB): all 37 release lifecycle steps pass, with
+29 KiB free during the staged match and 341 KiB on return to the main menu.
+The 8 KiB-queue reload diagnostic reports zero RDP errors/warnings. The quiet
+32 KiB-queue replay measures 24.3 FPS overall, 26.2 combat, 22.5 vehicle;
+P95 66.8 ms, maximum 200.5 ms, 44 KiB live heap free. The previous build was
+24.4 / 26.3 / 22.7 FPS. The >25 FPS vehicle gate remains open.

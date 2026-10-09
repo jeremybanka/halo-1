@@ -28,4 +28,5 @@ void bg_fx_reset(void);
 void bg_fx_update(float dt);
 float bg_fx_flash(unsigned player);
 float bg_fx_charge(unsigned player);
+extern const unsigned bg_fx_vent_texture;
 #endif

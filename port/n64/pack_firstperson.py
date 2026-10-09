@@ -10,14 +10,17 @@ from pack_mesh import indexed_mesh, emit_batches, trajectory_keys, remap_clip, M
 def prepare_model(w,name):
  """Share only corners with identical complete quantized animation paths."""
  images=load_images(w['textures']);positions=[];colors=[];team_mask=[];uvs=[]
- textured=name=='pistol' and any(t.get('magnum_textured') for t in w['triangles'])
+ textured=name=='rocket' or (name=='pistol' and any(t.get('magnum_textured') for t in w['triangles']))
  masks=load_images(w.get('material_multipurpose',[]))
  channels=[2 if source==3 else None for source in w.get('material_change_source',[])]
  for tri in w['triangles']:
   positions.extend([[round(v*256) for v in position(p,(0,0,0))] for p in tri['p']])
   colors.extend(bake_triangle(tri,images,w,firstperson=True))
   team_mask.extend(bake_team_mask(tri,masks,channels))
-  uvs.extend([[round(u*64*32),round(v*32*32)] for u,v in tri['uv']] if textured and tri.get('magnum_textured') else [[16,1008]]*3)
+  if name=='rocket' and w['material_names'][tri['material']].endswith(' decal'):
+   colors[-3:]=[[210,210,210]]*3
+   uvs.extend([[round(u*63*32),round(v*30*32)] for u,v in tri['uv']])
+  else:uvs.extend([[round(u*64*32),round(v*32*32)] for u,v in tri['uv']] if textured and tri.get('magnum_textured') else [[16,1008]]*3)
  mesh=indexed_mesh(positions,colors,team_mask,trajectory_keys(w['clips'],256),
                    color_tolerance=model_color_tolerance('firstperson',name),
                    material_keys=[(t['material'],tuple(uvs[i*3+j]) if textured else ()) for i,t in enumerate(w['triangles']) for j in range(3)])
@@ -26,7 +29,7 @@ def prepare_model(w,name):
  preview={'positions':[[v/256 for v in p] for p in positions],
           'colors':mesh['colors'],'triangle_count':len(w['triangles']),
           'team_mask':[m/255 for m in team_mask]}
- if textured:preview.update(uvs=uvs,texture=next(t['texture_path'] for t in w['triangles'] if t.get('magnum_textured')))
+ if name=='pistol' and textured:preview.update(uvs=uvs,texture=next(t['texture_path'] for t in w['triangles'] if t.get('magnum_textured')))
  return mesh,clips,preview
 
 def split_details(w,name):
@@ -64,6 +67,13 @@ def pack(source,out,pc_extras=False):
  assert atlas.size==(64,32) and all(atlas.getpixel((x,31))==(255,255,255) for x in range(64))
  texels=[((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|1 for r,g,b in atlas.getdata()]
  lines.append('const uint16_t bg_fp_pistol_texture[2048] __attribute__((aligned(8)))={'+','.join(f'0x{v:04x}' for v in texels)+'};')
+ total+=4096
+ # The Xbox decal is white RGB with the lettering entirely in alpha.
+ rocket=packed['rocket'];decal=next(i for i,n in enumerate(rocket['material_names']) if n.endswith(' decal'))
+ atlas=Image.new('RGBA',(64,32),(255,255,255,255))
+ atlas.paste(Image.open(rocket['textures'][decal]).convert('RGBA').resize((64,31),Image.Resampling.LANCZOS),(0,0))
+ texels=[((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|int(a>=96) for r,g,b,a in atlas.getdata()]
+ lines.append('const uint16_t bg_fp_rocket_texture[2048] __attribute__((aligned(8)))={'+','.join(f'0x{v:04x}' for v in texels)+'};')
  total+=4096
  for name in ('sniper','plasma_pistol','plasma_rifle'):
   w=packed[name];body,keep,sources,indices=split_details(w,name);packed[name]=body
@@ -114,7 +124,7 @@ def pack(source,out,pc_extras=False):
  (out/'firstperson-preview.json').write_text(json.dumps(previews))
  report={'vertices':sizes,'triangle_corners':{n:len(w['triangles'])*3 for n,w in packed.items()},
          'triangles':{n:len(w['triangles']) for n,w in packed.items()},'batches':{n:len(m['batches']) for n,m in meshes.items()},
-         'texture_bytes':4096,'vertex_bytes':sum(sizes.values())*16,'team_mask_bytes':sum(sizes.values()),
+         'texture_bytes':8192,'vertex_bytes':sum(sizes.values())*16,'team_mask_bytes':sum(sizes.values()),
          'index_bytes':sum(len(m['indices'])*2 for m in meshes.values()),'batch_bytes':sum(len(m['batches'])*8 for m in meshes.values()),
          'color_weld_tolerance':MODEL_COLOR_TOLERANCE,'material_boundaries_preserved':True,'total_bytes':total,'position_scale':256,'animation_bytes':animation_bytes,'animation_uncompressed_bytes':sum(p['uncompressed_bytes'] for p in animation_packing.values()),'pc_extras':pc_extras,'aliases':aliases,
          'scope':detail_report['sniper'],'details':detail_report,

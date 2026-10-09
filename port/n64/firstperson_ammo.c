@@ -42,6 +42,7 @@ void bg_fp_ammo_prepare(unsigned slot,unsigned player,unsigned weapon,unsigned c
         bg_ar_ammo_sample(positions,uv,clip,f0,f1,fraction,ammo);
         if(bg_players[player].weapon_ready>0)bg_interaction_points(positions,&bg_ready_ar_digits,
             bg_ready_times[weapon]-bg_players[player].weapon_ready);
+        else if(bg_players[player].reload>0)bg_interaction_points(positions,&bg_reload_ar_digits,bg_players[player].anim_time);
         T3DVertPacked*out=digits[slot][player];
         for(unsigned i=0;i<8;i++) {
             memcpy(t3d_vertbuffer_get_pos(out,i),positions[i],sizeof(positions[i]));

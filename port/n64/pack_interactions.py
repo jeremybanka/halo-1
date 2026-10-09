@@ -148,6 +148,7 @@ def run():
                 frames.append([[p[0],-p[2],p[1]] for p in points])
             pair.append(emit(frames,c['duration'],4096))
         hatches.append(pair)
+    service=[];service_details=[];service_vents=[];service_report=[];reload_ar=None
     ready=[];readytimes=[];fp_report={};needle_defs=[];needle_indices=[];ar_def=scope_def=None;plasma_defs=[]
     for name,w in fp['weapons'].items():
         if name=='flamethrower':continue
@@ -186,6 +187,38 @@ def run():
             ar=prepare_ar({'weapons':{'ar':copy}},ammometa)
             # prepare_ar already converted to Y-up/4096; invert for emit.
             ar_def=emit([[[p[0]/4096,-p[2]/4096,p[1]/4096] for p in f] for f in ar['poses'][0]],c['duration'],4096)
+        # Preserve every Xbox 30 Hz frame for contact-sensitive reloads and
+        # the plasma pistol's separate enter / vent loop / exit states.
+        service_names={'ar':['first-person reload-full'],
+            'plasma_pistol':['first-person overheating','first-person o-h-s-enter','first-person overheated','first-person o-h-exit'],
+            'rocket':['first-person reload-full','first-person reload-empty']}.get(name,[])
+        for clip_name in service_names:
+            sc=clip(g,next(i for i,a in enumerate(g.animations.STEPTREE) if a.name==clip_name))
+            full=[skin_fp(states) for states in sc['frames']]
+            # Terminal hold (or loop seam) supplies exactly one sample per
+            # source tick to the common (frames-1)/duration interpolator.
+            full.append(full[0] if clip_name=='first-person overheated' else full[-1])
+            if name=='plasma_pistol':
+                service_details.append(emit([[f[i] for i in sources] for f in full],sc['duration'],4096))
+                model=meta(h,'model',MODEL_PATHS[name].rsplit('\\',1)[0]+r'\fp\fp')
+                markers={m.name:m.marker_instances.STEPTREE[0] for m in model.markers.STEPTREE}
+                vents=[]
+                for states in sc['frames']:
+                    pose=matrices(states,skeleton);points=[]
+                    for key in ('vent_rear','vent_mid','vent_front'):
+                        marker=markers[key];bone=node_maps[1][marker.node_index]
+                        points.append((pose[bone]@np.array([*marker.translation,1]))[:3].tolist())
+                    vents.append(points)
+                vents.append(vents[0] if clip_name=='first-person overheated' else vents[-1])
+                service_vents.append(emit(vents,sc['duration'],4096))
+                body=[[p for i in keep for p in f[i*3:i*3+3]] for f in full]
+            else:body=full
+            service.append(emit([[f[i] for i in mesh['sources']] for f in body],sc['duration'],256))
+            service_report.append({'weapon':name,'name':clip_name,'source_frames':len(sc['frames']),'seconds':sc['duration']})
+            if name=='ar':
+                copy={**w,'clips':{**w['clips'],'idle':{'frames':full}}}
+                ar=prepare_ar({'weapons':{'ar':copy}},ammometa)
+                reload_ar=emit([[[p[0]/4096,-p[2]/4096,p[1]/4096] for p in f] for f in ar['poses'][0]],sc['duration'],4096)
         if name=='needler':
             for vi,ci in enumerate(mesh['sources']):
                 part,weights,p=corners[ci]
@@ -208,8 +241,8 @@ def run():
     lines.append('const bg_rom_pose bg_locomotion_grips[6]={'+','.join(init(d) for d in locomotion_grips)+'};')
     lines.append('const bg_rom_pose bg_hatch_poses[2][2]={'+','.join('{'+','.join(init(d) for d in pair)+'}' for pair in hatches)+'};')
     lines.append('const bg_rom_pose bg_seat_poses[][3][2]={'+','.join('{'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in group)+'}' for group in groups)+'};')
-    for symbol,ds in [('bg_ready_plasma',plasma_defs),('bg_ready_poses',ready),('bg_ready_needles',needle_defs),('bg_seat_grips',grips),('bg_body_ready_poses',body_ready_poses)]:lines.append('const bg_rom_pose '+symbol+'['+str(len(ds))+']={'+','.join(init(d) for d in ds)+'};')
-    for symbol,d in [('bg_ready_ar_digits',ar_def),('bg_ready_scope',scope_def),('bg_body_ready_grip',ready_grip)]:lines.append('const bg_rom_pose '+symbol+'='+init(d)+';')
+    for symbol,ds in [('bg_service_vents',service_vents),('bg_service_poses',service),('bg_service_plasma',service_details),('bg_ready_plasma',plasma_defs),('bg_ready_poses',ready),('bg_ready_needles',needle_defs),('bg_seat_grips',grips),('bg_body_ready_poses',body_ready_poses)]:lines.append('const bg_rom_pose '+symbol+'['+str(len(ds))+']={'+','.join(init(d) for d in ds)+'};')
+    for symbol,d in [('bg_reload_ar_digits',reload_ar),('bg_ready_ar_digits',ar_def),('bg_ready_scope',scope_def),('bg_body_ready_grip',ready_grip)]:lines.append('const bg_rom_pose '+symbol+'='+init(d)+';')
     lines.append('const uint16_t bg_ready_needle_vertices[]={'+','.join(map(str,needle_indices))+'};')
     lines.append(f'const unsigned bg_interaction_scratch_bytes={scratch};')
     (G/'interaction_assets.c').write_text('\n'.join(lines)+'\n')
@@ -224,7 +257,7 @@ def run():
     defs.append('};');(G/'interaction_defs.c').write_text('\n'.join(defs)+'\n')
     inputs={str(p.relative_to(ROOT)):sha(p) for p in [A/'extended-raw.json',A/'extended-reduced.json',A/'firstperson-raw.json',A/'firstperson-reduced.json',A/'firstperson-ammo.json',A/'bloodgulch-decompressed.map',A/'a30-decompressed.map',G/'models_data.c',G/'firstperson_data.c',G/'world-mesh-sources.json',Path(__file__)]}
     files={str(p.relative_to(ROOT)):sha(p) for p in [G/'interaction_assets.c',G/'interaction_defs.c',F/'interactions.bin']}
-    report={'inputs':inputs,'files':files,'rom_bytes':len(bank),'scratch_bytes':scratch,'seats':seats,'locomotion':locomotion_report,'body_clips':clip_report,'ready':fp_report,'hold_ticks':7}
+    report={'inputs':inputs,'files':files,'rom_bytes':len(bank),'scratch_bytes':scratch,'seats':seats,'locomotion':locomotion_report,'body_clips':clip_report,'ready':fp_report,'service':service_report,'hold_ticks':7}
     (G/'interaction-report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({'rom_bytes':len(bank),'scratch_bytes':scratch,'body_groups':len(groups),'ready':fp_report},indent=2))
 if __name__=='__main__':run()

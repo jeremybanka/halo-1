@@ -17,6 +17,10 @@ extern const bg_rom_pose bg_seat_grips[],bg_hatch_poses[2][2];
 extern const bg_rom_pose bg_ready_poses[9],bg_ready_ar_digits,bg_ready_scope,bg_ready_needles[21];
 extern const bg_rom_pose bg_ready_plasma[2];
 extern const uint16_t bg_ready_needle_vertices[];
+enum { BG_SERVICE_AR, BG_SERVICE_HEAT_ENTER, BG_SERVICE_HEAT_CHARGED,
+    BG_SERVICE_HEAT_LOOP, BG_SERVICE_HEAT_EXIT, BG_SERVICE_ROCKET_FULL,
+    BG_SERVICE_ROCKET_EMPTY, BG_SERVICE_COUNT };
+extern const bg_rom_pose bg_service_poses[BG_SERVICE_COUNT],bg_service_plasma[4],bg_service_vents[4],bg_reload_ar_digits;
 extern const unsigned bg_interaction_scratch_bytes;
 void bg_interaction_render_init(void);
 void bg_interaction_render_release(void);

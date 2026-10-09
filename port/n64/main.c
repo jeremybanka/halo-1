@@ -20,7 +20,7 @@
 #ifdef BG_FRONTEND_QA
 #include "frontend_qa.h"
 #endif
-#if !defined(BG_COMBAT_QA) && !defined(BG_MOVEMENT_QA) && !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+#if !defined(BG_RELOAD_QA) && !defined(BG_COMBAT_QA) && !defined(BG_MOVEMENT_QA) && !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) && !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
 #define BG_FRONTEND
 #endif
 #ifdef BG_MENU_QA
@@ -29,6 +29,7 @@
 #include "asset_models.h"
 #include "asset_firstperson.h"
 #include "asset_interaction.h"
+#include "firstperson_service.h"
 #include "firstperson_ammo.h"
 #include "weapon_effects.h"
 #include "weapon_effects_draw.h"
@@ -1099,7 +1100,9 @@ static void animate_firstperson(unsigned p){
     float phase=fmaxf(0,seconds/a->duration);
     if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
     float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
+    float service_seconds=0;bool service_loop=false;int service=bg_firstperson_service(player,&service_seconds,&service_loop);
     if(player->weapon_ready>0)bg_interaction_pose(output,&bg_ready_poses[w],bg_ready_times[w]-player->weapon_ready,false);
+    else if(service>=0)bg_interaction_pose(output,&bg_service_poses[service],service_seconds,service_loop);
     else animate_mesh(output,a,f0,f1,fraction);
     bg_fx_pose(p,w,clip,f0,f1,fraction);
     const bg_fp_detail_asset*detail=&bg_fp_details[w];
@@ -1116,11 +1119,22 @@ static void animate_firstperson(unsigned p){
             int16_t points[12][3];bg_interaction_points(points,w==BG_W_SNIPER?&bg_ready_scope:&bg_ready_plasma[w==BG_W_PLASMA_RIFLE],bg_ready_times[w]-player->weapon_ready);
             for(unsigned v=0;v<detail->vertices;v++)memcpy(t3d_vertbuffer_get_pos(scope,v),points[v],sizeof(points[v]));
         }
+        else if(service>=BG_SERVICE_HEAT_ENTER&&service<=BG_SERVICE_HEAT_EXIT){
+            int16_t points[12][3];const bg_rom_pose*pose=&bg_service_plasma[service-BG_SERVICE_HEAT_ENTER];
+            float t=service_loop?fmodf(service_seconds,pose->duration):service_seconds;
+            bg_interaction_points(points,pose,t);
+            int16_t vents[3][3];bg_interaction_points(vents,&bg_service_vents[service-BG_SERVICE_HEAT_ENTER],t);
+            bg_fx_vent_pose(p,vents);
+            for(unsigned v=0;v<detail->vertices;v++)memcpy(t3d_vertbuffer_get_pos(scope,v),points[v],sizeof(points[v]));
+        }
         data_cache_hit_writeback(scope,sizeof(scope_vertices[slot][p]));
     }
     bg_fp_ammo_prepare(slot,p,w,clip,f0,f1,fraction,player->ammo,player->reserve,
         player->reload>0?seconds:-1,output);
 }
+#ifdef BG_RELOAD_QA
+#include "reload_qa.h"
+#endif
 static void ensure_player_animation(unsigned p){
     unsigned bit=1u<<p;if(body_animation_ready&bit)return;
 #ifdef BG_PROFILE
@@ -1518,16 +1532,17 @@ static void draw_view(unsigned p){
         t3d_viewport_attach(&gun_viewports[slot][p]);
         t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);rdpq_mode_zbuf(true,true);
         t3d_segment_set(T3D_SEGMENT_1,firstperson[slot][p]);
-        if(player->weapon==BG_W_PISTOL){
-            surface_t atlas=surface_make_linear((void*)bg_fp_pistol_texture,FMT_RGBA16,64,32);
+        if(player->weapon==BG_W_PISTOL||player->weapon==BG_W_ROCKET){
+            surface_t atlas=surface_make_linear((void*)(player->weapon==BG_W_ROCKET?bg_fp_rocket_texture:bg_fp_pistol_texture),FMT_RGBA16,64,32);
             rdpq_sync_pipe();rdpq_mode_tlut(TLUT_NONE);
             rdpq_mode_combiner(RDPQ_COMBINER_TEX_SHADE);rdpq_mode_persp(true);rdpq_mode_filter(FILTER_POINT);
+            rdpq_mode_alphacompare(player->weapon==BG_W_ROCKET?128:0);
             rdpq_sync_tile();rdpq_sync_load();rdpq_tex_upload(TILE0,&atlas,NULL);
             t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK|T3D_FLAG_TEXTURED);
         }
         t3d_matrix_set(&guns[slot][p],true);rspq_block_run(firstperson_blocks[player->weapon]);triangles+=bg_fp_models[player->weapon].triangle_count;
-        if(player->weapon==BG_W_PISTOL){
-            rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
+        if(player->weapon==BG_W_PISTOL||player->weapon==BG_W_ROCKET){
+            rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);rdpq_mode_alphacompare(0);
             t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
         }
 #ifdef BG_PROFILE
@@ -1914,6 +1929,9 @@ int main(void){
 #endif
 #ifdef BG_FRONTEND_QA
             bg_front_qa_tick(in,game_time);
+#endif
+#ifdef BG_RELOAD_QA
+            reload_qa_input(in,game_time);views=4;bg_set_players(4);
 #endif
 #ifdef BG_EFFECTS_QA
             bg_effects_qa_input(in,game_time);views=4;bg_set_players(4);

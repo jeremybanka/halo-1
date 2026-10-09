@@ -15,11 +15,11 @@ def poses(node):
  else:
   for child in node:yield from poses(child)
 checked=0;maximum=0
-for name in ['bg_seat_poses','bg_seat_grips','bg_body_ready_poses','bg_body_ready_grip','bg_ready_poses','bg_ready_needles','bg_ready_ar_digits','bg_ready_scope','bg_hatch_poses']:
+for name in ['bg_seat_poses','bg_seat_grips','bg_body_ready_poses','bg_body_ready_grip','bg_ready_poses','bg_ready_needles','bg_ready_ar_digits','bg_ready_scope','bg_hatch_poses','bg_service_poses','bg_service_plasma','bg_service_vents','bg_reload_ar_digits']:
  for offset,stride,vertices,frames,duration,bounds in poses(array(name)):
   assert offset%16==stride%16==0 and vertices*6<=stride and stride-vertices*6<16
-  assert 0<frames<=65 and duration>0 and offset+frames*stride<=len(bank)
-  scale=4096 if any(s in name for s in ['grip','digits','scope','hatch']) else 256 if name in ['bg_ready_poses','bg_ready_needles'] else 128
+  assert 0<frames<=126 and duration>0 and offset+frames*stride<=len(bank)
+  scale=4096 if any(s in name for s in ['grip','digits','scope','hatch','plasma','vents']) else 256 if name in ['bg_ready_poses','bg_ready_needles','bg_service_poses'] else 128
   allpoints=[]
   for frame in range(frames):
    points=np.frombuffer(bank,dtype='>i2',count=vertices*3,offset=offset+stride*frame).reshape(-1,3)/scale
@@ -44,3 +44,31 @@ for pair in array('bg_hatch_poses'):
  assert np.max(np.abs(terminal-expected))<=1,(terminal,expected)
 assert [len(row) for row in r['seats']]==[3,1,5,1] and r['hold_ticks']==7
 print(f'PASS: {checked} ROM frames, aligned DMA ranges, exact source one-shot frame counts/timings, conservative bounds, closed hatch transforms, {maximum} bytes scratch')
+
+services=array('bg_service_poses')
+assert len(services)==7
+for pose,definition in zip(services,r['service']):
+ assert pose[3]==definition['source_frames']+1
+ assert abs(pose[4]-definition['source_frames']/30)<1e-6
+assert [d['source_frames'] for d in r['service']]==[87,34,24,9,24,111,125]
+print('PASS: complete AR / rocket reloads and plasma enter / loop / exit source frames')
+# Dense rebaking must preserve the approved mesh at retained source keyframes.
+# This catches wrong joint maps, hand/gun bind recovery, or reordered indices.
+import sys
+sys.path.insert(0,str(ROOT/'port/n64'))
+from pack_firstperson import prepare_model
+from pack_assets import position
+fp=json.loads((ROOT/'build/n64/assets/firstperson-reduced.json').read_text())
+raw=json.loads((ROOT/'build/n64/assets/firstperson-raw.json').read_text())
+for name,service in [('ar',0),('rocket',5)]:
+ mesh,clips,_=prepare_model(fp['weapons'][name],name)
+ pose=services[service];offset,stride,vertices,frames,*_=pose
+ assert vertices==len(mesh['vertices'])
+ clip=clips['reload'];source_count=len(raw['weapons'][name]['clips']['reload']['frames'])
+ for i,f in enumerate(clip['frames']):
+  source_frame=round(i*(source_count-1)/(len(clip['frames'])-1))
+  if source_frame>=frames-1:continue # Old extractor's synthetic looping frame.
+  expected=np.rint(np.array([position(p,(0,0,0)) for p in f])*256)
+  actual=np.frombuffer(bank,dtype='>i2',count=vertices*3,offset=offset+stride*source_frame).reshape(-1,3)
+  assert np.max(np.abs(expected-actual))<=1,(name,i,np.max(np.abs(expected-actual)))
+print('PASS: dense reload skins preserve approved hand/gun geometry at source keyframes')

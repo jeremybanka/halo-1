@@ -1,0 +1,237 @@
+{
+  "targets": {
+    "spartan": 310,
+    "warthog": 420,
+    "ghost": 320,
+    "scorpion": 480,
+    "banshee": 352,
+    "ar": 140,
+    "pistol": 180,
+    "plasma_pistol": 116,
+    "plasma_rifle": 122,
+    "needler": 178,
+    "shotgun": 165,
+    "sniper": 240,
+    "rocket": 200,
+    "frag": 64,
+    "plasma_grenade": 48,
+    "flamethrower": 220,
+    "healthpack": 44,
+    "overshield": 50,
+    "camouflage": 90
+  },
+  "lod_targets": {
+    "spartan": 135,
+    "warthog": 210,
+    "ghost": 168,
+    "scorpion": 230,
+    "banshee": 200
+  },
+  "source_lods": {
+    "ar": "__base high",
+    "plasma_pistol": "__base high",
+    "plasma_rifle": "__base medium",
+    "needler": "__base high",
+    "warthog": "__base low",
+    "ghost": "__base medium",
+    "scorpion": "__base medium",
+    "banshee": "__base medium",
+    "spartan": "__base superlow"
+  },
+  "projection": {
+    "warthog": "outside",
+    "ghost": "outside",
+    "scorpion": "outside",
+    "rocket": "outside",
+    "ar": false,
+    "plasma_pistol": false,
+    "plasma_rifle": false,
+    "needler": false,
+    "spartan": false,
+    "banshee": false,
+    "plasma_grenade": "outside",
+    "shotgun": "outside"
+  },
+  "lod_source_lods": {
+    "banshee": "__base medium"
+  },
+  "lod_projection": {
+    "spartan": "outside",
+    "warthog": "outside",
+    "ghost": "outside",
+    "scorpion": "outside",
+    "banshee": "outside"
+  },
+  "feature_minimum": {
+    "scorpion": 2,
+    "overshield": 2,
+    "shotgun": 2,
+    "plasma_grenade": 2
+  },
+  "merge_lod_bones": [
+    "warthog",
+    "ghost",
+    "scorpion",
+    "banshee"
+  ],
+  "refine_models": [
+    "shotgun",
+    "plasma_grenade"
+  ],
+  "refine_lods": [
+    "ghost"
+  ],
+  "preserve_quality_materials": {
+    "plasma_pistol": [
+      3,
+      4
+    ],
+    "plasma_rifle": [
+      1,
+      4,
+      5
+    ]
+  },
+  "pickup_targets": {
+    "ar": 36,
+    "pistol": 40,
+    "plasma_pistol": 48,
+    "plasma_rifle": 52,
+    "needler": 54,
+    "shotgun": 60,
+    "sniper": 50,
+    "rocket": 60,
+    "frag": 54,
+    "plasma_grenade": 42,
+    "healthpack": 20,
+    "overshield": 24,
+    "camouflage": 20
+  },
+  "pickup_source_lods": {
+    "ar": "__base medium",
+    "pistol": "__base low",
+    "plasma_pistol": "__base medium",
+    "plasma_rifle": "__base low",
+    "needler": "__base medium",
+    "shotgun": "__base low",
+    "sniper": "__base superlow",
+    "frag": "__base low",
+    "plasma_grenade": "__base low"
+  },
+  "pickup_convex_hulls": [
+    "overshield",
+    "camouflage"
+  ],
+  "pickup_hull_bones": [
+    "rocket"
+  ],
+  "pickup_preserve_parts": {
+    "sniper": [
+      0,
+      1,
+      7,
+      8
+    ],
+    "needler": [
+      0,
+      1,
+      6,
+      11
+    ]
+  },
+  "pickup_preserve_materials": {
+    "plasma_pistol": [
+      3,
+      4
+    ],
+    "plasma_rifle": [
+      1,
+      4,
+      5
+    ],
+    "rocket": [
+      4
+    ]
+  },
+  "pickup_project_preserved": [
+    "rocket"
+  ],
+  "bounded_lods": {
+    "warthog": {
+      "max_pixel_displacement": 0.6,
+      "reference_extent_pixels": 20,
+      "preserve_materials": [
+        3
+      ]
+    },
+    "ghost": {
+      "max_pixel_displacement": 0.4,
+      "reference_extent_pixels": 20
+    },
+    "scorpion": {
+      "max_pixel_displacement": 0.4,
+      "reference_extent_pixels": 20
+    }
+  },
+  "bounded_near": {
+    "warthog": {
+      "max_world_displacement": 0.05,
+      "preserve_materials": [
+        3,
+        4
+      ],
+      "preserve_rigid_groups": [
+        1
+      ],
+      "preserve_tips": [
+        {
+          "rigid_group": 8,
+          "axis": 0,
+          "above": 0.15
+        }
+      ]
+    },
+    "ghost": {
+      "max_world_displacement": 0.025,
+      "preserve_materials": [
+        1
+      ]
+    },
+    "scorpion": {
+      "max_world_displacement": 0.08,
+      "preserve_materials": [
+        2,
+        5,
+        6
+      ],
+      "preserve_rigid_groups": [
+        10
+      ]
+    }
+  },
+  "scorpion_cannon": {
+    "near": {
+      "root_cross_section": [
+        0.18,
+        0.14
+      ],
+      "muzzle_cross_section": [
+        0.14,
+        0.12
+      ],
+      "housing_overlap": 0.35
+    },
+    "far": {
+      "root_cross_section": [
+        0.18,
+        0.14
+      ],
+      "muzzle_cross_section": [
+        0.14,
+        0.12
+      ],
+      "housing_overlap": 0.35
+    }
+  },
+  "occlusion_closures": true
+}

@@ -1,5 +1,9 @@
 # Halo: Combat Evolved for Linux, Windows and Android
 
+An experimental standalone **Nintendo 64 Blood Gulch demake** lives in
+[port/n64](port/n64/README.md). It builds a local ROM with two- or four-player
+splitscreen from your own Xbox map data.
+
 [![Join our Discord](https://invidget.switchblade.xyz/9gqcHyr5km)](https://discord.gg/9gqcHyr5km)
 
 This project is a port of the Halo: Combat Evolved decompilation to Linux,

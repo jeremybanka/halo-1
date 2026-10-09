@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "purpose": "Optional four-player tiny far models; derive from the current source-based packed far bank, never from checked-in game geometry.",
+  "maximum_projected_pixels": 8,
+  "projection_margin_pixels": 0.5,
+  "position_scale": 1024,
+  "models": {
+    "ar": {"method": "collapse", "triangles": 28},
+    "pistol": {"method": "collapse", "triangles": 28},
+    "plasma_rifle": {"method": "collapse", "triangles": 28},
+    "needler": {"method": "collapse", "triangles": 44},
+    "shotgun": {"method": "support_hull", "triangles": 20},
+    "frag": {"method": "support_hull", "triangles": 20},
+    "plasma_grenade": {"method": "collapse", "triangles": 20},
+    "overshield": {"method": "collapse", "triangles": 12},
+    "camouflage": {"method": "collapse", "triangles": 12},
+    "warthog": {"method": "collapse", "triangles": 64, "restore_materials": [3]},
+    "ghost": {"method": "collapse", "triangles": 64},
+    "banshee": {"method": "collapse", "triangles": 64}
+  },
+  "aliases": {
+    "plasma_pistol": "Smaller candidates lost shell mass or filled the opening and spread the green emitter color.",
+    "sniper": "Smaller candidates lost receiver, scope and bipod mass, including empty native views.",
+    "rocket": "Smaller candidates erased barrel mass or the pale barrel band.",
+    "healthpack": "The existing far model is already small; the tested reduction lost red and white surface cues for four vertices.",
+    "scorpion": "Smaller candidates lost the barrel or track mass; a whole hull filled the track gaps."
+  },
+  "quality_notes": {
+    "needler": "The 44-triangle candidate retains the central blue body and pink needle outline. The weaker 12, 20, 28 and 36 budgets were rejected.",
+    "warthog": "Restore all original far-model faces of material 3 after collapse, preserving the red rear lamps verbatim.",
+    "ghost": "The 64-triangle candidate retains wing mass and purple cues; smaller candidates were rejected at eight pixels.",
+    "banshee": "The 64-triangle candidate retains the aircraft outline. Rare three-pixel glint shifts in six-pixel offline probes require target review.",
+    "plasma_rifle": "Two four-pixel phases gain a pixel where the old far model is empty; no sampled phase loses a previously visible whole model.",
+    "shotgun": "The support hull preserves outer mass while filling small recesses and averaging incident source colors.",
+    "frag": "The support hull preserves round outer mass while filling small recesses and averaging incident source colors."
+  }
+}

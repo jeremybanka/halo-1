@@ -23,6 +23,8 @@ xbox/
 !source/**/xbox/
 
 # Locally extracted proprietary game data (never commit)
+*.iso
+*.xiso
 assets/
 # (but the high-res assets, drawn for the port: tools/hud_assets.py)
 !port/assets/

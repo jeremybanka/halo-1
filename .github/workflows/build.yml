@@ -46,7 +46,13 @@ jobs:
     # Arch Linux has what the build needs as packages: clang 22 (for the
     # profile-guided optimisation in pgo/) and 32-bit SDL 3.
     runs-on: ubuntu-24.04
-    container: archlinux:latest
+    # Job containers are pulled before steps run; authenticate here rather
+    # than in a docker/login-action step. See .github/README.md for setup.
+    container:
+      image: archlinux:latest
+      credentials:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
     timeout-minutes: 40
     steps:
       - name: Install the toolchain

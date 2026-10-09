@@ -1,5 +1,6 @@
 /* Real simulation events feed the bounded presentation state. */
 #include "weapon_effects.h"
+#include "movement.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -41,11 +42,31 @@ int main(void){
     /* A target intercepts the ray before the far wall. */
     equip(BG_W_SNIPER);bg_set_players(2);bg_players[0].pitch=-.14f;
     memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=2;
+    bg_players[1].health=bg_players[1].shield=100;bg_players[1].respawn=0;bg_players[1].vehicle=-1;
+    bg_players[1].pos[1]=bg_floor(bg_players[1].pos[0],bg_players[1].pos[2],100)+.015f;
+    bg_players[0].pitch=atan2f(bg_players[1].pos[1]+.36f-(bg_players[0].pos[1]+bg_eye_height(&bg_players[0])),2.f);
     input[0].fire=true;tick();t=bg_sniper_trace(0);for(unsigned a=0;a<3;a++)direction[a]=t->end[a]-t->start[a];
     assert(length(direction)<2.5f&&bg_players[1].shield<100);
     /* New events replace bounded slots; no lingering glow after reset. */
     for(unsigned n=0;n<30;n++){bg_event_count=1;bg_events[0]=(bg_event){.kind=BG_EVENT_FIRE,.player=n%4,.weapon=BG_W_SNIPER,.amount=1};bg_players[n%4].vehicle=-1;bg_fx_update(0);}
     unsigned active=0;for(unsigned i=0;i<BG_FX_TRAILS;i++)active+=bg_fx_trails[i].active;assert(active==BG_FX_TRAILS);
     bg_fx_reset();for(unsigned i=0;i<BG_FX_TRAILS;i++)assert(!bg_fx_trails[i].active);
+    /* All blast families retain kind, bounded lifetime and replacement.
+     * A coincident vehicle death has only the vehicle's source fireburst. */
+    bg_fx_reset();
+    for(unsigned n=0;n<36;n++){
+        bg_event_count=1;bg_events[0]=(bg_event){.kind=BG_EVENT_EXPLOSION,.player=0,.weapon=n%3,.amount=3,.pos={n,1,0}};
+        bg_fx_update(0);
+        const bg_fx_blast*b=&bg_fx_blasts[n%BG_FX_BLASTS];
+        assert(b->kind==(bg_explosion_kind)(n%3)&&b->age==0&&fabsf(b->radius-1.2f)<.001f&&b->origin[0]==n);
+    }
+    bg_clear_events();bg_fx_update(3);
+    for(unsigned i=0;i<BG_FX_BLASTS;i++)assert(bg_fx_blasts[i].age>=bg_fx_blast_definitions[bg_fx_blasts[i].kind].life);
+    bg_fx_reset();bg_event_count=2;
+    bg_events[0]=(bg_event){.kind=BG_EVENT_EXPLOSION,.player=0,.weapon=BG_EXPLOSION_NORMAL,.amount=3};
+    bg_events[1]=(bg_event){.kind=BG_EVENT_VEHICLE_DESTROYED,.player=0,.weapon=BG_V_GHOST,.amount=0};
+    bg_fx_update(0);assert(bg_fx_blasts[0].age==100&&bg_fx_vehicle_bursts[0].age==0);
+    bg_events[0].pos[0]=4;bg_fx_update(0);assert(bg_fx_blasts[0].age==0);
+    bg_fx_reset();assert(bg_fx_blasts[0].age==100);
     puts("PASS: eight live firing events, empty weapons, charge growth/hold/release/cancellation, exact terrain/target sniper hits and bounded trail reuse");
 }

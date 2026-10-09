@@ -3,6 +3,7 @@
 #include "asset_models.h"
 #define BG_FP_WEAPONS 9
 extern const unsigned bg_fp_max_vertices;
+extern const uint16_t bg_fp_pistol_texture[2048];
 #define BG_FP_SCALE 256.0f
 enum { BG_FP_IDLE, BG_FP_FIRE, BG_FP_RELOAD, BG_FP_MELEE, BG_FP_CLIPS };
 /* Gun and hands are already posed in camera space, +X forward and +Y up.

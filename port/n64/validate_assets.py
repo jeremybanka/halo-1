@@ -88,6 +88,15 @@ def validate_firstperson(fp,report,text,preview=None):
   assert end==len(vertices) and len(corners)==len(weapon['triangles'])*3,name
   expected_positions=[tuple(round(v*256) for v in position(p,(0,0,0))) for tri in weapon['triangles'] for p in tri['p']]
   assert [vertices[i] for i in corners]==expected_positions,name
+  if name=='pistol' and any(t.get('magnum_textured') for t in weapon['triangles']):
+   pairs=re.findall(r'0x[0-9a-fA-F]+,0x[0-9a-fA-F]+,\{(-?\d+),(-?\d+)\},\{(-?\d+),(-?\d+)\}',body[1])
+   uvs=[tuple(map(int,p[i:i+2])) for p in pairs for i in (0,2)]
+   expected=[tuple(round(c*s) for c,s in zip(uv,(2048,1024))) for t in weapon['triangles'] for uv in (t['uv'] if t.get('magnum_textured') else [[.5/64,31.5/32]]*3)]
+   assert len(uvs)==len(vertices) and [uvs[i] for i in corners]==expected,'Pistol UV seams / hand white texel'
+   texture=re.search(r'bg_fp_pistol_texture\[2048\].*?=\{(.*?)\};',text,re.S)
+   texels=[int(v,16) for v in re.findall(r'0x([0-9a-f]+)',texture[1])]
+   assert len(texels)==2048 and texels[-64:]==[65535]*64
+   assert all(max((v>>11)&31,(v>>6)&31,(v>>1)&31)<=14 and v&1 for v in texels[:-64]),'Dark opaque source texture'
   images=load_images(weapon['textures']);source_colors=[rgb for tri in weapon['triangles'] for rgb in bake_triangle(tri,images,weapon,firstperson=True)]
   assert all(max(abs(a-b) for a,b in zip(source,colors[index]))<=tolerance for source,index in zip(source_colors,corners)),name
   validate_material_sharing(corners,[tri['material'] for tri in weapon['triangles'] for _ in range(3)])
@@ -101,7 +110,7 @@ def validate_firstperson(fp,report,text,preview=None):
    count=validate_animation(text,prefix+'_'+clipname,clip,256,corners,len(vertices))
    total+=count;animation_bytes+=count
  detail_bytes=sum(d['bytes'] for d in report.get('details',{'sniper':report['scope']}).values())
- assert animation_bytes==report['animation_bytes'] and total+detail_bytes==report['total_bytes']
+ assert animation_bytes==report['animation_bytes'] and total+detail_bytes+report.get('texture_bytes',0)==report['total_bytes']
  assert total==sum(report[k] for k in ('vertex_bytes','team_mask_bytes','index_bytes','batch_bytes','animation_bytes'))
  maximum=re.search(r'bg_fp_max_vertices=(\d+);',text);assert maximum
  assert int(maximum[1])==max(report['vertices'].values())

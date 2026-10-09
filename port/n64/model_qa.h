@@ -24,6 +24,7 @@ static void model_qa_stage(uint64_t now){
         q->yaw=0;q->pitch=0;q->invisibility=p?1:0;
         q->animation=BG_ANIM_IDLE;q->anim_time=0;q->gait=0;q->zoom=0;
         bg_give_weapon(p,weapons[p]);q->weapon=weapons[p];q->ammo=bg_weapon_defs[weapons[p]].magazine;
+        q->weapon_ready=0; /* Static pose pages must not freeze the ready animation. */
         if(model_qa_page>=3&&model_qa_page<=5){
             q->invisibility=1;
             if(model_qa_page==4){q->animation=BG_ANIM_RELOAD;q->anim_time=.55f;q->reload=.5f;}

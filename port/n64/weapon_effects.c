@@ -4,14 +4,18 @@
 bg_fx_shot bg_fx_shots[4];
 bg_fx_trail bg_fx_trails[BG_FX_TRAILS];
 bg_fx_vehicle_burst bg_fx_vehicle_bursts[4];
-static unsigned next_trail,next_burst;
+bg_fx_blast bg_fx_blasts[BG_FX_BLASTS];
+static unsigned next_trail,next_burst,next_blast;
 void bg_fx_reset(void){
+    next_blast=0;memset(bg_fx_blasts,0,sizeof(bg_fx_blasts));
+    for(unsigned i=0;i<BG_FX_BLASTS;i++)bg_fx_blasts[i].age=100;
     memset(bg_fx_shots,0,sizeof(bg_fx_shots));memset(bg_fx_trails,0,sizeof(bg_fx_trails));next_trail=0;
     for(unsigned p=0;p<4;p++){bg_fx_shots[p].age=100;bg_fx_shots[p].weapon=-1;}
     memset(bg_fx_vehicle_bursts,0,sizeof(bg_fx_vehicle_bursts));next_burst=0;
     for(unsigned i=0;i<4;i++)bg_fx_vehicle_bursts[i].age=100;
 }
 void bg_fx_update(float dt){
+    for(unsigned i=0;i<BG_FX_BLASTS;i++)bg_fx_blasts[i].age=fminf(100,bg_fx_blasts[i].age+dt);
     for(unsigned i=0;i<4;i++)bg_fx_vehicle_bursts[i].age=fminf(100,bg_fx_vehicle_bursts[i].age+dt);
     for(unsigned p=0;p<4;p++)bg_fx_shots[p].age=fminf(100,bg_fx_shots[p].age+dt);
     for(unsigned i=0;i<BG_FX_TRAILS;i++)if(bg_fx_trails[i].active){
@@ -19,6 +23,18 @@ void bg_fx_update(float dt){
     }
     for(unsigned i=0;i<bg_event_count;i++){
         const bg_event*e=&bg_events[i];
+        if(e->kind==BG_EVENT_EXPLOSION&&e->weapon>=BG_EXPLOSION_NORMAL&&e->weapon<=BG_EXPLOSION_NEEDLER){
+            bool vehicle=false;
+            for(unsigned k=0;k<bg_event_count;k++)if(bg_events[k].kind==BG_EVENT_VEHICLE_DESTROYED&&bg_events[k].player==e->player){
+                float d2=0;for(unsigned a=0;a<3;a++){float d=bg_events[k].pos[a]-e->pos[a];d2+=d*d;}
+                if(d2<9){vehicle=true;break;}
+            }
+            if(!vehicle){
+                bg_fx_blast*b=&bg_fx_blasts[next_blast++%BG_FX_BLASTS];
+                memcpy(b->origin,e->pos,sizeof(b->origin));b->age=0;b->kind=e->weapon;
+                b->radius=fmaxf(.15f,fminf(2.5f,e->amount*.4f));
+            }
+        }
         if(e->kind==BG_EVENT_VEHICLE_DESTROYED){
             bg_fx_vehicle_burst*b=&bg_fx_vehicle_bursts[next_burst++%4];
             memcpy(b->origin,e->pos,sizeof(b->origin));b->age=0;b->kind=e->weapon;b->vehicle=(int)e->amount;

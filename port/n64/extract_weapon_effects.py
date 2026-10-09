@@ -7,7 +7,7 @@ No extracted game data is checked in. Run after the first-person asset pipeline.
 import contextlib, hashlib, json
 from pathlib import Path
 from PIL import Image
-from extract_extended import MODEL_PATHS
+from extract_extended import MODEL_PATHS, tag_values
 from pack_fp_ammo import globals_for, transform_point, CLIPS
 from pack_assets import position
 
@@ -85,11 +85,32 @@ def extract():
   _,contrail=tag(r'weapons\sniper rifle\sniper','contrail');trail_texture=texture(contrail.rendering.bitmap,0,0,False)
   report['charge']={'source':r'weapons\plasma rifle\overcharge','texture':charge_texture,'glow_texture':glow_texture,'radius':list(reflection.radius),'attachment':'secondary trigger flare1','note':'Sustained green candle uses the original corona sprite at the secondary muzzle with a tapered rising copy.'}
   report['trail']={'source':r'weapons\sniper rifle\sniper','texture':trail_texture,'states':[{'width':s.width,'duration':list(s.state_duration),'transition':list(s.state_transition_duration),'color':list(s.color_lower_bound)} for s in contrail.point_states.STEPTREE]}
+  # Both human blast effects link the same fire-to-smoke system. Retain
+  # source color/lifetime envelopes; spatial lobes are a bounded N64 proxy.
+  blast_defs=[];report['explosions']={}
+  for name,path in [('normal',r'weapons\frag grenade\effects\explosion med'),('plasma',r'weapons\plasma grenade\effects\explosion'),('needler',r'weapons\needler\effects\explosion')]:
+   _,system=tag(path,'particle_system');pt=system.particle_types.STEPTREE[0]
+   fire,smoke=pt.particle_states.STEPTREE[:2]
+   mean=lambda v:sum(v)/len(v)
+   firelife=mean(fire.duration_bounds)+mean(fire.transition_time_bounds)
+   life=min(2.4,firelife+mean(smoke.duration_bounds)+mean(smoke.transition_time_bounds))
+   colors=[[round(getattr(state.color_1,c)*255) for c in 'rgb'] for state in (fire,smoke)]
+   alpha=[state.color_1.a for state in (fire,smoke)]
+   blast_defs.append((firelife,life,colors,alpha))
+   report['explosions'][name]={'path':path,'source':tag_values(system),'proxy_fire_life':firelife,'proxy_life':life}
+   if name=='plasma':energy_texture=texture(fire.bitmaps,fire.sequence_index)
+  for name,path in [('frag',r'weapons\frag grenade\effects\explosion'),('rocket',r'weapons\rocket launcher\effects\rocket explosion')]:
+   _,effect=tag(path,'effect')
+   systems=[p.type.filepath for e in effect.events.STEPTREE for p in e.parts.STEPTREE if p.type.tag_class.enum_name=='particle_system']
+   assert r'weapons\frag grenade\effects\explosion med' in systems
+   report['explosions'][name+'_links']=systems
  def array(v):return '{'+','.join(array(x) if isinstance(x,list) else str(x) for x in v)+'}'
  lines=['/* Generated owned Xbox effects; do not commit. */','#include "weapon_effects.h"',f'const unsigned bg_fx_texture_count={len(textures)};',f'const unsigned bg_fx_charge_texture={charge_texture},bg_fx_glow_texture={glow_texture},bg_fx_trail_texture={trail_texture};', 'const uint32_t bg_fx_textures[][256] __attribute__((aligned(8)))={']
  for im in textures:lines.append('{'+','.join(f'0x{r:02x}{g:02x}{b:02x}{a:02x}' for r,g,b,a in im.getdata())+'},')
  lines+=['};','const bg_fx_definition bg_fx_definitions[9]={']
  for radius,life,tex,r,g,b in defs+[defs[0]]:lines.append(f'{{{radius:.7f}f,{life:.7f}f,{tex},{{{r},{g},{b}}}}},')
+ lines+=['};','const unsigned bg_fx_energy_texture='+str(energy_texture)+';','const bg_fx_blast_definition bg_fx_blast_definitions[3]={']
+ for firelife,life,colors,alpha in blast_defs:lines.append('{'+f'{firelife:.7f}f,{life:.7f}f,'+array(colors)+','+array(alpha)+'},')
  lines+=['};','const float bg_fx_world_markers[9][2][3]='+array(world+[world[0]])+';','const uint16_t bg_fx_marker_offsets[9][4]='+array(offsets+[offsets[0]])+';','const int16_t bg_fx_marker_poses[][2][3]='+array(poses)+';']
  assert all(-32768<=v<=32767 for frame in poses for point in frame for v in point)
  target=OUT/'weapon_effects_data.c';target.write_text('\n'.join(lines)+'\n')

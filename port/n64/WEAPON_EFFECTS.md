@@ -73,3 +73,5 @@ NTSC, 4 MiB, five-buffer VI benchmark measures 28.6 FPS overall, 29.0 combat,
 28.1 vehicles, with 65 KiB heap remaining. The preceding build measured
 28.8 / 29.0 / 28.5 FPS and 101 KiB free. Combat P95 remains 33.4 ms; vehicle
 P95 is 66.8 ms. The existing four-player 30 FPS target remains unmet.
+
+The later [magnum/explosion pass](MAGNUM_EXPLOSIONS.md) adds one 16×16 energy-cloud sprite to this bank and reuses the vehicle fire/smoke textures for ordinary detonations. The labeled effects fixture now includes a fifth page of staged primed frag, plasma, rocket and cannon projectiles; detonation and drawing run through production code.

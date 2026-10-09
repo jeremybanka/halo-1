@@ -16,7 +16,7 @@ def union(*b):return box(p for bb in b for p in bb)
 def initializer(b):return '{'+','.join('{'+','.join(f'{v+(-1e-6 if side==0 else 1e-6):.7f}f' for v in row)+'}' for side,row in enumerate(b))+'}'
 def pack(source,out,generated=None):
  source=source.resolve();out=out.resolve();generated=(generated or ROOT/'build/n64/generated').resolve()
- if ROOT/'build' not in out.parents:raise ValueError('Derived game content must stay under ignored build/')
+ if not any(base.resolve()==out or base.resolve() in out.parents for base in (ROOT/'build', ROOT/'halo64-assets')):raise ValueError('Derived game content must stay under build/ or the private asset submodule')
  out.mkdir(parents=True,exist_ok=True);data=json.loads(source.read_text());models=data['models'];assert set(models)<=ALLOWED
  baseline_path=generated/'model-preview.json';baseline=json.loads(baseline_path.read_text());base_sha=sha(baseline_path)
  baseline_c=generated/'models_data.c';baseline_c_sha=sha(baseline_c)

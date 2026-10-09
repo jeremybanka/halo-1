@@ -16,6 +16,8 @@ build/n64-python/bin/python port/n64/extract_extended.py --include-source-lods
 build/n64-python/bin/python port/n64/pack_extended.py
 build/n64-python/bin/python port/n64/extract_firstperson.py
 /Applications/Blender.app/Contents/MacOS/Blender --background --python port/n64/reduce_firstperson.py -- build/n64/assets/firstperson-raw.json build/n64/assets/firstperson-reduced.json --performance-profile
+/Applications/Blender.app/Contents/MacOS/Blender --background --python port/n64/magnum_geometry.py
+build/n64-python/bin/python port/n64/pack_extended.py
 build/n64-python/bin/python port/n64/pack_firstperson.py
 build/n64-python/bin/python port/n64/extract_fp_ammo.py
 build/n64-python/bin/python port/n64/pack_fp_ammo.py
@@ -371,3 +373,5 @@ Ground textures retain the original grass/sand mask through an offline diffuse
 bake, then use 64×64 CI4 at the prior 2 KiB pixel budget. Run `extract_ground.py`
 before `pack_assets.py`; see [GROUND_TEXTURES.md](GROUND_TEXTURES.md) for source
 operations, 32/64/128 experiments, texture-memory limits and matching Ares QA.
+
+See [MAGNUM_EXPLOSIONS.md](MAGNUM_EXPLOSIONS.md) for the rectangular M6D recipe and source-derived handheld blast sprites.

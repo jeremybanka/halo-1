@@ -62,7 +62,12 @@ def bake_triangle(tri, images, model, firstperson=False):
     light = ambient + (1 - ambient) * max(0, sum(a * b for a, b in zip(n, [.25, .83, .49])))
     result = []
     for corner in range(3):
-        if override is not None:
+        if tri.get('magnum_textured') and firstperson:
+            # The RDP supplies the diffuse texture; do not bake it a second time.
+            rgb = tri.get('texture_shade', [255,255,255])
+        elif tri.get('texture_shade') is not None:
+            rgb = tri['texture_shade']
+        elif override is not None:
             rgb = override
         elif image is not None:
             samples = ([sample(image,tri['uv'][corner])] if direct else

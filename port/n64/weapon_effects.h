@@ -17,6 +17,13 @@ extern bg_fx_shot bg_fx_shots[4];
 extern bg_fx_trail bg_fx_trails[BG_FX_TRAILS];
 typedef struct {float origin[3],age;int vehicle,kind;} bg_fx_vehicle_burst;
 extern bg_fx_vehicle_burst bg_fx_vehicle_bursts[4];
+#define BG_FX_BLASTS 12
+/* Source color/lifetime stages; geometry uses a fixed billboard budget. */
+typedef struct {float fire_life,life;uint8_t colors[2][3];float alpha[2];} bg_fx_blast_definition;
+extern const bg_fx_blast_definition bg_fx_blast_definitions[3];
+extern const unsigned bg_fx_energy_texture;
+typedef struct {float origin[3],age,radius;bg_explosion_kind kind;} bg_fx_blast;
+extern bg_fx_blast bg_fx_blasts[BG_FX_BLASTS];
 void bg_fx_reset(void);
 void bg_fx_update(float dt);
 float bg_fx_flash(unsigned player);

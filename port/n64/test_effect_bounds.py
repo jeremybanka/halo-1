@@ -20,19 +20,9 @@ start = prepare.index('for(unsigned i=0;i<BG_MAX_PROJECTILES;i++)')
 end = prepare.index('data_cache_hit_writeback(transforms[slot]')
 loops = prepare[start:end]
 assert loops.count('prepare_effect_bounds(&projectile_bounds[i],q->pos,.2f);') == 1
-assert loops.count('prepare_effect_bounds(&explosion_bounds[i],explosions[i].pos,explosions[i].radius);') == 1
 draw = compact(function(main, 'draw_view'))
 assert '!q||!q->active||!visible_bounds(vp,&projectile_bounds[i])' in draw
-assert 'explosions[i].life>0&&visible_bounds(vp,&explosion_bounds[i])' in draw
 assert 'prepare_effect_bounds(' not in draw
-before = OUT/'main-before.c'
-if before.exists():
-    old = before.read_text()
-    expected = compact(function(old, 'draw_view')).replace(
-        'visible(vp,q->pos,.2f)', 'visible_bounds(vp,&projectile_bounds[i])').replace(
-        'visible(vp,explosions[i].pos,explosions[i].radius)', 'visible_bounds(vp,&explosion_bounds[i])')
-    assert draw == expected, 'Draw commands or another operation changed'
-
 c = r'''
 #include <assert.h>
 #include <stdio.h>
@@ -44,11 +34,10 @@ typedef struct {float v[4];} T3DVec4;
 typedef struct {T3DVec4 planes[6];} T3DFrustum;
 typedef struct {T3DFrustum viewFrustum;} T3DViewport;
 typedef struct {float pos[3],scale;} Matrix;
-static Matrix projectile_matrices[2][BG_MAX_PROJECTILES],explosion_matrices[2][12];
-static bg_cull_bounds projectile_bounds[BG_MAX_PROJECTILES],explosion_bounds[12];
+static Matrix projectile_matrices[2][BG_MAX_PROJECTILES];
+static bg_cull_bounds projectile_bounds[BG_MAX_PROJECTILES];
 static bg_projectile projectiles[BG_MAX_PROJECTILES];
 static bool present[BG_MAX_PROJECTILES];
-static struct {float pos[3],life,radius;} explosions[12];
 static unsigned slot,matrix_calls;
 static float game_time;
 bg_projectile*bg_projectile_at(unsigned i){return present[i]?&projectiles[i]:NULL;}
@@ -89,7 +78,6 @@ int main(void){
     for(unsigned frame=0;frame<4096;frame++){
         slot=frame%2;game_time=frame/30.f;
         memset(projectile_bounds,0x5a,sizeof projectile_bounds);
-        memset(explosion_bounds,0x5a,sizeof explosion_bounds);
         unsigned active=0;
         for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){
             bg_projectile*q=&projectiles[i];present[i]=(frame+i)%7!=0;
@@ -99,16 +87,9 @@ int main(void){
             if(i%11==0)q->pos[i%3]=(i&1?1:-1)*100000.f;
             if(present[i]&&q->active)active++;
         }
-        for(unsigned i=0;i<12;i++){
-            explosions[i].life=(frame+i)%4?uniform(.001f,.35f):0;
-            explosions[i].radius=uniform(0,8);
-            for(unsigned a=0;a<3;a++)explosions[i].pos[a]=uniform(-100,100);
-            if(i==5)explosions[i].pos[0]=-100000;
-            if(explosions[i].life>0)active++;
-        }
         matrix_calls=0;prepare_effects();assert(matrix_calls==active);
-        bg_cull_bounds saved_p[BG_MAX_PROJECTILES],saved_e[12];
-        memcpy(saved_p,projectile_bounds,sizeof saved_p);memcpy(saved_e,explosion_bounds,sizeof saved_e);
+        bg_cull_bounds saved_p[BG_MAX_PROJECTILES];
+        memcpy(saved_p,projectile_bounds,sizeof saved_p);
         for(unsigned view=0;view<4;view++){
             T3DViewport vp;
             for(unsigned p=0;p<6;p++){
@@ -117,11 +98,8 @@ int main(void){
             }
             for(unsigned i=0;i<BG_MAX_PROJECTILES;i++)if(present[i]&&projectiles[i].active)
                 check(&vp,projectiles[i].pos,.2f,&projectile_bounds[i]);
-            for(unsigned i=0;i<12;i++)if(explosions[i].life>0)
-                check(&vp,explosions[i].pos,explosions[i].radius,&explosion_bounds[i]);
         }
         assert(!memcmp(saved_p,projectile_bounds,sizeof saved_p));
-        assert(!memcmp(saved_e,explosion_bounds,sizeof saved_e));
     }
     assert(overflow>0);
     printf("PASS: %u cached/per-view decisions; %u overflow-visible cases; 4096 active/inactive/reused frames; boxes immutable across four views.\n",checks,overflow);

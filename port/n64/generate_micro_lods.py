@@ -74,8 +74,8 @@ def packed_far_inputs(reduced, recipe, generated=None):
 
 def generate(args):
     output = args.output.resolve()
-    if ROOT/'build' not in output.parents:
-        raise ValueError('Derived game geometry must be written under ignored build/')
+    if not any(base.resolve() in output.parents for base in (ROOT/'build', ROOT/'halo64-assets')):
+        raise ValueError('Derived game geometry must be written under build/ or the private asset submodule')
     output.parent.mkdir(parents=True, exist_ok=True)
     work = output.parent/(output.stem+'-work')
     work.mkdir(exist_ok=True)

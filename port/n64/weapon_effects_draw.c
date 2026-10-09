@@ -83,7 +83,7 @@ unsigned bg_fx_draw_weapon(unsigned player,const T3DMat4FP*matrix,float units,bo
     unsigned before=used,w=bg_players[player].weapon;const bg_fx_definition*d=&bg_fx_definitions[w];
     float points[2][3];
     for(unsigned m=0;m<2;m++)transform(points[m],matrix,firstperson?fp_markers[player][m]:bg_fx_world_markers[w][m],units);
-    mode();
+    mode();if(!firstperson)limit=FX_QUADS-4;
     if(flash>0){
         unsigned marker=w==BG_W_PLASMA_RIFLE?(bg_fx_shots[player].sequence&1):0;
         float radius=d->radius*(.65f+.35f*flash),alpha=fminf(1,flash*3);
@@ -100,8 +100,55 @@ unsigned bg_fx_draw_weapon(unsigned player,const T3DMat4FP*matrix,float units,bo
         sprite(tip,r*.44f,r*1.25f,bg_fx_charge_texture,tint(green,.55f*charge),sinf(time*13)*.15f);
         sprite(points[1],r*.34f,r*.5f,bg_fx_charge_texture,tint(core,.8f),0);
     }
-    restore();return (used-before)*2;
+    limit=FX_QUADS;restore();return (used-before)*2;
 }
+unsigned bg_fx_draw_blasts(void){
+    unsigned before=used,order[BG_FX_BLASTS],count=0;float keys[BG_FX_BLASTS];
+    /* Keep transparent overdraw bounded even when twelve blasts coexist.
+     * Nearby/new bursts get priority; every visible stage uses <=4 quads. */
+    for(unsigned i=0;i<BG_FX_BLASTS;i++){
+        const bg_fx_blast*b=&bg_fx_blasts[i];
+        if(b->age>=bg_fx_blast_definitions[b->kind].life)continue;
+        float d2=0;for(unsigned a=0;a<3;a++){float d=b->origin[a]-eye_pos[a];d2+=d*d;}
+        if(d2>60*60)continue;
+        float key=d2*(b->age<.18f?.5f:1.f);unsigned j=count++;
+        while(j&&keys[j-1]>key){keys[j]=keys[j-1];order[j]=order[j-1];j--;}
+        keys[j]=key;order[j]=i;
+    }
+    if(!count)return 0;
+    mode();limit=before+12<FX_QUADS-4?before+12:FX_QUADS-4;
+    for(unsigned n=0;n<count&&used<limit;n++){
+        const bg_fx_blast*b=&bg_fx_blasts[order[n]];const bg_fx_blast_definition*d=&bg_fx_blast_definitions[b->kind];
+        float t=b->age,phase=t/d->life,size=b->radius;bool energy=b->kind!=BG_EXPLOSION_NORMAL;
+        unsigned firetex=energy?bg_fx_energy_texture:bg_fx_texture_count+BG_VFX_FIRE;
+        unsigned smoketex=energy?bg_fx_energy_texture:bg_fx_texture_count+BG_VFX_SMOKE;
+        float fire=fmaxf(0,1-t/d->fire_life),smoke=fminf(1,t/.25f)*(1-phase);
+        float center[3]={b->origin[0],b->origin[1]+size*.15f,b->origin[2]};
+        /* Source fire -> widening, rising smoke. Two lobes replace 10–35
+         * emitted particles, with deterministic motion and no gameplay RNG. */
+        if(t<d->fire_life){
+            float r=size*(.28f+.55f*fminf(1,t/.18f));
+            sprite(center,r,r,firetex,tint(d->colors[0],fminf(1,fire*2)*d->alpha[0]),t*3);
+            if(t<.13f)sprite(center,r*.8f,r*.8f,bg_fx_glow_texture,tint((uint8_t[]){242,247,224},1-t/.13f),0);
+            else {
+                float lobe[3];for(unsigned a=0;a<3;a++)lobe[a]=center[a]+right[a]*r*.45f;
+                lobe[1]+=r*.3f;
+                sprite(lobe,r*.65f,r*.8f,firetex,tint(d->colors[0],fire*.8f),-t*4+1);
+            }
+        }
+        if(t>.10f){
+            unsigned lobes=keys[n]>25*25?1:2;
+            for(unsigned j=0;j<lobes;j++){
+                float r=size*(.28f+phase*.65f),point[3];
+                for(unsigned a=0;a<3;a++)point[a]=center[a]+right[a]*(j?1:-1)*size*(.16f+phase*.24f);
+                point[1]+=size*(t*.45f+j*.15f);point[0]+=t*.12f;
+                sprite(point,r,r*(energy?1.25f:1.f),smoketex,tint(d->colors[1],smoke*d->alpha[1]),j+t*.5f);
+            }
+        }
+    }
+    limit=FX_QUADS;restore();return (used-before)*2;
+}
+
 unsigned bg_fx_draw_trails(float time){
     (void)time;unsigned before=used;bool drawing=false;
     for(unsigned t=0;t<BG_FX_TRAILS;t++){

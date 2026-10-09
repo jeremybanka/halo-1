@@ -131,7 +131,7 @@ static T3DVertPacked scope_vertices[BG_FRAME_SLOTS][4][6] __attribute__((aligned
 static T3DMat4FP scope_matrices[BG_FRAME_SLOTS][4];
 static T3DMat4FP terrain_matrix;
 static T3DMat4FP transforms[BG_FRAME_SLOTS][4], guns[BG_FRAME_SLOTS][4], vehicle_matrices[BG_FRAME_SLOTS][BG_MAX_VEHICLES],
-    pickup_matrices[BG_FRAME_SLOTS][BG_MAX_PICKUPS], projectile_matrices[BG_FRAME_SLOTS][BG_MAX_PROJECTILES], explosion_matrices[BG_FRAME_SLOTS][12];
+    pickup_matrices[BG_FRAME_SLOTS][BG_MAX_PICKUPS], projectile_matrices[BG_FRAME_SLOTS][BG_MAX_PROJECTILES];
 static T3DMat4FP held_matrices[BG_FRAME_SLOTS][4];
 static rspq_syncpoint_t fences[BG_FRAME_SLOTS];
 static bool pending[BG_FRAME_SLOTS];
@@ -162,7 +162,7 @@ static uint8_t vehicle_view_lods[4][BG_MAX_VEHICLES];
 static uint8_t pickup_visible[4][BG_MAX_PICKUPS];
 static bg_cull_bounds body_bounds[4],held_bounds[4],vehicle_bounds[BG_MAX_VEHICLES],pickup_bounds[BG_MAX_PICKUPS];
 /* CPU-only effect boxes are immutable from preparation through all views. */
-static bg_cull_bounds projectile_bounds[BG_MAX_PROJECTILES],explosion_bounds[12];
+static bg_cull_bounds projectile_bounds[BG_MAX_PROJECTILES];
 static T3DMat4 body_matrices[4];
 static unsigned body_clips[4];
 static int locomotion_clip(const bg_player*p);
@@ -383,8 +383,6 @@ static int validation_write(void*cookie,const char*text,int length){
     return fwrite(text,1,length,(FILE*)cookie);
 }
 #endif
-static struct {float pos[3],life,radius;bg_explosion_kind kind;} explosions[12];
-static unsigned explosion_next;
 
 static void pump_audio(void){
 #ifdef BG_PROFILE
@@ -605,7 +603,7 @@ static void fill(int x,int y,int w,int h,color_t color){rdpq_set_mode_fill(color
 static void reset_view_state(void){
     for(unsigned p=0;p<4;p++)fired_at[p]=-100;
     bg_fx_reset();
-    memset(explosions,0,sizeof(explosions));memset(wheel_rotation,0,sizeof(wheel_rotation));explosion_next=0;
+    memset(wheel_rotation,0,sizeof(wheel_rotation));
 }
 #ifndef BG_SNAPSHOT_TICK
 static uint32_t control_buttons(joypad_buttons_t buttons){
@@ -1165,13 +1163,8 @@ static void prepare_frame(void){
         matrix(&projectile_matrices[slot][i],scale,game_time*4,0,q->pos);
         prepare_effect_bounds(&projectile_bounds[i],q->pos,.2f);
     }
-    for(unsigned i=0;i<12;i++)if(explosions[i].life>0){
-        matrix(&explosion_matrices[slot][i],explosions[i].radius*(.4f+1-explosions[i].life/.35f),0,0,explosions[i].pos);
-        prepare_effect_bounds(&explosion_bounds[i],explosions[i].pos,explosions[i].radius);
-    }
     data_cache_hit_writeback(transforms[slot],sizeof(transforms[slot]));data_cache_hit_writeback(vehicle_matrices[slot],sizeof(vehicle_matrices[slot]));
     data_cache_hit_writeback(pickup_matrices[slot],sizeof(pickup_matrices[slot]));data_cache_hit_writeback(projectile_matrices[slot],sizeof(projectile_matrices[slot]));
-    data_cache_hit_writeback(explosion_matrices[slot],sizeof(explosion_matrices[slot]));
     data_cache_hit_writeback(part_matrices[slot],sizeof(part_matrices[slot]));
 #ifdef BG_PROFILE
     matrix_us=get_ticks_us()-begin;
@@ -1181,23 +1174,9 @@ static void update_effects(float dt){
     if(bg_match_time()<=dt+.00001f)reset_view_state();
     bg_fx_update(dt);
     for(unsigned i=0;i<bg_vehicle_count;i++)wheel_rotation[i]=bg_vehicles[i].wheel_phase;
-    for(unsigned i=0;i<12;i++)explosions[i].life=fmaxf(0,explosions[i].life-dt);
     for(unsigned i=0;i<bg_event_count;i++)if(bg_events[i].kind==BG_EVENT_FIRE&&bg_events[i].player>=0&&bg_events[i].player<4)
         fired_at[bg_events[i].player]=game_time;
-    for(unsigned i=0;i<bg_event_count;i++)if(bg_events[i].kind==BG_EVENT_EXPLOSION){
-        /* One lethal hit produces a rocket/grenade impact and a vehicle death
-         * event. Let the source vehicle fireburst replace the overlapping old
-         * polygon blast, without altering damage or either gameplay event. */
-        bool vehicle_burst=false;
-        for(unsigned k=0;k<bg_event_count;k++)if(bg_events[k].kind==BG_EVENT_VEHICLE_DESTROYED&&bg_events[k].player==bg_events[i].player){
-            float distance=0;for(unsigned a=0;a<3;a++){float d=bg_events[k].pos[a]-bg_events[i].pos[a];distance+=d*d;}
-            if(distance<9){vehicle_burst=true;break;}
-        }
-        if(vehicle_burst)continue;
-        unsigned j=explosion_next++%12;memcpy(explosions[j].pos,bg_events[i].pos,12);
-        explosions[j].life=.35f;explosions[j].radius=bg_events[i].amount*.4f;
-        explosions[j].kind=(bg_explosion_kind)bg_events[i].weapon;
-    }
+
 }
 #ifdef BG_MODEL_QA
 #if defined(BG_AIM_QA)
@@ -1479,14 +1458,8 @@ static void draw_view(unsigned p){
         submitted_vertices+=24;
 #endif
     }
-    for(unsigned i=0;i<12;i++)if(explosions[i].life>0&&visible_bounds(vp,&explosion_bounds[i])){
-        unsigned particle=explosions[i].kind==BG_EXPLOSION_NEEDLER?BG_P_NEEDLE:6;
-        t3d_matrix_set(&explosion_matrices[slot][i],true);rspq_block_run(particle_blocks[particle]);triangles+=8;
-#ifdef BG_PROFILE
-        submitted_vertices+=24;
-#endif
-    }
-    unsigned fx_triangles=bg_fx_draw_trails(game_time);
+    unsigned fx_triangles=bg_fx_draw_blasts();
+    fx_triangles+=bg_fx_draw_trails(game_time);
     for(unsigned j=0;j<views;j++)if(held_masks[p]&(1u<<j))
         fx_triangles+=bg_fx_draw_weapon(j,&held_matrices[slot][j],BG_OBJECT_SCALE,false,game_time);
     fx_triangles+=bg_fx_draw_vehicle_destruction();
@@ -1523,7 +1496,18 @@ static void draw_view(unsigned p){
         t3d_viewport_attach(&gun_viewports[slot][p]);
         t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);rdpq_mode_zbuf(true,true);
         t3d_segment_set(T3D_SEGMENT_1,firstperson[slot][p]);
+        if(player->weapon==BG_W_PISTOL){
+            surface_t atlas=surface_make_linear((void*)bg_fp_pistol_texture,FMT_RGBA16,64,32);
+            rdpq_sync_pipe();rdpq_mode_tlut(TLUT_NONE);
+            rdpq_mode_combiner(RDPQ_COMBINER_TEX_SHADE);rdpq_mode_persp(true);rdpq_mode_filter(FILTER_POINT);
+            rdpq_sync_tile();rdpq_sync_load();rdpq_tex_upload(TILE0,&atlas,NULL);
+            t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK|T3D_FLAG_TEXTURED);
+        }
         t3d_matrix_set(&guns[slot][p],true);rspq_block_run(firstperson_blocks[player->weapon]);triangles+=bg_fp_models[player->weapon].triangle_count;
+        if(player->weapon==BG_W_PISTOL){
+            rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
+            t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
+        }
 #ifdef BG_PROFILE
         submitted_vertices+=fp_vertex_loads[player->weapon];
 #endif

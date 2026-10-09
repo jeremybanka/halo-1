@@ -36,6 +36,7 @@ class Mesh:
     family:str='world'
     provenance:str=''
     material_colors:list|None=None
+    diffuse_atlas:str|None=None
 
 
 def load(path):return json.loads(Path(path).read_text())
@@ -128,6 +129,8 @@ def preview(path,fallback):
         tm=np.asarray(m['team_mask'],dtype=float).reshape(len(p),3) if 'team_mask' in m else None
         if tm is not None and tm.max()>1:tm/=255
         fallback[name]=Mesh(p,colors,team_mask=tm,family='fp' if 'firstperson' in str(path) else 'world',provenance='Exact packer preview positions and vertex RGB')
+        if m.get('texture'):
+            fallback[name]=replace(fallback[name],uv=np.asarray(m['uvs'],dtype=float).reshape(-1,3,2)/[2048,1024],diffuse_atlas=m['texture'])
     return fallback
 
 def packed_models(directory,firstperson=False,report=None):
@@ -225,7 +228,11 @@ def render(mesh,bounds,direction,width=224,height=184,pixel_span=None,cull="back
                 colors*=1-amount[:,None]+amount[:,None]*np.asarray(mesh.team)/255
             n=np.cross(mesh.p[ti,1]-mesh.p[ti,0],mesh.p[ti,2]-mesh.p[ti,0]);n/=max(1e-12,np.linalg.norm(n))
             base=.78 if mesh.family=='fp' else .68;colors*=base+(1-base)*max(0,n@lightdir)
-        else:colors=weights@mesh.rgb[ti]
+        else:
+            colors=weights@mesh.rgb[ti]
+            if mesh.diffuse_atlas:
+                tex=sample_texture(image_array(mesh.diffuse_atlas),weights@mesh.uv[ti]).astype(np.uint8)>>3
+                colors*=((tex<<3)|(tex>>2))/255
         old[keep]=zz[keep];rgb[y0:y1+1,x0:x1+1][keep]=np.clip(np.round(colors),0,255).astype(np.uint8);mask[y0:y1+1,x0:x1+1][keep]=True
     return Image.fromarray(rgb),mask
 

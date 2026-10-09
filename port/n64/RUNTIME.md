@@ -146,7 +146,7 @@ Thirty-seven extracted renderer functions retain the checkpoint's arithmetic
 and command ordering. Asset, animation-buffer borrowing and presentation tests
 cover separate contracts; emulator/hardware evidence remains necessary.
 
-The release ELF uses 2,392,588 bytes of text/data/BSS, 296 bytes less than the
+The release ELF uses 2,392,524 bytes of text/data/BSS, 360 bytes less than the
 same-SDK checkpoint build. This is linked resident size, not total runtime
 heap usage. No geometry buffers or gameplay pool capacities grew.
 

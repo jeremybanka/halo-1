@@ -1101,10 +1101,15 @@ static void animate_firstperson(unsigned p){
     if(clip==BG_FP_IDLE)phase-=floorf(phase);else phase=fminf(phase,.9999f);
     float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;int fraction=(frame-f0)*256;
     float service_seconds=0;bool service_loop=false;int service=bg_firstperson_service(player,&service_seconds,&service_loop);
+    if(service<0&&w==BG_W_SHOTGUN&&clip==BG_FP_FIRE){service=BG_SERVICE_SHOTGUN_FIRE;service_seconds=seconds;}
     if(player->weapon_ready>0)bg_interaction_pose(output,&bg_ready_poses[w],bg_ready_times[w]-player->weapon_ready,false);
     else if(service>=0)bg_interaction_pose(output,&bg_service_poses[service],service_seconds,service_loop);
     else animate_mesh(output,a,f0,f1,fraction);
     bg_fx_pose(p,w,clip,f0,f1,fraction);
+    if(service==BG_SERVICE_SHOTGUN_FIRE&&player->weapon_ready<=0){
+        int16_t points[2][3];bg_interaction_points(points,&bg_shotgun_fire_muzzle,service_seconds);
+        bg_fx_muzzle_pose(p,points);
+    }
     const bg_fp_detail_asset*detail=&bg_fp_details[w];
     if(detail->vertices){
         T3DVertPacked *scope=scope_vertices[slot][p];
@@ -1119,12 +1124,14 @@ static void animate_firstperson(unsigned p){
             int16_t points[12][3];bg_interaction_points(points,w==BG_W_SNIPER?&bg_ready_scope:&bg_ready_plasma[w==BG_W_PLASMA_RIFLE],bg_ready_times[w]-player->weapon_ready);
             for(unsigned v=0;v<detail->vertices;v++)memcpy(t3d_vertbuffer_get_pos(scope,v),points[v],sizeof(points[v]));
         }
-        else if(service>=BG_SERVICE_HEAT_ENTER&&service<=BG_SERVICE_HEAT_EXIT){
-            int16_t points[12][3];const bg_rom_pose*pose=&bg_service_plasma[service-BG_SERVICE_HEAT_ENTER];
+        else if(service>=0&&bg_service_details[service].vertices){
+            int16_t points[12][3];const bg_rom_pose*pose=&bg_service_details[service];
             float t=service_loop?fmodf(service_seconds,pose->duration):service_seconds;
             bg_interaction_points(points,pose,t);
-            int16_t vents[3][3];bg_interaction_points(vents,&bg_service_vents[service-BG_SERVICE_HEAT_ENTER],t);
-            bg_fx_vent_pose(p,vents);
+            if(bg_service_vents[service].vertices){
+                int16_t vents[3][3];bg_interaction_points(vents,&bg_service_vents[service],t);
+                bg_fx_vent_pose(p,vents);
+            }
             for(unsigned v=0;v<detail->vertices;v++)memcpy(t3d_vertbuffer_get_pos(scope,v),points[v],sizeof(points[v]));
         }
         data_cache_hit_writeback(scope,sizeof(scope_vertices[slot][p]));

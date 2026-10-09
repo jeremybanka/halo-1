@@ -48,7 +48,7 @@ def main():
     mode.add_argument('--hud-qa', action='store_true', help='Render HUD ammunition, damage, scope and viewport-size fixtures')
     parser.add_argument('--hud-qa-page', type=int, choices=range(7), help='Hold one HUD QA page instead of cycling; requires --hud-qa')
     mode.add_argument('--geometry-qa', action='store_true', help='Render sleeves, sniper scope and both bases from fixed views')
-    mode.add_argument('--reload-qa', action='store_true', help='Live AR reload, plasma overheat and full/empty rocket reloads')
+    mode.add_argument('--reload-qa', action='store_true', help='Live magazine reloads, both plasma vent sequences and shotgun pump action')
     mode.add_argument('--effects-qa', action='store_true', help='Script live weapon firing, charging and sniper trails in four views')
     mode.add_argument('--shield-qa', type=int, choices=range(3), help='Frozen original shield transition fixtures with inspection cameras')
     mode.add_argument('--interaction-qa', type=int, choices=range(5), help='Production pickup/seat/flip input with frozen inspection cameras')

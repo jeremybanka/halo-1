@@ -85,6 +85,10 @@ def extract():
   report['overheat']={'effect':r'weapons\plasma pistol\effects\overheated',
       'particle':r'effects\particles\energy\plasma overheat','source':tag_values(vent_effect),
       'texture':vent_texture,'note':'Three bounded green wisps at original animated vent markers replace the repeated six-jet emitter.'}
+  _,rifle_vent=tag(r'weapons\plasma rifle\effects\overheated','effect')
+  report['rifle_overheat']={'effect':r'weapons\plasma rifle\effects\overheated',
+      'particle':r'effects\particles\energy\plasma overheat','source':tag_values(rifle_vent),
+      'texture':vent_texture,'note':'Three bounded cyan wisps reuse the source plasma-overheat sprite at the animated vent marker; smoke is collapsed into this emitter.'}
   _,charge=tag(r'weapons\plasma rifle\overcharge','lens_flare');reflection=charge.reflections.STEPTREE[0]
   charge_texture=texture(charge.bitmaps.bitmap,bitmap_override=reflection.bitmap_index)
   glow_texture=texture(charge.bitmaps.bitmap,bitmap_override=0)

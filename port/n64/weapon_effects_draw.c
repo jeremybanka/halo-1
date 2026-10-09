@@ -27,6 +27,9 @@ void bg_fx_pose(unsigned player,unsigned weapon,unsigned clip,unsigned f0,unsign
     const int16_t (*b)[3]=bg_fx_marker_poses[bg_fx_marker_offsets[weapon][clip]+f1];
     for(unsigned m=0;m<2;m++)for(unsigned k=0;k<3;k++)fp_markers[player][m][k]=(a[m][k]+(b[m][k]-a[m][k])*(fraction/256.f))/4096.f;
 }
+void bg_fx_muzzle_pose(unsigned player,const int16_t points[2][3]){
+    for(unsigned m=0;m<2;m++)for(unsigned a=0;a<3;a++)fp_markers[player][m][a]=points[m][a]/4096.f;
+}
 void bg_fx_vent_pose(unsigned player,const int16_t points[3][3]){
     for(unsigned m=0;m<3;m++)for(unsigned a=0;a<3;a++)fp_vents[player][m][a]=points[m][a]/4096.f;
 }
@@ -84,7 +87,7 @@ static void transform(float out[3],const T3DMat4FP*matrix,const float point[3],f
 unsigned bg_fx_draw_weapon(unsigned player,const T3DMat4FP*matrix,float units,bool firstperson,float time){
     float flash=bg_fx_flash(player),charge=bg_fx_charge(player);
     const bg_player*p=&bg_players[player];
-    bool vent=firstperson&&p->weapon==BG_W_PLASMA_PISTOL&&p->overheated&&p->weapon_ready<=0;
+    bool vent=firstperson&&(p->weapon==BG_W_PLASMA_PISTOL||p->weapon==BG_W_PLASMA_RIFLE)&&p->overheated&&p->weapon_ready<=0;
     if(flash<=0&&charge<=0&&!vent)return 0;
     unsigned before=used,w=bg_players[player].weapon;const bg_fx_definition*d=&bg_fx_definitions[w];
     float points[2][3];
@@ -107,14 +110,14 @@ unsigned bg_fx_draw_weapon(unsigned player,const T3DMat4FP*matrix,float units,bo
         sprite(points[1],r*.34f,r*.5f,bg_fx_charge_texture,tint(core,.8f),0);
     }
     if(vent){
-        // Source plasma-overheat particle tint and three animated vent locations.
+        // Source green/cyan tint; three bounded wisps follow the animated vents.
         float intensity=fminf(1,(p->heat-.15f)*4);
         for(unsigned m=0;m<3;m++){
             float phase=fmodf(time*2.5f+m/3.f,1),center[3];
             transform(center,matrix,fp_vents[player][m],units);
             for(unsigned a=0;a<3;a++)center[a]+=up[a]*phase*.08f;
             float radius=.02f+.0125f*phase;
-            sprite(center,radius,radius*1.5f,bg_fx_vent_texture,tint((uint8_t[]){13,255,0},(1-phase)*intensity*.8f),m+time);
+            sprite(center,radius,radius*1.5f,bg_fx_vent_texture,tint(p->weapon==BG_W_PLASMA_RIFLE?(uint8_t[]){0,255,255}:(uint8_t[]){13,255,0},(1-phase)*intensity*.8f),m+time);
         }
     }
     limit=FX_QUADS;restore();return (used-before)*2;

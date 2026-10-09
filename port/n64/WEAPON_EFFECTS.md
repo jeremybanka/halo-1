@@ -121,3 +121,45 @@ The 8 KiB-queue reload diagnostic reports zero RDP errors/warnings. The quiet
 32 KiB-queue replay measures 24.3 FPS overall, 26.2 combat, 22.5 vehicle;
 P95 66.8 ms, maximum 200.5 ms, 44 KiB live heap free. The previous build was
 24.4 / 26.3 / 22.7 FPS. The >25 FPS vehicle gate remains open.
+
+## Remaining first-person animation refinement (2026-10-09)
+
+The plasma rifle now uses its own source overheating entry (58 frames), vent
+loop (50), and exit (35). Three cyan wisps follow the source `vent` marker,
+using the same `plasma overheat` sprite already resident for the pistol. This
+collapses the original smoke and plasma emitters into six bounded triangles.
+The small green insert uses the same dense clock at 1/4096 precision. The
+existing gameplay heat/recovery rules still determine when the closing clip
+runs; those rules were not changed in this presentation pass.
+
+The magnum reload now retains all 65 partial / 67 empty source frames, and
+the sniper retains all 83 partial / 94 empty frames. Their previous eight
+samples blurred magazine and hand contacts; empty reloads also incorrectly
+reused the partial sequence. The sniper screen is streamed separately at
+1/4096 precision to preserve its separation from the housing. The shotgun's
+26-frame firing sequence now retains its recoil and pump action instead of
+interpolating four widely separated keys. Its muzzle marker shares that dense
+clock. Cadence, reload timers, damage, ammunition and controls are unchanged.
+The Needler retains its existing synchronized needle-regrowth overlay.
+
+Service slots are explicitly assigned instead of depending on weapon iteration
+order. Sparse absent detail/vent descriptors are never sampled. Added pose ROM
+is 1,802,480 bytes, with no additional resident texture, mesh vertices or pose
+cache allocation (still 70,912 bytes). Resident descriptor tables grow by
+1,240 bytes. `test_interaction_assets.py` checks 3,652 frames, source timings,
+DMA alignment, conservative bounds, and retained source keys for AR, rocket,
+magnum, sniper and shotgun. Native sanitizer tests cover both plasma state
+chains and partial/empty reload selection.
+
+`--reload-qa` now alternates the newer quartet (magnum, plasma rifle, sniper,
+shotgun) with the previous quartet (AR, plasma pistol, empty/partial rockets),
+on 12-second cycles. The next pass of each quartet exercises empty reloads or
+charged plasma-pistol entry. Real Ares recordings and the source audit are in
+`build/n64/weapon-animation-audit/`; exact release identity and measured
+performance are recorded in its manifest and `build/n64/release-manifest.json`.
+
+Final verification for this follow-up: Ares 4 MiB release lifecycle 37/37 PASS,
+27 KiB free during staged combat and 339 KiB on return to the menu. The reload
+RDP diagnostic reports zero errors/warnings. Quiet VI replay: 23.9 FPS overall,
+26.1 combat, 21.9 vehicles (preceding run 24.3 / 26.2 / 22.5), P95 66.8 ms,
+maximum 200.5 ms, 43 KiB live heap. The >25 FPS vehicle gate remains open.

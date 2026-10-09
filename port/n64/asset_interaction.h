@@ -19,8 +19,10 @@ extern const bg_rom_pose bg_ready_plasma[2];
 extern const uint16_t bg_ready_needle_vertices[];
 enum { BG_SERVICE_AR, BG_SERVICE_HEAT_ENTER, BG_SERVICE_HEAT_CHARGED,
     BG_SERVICE_HEAT_LOOP, BG_SERVICE_HEAT_EXIT, BG_SERVICE_ROCKET_FULL,
-    BG_SERVICE_ROCKET_EMPTY, BG_SERVICE_COUNT };
-extern const bg_rom_pose bg_service_poses[BG_SERVICE_COUNT],bg_service_plasma[4],bg_service_vents[4],bg_reload_ar_digits;
+    BG_SERVICE_ROCKET_EMPTY, BG_SERVICE_RIFLE_ENTER, BG_SERVICE_RIFLE_LOOP,
+    BG_SERVICE_RIFLE_EXIT, BG_SERVICE_PISTOL_FULL, BG_SERVICE_PISTOL_EMPTY,
+    BG_SERVICE_SNIPER_FULL, BG_SERVICE_SNIPER_EMPTY, BG_SERVICE_SHOTGUN_FIRE, BG_SERVICE_COUNT };
+extern const bg_rom_pose bg_service_poses[BG_SERVICE_COUNT],bg_service_details[BG_SERVICE_COUNT],bg_service_vents[BG_SERVICE_COUNT],bg_reload_ar_digits,bg_shotgun_fire_muzzle;
 extern const unsigned bg_interaction_scratch_bytes;
 void bg_interaction_render_init(void);
 void bg_interaction_render_release(void);

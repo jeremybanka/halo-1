@@ -22,7 +22,8 @@ display, first-person sleeves and original base geometry repairs are covered
 in [GEOMETRY_REPAIRS.md](GEOMETRY_REPAIRS.md).
 Source-based muzzle flashes, sniper smoke trails and sustained plasma charging
 are documented in [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md), including the dense
-AR/rocket reloads, plasma overheat sequences and masked rocket lettering.
+AR/magnum/sniper/rocket reloads, both plasma vent sequences, shotgun pump action
+and masked rocket lettering.
 The source grass/sand bake and 64×64 paletted ground experiment are documented
 in [GROUND_TEXTURES.md](GROUND_TEXTURES.md).
 Held-use weapon pickups, original ready/boarding/dismount animations and
@@ -40,13 +41,13 @@ cartridge. Build the recommended four-player profile with
 `build/n64-python/bin/python port/n64/build.py --paced30 --rspq-buffer-kib 32`.
 This uses three display surfaces for four player views. The ordinary
 `halo-blood-gulch.z64` retains the unpaced presenter.
-The current reload/overheat refinement measures **24.3 displayed FPS overall /
-26.2 in combat / 22.5 around vehicles**, with 44 KiB free in the quiet Ares
+The current reload/overheat refinement measures **23.9 displayed FPS overall /
+26.1 in combat / 21.9 around vehicles**, with 43 KiB free in the quiet Ares
 fixture. The vehicle section is below the >25 FPS development target. P95 pose
 interval is 66.8 ms and maximum is 200.5 ms; the final 30 FPS/latency pass remains
 open. The expanded frontend lifecycle cycles all eight weapons, completes a
 15-kill match and returns to the menu. See [FIDELITY_EDGES.md](FIDELITY_EDGES.md),
-`build/n64/reload-audit/` and `build/n64/release-manifest.json` for verification
+`build/n64/weapon-animation-audit/` and `build/n64/release-manifest.json` for verification
 status and exact ROM identity.
 Earlier timing results describe older builds.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →

@@ -16,6 +16,12 @@ from blam.test_vehicle import validate as host_suites
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = (
+    "test_camera_batch.py",
+    "test_camera_packet.py",
+    "test_projection_cache.py",
+    "test_texture_blocks.py",
+    "test_render_cull.py",
+    "test_bounds_quantize.py",
     "test_scene_equivalence.py",
     "test_render_matrix.py",
     "test_render_prepare.py",
@@ -63,7 +69,7 @@ def main():
     )
     parser.add_argument("--output-dir", type=Path, default=ROOT / "build/n64-validation")
     parser.add_argument(
-        "--reference", default="b3fba521", help="Git checkpoint for optional per-tick equivalence"
+        "--reference", default="ffc5e53d", help="Git checkpoint for optional per-tick equivalence"
     )
     args = parser.parse_args()
     out = args.output_dir.resolve()
@@ -165,6 +171,20 @@ def main():
                     args.reference,
                     "--output-dir",
                     out / "equivalence",
+                ]
+            ),
+        )
+        check(
+            "checkpoint per-tick equivalence with LTO",
+            lambda: command(
+                [
+                    sys.executable,
+                    "port/n64/test_runtime_equivalence.py",
+                    "--reference",
+                    args.reference,
+                    "--lto",
+                    "--output-dir",
+                    out / "equivalence-lto",
                 ]
             ),
         )

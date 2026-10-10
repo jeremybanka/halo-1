@@ -12,6 +12,10 @@
 #include <math.h>
 #include <string.h>
 #include <float.h>
+#if defined(N64) && defined(BG_PROFILE)
+#include <libdragon.h>
+uint32_t bg_tick_profile[3];
+#endif
 #ifdef BG_BLAM_BSP
 #include "blam/collision.h"
 extern const blam_collision_bsp bg_blam_collision_bsp;
@@ -603,12 +607,18 @@ float bg_camera_clearance(const float origin[3], const float direction[3], float
 #else
     bg_world_camera_rays(origin, rays, reaches, hits);
 #endif
+    /* Finish all probes against one hull before visiting the next. The
+     * articulated collision cache is shared by model kind; interleaving
+     * several instances across five probes needlessly refits their parts.
+     * Each probe still visits vehicles in the original order. */
+    for (unsigned v = 0; v < bg_vehicle_count; v++)
+        if ((int)v != ignore_vehicle && bg_vehicle_body_present(&bg_vehicles[v]))
+            for (unsigned i = 0; i < 5; i++)
+                if (reaches[i] >= .001f)
+                    hits[i] = bg_vehicle_hit_ray(&bg_vehicles[v], origin, rays[i], hits[i]);
     for (unsigned i = 0; i < 5; i++) {
         if (reaches[i] < .001f)
             continue;
-        for (unsigned v = 0; v < bg_vehicle_count; v++)
-            if ((int)v != ignore_vehicle && bg_vehicle_body_present(&bg_vehicles[v]))
-                hits[i] = bg_vehicle_hit_ray(&bg_vehicles[v], origin, rays[i], hits[i]);
         nearest = fminf(nearest, hits[i] * length / reaches[i]);
     }
     return fmaxf(0, nearest - .15f);
@@ -2371,6 +2381,9 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     if (dt <= 0 || bg_match_finished())
         return;
     match_time += dt;
+#if defined(N64) && defined(BG_PROFILE)
+    uint32_t tick_begin = get_ticks_us();
+#endif
     update_pickups(dt);
     for (unsigned i = 0; i < active_players; i++) {
         bg_player *p = &bg_players[i];
@@ -2396,7 +2409,18 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     }
     if (!bg_match_finished()) {
         resolve_player_pairs();
+#if defined(N64) && defined(BG_PROFILE)
+        bg_tick_profile[0] += get_ticks_us() - tick_begin;
+        tick_begin = get_ticks_us();
+#endif
         update_vehicles(inputs, dt);
+#if defined(N64) && defined(BG_PROFILE)
+        bg_tick_profile[1] += get_ticks_us() - tick_begin;
+        tick_begin = get_ticks_us();
+#endif
         update_projectiles(dt);
+#if defined(N64) && defined(BG_PROFILE)
+        bg_tick_profile[2] += get_ticks_us() - tick_begin;
+#endif
     }
 }

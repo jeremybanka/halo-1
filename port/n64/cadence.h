@@ -4,7 +4,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#if defined(BG_BENCHMARK) && defined(BG_PACED30)
+/* Full profiling owns three sample banks. Two-retrace pacing bounds this
+ * 75-second replay to 2250 frames plus display-buffer slack. Quiet VI and
+ * ordinary/unpaced diagnostics retain their existing capacity. */
+#define BG_CADENCE_CAPACITY 2560
+#else
 #define BG_CADENCE_CAPACITY 5120
+#endif
 #define BG_CADENCE_WARMUP_US 1000000ULL
 #define BG_CADENCE_DURATION_US 75000000ULL
 typedef struct {

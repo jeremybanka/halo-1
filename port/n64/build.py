@@ -35,6 +35,11 @@ def parse_args(argv=None):
         help="Isolate objects, generated source, filesystem and ROMs from the shared asset bank",
     )
     parser.add_argument(
+        "--game-source",
+        type=Path,
+        help="Diagnostic comparison: compile an alternate game.c; exact input is recorded in the build manifest",
+    )
+    parser.add_argument(
         "--sdk",
         type=Path,
         default=os.environ.get("N64_INST", ROOT.parent / "n64-2048/.build/libdragon"),
@@ -45,6 +50,19 @@ def parse_args(argv=None):
         default=os.environ.get("TINY3D_DIR", ROOT.parent / "n64-3d-splitscreen/.build/tiny3d"),
     )
     parser.add_argument("--validate", action="store_true")
+    parser.add_argument(
+        "--lto",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Link-time optimization with conservative math/alias/wrap contracts (release default)",
+    )
+    parser.add_argument(
+        "--solver-opt",
+        type=int,
+        choices=(2, 3),
+        default=2,
+        help="Optimize the strict original-solver adapter at O2/O3; math/alias/wrap contracts remain unchanged",
+    )
     parser.add_argument(
         "--telemetry",
         action="store_true",
@@ -57,6 +75,13 @@ def parse_args(argv=None):
         "--benchmark",
         action="store_true",
         help="Measure one four-player replay without live debug overlays, then show frame statistics",
+    )
+    parser.add_argument(
+        "--benchmark-page",
+        type=int,
+        choices=range(6),
+        default=0,
+        help="Select and hold a result page; page 5 shows detailed CPU costs (default cycles)",
     )
     parser.add_argument(
         "--vi-benchmark",
@@ -223,9 +248,17 @@ def parse_args(argv=None):
         help="Script four-angle vehicle destruction, wreck settling, blinking and respawn",
     )
     args = parser.parse_args(argv)
+    if args.benchmark_page and not args.benchmark:
+        parser.error("--benchmark-page requires --benchmark")
+    if args.game_source and not (
+        args.profile or args.benchmark or args.vi_benchmark or args.telemetry
+    ):
+        parser.error("--game-source requires an explicit profiling or telemetry mode")
     if args.preset == "release":
         args.paced30 = True
         args.paced30_buffers = args.paced30_buffers or 3
+    if args.lto is None:
+        args.lto = args.preset == "release"
     if args.rspq_buffer_kib is None:
         args.rspq_buffer_kib = 32 if args.preset == "release" else 16
     if args.interaction_qa is not None and not 0 <= args.interaction_tick <= 240:
@@ -301,10 +334,13 @@ def parse_args(argv=None):
 def compile_options(args, sdk, tiny, out, source):
     sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
     return [
+        *(["-flto"] if args.lto else []),
+        "-DBG_BENCHMARK_PAGE=" + str(args.benchmark_page),
+        *(["-DBG_BENCHMARK_HOLD_PAGE"] if args.benchmark_page else []),
         "-march=vr4300",
         "-mtune=vr4300",
         "-mabi=o64",
-        "-O2",
+        "-O3" if args.solver_opt == 3 and source.name == "vehicle_physics.c" else "-O2",
         "-g",
         "-std=gnu17",
         "-falign-functions=32",
@@ -823,8 +859,16 @@ def main():
         )
         sources.append("blam/collision.c")
         generated.append("blam_collision_data.c")
+    runtime_sources = [
+        (
+            args.game_source.resolve()
+            if name == "game.c" and args.game_source
+            else ROOT / "port/n64" / name
+        )
+        for name in sources
+    ]
     for source in [
-        *(ROOT / "port/n64" / name for name in sources),
+        *runtime_sources,
         *(
             (out if name == "vehicle_data.c" else asset_root) / "generated" / name
             for name in generated
@@ -849,6 +893,18 @@ def main():
     run(
         [
             sdk / "bin/mips64-elf-g++",
+            *(
+                [
+                    "-flto",
+                    "-O2",
+                    "-fno-fast-math",
+                    "-ffp-contract=off",
+                    "-fno-strict-aliasing",
+                    "-fwrapv",
+                ]
+                if args.lto
+                else []
+            ),
             "-o",
             elf,
             *objects,
@@ -964,7 +1020,7 @@ def main():
         "sources": {
             str(source): hashlib.sha256(source.read_bytes()).hexdigest()
             for source in [
-                *(ROOT / "port/n64" / name for name in sources),
+                *runtime_sources,
                 *(
                     (out if name == "vehicle_data.c" else asset_root) / "generated" / name
                     for name in generated

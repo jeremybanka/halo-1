@@ -9,6 +9,9 @@
 #define BG_MAX_PROJECTILES 48
 #define BG_MAX_PICKUPS 56
 #define BG_MAX_EVENTS 64
+#if defined(N64) && defined(BG_PROFILE)
+extern uint32_t bg_tick_profile[3]; /* players/pickups/pairs, vehicles, projectiles */
+#endif
 
 typedef enum {
     BG_W_AR,

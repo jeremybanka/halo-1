@@ -151,3 +151,8 @@ Retail explosive/Needler comparison is deferred by explicit user instruction.
 Source-fidelity quiet replay: **24.4 overall / 26.3 combat / 22.7 vehicle FPS**,
 52 KiB live free heap. P95 66.8 ms, maximum 200.5 ms. Source contact and hit-region
 work is implemented; the >25 FPS development gate remains open.
+
+October 9 first optimization pass: **25.0 overall / 26.4 combat / 23.7 vehicle
+FPS**, 49 KiB free, unchanged assets and 30 Hz simulation. Exact state and
+frozen-scene comparisons pass. The >25 vehicle and final 30 FPS gates remain
+open; see [OPTIMIZATION.md](OPTIMIZATION.md) for candidates and next bottlenecks.

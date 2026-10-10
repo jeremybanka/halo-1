@@ -5,8 +5,15 @@
 
 /* NTSC can present at most 4500 frames in the 75-second sample window.
  * Store the phase in the high bit so the complete sample bank uses 20 KiB. */
+#if defined(BG_BENCHMARK) && defined(BG_PACED30)
+/* The paced replay can acquire at most 2250 frames in 75 seconds, plus
+ * bounded pipeline startup/endpoint slack. Keep exact timestamps while
+ * avoiding an unused 10 KiB tail in each of the three diagnostic banks. */
+#define BG_BENCHMARK_CAPACITY 2560
+#else
 #define BG_BENCHMARK_CAPACITY 5120
-#define BG_BENCHMARK_PHASES 17
+#endif
+#define BG_BENCHMARK_PHASES 24
 #define BG_BENCHMARK_CATEGORIES 6
 typedef struct {
     uint64_t elapsed,triangles,vertices,phase_us[BG_BENCHMARK_PHASES];

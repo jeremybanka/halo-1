@@ -26,6 +26,7 @@
 #include "asset_micro.h"
 #include "render_micro_lod.h"
 #include "render_pose_cache.h"
+#include "render_cull.h"
 #include "render_visibility.h"
 #include "blam/runtime.h"
 #include "hud.h"
@@ -37,6 +38,7 @@ extern uint16_t bg_textures[][32 * 32];
 static const color_t colors[4] = {
     {225, 45, 38, 255}, {39, 92, 215, 255}, {215, 179, 44, 255}, {57, 183, 69, 255}};
 static surface_t textures[32];
+static rspq_block_t *texture_blocks[32];
 static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[7][12] __attribute__((aligned(16)));
 static T3DVertPacked *firstperson[BG_FRAME_SLOTS][4];
 static unsigned firstperson_bytes[BG_FRAME_SLOTS][4];
@@ -76,6 +78,11 @@ static int16_t triangle_lists[20][64] __attribute__((aligned(16)));
 static bg_motion_track *motion_tracks;
 static unsigned motion_capacity;
 static T3DVec3 view_eyes[4];
+/* A slot's projection changes only with layout/magnification. Camera and
+ * combined/frustum matrices still update every frame; GPU storage stays local
+ * to the fenced slot. Zero keys force initialization on first use. */
+static uint8_t projection_keys[BG_FRAME_SLOTS][BG_PLAYERS];
+static uint8_t cull_selected[BG_PLAYERS][6][3];
 /* 0: absent, 1: full mesh, 2: distant mesh. Visibility is evaluated once. */
 static uint8_t body_lods[4][4], wanted_lods[4], held_masks[4], wanted_held;
 static uint8_t vehicle_view_lods[4][BG_MAX_VEHICLES];
@@ -215,6 +222,14 @@ static rspq_block_t *record_indexed(const bg_chunk *chunk) {
     t3d_tri_sync();
     return rspq_block_end();
 }
+static rspq_block_t *record_texture(unsigned material) {
+    rspq_block_begin();
+    if (bg_texture_ci4[material])
+        rdpq_tex_upload_tlut((uint16_t *)bg_ground_palette, 0, 16);
+    rdpq_tex_upload(TILE0, &textures[material],
+                    &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
+    return rspq_block_end();
+}
 static void init_scene(void) {
     const float terrain_scale = BG_SCALE / BG_TERRAIN_SCALE;
     t3d_mat4fp_from_srt_euler(&terrain_matrix,
@@ -248,6 +263,7 @@ static void init_scene(void) {
         textures[i] = surface_make(bg_textures[i], bg_texture_ci4[i] ? FMT_CI4 : FMT_RGBA16, size,
                                    size, bg_texture_ci4[i] ? size / 2 : size * 2);
         data_cache_hit_writeback(bg_textures[i], 2048);
+        texture_blocks[i] = record_texture(i);
     }
     for (unsigned i = 0; i < bg_chunk_count; i++)
         world_blocks[i] = record_indexed(&bg_chunks[i]);
@@ -344,6 +360,7 @@ static void init_scene(void) {
     for (unsigned s = 0; s < BG_FRAME_SLOTS; s++)
         for (unsigned p = 0; p < 4; p++) {
             viewports[s][p] = t3d_viewport_create();
+            projection_keys[s][p] = 0;
         }
     static const int16_t points[6][3] = {{0, 32, 0}, {0, -32, 0}, {32, 0, 0},
                                          {0, 0, 32}, {-32, 0, 0}, {0, 0, -32}};
@@ -374,8 +391,13 @@ static void prepare_effect_bounds(bg_cull_bounds *bounds, const float pos[3], fl
     }
     bg_bounds_quantize(bounds, &box);
 }
-static bool visible_bounds(T3DViewport *vp, const bg_cull_bounds *bounds) {
-    return !bounds->valid || t3d_frustum_vs_aabb_s16(&vp->viewFrustum, bounds->min, bounds->max);
+static bool visible_bounds(T3DViewport *vp, const bg_cull_bounds *bounds,
+                           const uint8_t selected[6][3]) {
+    return !bounds->valid ||
+           (selected ? bg_frustum_box_cached((const float (*)[4])vp->viewFrustum.planes, selected,
+                                             bounds->values)
+                     : bg_frustum_box((const float (*)[4])vp->viewFrustum.planes, bounds->min,
+                                      bounds->max));
 }
 static void instance(unsigned model, T3DMat4FP *matrix) {
     t3d_matrix_set(matrix, true);
@@ -1003,10 +1025,22 @@ static void prepare_frame(void) {
      * later submitted, once per frame rather than once per viewport. */
     for (unsigned p = 0; p < views; p++)
         prepare_player_bounds(p);
+#ifdef BG_PROFILE
+    bg_scene_profile.body_prepare_us = get_ticks_us() - begin;
+    uint64_t section_begin = get_ticks_us();
+#endif
     for (unsigned i = 0; i < bg_vehicle_count; i++)
         if (bg_vehicle_body_present(&bg_vehicles[i]))
             prepare_vehicle(i);
+#ifdef BG_PROFILE
+    bg_scene_profile.vehicle_prepare_us = get_ticks_us() - section_begin;
+    section_begin = get_ticks_us();
+#endif
     prepare_pickup_bounds();
+#ifdef BG_PROFILE
+    bg_scene_profile.pickup_prepare_us = get_ticks_us() - section_begin;
+    section_begin = get_ticks_us();
+#endif
     if (views >= 3) {
         for (unsigned i = 0; i < bg_vehicle_count; i++)
             if (bg_vehicle_body_present(&bg_vehicles[i]) &&
@@ -1020,6 +1054,7 @@ static void prepare_frame(void) {
         prepare_view(p);
 #ifdef BG_PROFILE
     camera_us = get_ticks_us() - begin;
+    bg_scene_profile.view_prepare_us = get_ticks_us() - section_begin;
     begin = get_ticks_us();
 #endif
     for (unsigned i = 0; i < BG_MAX_PROJECTILES; i++) {
@@ -1141,27 +1176,43 @@ static void prepare_view(unsigned p) {
 #endif
     float fov = views == 2 ? .72f : 1.08f;
     bool scoped = player->health > 0 && player->zoom;
-    if (scoped)
-        fov = bg_camera_zoom_fov(fov, player->weapon == BG_W_SNIPER && player->zoom == 2 ? 10 : 2);
-    float near, far;
-    bg_camera_depth(scoped, &near, &far);
-    t3d_viewport_set_projection(vp, fov, near, far);
+    unsigned magnification =
+        scoped ? (player->weapon == BG_W_SNIPER && player->zoom == 2 ? 10 : 2) : 0;
+    unsigned projection_key = views | (magnification << 3);
+    bool projection_changed = projection_keys[slot][p] != projection_key;
     /* Tiny3D rounds viewport scales to integers after W normalization. At
      * far=6200, 160x120 becomes scales 3/-2; changing far changes framing.
      * 1/512 gives exact 20/-15 (40/-30 full screen) and exact 16-bit W/depth
      * factors. Keep it independent of clipping distance and zoom. */
-    t3d_viewport_set_w_normalize(vp, 0, BG_CAMERA_NORMALIZE_SUM);
-    bg_hud_aim_projection(vp->matProj.m, views, p);
+    if (projection_changed) {
+        if (scoped)
+            fov = bg_camera_zoom_fov(fov, magnification);
+        float near, far;
+        bg_camera_depth(scoped, &near, &far);
+        t3d_viewport_set_projection(vp, fov, near, far);
+        t3d_viewport_set_w_normalize(vp, 0, BG_CAMERA_NORMALIZE_SUM);
+        bg_hud_aim_projection(vp->matProj.m, views, p);
+    }
     t3d_viewport_look_at(vp, &eye, &target, &(T3DVec3){{0, 1, 0}});
     bg_visibility_side_planes((float (*)[4])vp->viewFrustum.planes, vp->matCamProj.m, w, h);
+    bg_frustum_prepare(cull_selected[p], (const float (*)[4])vp->viewFrustum.planes);
     /* Camera-space arms cross the world's near plane. Give the foreground
      * its own projection and depth range, while preserving FOV and aim offset.
      * Separate slot storage keeps queued RSP camera matrices immutable. */
     T3DViewport *gun_vp = &gun_viewports[slot][p];
+    T3DMat4 previous_gun_projection;
+    if (!projection_changed)
+        previous_gun_projection = gun_vp->matProj;
     *gun_vp = *vp;
-    t3d_viewport_set_projection(gun_vp, fov, .125f, 128.f);
-    t3d_viewport_set_w_normalize(gun_vp, 0, BG_CAMERA_NORMALIZE_SUM);
-    bg_hud_aim_projection(gun_vp->matProj.m, views, p);
+    if (projection_changed) {
+        t3d_viewport_set_projection(gun_vp, fov, .125f, 128.f);
+        t3d_viewport_set_w_normalize(gun_vp, 0, BG_CAMERA_NORMALIZE_SUM);
+        bg_hud_aim_projection(gun_vp->matProj.m, views, p);
+        projection_keys[slot][p] = projection_key;
+    } else {
+        gun_vp->matProj = previous_gun_projection;
+        gun_vp->_isCamProjDirty = true;
+    }
     view_eyes[p] = eye;
     held_masks[p] = 0;
     for (unsigned j = 0; j < views; j++) {
@@ -1183,12 +1234,12 @@ static void prepare_view(unsigned p) {
         }
         bool personal = bg_player_personal_weapon(q);
         bool held = (distance <= 16 || player->zoom) && q->health > 0 && personal;
-        if (visible_bounds(vp, &body_bounds[j])) {
+        if (visible_bounds(vp, &body_bounds[j], cull_selected[p])) {
             unsigned lod = distance > (views >= 3 ? 4.f : 16.f) && player->zoom == 0;
             body_lods[p][j] = lod + 1;
             wanted_lods[j] |= 1u << lod;
         }
-        if (held && visible_bounds(vp, &held_bounds[j])) {
+        if (held && visible_bounds(vp, &held_bounds[j], cull_selected[p])) {
             held_masks[p] |= 1u << j;
             wanted_held |= 1u << j;
         }
@@ -1196,7 +1247,8 @@ static void prepare_view(unsigned p) {
     for (unsigned i = 0; i < bg_vehicle_count; i++) {
         const bg_vehicle *v = &bg_vehicles[i];
         vehicle_view_lods[p][i] = 0;
-        if (!bg_vehicle_body_visible(v) || !visible_bounds(vp, &vehicle_bounds[i]))
+        if (!bg_vehicle_body_visible(v) ||
+            !visible_bounds(vp, &vehicle_bounds[i], cull_selected[p]))
             continue;
         float distance = 0;
         for (unsigned a = 0; a < 3; a++) {
@@ -1215,7 +1267,8 @@ static void prepare_view(unsigned p) {
         vehicle_view_lods[p][i] = lod + 1;
     }
     for (unsigned i = 0; i < bg_pickup_count; i++) {
-        pickup_visible[p][i] = bg_pickups[i].active && visible_bounds(vp, &pickup_bounds[i]);
+        pickup_visible[p][i] =
+            bg_pickups[i].active && visible_bounds(vp, &pickup_bounds[i], cull_selected[p]);
         if (pickup_visible[p][i])
             bg_pickup_mark_visible(i);
     }
@@ -1246,7 +1299,8 @@ static void draw_view(unsigned p) {
     bool palette_mode = false, overlay_mode = false;
     for (unsigned b = 0; b < bg_chunk_count; b++) {
         const bg_chunk *c = &bg_chunks[b];
-        if (!t3d_frustum_vs_aabb_s16(&vp->viewFrustum, c->bounds, c->bounds + 3))
+        if (!bg_frustum_box_cached((const float (*)[4])vp->viewFrustum.planes, cull_selected[p],
+                                   c->bounds))
             continue;
         if (bound != c->material) {
             bool overlay = bg_texture_overlay[c->material];
@@ -1266,11 +1320,7 @@ static void draw_view(unsigned p) {
                 rdpq_mode_tlut(paletted ? TLUT_RGBA16 : TLUT_NONE);
                 palette_mode = paletted;
             }
-            if (paletted)
-                rdpq_tex_upload_tlut((uint16_t *)bg_ground_palette, 0, 16);
-            rdpq_tex_upload(
-                TILE0, &textures[c->material],
-                &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
+            rspq_block_run(texture_blocks[c->material]);
             bound = c->material;
         }
         rspq_block_run(world_blocks[b]);
@@ -1345,7 +1395,7 @@ static void draw_view(unsigned p) {
             } else {
                 const bg_vehicle_rig *rig = &bg_vehicle_rigs[v->kind];
                 for (unsigned j = 0; j < rig->count; j++) {
-                    if (!visible_bounds(vp, &vehicle_part_bounds[i][j]))
+                    if (!visible_bounds(vp, &vehicle_part_bounds[i][j], cull_selected[p]))
                         continue;
                     t3d_matrix_set(&part_matrices[slot][i][j], true);
                     rspq_block_run(vehicle_parts[v->kind][j]);
@@ -1442,7 +1492,7 @@ static void draw_view(unsigned p) {
     t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH);
     for (unsigned i = 0; i < BG_MAX_PROJECTILES; i++) {
         bg_projectile *q = bg_projectile_at(i);
-        if (!q || !q->active || !visible_bounds(vp, &projectile_bounds[i]))
+        if (!q || !q->active || !visible_bounds(vp, &projectile_bounds[i], cull_selected[p]))
             continue;
         if (q->kind == BG_P_FRAG || q->kind == BG_P_PLASMA_GRENADE) {
             instance(q->kind == BG_P_FRAG ? BG_M_FRAG : BG_M_PLASMA_GRENADE,

@@ -55,6 +55,11 @@ The behavior-preserving cleanup measured **24.1 / 26.2 / 22.2 FPS** in the
 same quiet fixture, with 42 KiB free. This remains within the checkpoint range;
 the >25 FPS vehicle gate and final 30 FPS pass are still open.
 Earlier timing results describe older builds.
+The first optimization pass measures **25.0 / 26.4 / 23.7 FPS**, with 49 KiB
+free, retaining the original asset bank and simulation. Release now uses LTO
+with the same arithmetic contracts; `--no-lto` builds a comparison. See
+[OPTIMIZATION.md](OPTIMIZATION.md) for measured candidates, validation and the
+remaining >25 FPS vehicle / 30 FPS work.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,

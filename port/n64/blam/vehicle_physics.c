@@ -1,6 +1,8 @@
 /* Native CE solvers with bounded object, tag, and Blood Gulch world adapters. */
 #include "vehicle_physics.h"
 #include "vehicle_private.h"
+#include "../telemetry.h"
+#include "../word_round.h"
 #include <stdlib.h>
 #ifdef N64
 #include <libdragon.h>
@@ -14,8 +16,9 @@ struct vehicle_workspace {
  struct mass_point_datum contact[22];
  struct powered_mass_point_datum power[2];
  struct collision_feature_list features;
- uint8_t stamps[2][8192];
+ uint8_t *stamps[2]; /* exact edge/vertex counts, one owned allocation */
  struct {struct collision_prism prism;int32_t surface;bool valid;} prisms[32];
+ struct {struct collision_cylinder cylinder;int32_t edge;bool valid,produced;} cylinders[64];
 };
 #ifdef N64
 static struct vehicle_workspace *vehicle_workspace;
@@ -56,6 +59,13 @@ static void physics_compute_unit_collisions(int32_t i);
 #define global_projection3d_mappings vehicle_projection3d_mappings
 #include "vehicle_original.c"
 
+static void stamps_load(void){
+ unsigned edges=bg_vehicle_bsp.edges.count,vertices=bg_vehicle_bsp.vertices.count;
+ assert(edges&&vertices);
+ uint8_t*storage=calloc(edges+vertices,1);assert(storage);
+ vehicle_workspace->stamps[0]=storage;vehicle_workspace->stamps[1]=storage+edges;
+}
+
 /* Typed floats/topology have exactly the same big-endian representation as
  * the prior static N64 arrays. Only their residency changes at menu boundaries. */
 #ifdef N64
@@ -75,28 +85,33 @@ static void world_load(void){
  bg_vehicle_bsp=(struct collision_bsp){.bsp3d={.planes={bg_vehicle_world_layout[0][1],world_blocks[0],NULL}},
   .surfaces={bg_vehicle_world_layout[1][1],world_blocks[1],NULL},.edges={bg_vehicle_world_layout[2][1],world_blocks[2],NULL},
   .vertices={bg_vehicle_world_layout[3][1],world_blocks[3],NULL}};
- bg_vehicle_bvh=world_blocks[4];bg_vehicle_surface_bounds=world_blocks[5];bg_vehicle_surface_indices=world_blocks[6];world_loaded=true;
+ bg_vehicle_bvh=world_blocks[4];bg_vehicle_surface_bounds=world_blocks[5];bg_vehicle_surface_indices=world_blocks[6];
+ stamps_load();world_loaded=true;
 }
 void bg_vehicle_world_release(void){
  if(!world_loaded)return;
  for(unsigned i=0;i<7;i++){free(world_blocks[i]);world_blocks[i]=NULL;}
- free(vehicle_workspace);vehicle_workspace=NULL;
+ free(vehicle_workspace->stamps[0]);free(vehicle_workspace);vehicle_workspace=NULL;
  world_loaded=false;memset(&bg_vehicle_bsp,0,sizeof(bg_vehicle_bsp));
  bg_vehicle_bvh=NULL;bg_vehicle_surface_bounds=NULL;bg_vehicle_surface_indices=NULL;
 }
 #else
-static void world_load(void){}
+static void world_load(void){if(!vehicle_workspace->stamps[0])stamps_load();}
 void bg_vehicle_world_release(void){}
 #endif
 
 /* The BVH only selects candidates; all contacts use original feature tests. */
 static uint8_t stamp;
-static unsigned next_stamp(void){if(++stamp==0){memset(vehicle_workspace->stamps,0,sizeof(vehicle_workspace->stamps));stamp=1;}return stamp;}
+static unsigned next_stamp(void){
+ if(!vehicle_workspace||!vehicle_workspace->stamps[0])world_load();
+ if(++stamp==0){memset(vehicle_workspace->stamps[0],0,(unsigned)bg_vehicle_bsp.edges.count+(unsigned)bg_vehicle_bsp.vertices.count);stamp=1;}
+ return stamp;
+}
 struct surface_query {uint16_t stack[32],pending,first,remaining;int32_t bounds[6];const struct surface_candidates*cached;};
 static void query_begin_raw(struct surface_query*q,const float lo[3],const float hi[3]){
  q->cached=NULL;
  q->pending=1;q->stack[0]=0;q->remaining=0;
- for(int a=0;a<3;a++){q->bounds[a]=(int32_t)floorf(lo[a]*64);q->bounds[a+3]=(int32_t)ceilf(hi[a]*64);}
+ for(int a=0;a<3;a++){q->bounds[a]=bg_floor_word(lo[a]*64);q->bounds[a+3]=bg_ceil_word(hi[a]*64);}
 }
 static bool overlaps(const int32_t a[6],const int16_t b[6]){
  return a[3]>=b[0]&&a[0]<=b[3]&&a[4]>=b[1]&&a[1]<=b[4]&&a[5]>=b[2]&&a[2]<=b[5];
@@ -117,17 +132,18 @@ static int query_next_raw(struct surface_query*q){
  * and original BVH order are retained; overflow takes the uncached path. */
 static void query_begin(struct surface_query*q,const float lo[3],const float hi[3]){
  query_begin_raw(q,lo,hi);
- float extent=MAX(hi[0]-lo[0],MAX(hi[1]-lo[1],hi[2]-lo[2]));if(extent>8)return;
+ float extent=MAX(hi[0]-lo[0],MAX(hi[1]-lo[1],hi[2]-lo[2]));if(extent>8){BG_COUNT(BG_COUNT_WORLD_BYPASS,1);return;}
  int32_t half=extent>4?4:extent>2?2:1,cell[3];uint32_t hash=half-1;
- for(unsigned a=0;a<3;a++){cell[a]=(int32_t)floorf((lo[a]+hi[a])*(.25f/half));hash=hash*31u+(uint32_t)cell[a];}
+ for(unsigned a=0;a<3;a++){cell[a]=bg_floor_word((lo[a]+hi[a])*(.25f/half));hash=hash*31u+(uint32_t)cell[a];}
  struct surface_candidates*c=&vehicle_workspace->candidates[(hash^(hash>>4))&15u];
  int32_t bounds[6];for(unsigned a=0;a<3;a++){bounds[a]=(cell[a]*2-1)*half*64;bounds[a+3]=(cell[a]*2+3)*half*64;}
  if(!c->valid||memcmp(c->bounds,bounds,sizeof(bounds))){
+  BG_COUNT(BG_COUNT_WORLD_MISS,1);
   struct surface_query collect=*q;memcpy(collect.bounds,bounds,sizeof(bounds));
   c->count=0;c->valid=false;int id;
-  while((id=query_next_raw(&collect))>=0){if(c->count==64)return;c->ids[c->count++]=id;}
+  while((id=query_next_raw(&collect))>=0){if(c->count==64){BG_COUNT(BG_COUNT_WORLD_OVERFLOW,1);return;}c->ids[c->count++]=id;}
   memcpy(c->bounds,bounds,sizeof(bounds));c->valid=true;
- }
+ }else BG_COUNT(BG_COUNT_WORLD_HIT,1);
  q->cached=c;q->first=0;q->remaining=c->count;
 }
 static int query_next(struct surface_query*q){
@@ -142,10 +158,35 @@ static void cached_surface_feature(const struct collision_bsp*b,int si,float hei
  unsigned count=out->count[_collision_feature_prism];if(count>=MAXIMUM_COLLISION_FEATURES_PER_TEST)return;
  unsigned slot=(unsigned)si%32;
  if(vehicle_workspace->prisms[slot].valid&&vehicle_workspace->prisms[slot].surface==si){
+  BG_COUNT(BG_COUNT_PRISM_HIT,1);
   out->prisms[count]=vehicle_workspace->prisms[slot].prism;out->prisms[count].height=width;out->count[_collision_feature_prism]++;
  }else{
+  BG_COUNT(BG_COUNT_PRISM_MISS,1);
   collision_features_from_surface(b,si,NULL,height,width,NONE,out);
   vehicle_workspace->prisms[slot].prism=out->prisms[count];vehicle_workspace->prisms[slot].surface=si;vehicle_workspace->prisms[slot].valid=true;
+ }
+}
+/* Static edge eligibility, base/vector and material do not depend on the
+ * query point. Cache the original zero-height factory output, including its
+ * no-feature result; width remains the current mass-point radius. */
+static void cached_edge_feature(const struct collision_bsp*b,int edge,float height,float width,struct collision_feature_list*out){
+ if(height!=0){collision_features_from_edge(b,edge,NULL,height,width,NONE,out);return;}
+ unsigned count=out->count[_collision_feature_cylinder];
+ if(count>=MAXIMUM_COLLISION_FEATURES_PER_TEST)return;
+ unsigned slot=((uint32_t)edge*2654435761u)&63u;
+ if(vehicle_workspace->cylinders[slot].valid&&vehicle_workspace->cylinders[slot].edge==edge){
+  BG_COUNT(BG_COUNT_EDGE_HIT,1);
+  if(vehicle_workspace->cylinders[slot].produced){
+   out->cylinders[count]=vehicle_workspace->cylinders[slot].cylinder;
+   out->cylinders[count].width=width;out->count[_collision_feature_cylinder]++;
+  }
+ }else{
+  BG_COUNT(BG_COUNT_EDGE_MISS,1);
+  collision_features_from_edge(b,edge,NULL,height,width,NONE,out);
+  bool produced=(unsigned)out->count[_collision_feature_cylinder]==count+1;
+  if(produced)vehicle_workspace->cylinders[slot].cylinder=out->cylinders[count];
+  vehicle_workspace->cylinders[slot].produced=produced;
+  vehicle_workspace->cylinders[slot].edge=edge;vehicle_workspace->cylinders[slot].valid=true;
  }
 }
 static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3d*p,real radius,real height,real width,int32_t ignore,struct collision_feature_list*out){
@@ -163,7 +204,7 @@ static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3
    int first=s->first_edge_index,e=first;
    do{
     const struct collision_edge*ed=TAG_BLOCK_GET_ELEMENT(&b->edges,e,struct collision_edge);int side=ed->surface_indices[1]==(int)si;
-    assert(e>=0&&e<8192);
+    assert(e>=0&&e<b->edges.count);
     if(vehicle_workspace->stamps[0][e]!=query){vehicle_workspace->stamps[0][e]=query;
      /* A cylinder whose segment bounds miss this zero-height query sphere
       * cannot contain the mass point. Preserve the original edge test for
@@ -174,9 +215,9 @@ static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3
       const struct collision_vertex*c=TAG_BLOCK_GET_ELEMENT(&b->vertices,ed->vertex_indices[1],struct collision_vertex);
       for(unsigned axis=0;axis<3;axis++)if(MAX(a->point.n[axis],c->point.n[axis])+width+.00001f<p->n[axis]||MIN(a->point.n[axis],c->point.n[axis])-width-.00001f>p->n[axis]){candidate=false;break;}
      }
-     if(candidate&&ed->surface_indices[0]>=0&&ed->surface_indices[1]>=0)collision_features_from_edge(b,e,NULL,height,width,NONE,out);
+     if(candidate&&ed->surface_indices[0]>=0&&ed->surface_indices[1]>=0)cached_edge_feature(b,e,height,width,out);
     }
-    int vi=ed->vertex_indices[side];assert(vi>=0&&vi<8192);
+    int vi=ed->vertex_indices[side];assert(vi>=0&&vi<b->vertices.count);
     if(vehicle_workspace->stamps[1][vi]!=query){vehicle_workspace->stamps[1][vi]=query;
      const struct collision_vertex*v=TAG_BLOCK_GET_ELEMENT(&b->vertices,vi,struct collision_vertex);
      if(distance_squared3d(p,&v->point)<=radius*radius)collision_features_from_vertex(b,vi,NULL,height,width,NONE,out);
@@ -190,6 +231,10 @@ static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3
  * Only the broad phase and scene ownership differ from the engine BSP service. */
 static boolean collision_test_vector(uint32_t flags,const real_point3d*p,const real_vector3d*d,int32_t ignore,struct collision_result*out){
  (void)flags;(void)ignore;const struct collision_bsp*b=&bg_vehicle_bsp;out->t=1;out->surface_index=-1;
+ BG_COUNT(BG_COUNT_VECTOR_QUERY,1);
+#ifdef BG_TELEMETRY
+ if(d->i==0&&d->j==0&&d->k==0)BG_COUNT(BG_COUNT_VECTOR_ZERO,1);
+#endif
  struct surface_query query_state;float lo[3],hi[3];
  for(int a=0;a<3;a++){lo[a]=MIN(p->n[a],p->n[a]+d->n[a]);hi[a]=MAX(p->n[a],p->n[a]+d->n[a]);}
  query_begin(&query_state,lo,hi);int si;
@@ -255,22 +300,35 @@ float bg_world_raycast_normal(const float origin[3],const float direction[3],flo
 float bg_world_raycast(const float o[3],const float d[3],float distance){return bg_world_raycast_normal(o,d,distance,NULL);}
 void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]){
  world_load();real_point3d p[5];real_vector3d d[5];float lo[3],hi[3],nearest[5];
+ float scaled[5][3],inverse[5][3];bool parallel[5][3];
  for(unsigned i=0;i<5;i++){
   p[i]=(real_point3d){.n={origin[0]+rays[i][0]*.003f+68,-origin[2]-rays[i][2]*.003f-118,origin[1]+rays[i][1]*.003f}};
   float length=MAX(0,reaches[i]-.003f);
   d[i]=(real_vector3d){.n={rays[i][0]*length,-rays[i][2]*length,rays[i][1]*length}};nearest[i]=1;
   for(unsigned a=0;a<3;a++){
+   scaled[i][a]=p[i].n[a]*64;
+   parallel[i][a]=fabsf(d[i].n[a])<1e-12f;
+   inverse[i][a]=parallel[i][a]?0:1/(d[i].n[a]*64);
    float end=p[i].n[a]+d[i].n[a],lower=MIN(p[i].n[a],end),upper=MAX(p[i].n[a],end);
    if(i==0){lo[a]=lower;hi[a]=upper;}else{lo[a]=MIN(lo[a],lower);hi[a]=MAX(hi[a],upper);}
   }
  }
  struct surface_query query;query_begin(&query,lo,hi);int si;const struct collision_bsp*b=&bg_vehicle_bsp;
  while((si=query_next(&query))>=0){
+  unsigned ray_mask=0;
+  for(unsigned i=0;i<5;i++){
+   float entry;
+   /* Conservative endpoint slack only broadens candidate selection. The
+    * original plane/edge arithmetic still decides each exact hit. */
+   if(ray_bounds(bg_vehicle_surface_bounds[si],scaled[i],inverse[i],parallel[i],nearest[i]+.00001f,&entry))ray_mask|=1u<<i;
+  }
+  if(!ray_mask)continue;
   const struct collision_surface*s=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
   real_plane3d plane;bsp3d_get_plane_from_designator(&b->bsp3d,s->plane_designator,&plane);
   int axis=projection_from_vector3d(&plane.n);bool sign=projection_sign_from_vector3d(&plane.n,axis);
   float fractions[5];real_point2d points[5];unsigned mask=0;
   for(unsigned i=0;i<5;i++){
+   if(!(ray_mask&(1u<<i)))continue;
    float den=dot_product3d(&plane.n,&d[i]);if(fabsf(den)<1e-9f)continue;
    float t=-plane3d_distance_to_point(&plane,&p[i])/den;if(t<0||t>nearest[i])continue;
    real_point3d hit;point_from_line3d(&p[i],&d[i],t,&hit);project_point3d(&hit,axis,sign,&points[i]);

@@ -21,6 +21,7 @@ const T3DViewport *bg_scene_viewport(unsigned player);
 #ifdef BG_PROFILE
 typedef struct {
     unsigned camera_us, animation_us, matrix_us, world_us, object_us, fp_us;
+    unsigned body_prepare_us, vehicle_prepare_us, pickup_prepare_us, view_prepare_us;
     unsigned submitted_vertices, animated_vertices, animated_tracks;
     unsigned category_triangles[6]; /* terrain, vehicles, bodies, pickups, effects, first person */
 } bg_scene_metrics;

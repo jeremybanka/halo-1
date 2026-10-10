@@ -60,6 +60,9 @@ free, retaining the original asset bank and simulation. Release now uses LTO
 with the same arithmetic contracts; `--no-lto` builds a comparison. See
 [OPTIMIZATION.md](OPTIMIZATION.md) for measured candidates, validation and the
 remaining >25 FPS vehicle / 30 FPS work.
+The collision/camera follow-up measures **25.3 / 26.6 / 24.1 FPS** with the same
+49 KiB free. Five-ray hull traversal and shared projected polygons improve
+repeated work; the vehicle and 30 FPS gates remain open.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,

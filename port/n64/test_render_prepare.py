@@ -12,6 +12,7 @@ from test_render_matrix import compact, function
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast bg_qa_camera bg_qa_interaction_camera bg_player_personal_weapon bg_pickup_mark_visible bg_camera_clearance bg_body_height bg_eye_height bg_interaction_points bg_player_seat bg_player_third_person bg_camera_track_offset bg_vehicle_transform bg_vehicle_camera_position hypotf fmodf tanf atanf
+    BG_VP_END
     bg_bounds_expand bg_bounds_quantize bg_bounds_transform bg_bounds_union bg_frustum_box bg_frustum_prepare bg_frustum_box_cached
     bg_motion_decode bg_motion_scatter blam_quaternions_interpolate_and_normalize
     data_cache_hit_writeback floorf fmaxf fminf fabsf sqrtf sinf cosf get_ticks_us memcpy memset memcmp bg_vehicle_pose_key
@@ -37,6 +38,8 @@ def calls(body):
 
 def check(main, sdk, tiny, before=None):
     source = read_runtime(main)
+    clock = (main.parent / 'blam/vehicle_profile.h').read_text()
+    assert calls(function(clock, 'bg_vehicle_profile_finish')) <= {'get_ticks_us'}
     # Follow the actual inline projection helpers too, rather than allowing an
     # unchecked external call across the CPU-only preparation boundary.
     helpers = '\n'.join((main.parent/name).read_text() for name in

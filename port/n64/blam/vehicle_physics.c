@@ -3,6 +3,7 @@
 #include "vehicle_private.h"
 #include "../telemetry.h"
 #include "../word_round.h"
+#include "vehicle_profile.h"
 #include <stdlib.h>
 #ifdef N64
 #include <libdragon.h>
@@ -57,7 +58,12 @@ static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3
 static boolean collision_test_vector(uint32_t flags,const real_point3d*p,const real_vector3d*d,int32_t ignore,struct collision_result*out);
 static void physics_compute_unit_collisions(int32_t i);
 #define global_projection3d_mappings vehicle_projection3d_mappings
+#if defined(N64) && defined(BG_PROFILE)
+bg_vehicle_metrics bg_vehicle_profile;
+#include "vehicle_profile.c"
+#else
 #include "vehicle_original.c"
+#endif
 
 static void stamps_load(void){
  unsigned edges=bg_vehicle_bsp.edges.count,vertices=bg_vehicle_bsp.vertices.count;
@@ -128,7 +134,7 @@ static int query_next_raw(struct surface_query*q){
 }
 /* Cache immutable candidate indices, never contacts or impulses. Small
  * mass-point/suspension queries share a two-unit cell; short camera fans
- * use a proportionally larger cell. Exact bounds filtering
+ * use proportionally larger cells. Exact bounds filtering
  * and original BVH order are retained; overflow takes the uncached path. */
 static void query_begin(struct surface_query*q,const float lo[3],const float hi[3]){
  query_begin_raw(q,lo,hi);
@@ -151,20 +157,42 @@ static int query_next(struct surface_query*q){
  while(q->remaining){q->remaining--;unsigned id=q->cached->ids[q->first++];if(overlaps(q->bounds,bg_vehicle_surface_bounds[id]))return id;}
  return -1;
 }
-/* Static zero-height polygon projections are independent of the query point
- * and width. Cache their original result; refresh only the prism thickness. */
+/* Immutable zero-height polygon projections are shared by contacts, sweeps
+ * and camera rays. The constructor retains original edge order, projection
+ * helpers and feature metadata; width is supplied only when copying a contact. */
+static const struct collision_prism*cached_polygon(const struct collision_bsp*b,int si){
+ unsigned slot=(unsigned)si%32;
+ struct collision_prism*p=&vehicle_workspace->prisms[slot].prism;
+ if(vehicle_workspace->prisms[slot].valid&&vehicle_workspace->prisms[slot].surface==si){BG_COUNT(BG_COUNT_PRISM_HIT,1);return p;}
+ BG_COUNT(BG_COUNT_PRISM_MISS,1);
+ const struct collision_surface*s=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
+ p->object_index=NONE;p->surface_index=si;p->flags=s->flags;
+ p->breakable_surface_index=s->breakable_surface_index;p->material_index=s->material_index;
+ bsp3d_get_plane_from_designator(&b->bsp3d,s->plane_designator,&p->plane);
+ p->height=0;p->projection_axis=projection_from_vector3d(&p->plane.n);
+ p->projection_sign=projection_sign_from_vector3d(&p->plane.n,p->projection_axis);p->point_count=0;
+ int edge=s->first_edge_index;
+ do{
+  const struct collision_edge*e=TAG_BLOCK_GET_ELEMENT(&b->edges,edge,struct collision_edge);
+  bool reverse=e->surface_indices[1]==si;
+  const struct collision_vertex*v=TAG_BLOCK_GET_ELEMENT(&b->vertices,e->vertex_indices[reverse],struct collision_vertex);
+  assert(p->point_count<MAXIMUM_POINTS_PER_COLLISION_PRISM);
+  project_point3d(&v->point,p->projection_axis,p->projection_sign,&p->points[p->point_count++]);
+  edge=e->edge_indices[reverse];
+ }while(edge!=s->first_edge_index);
+ vehicle_workspace->prisms[slot].surface=si;vehicle_workspace->prisms[slot].valid=true;return p;
+}
+static bool cached_polygon_contains(const struct collision_prism*polygon,const real_point2d*point){
+ for(int j=0;j<polygon->point_count;j++){
+  const real_point2d*a=&polygon->points[j],*b=&polygon->points[j+1<polygon->point_count?j+1:0];
+  real_vector2d v0,v1;vector_from_points2d(a,point,&v0);vector_from_points2d(a,b,&v1);
+  if(cross_product2d(&v0,&v1)>0)return false;
+ }return true;
+}
 static void cached_surface_feature(const struct collision_bsp*b,int si,float height,float width,struct collision_feature_list*out){
  if(height!=0){collision_features_from_surface(b,si,NULL,height,width,NONE,out);return;}
  unsigned count=out->count[_collision_feature_prism];if(count>=MAXIMUM_COLLISION_FEATURES_PER_TEST)return;
- unsigned slot=(unsigned)si%32;
- if(vehicle_workspace->prisms[slot].valid&&vehicle_workspace->prisms[slot].surface==si){
-  BG_COUNT(BG_COUNT_PRISM_HIT,1);
-  out->prisms[count]=vehicle_workspace->prisms[slot].prism;out->prisms[count].height=width;out->count[_collision_feature_prism]++;
- }else{
-  BG_COUNT(BG_COUNT_PRISM_MISS,1);
-  collision_features_from_surface(b,si,NULL,height,width,NONE,out);
-  vehicle_workspace->prisms[slot].prism=out->prisms[count];vehicle_workspace->prisms[slot].surface=si;vehicle_workspace->prisms[slot].valid=true;
- }
+ out->prisms[count]=*cached_polygon(b,si);out->prisms[count].height=width;out->count[_collision_feature_prism]++;
 }
 /* Static edge eligibility, base/vector and material do not depend on the
  * query point. Cache the original zero-height factory output, including its
@@ -190,6 +218,7 @@ static void cached_edge_feature(const struct collision_bsp*b,int edge,float heig
  }
 }
 static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3d*p,real radius,real height,real width,int32_t ignore,struct collision_feature_list*out){
+ BG_VP_BEGIN;
  (void)flags;(void)ignore;collision_features_new(out);unsigned query=next_stamp();const struct collision_bsp*b=&bg_vehicle_bsp;
  struct surface_query query_state;float lo[3],hi[3];
  for(int a=0;a<3;a++){lo[a]=p->n[a]-radius;hi[a]=p->n[a]+radius;}
@@ -225,11 +254,13 @@ static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3
     e=ed->edge_indices[side];
    }while(e!=first);
  }
+ BG_VP_END(BG_VP_FEATURE_BUILD);
  return out->count[0]||out->count[1]||out->count[2];
 }
 /* Sweeps test complete original convex polygons, in original coordinates.
  * Only the broad phase and scene ownership differ from the engine BSP service. */
 static boolean collision_test_vector(uint32_t flags,const real_point3d*p,const real_vector3d*d,int32_t ignore,struct collision_result*out){
+ BG_VP_BEGIN;
  (void)flags;(void)ignore;const struct collision_bsp*b=&bg_vehicle_bsp;out->t=1;out->surface_index=-1;
  BG_COUNT(BG_COUNT_VECTOR_QUERY,1);
 #ifdef BG_TELEMETRY
@@ -247,9 +278,10 @@ static boolean collision_test_vector(uint32_t flags,const real_point3d*p,const r
    float t=-a/den;if(t<0||t>out->t)continue;
    real_point3d hit;point_from_line3d(p,d,t,&hit);
    int axis=projection_from_vector3d(&plane.n);bool sign=projection_sign_from_vector3d(&plane.n,axis);real_point2d q;
-   project_point3d(&hit,axis,sign,&q);bool inside=collision_surface_test_point(b,0,NULL,si,axis,sign,&q);
+   project_point3d(&hit,axis,sign,&q);bool inside=cached_polygon_contains(cached_polygon(b,si),&q);
    if(inside){out->t=t;out->plane=plane;out->surface_index=si;out->material_index=s->material_index;}
  }
+ BG_VP_END(BG_VP_SWEEP);
  return out->surface_index>=0;
 }
 static bool ray_bounds(const int16_t bounds[6],const float origin[3],const float inverse[3],const bool zero[3],float maximum,float*entry){
@@ -292,13 +324,14 @@ float bg_world_raycast_normal(const float origin[3],const float direction[3],flo
    float t=-plane3d_distance_to_point(&plane,&p)/den;if(t<0||t>nearest)continue;
    real_point3d hit;point_from_line3d(&p,&d,t,&hit);int axis=projection_from_vector3d(&plane.n);
    bool sign=projection_sign_from_vector3d(&plane.n,axis);real_point2d q;project_point3d(&hit,axis,sign,&q);
-   if(collision_surface_test_point(b,0,NULL,si,axis,sign,&q)){nearest=t;if(normal){normal[0]=plane.n.i;normal[1]=plane.n.k;normal[2]=-plane.n.j;}}
+   if(cached_polygon_contains(cached_polygon(b,si),&q)){nearest=t;if(normal){normal[0]=plane.n.i;normal[1]=plane.n.k;normal[2]=-plane.n.j;}}
   }
  }
  return bias+nearest*(distance-bias);
 }
 float bg_world_raycast(const float o[3],const float d[3],float distance){return bg_world_raycast_normal(o,d,distance,NULL);}
 void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]){
+ BG_VP_BEGIN;
  world_load();real_point3d p[5];real_vector3d d[5];float lo[3],hi[3],nearest[5];
  float scaled[5][3],inverse[5][3];bool parallel[5][3];
  for(unsigned i=0;i<5;i++){
@@ -334,21 +367,17 @@ void bg_world_camera_rays(const float origin[3],const float rays[5][3],const flo
    real_point3d hit;point_from_line3d(&p[i],&d[i],t,&hit);project_point3d(&hit,axis,sign,&points[i]);
    fractions[i]=t;mask|=1u<<i;
   }
-  /* Original directed-edge test, sharing projection across the five rays. */
-  int edge=s->first_edge_index;
-  while(mask){
-   const struct collision_edge*e=TAG_BLOCK_GET_ELEMENT(&b->edges,edge,struct collision_edge);
-   bool reverse=e->surface_indices[1]==si;
-   const struct collision_vertex*v0=TAG_BLOCK_GET_ELEMENT(&b->vertices,e->vertex_indices[reverse],struct collision_vertex);
-   const struct collision_vertex*v1=TAG_BLOCK_GET_ELEMENT(&b->vertices,e->vertex_indices[!reverse],struct collision_vertex);
-   real_point2d a,c;project_point3d(&v0->point,axis,sign,&a);project_point3d(&v1->point,axis,sign,&c);
-   float dx=c.x-a.x,dy=c.y-a.y;
-   for(unsigned i=0;i<5;i++)if((mask&(1u<<i))&&((points[i].x-a.x)*dy-(points[i].y-a.y)*dx)>0)mask&=~(1u<<i);
-   edge=e->edge_indices[reverse];if(edge==s->first_edge_index)break;
+  /* Same directed-edge expression, sharing immutable projected endpoints. */
+  const struct collision_prism*polygon=mask?cached_polygon(b,si):NULL;
+  for(int edge=0;mask&&edge<polygon->point_count;edge++){
+   const real_point2d*a=&polygon->points[edge],*c=&polygon->points[edge+1<polygon->point_count?edge+1:0];
+   float dx=c->x-a->x,dy=c->y-a->y;
+   for(unsigned i=0;i<5;i++)if((mask&(1u<<i))&&((points[i].x-a->x)*dy-(points[i].y-a->y)*dx)>0)mask&=~(1u<<i);
   }
   for(unsigned i=0;i<5;i++)if(mask&(1u<<i))nearest[i]=fractions[i];
  }
  for(unsigned i=0;i<5;i++)hits[i]=reaches[i]<=.003f?reaches[i]:.003f+nearest[i]*(reaches[i]-.003f);
+ BG_VP_END(BG_VP_WORLD_CAMERA);
 }
 static void physics_compute_unit_collisions(int32_t i){
  /* Wrecks keep terrain contacts but do not block or push live vehicles. */
@@ -401,6 +430,7 @@ void bg_vehicle_physics_prepare(void){
 /* Same suspension ray, smoothing and byte channel as vehicles.c. Animation
  * graph lookup is replaced by the eight exported channel descriptors. */
 static void suspension_update(unsigned i){
+ BG_VP_BEGIN;
  bg_vehicle*v=&bg_vehicles[i];struct vehicle_datum*n=&native[i];const struct physics_definition*p=&bg_vehicle_physics_defs[v->kind];
  real_matrix4x3 frame;matrix4x3_from_point_and_vectors(&frame,&n->object.position,&n->object.forward,&n->object.up);
  for(int j=0;j<8;j++){
@@ -416,6 +446,7 @@ static void suspension_update(unsigned i){
   n->vehicle.suspension[j]=(uint8_t)((shift+current)*.5f*255);
   v->suspension[j]=extension+(compression-extension)*n->vehicle.suspension[j]*(1.f/255);
  }
+ BG_VP_END(BG_VP_SUSPENSION);
 }
 void bg_vehicle_physics_step(unsigned i,const bg_input*input){
  bg_vehicle*v=&bg_vehicles[i];struct vehicle_datum*n=&native[i];

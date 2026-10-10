@@ -156,3 +156,7 @@ October 9 first optimization pass: **25.0 overall / 26.4 combat / 23.7 vehicle
 FPS**, 49 KiB free, unchanged assets and 30 Hz simulation. Exact state and
 frozen-scene comparisons pass. The >25 vehicle and final 30 FPS gates remain
 open; see [OPTIMIZATION.md](OPTIMIZATION.md) for candidates and next bottlenecks.
+
+October 10 collision/camera follow-up: **25.3 overall / 26.6 combat / 24.1
+vehicle FPS**, 49 KiB free. Source traces and frozen pixels still match. Both
+performance gates remain open; see [OPTIMIZATION.md](OPTIMIZATION.md).

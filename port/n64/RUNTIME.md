@@ -33,7 +33,9 @@ header tests, renderer/input/audio contracts, asset checks, a checkpoint state
 comparison, four linked ROM variants, and compilation of all 27 runtime
 configurations. `build/n64-validation/results.json` records the outcomes.
 Omit `--group target` when no N64 SDK is installed. The runner never reduces
-or regenerates the immutable asset bank. Deliberate original-source adapter
+or regenerates the immutable asset bank. It generates current vehicle solver
+source into isolated validation outputs; checkpoint traces generate the
+checkpoint’s own solver to avoid sharing later adaptations. Deliberate original-source adapter
 regeneration is available separately through `blam/test_vehicle.py --regenerate`.
 
 The release preset selects paced presentation, three display surfaces,

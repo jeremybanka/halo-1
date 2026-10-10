@@ -23,6 +23,7 @@ for name in functions:
         old_body = old_body.replace(projection_block(reference), "PROJECTION_REGION")
         new_body = new_body.replace(projection_block(scene), "PROJECTION_REGION")
     old, new = compact(old_body), compact(new_body)
+    new = re.sub(r"BG_VP_BEGIN;|BG_VP_END\([^;]*\);", "", new)
     if name == "visible_bounds":
         assert "return!bounds->valid||" in new and "bg_frustum_box_cached" in new
         continue  # optional cache path and invalid boxes checked by cull/pose fixtures

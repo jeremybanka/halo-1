@@ -131,3 +131,82 @@ Ignored local evidence, ROMs and exact source/asset/toolchain manifests are in
 retain 2560 exact samples per bank (sufficient for the 75-second paced run),
 while quiet VI banks retain their original 5120 entries. Timing counters and
 clocks are excluded from release and quiet modes. Game assets remain private.
+
+## Collision and camera follow-up (October 10)
+
+Base for this pass: `892fd19a` (first optimization commit, PR #3). Diagnostic
+page 6 now measures original ground/contact calls, feature construction,
+contact tests, sweeps, pairs, suspension and world/hull/aim camera rays. The
+normal generated solver remains byte-for-byte unchanged; diagnostic wrappers
+are separate and clocks/storage are absent in release and quiet modes.
+
+Before this follow-up, the 16 KiB diagnostic fixture gave these vehicle-frame
+means, in microseconds (inclusive and overlapping): ground 4033, feature
+construction 3299, narrow tests 298, sweeps 1897, pairs 51, suspension 709,
+world camera fan 1166, hull fan 1700, aim ray 1275; total physics 12474 and
+view preparation 6632. These identify feature construction/sweeps and camera
+traversal as useful targets. Narrow tests and pair handling are small **in this
+replay**; clustered collision stress remains separate work.
+
+The accepted candidate measures **25.3 overall / 26.6 combat / 24.1 vehicle
+FPS**, with 49 KiB free, versus 25.0 / 26.4 / 23.7 at the first checkpoint.
+P95 remains 66.8 ms; maximum is 167.1 ms overall / 66.8 ms vehicles. This is a
+small improvement; >25 FPS vehicles and the 30 FPS goal remain open.
+
+Accepted changes:
+
+- The hull camera traverses one tree for its five rays. It shares the pose,
+  basis, origin, node bounds and triangle edge data, preserving each lane's
+  node/triangle order, arithmetic and clipping predicates. The original
+  single-ray weapon kernel is unchanged. 160,000 packet lanes match that
+  checkpoint kernel; full camera-clearance fixtures also pass.
+- The existing 32-entry polygon cache serves contacts, sweeps and world/camera
+  rays. Immutable projected endpoints avoid repeated linked-edge traversal
+  and vertex projection. The zero-height constructor preserves original
+  metadata, point order, helpers and containment expression; nonzero-height
+  contacts retain the original factory. All 4916 source factories and 765,000
+  near-edge/vertex containment probes match. Cache capacity/RAM is unchanged.
+- Native validation generates today's solver into isolated outputs, and the
+  checkpoint comparison generates the checkpoint's own solver. Previously,
+  sharing the generated implementation could conceal a generator regression.
+  Ordinary and LTO traces still match all 144,166,856 bytes over 15,300 ticks.
+
+Rejected or neutral experiments are preserved only in ignored local artifacts:
+
+| Candidate | Overall FPS | Vehicles | Finding |
+| --- | ---: | ---: | --- |
+| Smaller candidate cells | 24.7 | 23.0 | Faster native run, slower N64; rejected |
+| Joint matrices + smaller cells | 24.2 | 22.3 | Rejected |
+| Joint matrix reuse with original cells | 25.0 | 23.7 | Neutral; removed |
+| Candidate octant masks + joint reuse | 24.8 | 23.2 | Extra mask work/RAM; removed |
+| Camera packet with those prototypes | 25.2 | 23.8 | Isolate useful camera change |
+| Size-optimized solver with prototypes | 24.1 | 22.0 | Smaller code, slower; rejected |
+| Size-optimized solver / camera only | 24.5 | 22.8 | 55 KiB free, lower FPS; rejected |
+| Two outlined solver phases / camera only | 25.2 | 23.9 | Neutral; removed |
+| Camera only, normal O2 | 25.2 | 23.9 | Retained |
+| Shared projected polygons, initial modulo loop | 25.2 | 23.9 | Use branch for closing edge |
+| Final candidate | 25.3 | 24.1 | Retained, still below gate |
+
+The smaller-cell experiment reduced native candidate scans from 3,307,490 to
+1,198,079 while returning the same 216,665 IDs. Cache hits fell from 94.2% to
+75.7%, causing more BVH refills; its native speed gain did not transfer to N64.
+Quarter-sized cells had only 38.3% hits and were not promoted to a target build.
+An exact vertical-sweep shortcut was also left unimplemented: only 7206 of
+114,677 native sweeps were vertical. These measurements discourage adding
+branches and cache machinery solely on the strength of work-count reductions.
+
+The follow-up native suite passes 43/43 groups. Four ROM modes link and 27
+entry-point configurations compile. All 427,500 captured gameplay pixels in
+frozen tick 1148 match the first-pass image. Local ROM manifests, timing and
+comparison evidence are in `build/n64-collision-camera/`. The private asset
+bank remains pinned to `3dcc8d0b7db38c560cd521a85e3ea6ecf18f85a7`.
+
+After diagnostics, vehicle means were: ground 3912 us, feature construction
+3241, narrow tests 242, sweeps 1933, pairs 50, suspension 723, world camera
+1269, hull camera 661, aim ray 1396; total physics 12029 and view preparation
+5937. The clearest reduction is hull-camera work (1700 → 661 us) and total
+view preparation (6632 → 5937 us). Physics costs otherwise changed little;
+shared polygon projections do not establish a large independent improvement.
+Diagnostic nesting and clock overhead remain included; the quiet VI result is
+the acceptance measurement. Frontend lifecycle passes 37/37 with zero RDP
+errors/warnings. The full 30 FPS target still needs substantial work.

@@ -13,6 +13,7 @@
 #include "shields.h"
 #include "camouflage.h"
 #include "blam/vehicle_physics.h"
+#include "blam/vehicle_profile.h"
 #include "asset_models.h"
 #include "asset_firstperson.h"
 #include "asset_interaction.h"
@@ -1125,7 +1126,9 @@ static void prepare_view(unsigned p) {
         float muzzle[3] = {player->pos[0], player->pos[1] + bg_eye_height(player), player->pos[2]};
         for (unsigned a = 0; a < 3; a++)
             muzzle[a] += aim_direction[a];
+        BG_VP_BEGIN;
         float aim_distance = fmaxf(2.f, bg_raycast(muzzle, aim_direction, 150.f));
+        BG_VP_END(BG_VP_AIM_CAMERA);
         for (unsigned a = 0; a < 3; a++)
             target.v[a] = (muzzle[a] + aim_direction[a] * aim_distance) * BG_SCALE;
     } else if (player->health <= 0) {

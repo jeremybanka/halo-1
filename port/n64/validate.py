@@ -18,6 +18,9 @@ ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = (
     "test_camera_batch.py",
     "test_camera_packet.py",
+    "test_vehicle_camera_packet.py",
+    "blam/test_vehicle_candidates.py",
+    "blam/test_polygon_cache.py",
     "test_projection_cache.py",
     "test_texture_blocks.py",
     "test_render_cull.py",

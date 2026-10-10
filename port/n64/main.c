@@ -7,6 +7,7 @@
 #include "game.h"
 #include "combat_geometry.h"
 #include "blam/vehicle_physics.h"
+#include "blam/vehicle_profile.h"
 #include "controls.h"
 #include "menu.h"
 #include "camouflage.h"
@@ -495,7 +496,7 @@ static void benchmark_page(surface_t *screen, bool completed) {
            "firstperson=%u\n",
            cats[0], cats[1], cats[2], cats[3], cats[4], cats[5]);
 }
-static void benchmark_cost_page(surface_t *screen) {
+static void benchmark_cost_page(surface_t *screen, bool collision) {
     rdpq_attach(screen, NULL);
     rdpq_set_mode_standard();
     rdpq_set_scissor(0, 0, 320, 240);
@@ -508,12 +509,24 @@ static void benchmark_cost_page(surface_t *screen) {
                                          "BODIES", "VEH-PREP", "PICKUPS", "VIEWS", "ANIM",
                                          "WORLD",  "OBJECTS",  "AUDIO",   "QUEUE"};
     static const unsigned indices[] = {0, 21, 22, 23, 1, 17, 18, 19, 20, 2, 4, 5, 8, 12};
-    for (unsigned row = 0; row < 14; row++) {
+    static const char *const collision_labels[] = {"GROUND",    "FEATURES", "TESTS",
+                                                   "SWEEPS",    "PAIRS",    "SUSPEND",
+                                                   "WORLD-CAM", "HULL-CAM", "AIM-CAM"};
+    for (unsigned row = 0; row < (collision ? BG_VP_COUNT + 2 : 14); row++) {
         int y = 48 + (int)row * 12;
-        rdpq_text_print(NULL, 1, 8, y, labels[row]);
+        rdpq_text_print(NULL, 1, 8, y,
+                        collision ? (row < BG_VP_COUNT    ? collision_labels[row]
+                                     : row == BG_VP_COUNT ? "PHYSICS"
+                                                          : "VIEWS")
+                                  : labels[row]);
         for (unsigned group = 0; group < 3; group++) {
             const bg_benchmark_result *r = &benchmark.result[group];
-            unsigned average = r->frames ? r->phase_us[indices[row]] / r->frames : 0;
+            unsigned average = r->frames ? r->phase_us[collision ? (row < BG_VP_COUNT    ? 24 + row
+                                                                    : row == BG_VP_COUNT ? 22
+                                                                                         : 20)
+                                                                 : indices[row]] /
+                                               r->frames
+                                         : 0;
             rdpq_text_printf(NULL, 1, 84 + group * 76, y, "%5u", average);
         }
     }
@@ -673,7 +686,7 @@ static void benchmark_results(surface_t *screen) {
         else if (page == 4)
             benchmark_vi_page(screen);
         else
-            benchmark_cost_page(screen);
+            benchmark_cost_page(screen, page == 6);
 #else
         benchmark_vi_page(screen);
 #endif
@@ -686,7 +699,7 @@ static void benchmark_results(surface_t *screen) {
         } while (!joypad_get_buttons_pressed(0).a && get_ticks_us() < next_page);
 #ifdef BG_BENCHMARK
 #ifndef BG_BENCHMARK_HOLD_PAGE
-        page = (page + 1) % 6;
+        page = (page + 1) % 7;
 #endif
 #endif
         screen = display_get();
@@ -797,6 +810,7 @@ int main(void) {
                 hud_us = audio_us = 0;
         memset(bg_geometry_profile, 0, sizeof(bg_geometry_profile));
         memset(bg_tick_profile, 0, sizeof(bg_tick_profile));
+        memset(&bg_vehicle_profile, 0, sizeof(bg_vehicle_profile));
         geometry_rsp_us = geometry_rdp_us = 0;
         memset(bg_scene_profile.category_triangles, 0, sizeof(bg_scene_profile.category_triangles));
         bg_scene_profile.animated_vertices = bg_scene_profile.animated_tracks = 0;
@@ -1216,7 +1230,16 @@ int main(void) {
                                                             bg_scene_profile.view_prepare_us,
                                                             bg_tick_profile[0],
                                                             bg_tick_profile[1],
-                                                            bg_tick_profile[2]};
+                                                            bg_tick_profile[2],
+                                                            bg_vehicle_profile.us[0],
+                                                            bg_vehicle_profile.us[1],
+                                                            bg_vehicle_profile.us[2],
+                                                            bg_vehicle_profile.us[3],
+                                                            bg_vehicle_profile.us[4],
+                                                            bg_vehicle_profile.us[5],
+                                                            bg_vehicle_profile.us[6],
+                                                            bg_vehicle_profile.us[7],
+                                                            bg_vehicle_profile.us[8]};
         memcpy(benchmark_phases, phase_values, sizeof(benchmark_phases));
         memcpy(benchmark_categories, bg_scene_profile.category_triangles,
                sizeof(benchmark_categories));

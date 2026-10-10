@@ -13,7 +13,7 @@
 #else
 #define BG_BENCHMARK_CAPACITY 5120
 #endif
-#define BG_BENCHMARK_PHASES 24
+#define BG_BENCHMARK_PHASES 33
 #define BG_BENCHMARK_CATEGORIES 6
 typedef struct {
     uint64_t elapsed,triangles,vertices,phase_us[BG_BENCHMARK_PHASES];

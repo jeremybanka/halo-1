@@ -58,10 +58,10 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--solver-opt",
-        type=int,
-        choices=(2, 3),
+        type=lambda value: int(value) if value in ("2", "3") else value,
+        choices=(2, 3, "s"),
         default=2,
-        help="Optimize the strict original-solver adapter at O2/O3; math/alias/wrap contracts remain unchanged",
+        help="Optimize the strict solver at O2/O3/Os; math/alias/wrap contracts remain unchanged",
     )
     parser.add_argument(
         "--telemetry",
@@ -79,9 +79,9 @@ def parse_args(argv=None):
     parser.add_argument(
         "--benchmark-page",
         type=int,
-        choices=range(6),
+        choices=range(7),
         default=0,
-        help="Select and hold a result page; page 5 shows detailed CPU costs (default cycles)",
+        help="Select and hold a result page; pages 5/6 show CPU/collision costs (default cycles)",
     )
     parser.add_argument(
         "--vi-benchmark",
@@ -340,7 +340,7 @@ def compile_options(args, sdk, tiny, out, source):
         "-march=vr4300",
         "-mtune=vr4300",
         "-mabi=o64",
-        "-O3" if args.solver_opt == 3 and source.name == "vehicle_physics.c" else "-O2",
+        "-O" + str(args.solver_opt) if source.name == "vehicle_physics.c" else "-O2",
         "-g",
         "-std=gnu17",
         "-falign-functions=32",

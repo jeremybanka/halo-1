@@ -79,9 +79,9 @@ def parse_args(argv=None):
     parser.add_argument(
         "--benchmark-page",
         type=int,
-        choices=range(7),
+        choices=range(8),
         default=0,
-        help="Select and hold a result page; pages 5/6 show CPU/collision costs (default cycles)",
+        help="Select and hold a result page; pages 5/6/7 show CPU/collision/solver costs (default cycles)",
     )
     parser.add_argument(
         "--vi-benchmark",

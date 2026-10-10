@@ -1899,6 +1899,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                 event(BG_EVENT_ENGINE, driver, v->kind, v->pos, fabsf(v->speed) / maxspeed);
         }
         float hull_speed = sqrtf(dot(v->velocity, v->velocity));
+        BG_VP_BEGIN;
         for (unsigned j = 0; j < active_players; j++) {
             bg_player *p = &bg_players[j];
             if (p->health <= 0 || p->vehicle >= 0 || p->support_vehicle == i + 1 ||
@@ -1958,6 +1959,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                 }
             }
         }
+        BG_VP_END(BG_VP_PLAYER_CONTACTS);
         for (int seat = 0; seat < bg_seat_counts[v->kind]; seat++)
             if (v->occupants[seat] >= 0) {
                 bg_player *p = &bg_players[v->occupants[seat]];

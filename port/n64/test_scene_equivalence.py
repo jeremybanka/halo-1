@@ -35,6 +35,12 @@ for name in functions:
         assert new.count("texture_blocks[i]=record_texture(i);") == 1
         new = new.replace("texture_blocks[i]=record_texture(i);", "")
     if name == "draw_view":
+        for timer in (
+            "#ifdefBG_PROFILEuint64_tsky_begin=get_ticks_us();#endif",
+            "#ifdefBG_PROFILEbg_scene_profile.sky_us+=get_ticks_us()-sky_begin;#endif",
+        ):
+            assert new.count(timer) == 1
+            new = new.replace(timer, "")
         binding = "if(paletted)rdpq_tex_upload_tlut((uint16_t*)bg_ground_palette,0,16);rdpq_tex_upload(TILE0,&textures[c->material],&(rdpq_texparms_t){.s.repeats=REPEAT_INFINITE,.t.repeats=REPEAT_INFINITE});"
         assert binding in old
         old = old.replace(binding, "TEXTURE_BIND")

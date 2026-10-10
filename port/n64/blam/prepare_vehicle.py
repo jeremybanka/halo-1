@@ -145,6 +145,9 @@ def prepare():
   'compute_ground_plane':('BG_VP_GROUND','object_index, mass_point, mass_point_definition',False),
   'collision_features_test_point':('BG_VP_FEATURE_TEST','features, point, collision',True),
   'physics_compute_vehicle_collision':('BG_VP_PAIRS','instance0, instance1',True),
+  'physics_compute_new':('BG_VP_FORCE','instance, powered_mass_points, mass_points, total_force, total_torque',False),
+  'physics_update_new':('BG_VP_INTEGRATE','instance, powered_mass_points, mass_points, total_force, total_torque',False),
+  'vehicle_control_update':('BG_VP_CONTROL','vehicle_index',False),
  }
  profile=output;wrappers=[]
  for name,(bucket,args,returns) in measured.items():

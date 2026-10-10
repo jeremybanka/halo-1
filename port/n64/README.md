@@ -196,6 +196,11 @@ work can overlap queued graphics. The shared SDK is unchanged. Use
 `--rspq-buffer-kib 0` for the slower unmodified-SDK fallback; see
 [RSPQ.md](RSPQ.md) for provenance checks and controlled comparisons.
 
+For inclusive CPU attribution, use `--benchmark --benchmark-page 5` (broad),
+`6` (collision/camera), or `7` (solver/sky). These clocks overlap and are
+excluded from normal release and quiet VI builds. Use `--vi-benchmark` for
+actual presentation-rate comparisons; see [OPTIMIZATION.md](OPTIMIZATION.md).
+
 ```sh
 # Reuse the existing venv and extracted maps when available.
 python3.11 -m venv build/n64-python

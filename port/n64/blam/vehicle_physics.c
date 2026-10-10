@@ -395,6 +395,7 @@ static float published[BG_MAX_VEHICLES][5];
 static real_vector3d halo_vector(const float v[3]){return (real_vector3d){.n={v[0],-v[2],v[1]}};}
 static void game_vector(const real_vector3d*v,float out[3]){out[0]=v->i;out[1]=v->k;out[2]=-v->j;}
 static void publish(unsigned i){
+ BG_VP_BEGIN;
  bg_vehicle*v=&bg_vehicles[i];struct vehicle_datum*n=&native[i];struct physics_instance instance;
  physics_instance_new(&instance,i);
  v->pos[0]=instance.world_matrix.position.x-68;v->pos[1]=instance.world_matrix.position.z;v->pos[2]=-instance.world_matrix.position.y-118;
@@ -408,6 +409,7 @@ static void publish(unsigned i){
  float circumference=bg_vehicle_drive_defs[v->kind].wheel_circumference;
  v->wheel_phase=circumference>0?n->vehicle.wheel/circumference*(2*_pi):0;
  memcpy(published[i],v->pos,12);published[i][3]=v->yaw;published[i][4]=v->pitch;v->physics_valid=true;
+ BG_VP_END(BG_VP_PUBLISH);
 }
 void bg_vehicle_physics_prepare(void){
  world_load();
@@ -449,6 +451,7 @@ static void suspension_update(unsigned i){
  BG_VP_END(BG_VP_SUSPENSION);
 }
 void bg_vehicle_physics_step(unsigned i,const bg_input*input){
+ BG_VP_BEGIN;
  bg_vehicle*v=&bg_vehicles[i];struct vehicle_datum*n=&native[i];
  const struct vehicle_definition*d=&bg_vehicle_drive_defs[v->kind];
  n->unit.throttle=(real_vector2d){.n={input?input->forward:0,input?-input->strafe:0}};
@@ -491,8 +494,9 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
    if(bg_vehicle_ceiling!=0&&n->object.position.z>bg_vehicle_ceiling)n->object.translational_velocity.k-=((n->object.position.z-bg_vehicle_ceiling)*.015625f+n->object.translational_velocity.k*.0625f)*n->unit.seat_power[0];
   }
  }else if(n->vehicle.stop_time>0){slowly_stop_vehicle(i);suspension_update(i);}
- else{v->steering=n->vehicle.turn;return;}
+ else{v->steering=n->vehicle.turn;BG_VP_END(BG_VP_STEP);return;}
  publish(i);
+ BG_VP_END(BG_VP_STEP);
 }
 bool bg_vehicle_airborne(unsigned i){return native[i].vehicle.airborne_ticks>0;}
 void bg_vehicle_physics_wreck(unsigned i){

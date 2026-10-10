@@ -1285,7 +1285,13 @@ static void draw_view(unsigned p) {
     unsigned before = triangles, animation_before = animation_us;
 #endif
     t3d_viewport_attach(vp);
+#ifdef BG_PROFILE
+    uint64_t sky_begin = get_ticks_us();
+#endif
     bg_sky_draw(vp);
+#ifdef BG_PROFILE
+    bg_scene_profile.sky_us += get_ticks_us() - sky_begin;
+#endif
     triangles += 16;
     t3d_frame_start();
     rdpq_mode_dithering(DITHER_NONE_NONE);

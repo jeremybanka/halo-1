@@ -1,7 +1,8 @@
 #ifndef BG_VEHICLE_PROFILE_H
 #define BG_VEHICLE_PROFILE_H
 /* Diagnostic clocks only. Inclusive timings overlap: ground includes feature
- * construction/testing, and suspension includes sweeps. No release storage. */
+ * construction/testing; force includes ground, integration includes sweeps,
+ * and step includes force/integration/control/publication. No release storage. */
 enum {
     BG_VP_GROUND,
     BG_VP_FEATURE_BUILD,
@@ -12,6 +13,12 @@ enum {
     BG_VP_WORLD_CAMERA,
     BG_VP_HULL_CAMERA,
     BG_VP_AIM_CAMERA,
+    BG_VP_FORCE,
+    BG_VP_INTEGRATE,
+    BG_VP_CONTROL,
+    BG_VP_PUBLISH,
+    BG_VP_STEP,
+    BG_VP_PLAYER_CONTACTS,
     BG_VP_COUNT
 };
 #if defined(N64) && defined(BG_PROFILE)

@@ -210,3 +210,95 @@ shared polygon projections do not establish a large independent improvement.
 Diagnostic nesting and clock overhead remain included; the quiet VI result is
 the acceptance measurement. Frontend lifecycle passes 37/37 with zero RDP
 errors/warnings. The full 30 FPS target still needs substantial work.
+
+## Solver attribution and terrain experiments (October 10)
+
+Base: `eba62e5e`. This follow-up retains only diagnostic improvements; none
+of its terrain prototypes demonstrated an adequate target FPS gain. Release
+keeps the flat integer-bounds predicate and its existing RAM layout. Assets,
+original solver bodies, physics frequency and render commands are unchanged.
+
+Diagnostic page 7 separates force calculation, integration, control,
+publication, complete vehicle steps, player contacts and sky drawing. The
+normal generated solver still has SHA256
+`f01429a630e6f8649194069255efc710f7bfbcebade0ca5af44941d8adeb7b37`.
+Diagnostic wrappers time the original bodies without editing them. All new
+clocks and metric storage are excluded from release/quiet builds.
+
+| Inclusive diagnostic phase | Combat | Vehicles |
+| --- | ---: | ---: |
+| Force calculation | 0.350 ms | 6.210 ms |
+| Integration | 0.096 ms | 1.990 ms |
+| Control | 0.244 ms | 0.384 ms |
+| Publication | 0.020 ms | 0.188 ms |
+| Complete vehicle steps | 0.960 ms | 9.307 ms |
+| Vehicle/player contacts | 1.086 ms | 0.837 ms |
+| Whole vehicle update | 2.370 ms | 12.194 ms |
+| World drawing | 5.768 ms | 5.518 ms |
+| View preparation | 2.217 ms | 5.869 ms |
+| Sky drawing (part of world) | 1.517 ms | 1.419 ms |
+
+These clocks overlap. Force includes ground/contact work, integration includes
+sweeps, and step includes force/integration/control/publication. Player-contact
+clocks can include damage callbacks. Whole vehicle update includes additional
+seat, weapon, support and lifecycle work. Do not add these rows or interpret
+the whole-update/step difference as an unmeasured solver body. Ground feature
+construction and sweeps remain useful targets; control/publication are small.
+Sky is measurable but does not explain most world time.
+
+The terrain experiments preserve original chunk order, materials, triangles,
+textures and the exact culling predicate, including its expression grouping:
+
+| Quiet VI experiment | Overall | Combat | Vehicles | Observed free heap |
+| --- | ---: | ---: | ---: | ---: |
+| Flat baseline repeat | 25.3 | 26.6 | 24.0 | 47 KiB |
+| Hierarchy with plane containment | 25.1 | 26.5 | 23.8 | 43 KiB |
+| Hierarchy with rejection only | 25.0 | 26.4 | 23.6 | 43 KiB |
+| Immutable float bounds | 25.3 | 26.6 | 24.1 | 42 KiB |
+
+Same Ares/NTSC/4 MiB/three-surface/two-slot/32 KiB-queue fixture. Each row
+samples 75 seconds after warmup. End-of-run live free heap also reflects
+residency at the endpoint; it is not a fixed-allocation measurement. The
+baseline is consistent with the preceding 25.3/26.6/24.1 result.
+
+Both hierarchy variants use 63 nodes and 225 IDs. Their one-time CPU allocation
+is 1712 bytes, including four visibility bitsets; linked footprint grows about
+2776 bytes. Strict and target-math sanitizer fixtures match 22.5 million actual
+map chunk decisions for each variant, including clipping boundaries, scopes,
+signed zero, nonfinite fallback and original draw order. In the 50,000-view
+fixture the containment variant visits 1.14 million nodes + 1.98 million leaf
+chunks, versus 11.25 million flat chunk tests. The simpler variant visits
+1.20 million nodes + 2.39 million chunks. These are work counts, not speed.
+
+Containment costs 2.264 ms of vehicle-frame view preparation and lowers world
+drawing from 5.449 to 2.822 ms in the matching diagnostic trials. Moving work
+between timers explains most of that apparent world improvement. The small
+combined CPU reduction does not transfer to better quiet VI results. Extra
+bookkeeping, branches and cache/code footprint are plausible explanations,
+not independently proven causes.
+
+Float bounds use 5400 immutable bytes and preserve every int16 coordinate
+exactly. Two million strict/target-math SDK comparisons pass. Its 0.1 FPS
+vehicle difference is within the observed baseline variation; losing about
+5 KiB of live headroom is not justified. All three prototypes were removed
+from maintained code, with their prototype implementations and ROM manifests retained in
+ignored `build/n64-terrain-solver/` for reference.
+
+Native checkpoint traces again preserve all 144,166,856 bytes over 15,300
+ticks under ordinary and LTO builds. The initial experiment suite passed
+44 groups (including the temporary hierarchy test). The final host/contracts/assets suite passes 41/41 groups; the five target
+groups pass, including 28 configurations / 112 translation units. Results
+are saved separately in that directory. Page 7 is included
+in the maintained target configuration matrix, and the benchmark test checks
+all 40 phase accumulators. The >25 vehicle FPS and final 30 FPS gates remain
+open; this pass claims no production speed improvement.
+
+```sh
+build/n64-python/bin/python port/n64/build.py --benchmark --paced30 --lto \
+  --rspq-buffer-kib 16 --benchmark-page 7 \
+  --output-dir build/n64-terrain-solver/solver
+```
+
+Ares showed a black viewport even for the previously verified release.
+Restarting Ares restored rendering; no preferences were changed. A black
+capture was not treated as an allocation failure or benchmark result.

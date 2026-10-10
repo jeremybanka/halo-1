@@ -168,11 +168,6 @@ static void hud_text(const char *text, int x, int y, color_t color) {
             int glyph = hud_glyph(text[i]);
             if (glyph < 0)
                 continue;
-            if (shadow && glyph < 10) {
-                int px = x + i * 5 - 1, py = y - 1;
-                rdpq_texture_rectangle(TILE0, px, py, px + 6, py + 8, glyph * 6, 116);
-                continue;
-            }
             int px = x + i * 5 + shadow, py = y + shadow;
             rdpq_texture_rectangle(TILE0, px, py, px + 4, py + 6, hud_glyph_x(glyph),
                                    hud_glyph_y(glyph));

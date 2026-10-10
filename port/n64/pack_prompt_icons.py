@@ -18,6 +18,35 @@ NAMES = ("Assault Rifle", "Pistol", "Plasma Pistol", "Plasma Rifle", "Needler",
          "Shotgun", "Sniper Rifle", "Rocket Launcher", "Flamethrower")
 
 
+def refine_native_mask(weapon, mask):
+    """Preserve identifying features that BOX coverage loses at native size.
+
+    Corrections are deliberately local to the source-derived 31x12 fit; a
+    global threshold change would thicken unrelated edges and close holes.
+    """
+    if weapon == 0:
+        # Open the thumb hole one column toward the butt. Restore the rear
+        # receiver's raised shoulder and the front taper of the top housing.
+        for y in (7, 8):
+            mask.putpixel((6, y), 0)
+        for x in range(2, 7):
+            mask.putpixel((x, 1), 255)
+        for x in range(23, 26):
+            mask.putpixel((x, 0), 255)
+    elif weapon == 1:
+        # A closed trigger guard, with an open interior and a stepped lower
+        # corner: both ends connect to the pistol rather than floating.
+        for point in ((8, 4), (7, 7), (6, 8), (7, 8)):
+            mask.putpixel(point, 255)
+    elif weapon == 7:
+        # Retain the narrow under-barrel rail connecting the forward grip.
+        for x in range(20, 29):
+            mask.putpixel((x, 4), 255)
+        # An isolated coverage sample from the rear ring is not a silhouette.
+        mask.putpixel((0, 3), 0)
+    return mask
+
+
 def bake(output):
     from reclaimer.meta.wrappers.halo1_map import Halo1Map
     from reclaimer.bitmaps.bitmap_decompilation import extract_bitmaps
@@ -49,6 +78,7 @@ def bake(output):
         mask = alpha.resize((w, h), Image.Resampling.BOX).point(lambda a: 255 if a >= threshold else 0)
         # The sniper's thin source barrel must remain a connected native pixel.
         # BOX coverage retains these features; no generic erosion/dilation.
+        mask = refine_native_mask(i, mask)
         x, y = i % 2 * 32, i // 2 * 12
         atlas.paste(mask, (x, y))
         records.append((x, y, w, h))

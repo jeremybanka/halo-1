@@ -4,8 +4,9 @@ The HUD keeps Halo's corner layout while using smaller, upright pixel art for
 the N64 framebuffer. `hud_pixels.h` defines a 64×128 IA4 bank (4,096 bytes),
 initialized once and never modified during rendering. Counters, bars, grenade
 silhouettes, reticles and status text share one upload per viewport. The 4×6 glyphs use
-integer coordinates and point sampling. Centered navy digit outlines keep counters readable on
-both the sky and dark terrain. The main color is RGB (100, 220, 255).
+integer coordinates and point sampling. Digits and letters use the same navy
+shadow, offset one pixel down and right, to stay consistent in mixed text and
+readable over the scene. The main color is RGB (100, 220, 255).
 
 The AR magazine has 20 columns of three rounds: every one of its 60 rounds
 remains individually represented. The filled portion depletes from the right;
@@ -81,6 +82,9 @@ replacement (`Hold [use] Swap for`). An original weapon messaging silhouette
 identifies the target. `pack_prompt_icons.py` bakes the Xbox `hud_msg_icons`
 sequences into a separate, immutable 2,048-byte IA4 bank, at most 31×12 pixels
 per weapon. The sniper coverage threshold retains its thin, connected barrel.
+Local native-pixel corrections close the pistol trigger guard, open the AR
+thumb hole toward the stock and recover its stepped top profile, and connect
+the rocket launcher's under-barrel rail while removing a detached rear pixel.
 Long weapons use an identity row above the bottom prompt in four-player views;
 short ones fit inline. The font never shrinks. The source silhouettes and packed
 data remain in the private bank. Normal ROM builds consume that bank without

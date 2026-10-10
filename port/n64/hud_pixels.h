@@ -76,9 +76,5 @@ static void hud_pixels_init(void){
     for(unsigned q=0;q<15;q++)for(unsigned y=0;y<12;y++)for(unsigned x=0;x<12;x++)
         if(hud_reticle_quadrants[q][y]&(1u<<(11-x)))
             hud_ink((q%5)*12+x,80+(q/5)*12+y);
-    /* Centered 1px digit outlines avoid a directional shadow making the
-     * upright counters appear italic. Ink and outline each cost one quad. */
-    for(unsigned g=0;g<10;g++)for(unsigned y=0;y<6;y++)for(unsigned x=0;x<4;x++)
-        if(hud_font[g][y]&(8u>>x))hud_ink_box(g*6+x,116+y,3,3);
 }
 #endif

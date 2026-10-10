@@ -24,12 +24,16 @@ def validate(out, regenerate=False):
     for script in (('prepare_core.py', 'prepare_collision.py', 'prepare_vehicle.py',
                    'tags/export_collision.py', 'export_vehicle.py') if regenerate else ()):
         run([sys.executable, ROOT/'port/n64/blam'/script])
+    # Validate today's source adaptations, not a stale generated solver in the
+    # shared bank. This emits source only; immutable game assets are untouched.
+    solver = OUT / 'blam-vehicle'
+    run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py', '--output', solver])
     flags = ['-std=c17', '-O1', '-g', '-Wall', '-Wextra', '-Werror',
              '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
              '-fno-fast-math', '-ffp-contract=off', '-fno-strict-aliasing', '-fwrapv',
              '-Wno-multichar', '-Wno-unused-function', '-Wno-unused-parameter',
              '-Wno-unused-variable', '-Wno-incompatible-pointer-types',
-             '-Iport/n64', '-Ibuild/n64/blam-core', '-Ibuild/n64/blam-vehicle']
+             '-Iport/n64', '-Ibuild/n64/blam-core', '-I'+str(solver), '-Ibuild/n64/blam-vehicle']
     shared = ['build/n64/generated/pickup_data.c','port/n64/combat_geometry.c','build/n64/generated/combat_data.c', 'port/n64/terrain.c', 'port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
               'port/n64/blam/vehicle_physics.c', 'build/n64/generated/vehicle_data.c',
               'build/n64/generated/terrain_data.c']

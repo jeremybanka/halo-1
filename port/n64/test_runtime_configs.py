@@ -11,6 +11,7 @@ from build import ROOT, parse_args, compile_options
 
 VARIANTS = {
     "release": ["--preset", "release"],
+    "solver-profile": ["--benchmark", "--benchmark-page", "7"],
     "profile": ["--profile"],
     "benchmark": ["--benchmark", "--paced30"],
     "quiet": ["--vi-benchmark", "--preset", "release"],

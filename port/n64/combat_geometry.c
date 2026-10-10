@@ -171,6 +171,68 @@ float bg_vehicle_hit_ray_material_impl(const bg_vehicle*v,const float origin[3],
 float bg_vehicle_hit_ray_material(const bg_vehicle*v,const float origin[3],const float direction[3],float distance,unsigned *material){PROFILE_BEGIN;float result=bg_vehicle_hit_ray_material_impl(v,origin,direction,distance,material);PROFILE_END(0);return result;}
 
 
+/* Five camera rays share an origin and one immutable articulated pose. Each
+ * lane visits nodes/triangles in the single-ray order and keeps its exact
+ * predicates. Edge vectors and the common origin's cross product are shared. */
+static void vehicle_camera_packet_impl(const bg_vehicle*v,const float origin[3],
+        const float directions[5][3],const float reaches[5],float distances[5]){
+    float offset[3];for(unsigned a=0;a<3;a++)offset[a]=origin[a]-v->pos[a];
+    float radius=vehicle_sweep_radius(v);unsigned active=0;
+    for(unsigned i=0;i<5;i++)if(reaches[i]>=.001f){
+        float along=fminf(distances[i],fmaxf(0,-dot3(offset,directions[i]))),closest[3];
+        for(unsigned a=0;a<3;a++)closest[a]=offset[a]+along*directions[i][a];
+        if(!(dot3(closest,closest)>radius*radius))active|=1u<<i;
+    }
+    if(!active)return;
+    const bg_hit_mesh*m=bg_vehicle_collision_pose(v);
+    float basis[3][3],o[3],d[5][3],inverse[5][3];bool parallel[5][3];
+    if(v->physics_valid){
+        for(unsigned a=0;a<3;a++){basis[0][a]=v->forward[a];basis[1][a]=v->up[a];}
+        cross3(basis[0],basis[1],basis[2]);
+    }else for(unsigned axis=0;axis<3;axis++){
+        float unit[3]={0};unit[axis]=1;bg_vehicle_transform(v,unit,basis[axis]);
+        for(unsigned a=0;a<3;a++)basis[axis][a]-=v->pos[a];
+    }
+    for(unsigned a=0;a<3;a++)o[a]=dot3(offset,basis[a]);
+    for(unsigned i=0;i<5;i++)if(active&(1u<<i))for(unsigned a=0;a<3;a++){
+        d[i][a]=dot3(directions[i],basis[a]);parallel[i][a]=fabsf(d[i][a])<1e-8f;
+        inverse[i][a]=parallel[i][a]?0:1/d[i][a];
+    }
+    uint16_t stack[16]={0};uint8_t masks[16]={(uint8_t)active};unsigned pending=1;
+    while(pending){
+        --pending;unsigned mask=masks[pending],hit=0;
+        const bg_hit_node*node=&m->nodes[stack[pending]];
+        float lower[3],upper[3];for(unsigned a=0;a<3;a++){lower[a]=node->bounds[a]/1024.f;upper[a]=node->bounds[a+3]/1024.f;}
+        for(unsigned i=0;i<5;i++)if(mask&(1u<<i)){
+            float lo=0,hi=distances[i];bool overlap=true;
+            for(unsigned a=0;a<3;a++){
+                if(parallel[i][a]){if(o[a]<lower[a]||o[a]>upper[a]){overlap=false;break;}}
+                else{float x=(lower[a]-o[a])*inverse[i][a],y=(upper[a]-o[a])*inverse[i][a];lo=fmaxf(lo,fminf(x,y));hi=fminf(hi,fmaxf(x,y));if(lo>hi){overlap=false;break;}}
+            }
+            if(overlap)hit|=1u<<i;
+        }
+        if(!hit)continue;
+        if(!node->count){assert(pending+2<=16);masks[pending]=hit;stack[pending++]=node->right;masks[pending]=hit;stack[pending++]=node->first;continue;}
+        for(unsigned t=node->first;t<node->first+node->count;t++){
+            const int16_t*a=m->vertices[m->triangles[t][0]],*b=m->vertices[m->triangles[t][1]],*c=m->vertices[m->triangles[t][2]];
+            float e1[3],e2[3],tvec[3],q[3],numerator=0;bool ready=false;
+            for(unsigned k=0;k<3;k++){e1[k]=(b[k]-a[k])/1024.f;e2[k]=(c[k]-a[k])/1024.f;tvec[k]=o[k]-a[k]/1024.f;}
+            for(unsigned i=0;i<5;i++)if(hit&(1u<<i)){
+                float p[3];cross3(d[i],e2,p);float det=dot3(e1,p);if(fabsf(det)<1e-8f)continue;
+                float inv=1/det,u=dot3(tvec,p)*inv;if(u<0||u>1)continue;
+                if(!ready){cross3(tvec,e1,q);numerator=dot3(e2,q);ready=true;}
+                float w=dot3(d[i],q)*inv;if(w<0||u+w>1)continue;
+                float distance=numerator*inv;if(distance>=0&&distance<distances[i])distances[i]=distance;
+            }
+        }
+    }
+}
+void bg_vehicle_camera_packet(const bg_vehicle*v,const float origin[3],
+        const float directions[5][3],const float reaches[5],float distances[5]){
+    PROFILE_BEGIN;vehicle_camera_packet_impl(v,origin,directions,reaches,distances);PROFILE_END(0);
+}
+
+
 /* Bounded narrow phase shared by splatters and exit clearance. Broadly reject
  * using the authored hull bounds before touching its triangles. */
 static bool vehicle_player_contact_impl(const bg_vehicle*v,const bg_player*p,bg_player*resolve){

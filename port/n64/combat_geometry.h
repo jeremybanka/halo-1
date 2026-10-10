@@ -19,6 +19,8 @@ float bg_player_hit_ray(unsigned player,const float origin[3],const float direct
 extern const bg_hit_mesh bg_vehicle_hit_meshes[4];
 float bg_vehicle_hit_ray_material(const bg_vehicle*v,const float origin[3],const float direction[3],float distance,unsigned *material);
 float bg_vehicle_hit_ray(const bg_vehicle*v,const float origin[3],const float direction[3],float distance);
+/* In-place camera fan distances, preserving the five independent ray predicates. */
+void bg_vehicle_camera_packet(const bg_vehicle*v,const float origin[3],const float directions[5][3],const float reaches[5],float distances[5]);
 bool bg_vehicle_resolve_player(const bg_vehicle*v,bg_player*p);
 bool bg_vehicle_contacts_player(const bg_vehicle*v,const bg_player*p);
 #endif

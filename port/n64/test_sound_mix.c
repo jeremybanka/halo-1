@@ -4,49 +4,97 @@
 #include <string.h>
 
 static uint32_t seed = 0x72656d61;
-static unsigned random_u32(void) { seed = seed*1664525u+1013904223u; return seed; }
+static unsigned random_u32(void) {
+    seed = seed * 1664525u + 1013904223u;
+    return seed;
+}
 
 /* Frozen sample-major implementation: this is an output-equivalence test,
  * including clip endings, rate changes, looping and saturation. */
-static void reference(bg_sound_voice *voices, int16_t *out, unsigned frames) {
+static void reference(bg_sound_voice *voices, unsigned voice_count, int16_t *out, unsigned frames) {
     for (unsigned f = 0; f < frames; f++) {
-        int left=0,right=0;
-        for (unsigned c=0;c<17;c++) {
-            bg_sound_voice *v=&voices[c];if(!v->asset)continue;
-            int sample=v->asset->samples[v->frame];
-            left+=sample*v->left;right+=sample*v->right;
-            v->fraction+=v->step;v->frame+=v->fraction>>16;v->fraction&=65535;
-            if(v->frame>=v->asset->count){if(v->loop)v->frame%=v->asset->count;else v->asset=NULL;}
+        int left = 0, right = 0;
+        for (unsigned c = 0; c < voice_count; c++) {
+            bg_sound_voice *v = &voices[c];
+            if (!v->asset)
+                continue;
+            int sample = v->asset->samples[v->frame];
+            left += sample * v->left;
+            right += sample * v->right;
+            v->fraction += v->step;
+            v->frame += v->fraction >> 16;
+            v->fraction &= 65535;
+            if (v->frame >= v->asset->count) {
+                if (v->loop)
+                    v->frame %= v->asset->count;
+                else
+                    v->asset = NULL;
+            }
         }
-        left/=2;right/=2;
-        out[f*2]=left>32767?32767:left< -32768?-32768:left;
-        out[f*2+1]=right>32767?32767:right< -32768?-32768:right;
+        left /= 2;
+        right /= 2;
+        out[f * 2] = left > 32767 ? 32767 : left < -32768 ? -32768 : left;
+        out[f * 2 + 1] = right > 32767 ? 32767 : right < -32768 ? -32768 : right;
     }
 }
 int main(void) {
-    int8_t samples[17][4096];bg_audio_asset assets[17];
-    int16_t expected[4096],actual[4096];
-    unsigned checked=0;
-    for (unsigned run=0;run<300;run++) {
-        bg_sound_voice a[17]={0},b[17];
-        for (unsigned c=0;c<17;c++) {
-            for(unsigned i=0;i<4096;i++)samples[c][i]=(int8_t)(random_u32()>>24);
-            assets[c]=(bg_audio_asset){samples[c],run%7?1+random_u32()%4096:1,11025,false};
-            a[c]=(bg_sound_voice){random_u32()%5?&assets[c]:NULL,
-                random_u32()%assets[c].count,random_u32()%65536,random_u32()%262174,
-                (int)(random_u32()%257),(int)(random_u32()%257),(run+c)%3!=0};
+    int8_t samples[17][4096];
+    bg_audio_asset assets[17];
+    int16_t expected[4096], actual[4096];
+    unsigned checked = 0;
+    for (unsigned run = 0; run < 300; run++) {
+        bg_sound_voice a[17] = {0}, b[17];
+        for (unsigned c = 0; c < 17; c++) {
+            for (unsigned i = 0; i < 4096; i++)
+                samples[c][i] = (int8_t)(random_u32() >> 24);
+            assets[c] =
+                (bg_audio_asset){samples[c], run % 7 ? 1 + random_u32() % 4096 : 1, 11025, false};
+            a[c] = (bg_sound_voice){random_u32() % 5 ? &assets[c] : NULL,
+                                    random_u32() % assets[c].count,
+                                    random_u32() % 65536,
+                                    random_u32() % 262174,
+                                    (int)(random_u32() % 257),
+                                    (int)(random_u32() % 257),
+                                    (run + c) % 3 != 0};
         }
-        memcpy(b,a,sizeof(a));
-        for(unsigned buffer=0;buffer<8;buffer++) {
-            unsigned frames=random_u32()%2049;
-            reference(a,expected,frames);bg_sound_mix(b,17,actual,frames);
-            assert(!memcmp(expected,actual,frames*2*sizeof(*actual)));
-            for(unsigned c=0;c<17;c++) {
-                assert(a[c].asset==b[c].asset&&a[c].frame==b[c].frame&&a[c].fraction==b[c].fraction);
-                a[c].step=b[c].step=random_u32()%262174;
+        memcpy(b, a, sizeof(a));
+        for (unsigned c = 0; c < 17; c++) {
+            if (run % 11 == 0)
+                a[c].left = b[c].left = -a[c].left;
+            if (run % 13 == 0)
+                a[c].right = b[c].right = -a[c].right;
+            if (run % 17 == 0) {
+                a[c].left = b[c].left = a[c].left * 4;
+                a[c].right = b[c].right = a[c].right * 4;
             }
-            checked+=frames;
+        }
+        for (unsigned buffer = 0; buffer < 8; buffer++) {
+            unsigned frames = random_u32() % 2049;
+            reference(a, 17, expected, frames);
+            bg_sound_mix(b, 17, actual, frames);
+            assert(!memcmp(expected, actual, frames * 2 * sizeof(*actual)));
+            for (unsigned c = 0; c < 17; c++) {
+                assert(a[c].asset == b[c].asset && a[c].frame == b[c].frame &&
+                       a[c].fraction == b[c].fraction);
+                a[c].step = b[c].step = random_u32() % 262174;
+            }
+            checked += frames;
         }
     }
-    printf("Mixer PCM and voice state exactly match for %u stereo frames.\n",checked);
+    /* Dense signed accumulation and the generic voice-count boundary. */
+    static bg_sound_voice a[256], b[256];
+    const int8_t extreme = -128;
+    const bg_audio_asset clip = {&extreme, 1, 11025, true};
+    for (unsigned count = 254; count <= 256; count++) {
+        for (unsigned c = 0; c < count; c++)
+            a[c] = (bg_sound_voice){&clip, 0, 65535, 0, -256, c & 1 ? 256 : -256, true};
+        memcpy(b, a, sizeof(a));
+        reference(a, count, expected, 257);
+        bg_sound_mix(b, count, actual, 257);
+        assert(!memcmp(expected, actual, 257 * 2 * sizeof(*actual)));
+        for (unsigned c = 0; c < count; c++)
+            assert(a[c].frame == b[c].frame && a[c].fraction == b[c].fraction &&
+                   a[c].asset == b[c].asset);
+    }
+    printf("Mixer PCM and voice state exactly match for %u stereo frames.\n", checked);
 }

@@ -22,6 +22,7 @@ PRELUDE = r'''
 #include <string.h>
 #include "game.h"
 #include "render_bounds.h"
+#include "render_cull.h"
 #include "render_pose_cache.h"
 #define BG_OBJECT_SCALE 1024.f
 #define BG_FRAME_SLOTS 2
@@ -57,7 +58,7 @@ static float uniform(float low,float high){
 }
 int main(void){
     unsigned poses=0,coordinates=0,rejected=0,wheels=0,changed_wheels=0;
-    bg_cull_bounds old_wheel={{0},{0},false};
+    bg_cull_bounds old_wheel={.valid=false};
     for(unsigned trial=0;trial<4096;trial++){
         unsigned i=trial%BG_MAX_VEHICLES;slot=trial%BG_FRAME_SLOTS;
         bg_vehicle*v=&bg_vehicles[i];v->kind=trial%4;
@@ -106,7 +107,8 @@ int main(void){
                     plane[a]=uniform(-1,1);
                     plane[3]-=plane[a]*(b->min[a]+b->max[a])*.5f;
                 }
-                if(!visible_bounds(&vp,b)){
+                assert(visible_bounds(&vp,b,NULL)==(!b->valid||t3d_frustum_vs_aabb_s16(&vp.viewFrustum,b->min,b->max)));
+                if(!visible_bounds(&vp,b,NULL)){
                     rejected++;
                     for(unsigned c=0;c<8;c++){
                         float side=plane[3];
@@ -115,7 +117,7 @@ int main(void){
                     }
                 }
                 bg_cull_bounds invalid=*b;invalid.valid=false;
-                assert(visible_bounds(&vp,&invalid));
+                assert(visible_bounds(&vp,&invalid,NULL));
             }
         }
     }
@@ -149,9 +151,9 @@ def run(root, sdk, generated, out):
         prepare.index('bg_bounds_transform(&box,&part->bounds,world.m,BG_OBJECT_SCALE);') < \
         prepare.index('bg_bounds_quantize(&vehicle_part_bounds[i][j],&box);')
     draw = compact(function(main, 'draw_view'))
-    assert 'if(!visible_bounds(vp,&vehicle_part_bounds[i][j]))continue;' \
+    assert 'if(!visible_bounds(vp,&vehicle_part_bounds[i][j],cull_selected[p]))continue;' \
            't3d_matrix_set(&part_matrices[slot][i][j],true);' in draw
-    assert 'return!bounds->valid||t3d_frustum_vs_aabb_s16' in compact(function(main, 'visible_bounds'))
+    assert 'return!bounds->valid||' in compact(function(main, 'visible_bounds'))
     typedefs = assets[assets.index('enum { BG_PART_BODY'):assets.index('extern const bg_vehicle_rig')]
     c = PRELUDE + typedefs
     c += '\ntypedef struct {uint32_t offset,stride;uint16_t vertices,frames;float duration;bg_bounds bounds;} bg_rom_pose;\n'
@@ -190,7 +192,7 @@ static void bg_interaction_points(int16_t (*out)[3],const bg_rom_pose *p,float s
         (header,'void','t3d_mat4_mul','T3DMat4 *matRes,const T3DMat4 *matA,const T3DMat4 *matB'),
         (header,'void','t3d_mat3_mul_vec3','T3DVec3 *vecOut,const T3DMat4 *mat,const T3DVec3 *vec'),
         (math,'bool','t3d_frustum_vs_aabb_s16','const T3DFrustum *frustum,const int16_t min[3],const int16_t max[3]'),
-        (main,'bool','visible_bounds','T3DViewport *vp,const bg_cull_bounds *bounds'),
+        (main,'bool','visible_bounds','T3DViewport *vp,const bg_cull_bounds *bounds,const uint8_t selected[6][3]'),
         (main,'void','pivot_rotation','T3DMat4 *out,const float pivot[3],float yaw,float pitch'),
         (main,'void','compute_vehicle_pose','unsigned i'),
         (main,'void','prepare_vehicle','unsigned i')):

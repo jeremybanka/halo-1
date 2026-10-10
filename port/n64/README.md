@@ -55,6 +55,14 @@ The behavior-preserving cleanup measured **24.1 / 26.2 / 22.2 FPS** in the
 same quiet fixture, with 42 KiB free. This remains within the checkpoint range;
 the >25 FPS vehicle gate and final 30 FPS pass are still open.
 Earlier timing results describe older builds.
+The first optimization pass measures **25.0 / 26.4 / 23.7 FPS**, with 49 KiB
+free, retaining the original asset bank and simulation. Release now uses LTO
+with the same arithmetic contracts; `--no-lto` builds a comparison. See
+[OPTIMIZATION.md](OPTIMIZATION.md) for measured candidates, validation and the
+remaining >25 FPS vehicle / 30 FPS work.
+The collision/camera follow-up measures **25.3 / 26.6 / 24.1 FPS** with the same
+49 KiB free. Five-ray hull traversal and shared projected polygons improve
+repeated work; the vehicle and 30 FPS gates remain open.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
 Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,
@@ -187,6 +195,11 @@ release preset (16 KiB with legacy defaults) so CPU
 work can overlap queued graphics. The shared SDK is unchanged. Use
 `--rspq-buffer-kib 0` for the slower unmodified-SDK fallback; see
 [RSPQ.md](RSPQ.md) for provenance checks and controlled comparisons.
+
+For inclusive CPU attribution, use `--benchmark --benchmark-page 5` (broad),
+`6` (collision/camera), or `7` (solver/sky). These clocks overlap and are
+excluded from normal release and quiet VI builds. Use `--vi-benchmark` for
+actual presentation-rate comparisons; see [OPTIMIZATION.md](OPTIMIZATION.md).
 
 ```sh
 # Reuse the existing venv and extracted maps when available.

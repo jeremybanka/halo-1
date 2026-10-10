@@ -139,6 +139,26 @@ def prepare():
  table+='\n'+section('source/physics/physics.c','#define PHYSICS_POINT_FROM_LINE3D','/* ---------- structures */')
  output='/* Generated original implementations. See vehicle-source-manifest.json. */\n'+table+'\n'+'\n'.join(prototypes)+'\n'+'\n'.join(funcs.values())
  (OUT/'vehicle_original.c').write_text(output)
+ # Keep the release implementation byte-for-byte unchanged. Diagnostics
+ # time complete original bodies via wrappers; their arithmetic is untouched.
+ measured={
+  'compute_ground_plane':('BG_VP_GROUND','object_index, mass_point, mass_point_definition',False),
+  'collision_features_test_point':('BG_VP_FEATURE_TEST','features, point, collision',True),
+  'physics_compute_vehicle_collision':('BG_VP_PAIRS','instance0, instance1',True),
+  'physics_compute_new':('BG_VP_FORCE','instance, powered_mass_points, mass_points, total_force, total_torque',False),
+  'physics_update_new':('BG_VP_INTEGRATE','instance, powered_mass_points, mass_points, total_force, total_torque',False),
+  'vehicle_control_update':('BG_VP_CONTROL','vehicle_index',False),
+ }
+ profile=output;wrappers=[]
+ for name,(bucket,args,returns) in measured.items():
+  original=funcs[name];signature=original[:original.index('{')].strip()
+  renamed=original.replace(name+'(',name+'_measured(',1)
+  assert renamed!=original
+  profile=profile.replace(original,renamed,1)
+  call=name+'_measured('+args+')'
+  body=('boolean result='+call+';' if returns else call+';')
+  wrappers.append(signature+'{ BG_VP_BEGIN; '+body+' BG_VP_END('+bucket+'); '+('return result;' if returns else '')+' }')
+ (OUT/'vehicle_profile.c').write_text(profile+'\n'+'\n'.join(wrappers)+'\n')
  for record in records:
   if record['name'] in funcs:record['generated_sha256']=hashlib.sha256(funcs[record['name']].encode()).hexdigest()
  (OUT/'vehicle-source-manifest.json').write_text(json.dumps(records,indent=2)+'\n')

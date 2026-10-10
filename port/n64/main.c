@@ -7,6 +7,7 @@
 #include "game.h"
 #include "combat_geometry.h"
 #include "blam/vehicle_physics.h"
+#include "blam/vehicle_profile.h"
 #include "controls.h"
 #include "menu.h"
 #include "camouflage.h"
@@ -495,6 +496,41 @@ static void benchmark_page(surface_t *screen, bool completed) {
            "firstperson=%u\n",
            cats[0], cats[1], cats[2], cats[3], cats[4], cats[5]);
 }
+static void benchmark_cost_page(surface_t *screen, unsigned detail) {
+    rdpq_attach(screen, NULL);
+    rdpq_set_mode_standard();
+    rdpq_set_scissor(0, 0, 320, 240);
+    rdpq_clear(RGBA32(9, 20, 39, 255));
+    rdpq_text_print(NULL, 1, 8, 16, "MEAN PHASE US / INCLUSIVE");
+    rdpq_text_print(NULL, 1, 84, 32, "ALL");
+    rdpq_text_print(NULL, 1, 160, 32, "COMBAT");
+    rdpq_text_print(NULL, 1, 236, 32, "VEHICLES");
+    static const char *const labels[] = {"SIM",    "PLAYERS",  "PHYSICS", "SHOTS", "CAMERA",
+                                         "BODIES", "VEH-PREP", "PICKUPS", "VIEWS", "ANIM",
+                                         "WORLD",  "OBJECTS",  "AUDIO",   "QUEUE"};
+    static const unsigned indices[] = {0, 21, 22, 23, 1, 17, 18, 19, 20, 2, 4, 5, 8, 12};
+    static const char *const collision_labels[] = {"GROUND",  "FEATURES", "TESTS",     "SWEEPS",
+                                                   "PAIRS",   "SUSPEND",  "WORLD-CAM", "HULL-CAM",
+                                                   "AIM-CAM", "PHYSICS",  "VIEWS"};
+    static const unsigned collision_indices[] = {24, 25, 26, 27, 28, 29, 30, 31, 32, 22, 20};
+    static const char *const solver_labels[] = {"FORCE", "INTEGRATE",  "CONTROL",  "PUBLISH",
+                                                "STEP",  "PLAYER-HIT", "VEHICLES", "WORLD",
+                                                "VIEWS", "SKY"};
+    static const unsigned solver_indices[] = {33, 34, 35, 36, 37, 38, 22, 4, 20, 39};
+    const char *const *names = detail == 2 ? solver_labels : detail ? collision_labels : labels;
+    const unsigned *phases = detail == 2 ? solver_indices : detail ? collision_indices : indices;
+    unsigned rows = detail == 2 ? 10 : detail ? 11 : 14;
+    for (unsigned row = 0; row < rows; row++) {
+        int y = 48 + (int)row * 12;
+        rdpq_text_print(NULL, 1, 8, y, names[row]);
+        for (unsigned group = 0; group < 3; group++) {
+            const bg_benchmark_result *r = &benchmark.result[group];
+            unsigned average = r->frames ? r->phase_us[phases[row]] / r->frames : 0;
+            rdpq_text_printf(NULL, 1, 84 + group * 76, y, "%5u", average);
+        }
+    }
+    rdpq_text_print(NULL, 1, 8, 224, "QUEUE OVERLAPS WORLD/OBJECTS/HUD");
+}
 static void benchmark_tail_page(surface_t *screen, unsigned first) {
     rdpq_attach(screen, NULL);
     rdpq_set_mode_standard();
@@ -638,7 +674,7 @@ static void benchmark_results(surface_t *screen) {
      * before allocating text for the diagnostic pages. */
     bg_vehicle_world_release();
 #ifdef BG_BENCHMARK
-    unsigned page = 0;
+    unsigned page = BG_BENCHMARK_PAGE;
 #endif
     for (;;) {
 #ifdef BG_BENCHMARK
@@ -646,8 +682,10 @@ static void benchmark_results(surface_t *screen) {
             benchmark_page(screen, page == 1);
         else if (page < 4)
             benchmark_tail_page(screen, (page - 2) * 4);
-        else
+        else if (page == 4)
             benchmark_vi_page(screen);
+        else
+            benchmark_cost_page(screen, page - 5);
 #else
         benchmark_vi_page(screen);
 #endif
@@ -659,7 +697,9 @@ static void benchmark_results(surface_t *screen) {
             joypad_poll();
         } while (!joypad_get_buttons_pressed(0).a && get_ticks_us() < next_page);
 #ifdef BG_BENCHMARK
-        page = (page + 1) % 5;
+#ifndef BG_BENCHMARK_HOLD_PAGE
+        page = (page + 1) % 8;
+#endif
 #endif
         screen = display_get();
     }
@@ -768,6 +808,9 @@ int main(void) {
             bg_scene_profile.world_us = bg_scene_profile.object_us = bg_scene_profile.fp_us =
                 hud_us = audio_us = 0;
         memset(bg_geometry_profile, 0, sizeof(bg_geometry_profile));
+        memset(bg_tick_profile, 0, sizeof(bg_tick_profile));
+        memset(&bg_vehicle_profile, 0, sizeof(bg_vehicle_profile));
+        bg_scene_profile.sky_us = 0;
         geometry_rsp_us = geometry_rdp_us = 0;
         memset(bg_scene_profile.category_triangles, 0, sizeof(bg_scene_profile.category_triangles));
         bg_scene_profile.animated_vertices = bg_scene_profile.animated_tracks = 0;
@@ -1164,23 +1207,48 @@ int main(void) {
         benchmark_vehicle = fmodf(game_time, 75.f) >= 36.f;
         benchmark_triangles = triangles;
         benchmark_vertices = bg_scene_profile.submitted_vertices;
-        const unsigned phase_values[BG_BENCHMARK_PHASES] = {sim_us,
-                                                            bg_scene_profile.camera_us,
-                                                            bg_scene_profile.animation_us,
-                                                            bg_scene_profile.matrix_us,
-                                                            bg_scene_profile.world_us,
-                                                            bg_scene_profile.object_us,
-                                                            bg_scene_profile.fp_us,
-                                                            hud_us,
-                                                            audio_us,
-                                                            wait_us,
-                                                            geometry_rsp_us,
-                                                            geometry_rdp_us,
-                                                            queue_us,
-                                                            bg_geometry_profile[0],
-                                                            bg_geometry_profile[1],
-                                                            bg_geometry_profile[2],
-                                                            bg_geometry_profile[3]};
+        const unsigned phase_values[] = {sim_us,
+                                         bg_scene_profile.camera_us,
+                                         bg_scene_profile.animation_us,
+                                         bg_scene_profile.matrix_us,
+                                         bg_scene_profile.world_us,
+                                         bg_scene_profile.object_us,
+                                         bg_scene_profile.fp_us,
+                                         hud_us,
+                                         audio_us,
+                                         wait_us,
+                                         geometry_rsp_us,
+                                         geometry_rdp_us,
+                                         queue_us,
+                                         bg_geometry_profile[0],
+                                         bg_geometry_profile[1],
+                                         bg_geometry_profile[2],
+                                         bg_geometry_profile[3],
+                                         bg_scene_profile.body_prepare_us,
+                                         bg_scene_profile.vehicle_prepare_us,
+                                         bg_scene_profile.pickup_prepare_us,
+                                         bg_scene_profile.view_prepare_us,
+                                         bg_tick_profile[0],
+                                         bg_tick_profile[1],
+                                         bg_tick_profile[2],
+                                         bg_vehicle_profile.us[0],
+                                         bg_vehicle_profile.us[1],
+                                         bg_vehicle_profile.us[2],
+                                         bg_vehicle_profile.us[3],
+                                         bg_vehicle_profile.us[4],
+                                         bg_vehicle_profile.us[5],
+                                         bg_vehicle_profile.us[6],
+                                         bg_vehicle_profile.us[7],
+                                         bg_vehicle_profile.us[8],
+                                         bg_vehicle_profile.us[9],
+                                         bg_vehicle_profile.us[10],
+                                         bg_vehicle_profile.us[11],
+                                         bg_vehicle_profile.us[12],
+                                         bg_vehicle_profile.us[13],
+                                         bg_vehicle_profile.us[14],
+                                         bg_scene_profile.sky_us};
+        _Static_assert(sizeof(phase_values) / sizeof(*phase_values) == BG_BENCHMARK_PHASES,
+                       "Benchmark phase schema must match its sample bank");
         memcpy(benchmark_phases, phase_values, sizeof(benchmark_phases));
         memcpy(benchmark_categories, bg_scene_profile.category_triangles,
                sizeof(benchmark_categories));

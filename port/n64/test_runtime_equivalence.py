@@ -9,6 +9,9 @@ import hashlib
 from pathlib import Path
 import subprocess
 import tempfile
+import tarfile
+import io
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 TRACE = r"""
@@ -53,15 +56,68 @@ int main(int argc,char**argv){
 """
 
 
-def run(reference, output):
+def run(reference, output, solver_opt=2, lto=False):
     output.mkdir(parents=True, exist_ok=True)
+    candidate_solver = output / "candidate-solver"
+    subprocess.run(
+        [sys.executable, ROOT / "port/n64/blam/prepare_vehicle.py", "--output", candidate_solver],
+        cwd=ROOT,
+        check=True,
+    )
     with tempfile.TemporaryDirectory(prefix="halo-checkpoint-") as directory:
         baseline = Path(directory)
-        for name in ("game.c", "game.h", "pickups.inc"):
-            data = subprocess.check_output(
-                ["git", "show", f"{reference}:port/n64/{name}"], cwd=ROOT
-            )
-            (baseline / name).write_bytes(data)
+        # Compare both implementations, including shared collision/movement and
+        # inline headers. Sharing today's adapters between both binaries would
+        # hide regressions when optimizing those adapters themselves.
+        simulation_sources = (
+            "game.c",
+            "combat_geometry.c",
+            "terrain.c",
+            "movement.c",
+            "blam/runtime.c",
+            "blam/core.c",
+            "blam/vehicle_physics.c",
+            "replay.c",
+            "showcase.c",
+        )
+        archive = subprocess.check_output(["git", "archive", reference, "port/n64"], cwd=ROOT)
+        with tarfile.open(fileobj=io.BytesIO(archive)) as tree:
+            for member in tree:
+                prefix = "port/n64/"
+                if not member.isfile() or not member.name.startswith(prefix):
+                    continue
+                name = member.name[len(prefix) :]
+                if name not in (
+                    *simulation_sources,
+                    "blam/prepare_vehicle.py",
+                    "blam/prepare_collision.py",
+                ) and Path(name).suffix not in (
+                    ".h",
+                    ".inc",
+                    ".def",
+                ):
+                    continue
+                destination = baseline / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(tree.extractfile(member).read())
+        # Solver adaptations also belong to the checkpoint. Sharing today's
+        # generated implementations would hide a changed original-body loop.
+        subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "import importlib.util,sys; from pathlib import Path; "
+                "sys.path.insert(0,sys.argv[1]); "
+                "s=importlib.util.spec_from_file_location('checkpoint_preparer',Path(sys.argv[1])/'prepare_vehicle.py'); "
+                "m=importlib.util.module_from_spec(s);s.loader.exec_module(m); "
+                "m.ROOT=Path(sys.argv[2]);m.OUT=Path(sys.argv[3]);m.prepare()",
+                str(baseline / "blam"),
+                str(ROOT),
+                str(baseline / "solver"),
+            ],
+            cwd=ROOT,
+            check=True,
+        )
         trace = output / "trace.c"
         trace.write_text(TRACE)
         flags = [
@@ -78,6 +134,7 @@ def run(reference, output):
             "-Wno-incompatible-pointer-types",
             "-Iport/n64",
             "-Ibuild/n64/blam-core",
+            "-I" + str(candidate_solver),
             "-Ibuild/n64/blam-vehicle",
         ]
         shared = [
@@ -100,19 +157,36 @@ def run(reference, output):
         ]
         results = []
         for label, game, includes in [
-            ("checkpoint", baseline / "game.c", ["-I" + str(baseline)]),
-            ("cleanup", ROOT / "port/n64/game.c", []),
+            (
+                "checkpoint",
+                baseline / "game.c",
+                ["-I" + str(baseline), "-I" + str(baseline / "solver")],
+            ),
+            ("candidate", ROOT / "port/n64/game.c", []),
         ]:
             binary = output / label
             record = output / (label + ".bin")
+            paths = [
+                str((baseline if label == "checkpoint" else ROOT / "port/n64") / s) for s in sources
+            ]
+            if label == "candidate" and solver_opt != 2:
+                adapter = str(ROOT / "port/n64/blam/vehicle_physics.c")
+                obj = output / ("vehicle-o" + str(solver_opt) + ".o")
+                subprocess.run(
+                    ["clang", *flags, "-O" + str(solver_opt), "-c", adapter, "-o", str(obj)],
+                    cwd=ROOT,
+                    check=True,
+                )
+                paths[paths.index(adapter)] = str(obj)
             subprocess.run(
                 [
                     "clang",
+                    *(["-flto"] if lto and label == "candidate" else []),
                     *includes,
                     *flags,
                     str(trace),
                     str(game),
-                    *(str(ROOT / "port/n64" / s) for s in sources),
+                    *paths,
                     *(str(ROOT / "build/n64/generated" / s) for s in shared),
                     "-lm",
                     "-o",
@@ -138,9 +212,18 @@ def run(reference, output):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--reference", default="b3fba521")
+    parser.add_argument("--reference", default="ffc5e53d")
+    parser.add_argument(
+        "--solver-opt",
+        type=lambda value: int(value) if value in ("2", "3") else value,
+        choices=(2, 3, "s"),
+        default=2,
+    )
+    parser.add_argument(
+        "--lto", action="store_true", help="Compare candidate link-time optimization"
+    )
     parser.add_argument(
         "--output-dir", type=Path, default=ROOT / "build/n64-validation/equivalence"
     )
     args = parser.parse_args()
-    run(args.reference, args.output_dir)
+    run(args.reference, args.output_dir, args.solver_opt, args.lto)

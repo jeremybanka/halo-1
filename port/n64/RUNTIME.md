@@ -33,11 +33,15 @@ header tests, renderer/input/audio contracts, asset checks, a checkpoint state
 comparison, four linked ROM variants, and compilation of all 27 runtime
 configurations. `build/n64-validation/results.json` records the outcomes.
 Omit `--group target` when no N64 SDK is installed. The runner never reduces
-or regenerates the immutable asset bank. Deliberate original-source adapter
+or regenerates the immutable asset bank. It generates current vehicle solver
+source into isolated validation outputs; checkpoint traces generate the
+checkpoint’s own solver to avoid sharing later adaptations. Deliberate original-source adapter
 regeneration is available separately through `blam/test_vehicle.py --regenerate`.
 
-The release preset selects paced presentation, three display surfaces and
-two local 32 KiB RSP command buffers. Explicit options still permit experiments.
+The release preset selects paced presentation, three display surfaces,
+two local 32 KiB RSP command buffers and LTO. `--no-lto` permits comparison;
+the conservative linker flags retain the per-unit arithmetic contracts.
+Explicit options still permit experiments.
 The legacy build without a preset keeps its original defaults. Snapshot
 fixtures retain their unpaced presenter and are not timing measurements.
 Every built ROM has a `.build.json` recording options, source/header hashes,
@@ -113,7 +117,9 @@ Scene and effect-bound units explicitly disable `finite-math-only`: their
 conservative bounds must fail open on NaN/Infinity. `render_bounds.h` asserts
 IEEE binary32 and checks exponent bits before quantizing. Both ordinary and
 production-math test variants cover non-finite inputs. This does not change
-the valid finite bounds calculations.
+the valid finite bounds outputs. Exact VR4300 word rounding avoids their libm
+round trips after explicit range checks; [OPTIMIZATION.md](OPTIMIZATION.md)
+records target rounding and checkpoint comparison evidence.
 
 `interaction_services.def` is the shared ordered schema for C and Python.
 IDs are explicit and contiguous; changing the order requires a coordinated

@@ -79,9 +79,9 @@ def parse_args(argv=None):
     parser.add_argument(
         "--benchmark-page",
         type=int,
-        choices=range(8),
+        choices=range(10),
         default=0,
-        help="Select and hold a result page; pages 5/6/7 show CPU/collision/solver costs (default cycles)",
+        help="Hold a result page: 5 CPU, 6 collision, 7 solver, 8 animation, 9 pipeline (default cycles)",
     )
     parser.add_argument(
         "--vi-benchmark",
@@ -99,9 +99,25 @@ def parse_args(argv=None):
         help="Serialize RSP/RDP before the HUD to diagnose queue backpressure; not a release FPS measurement",
     )
     parser.add_argument(
+        "--gpu-empty-scissor",
+        action="store_true",
+        help="Diagnostic only: suppress 3D pixel coverage while retaining geometry commands",
+    )
+    parser.add_argument(
+        "--gpu-minimal-attributes",
+        action="store_true",
+        help="Diagnostic only: retain culling but omit shade/texture/depth triangle attributes",
+    )
+    parser.add_argument(
         "--guard-band4",
         action="store_true",
         help="Test Tiny3D guard-band 4 for four-player viewports; projection and scissor are unchanged",
+    )
+    parser.add_argument(
+        "--vehicle-body-candidates",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Share a conservative world candidate stream per vehicle step",
     )
     parser.add_argument(
         "--paced30",
@@ -260,7 +276,9 @@ def parse_args(argv=None):
     if args.lto is None:
         args.lto = args.preset == "release"
     if args.rspq_buffer_kib is None:
-        args.rspq_buffer_kib = 32 if args.preset == "release" else 16
+        # The maintained 4 MiB RDP-validator lifecycle uses smaller queues.
+        # Keep release/quiet sizing, and every explicit override, unchanged.
+        args.rspq_buffer_kib = 8 if args.validate else 32 if args.preset == "release" else 16
     if args.interaction_qa is not None and not 0 <= args.interaction_tick <= 240:
         parser.error("--interaction-tick must be between 0 and 240")
     if args.hud_qa_page is not None and not args.hud_qa:
@@ -300,6 +318,10 @@ def parse_args(argv=None):
             )
     if args.gpu_diagnostic and not args.benchmark:
         parser.error("--gpu-diagnostic requires --benchmark")
+    if args.gpu_empty_scissor and not (args.gpu_diagnostic and args.benchmark):
+        parser.error("--gpu-empty-scissor requires --benchmark --gpu-diagnostic")
+    if args.gpu_minimal_attributes and not args.gpu_empty_scissor:
+        parser.error("--gpu-minimal-attributes requires --gpu-empty-scissor")
     if (
         args.combat_qa is not None
         or args.menu_qa
@@ -335,6 +357,7 @@ def compile_options(args, sdk, tiny, out, source):
     sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
     return [
         *(["-flto"] if args.lto else []),
+        *(["-DBG_BODY_CANDIDATES"] if args.vehicle_body_candidates else []),
         "-DBG_BENCHMARK_PAGE=" + str(args.benchmark_page),
         *(["-DBG_BENCHMARK_HOLD_PAGE"] if args.benchmark_page else []),
         "-march=vr4300",
@@ -432,6 +455,8 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_VI_BENCHMARK"] if args.vi_benchmark else []),
         *(["-DBG_SCORES_BENCHMARK"] if args.scores_benchmark else []),
         *(["-DBG_GPU_DIAGNOSTIC"] if args.gpu_diagnostic else []),
+        *(["-DBG_GPU_EMPTY_SCISSOR"] if args.gpu_empty_scissor else []),
+        *(["-DBG_GPU_MINIMAL_ATTRIBUTES"] if args.gpu_minimal_attributes else []),
         *(["-DBG_GUARDBAND4"] if args.guard_band4 else []),
         *(["-DBG_PACED30"] if args.paced30 else []),
         *([f"-DBG_PACED30_BUFFERS={args.paced30_buffers}"] if args.paced30_buffers > 3 else []),
@@ -919,6 +944,7 @@ def main():
             "-Wl,-Tn64.ld",
             "-Wl,--gc-sections",
             "-Wl,--wrap,__do_global_ctors",
+            *(["-Wl,--wrap,t3d_state_set_drawflags"] if args.gpu_minimal_attributes else []),
             "-Wl,-Map=" + str(elf.with_suffix(".map")),
         ]
     )

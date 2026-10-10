@@ -302,3 +302,252 @@ build/n64-python/bin/python port/n64/build.py --benchmark --paced30 --lto \
 Ares showed a black viewport even for the previously verified release.
 Restarting Ares restored rendering; no preferences were changed. A black
 capture was not treated as an allocation failure or benchmark result.
+
+## Four-candidate strategy investigation
+
+Checkpoint: `c860aa12`. This investigation separates native work counts,
+instrumented target CPU costs, serialized graphics controls, and quiet VI
+acceptance. Original assets and 30 Hz simulation remain intact. None of these
+measurements establishes a global optimum or a real-console FPS floor.
+
+### Ground and contact processing
+
+**Retained candidate: one conservative world candidate stream per vehicle
+step.** The initial mass-point envelope is collected once, with a fixed
+64-ID limit. Individual contacts and sweeps keep their exact quantized query
+bounds, original BVH order and unchanged feature/plane/edge kernels. Queries
+outside the envelope, and envelope overflows, use the existing cell cache.
+The entry adds 156 workspace bytes; there is no per-frame allocation or growth.
+
+In the native replay, force-query candidate scans fall from 1,517,415 to
+780,135 (48.6% fewer). Integration scans fall from 1,424,040 to 703,194
+(50.6% fewer); suspension scans fall from 366,035 to 267,845. The actual
+per-query candidate IDs, input bits and hit/count results remain identical
+across 303,874 queries. Independent ordinary/LTO traces preserve all
+144,166,856 state bytes over 15,300 ticks. The normal generated solver remains
+byte-identical; this change is in its world adapter.
+
+First quiet trial: **25.6 overall / 26.6 combat / 24.7 vehicle FPS**, versus
+25.3 / 26.6 / 24.0-24.1 previously. A combined trial with the unsuccessful
+partial-store animation experiment repeats 25.6 / 26.6 / 24.6. The retained
+configuration repeats **25.6 / 26.6 / 24.7**, with 46 KiB live free heap.
+P95 remains 66.8 ms. Vehicle maxima vary between 66.8 and 100.2 ms across
+these trials; the mean gain is not a floor or tail-latency guarantee.
+
+The candidate fixture also exercises random/nextafter bounds, cold/empty
+entries, outside-envelope queries and 64-ID overflow fallback under strict
+and integration math. Each body-enabled run matches 150,000 raw streams,
+uses 40,524 shared streams and triggers 9,478 overflow fallbacks.
+
+Further strategies:
+
+- **Packet feature construction: conditional follow-up.** Sharing candidate
+  selection is safe and now useful. Sharing complete contact lists is harder:
+  query width, radius, edge/vertex eligibility, deduplication stamps and bounded
+  feature-list saturation are query-dependent. A packet implementation must
+  emit each lane's original ordered list, not one union contact list. Profile
+  factory work again after this accepted broad-phase reduction before taking
+  on that larger rewrite.
+- **Immutable topology/layout specialization: still open.** Test compact
+  surface/edge views or precomputed edge bounds using a bounded hot working set.
+  Keep all original factory arithmetic and ordering. Measure increased RDRAM
+  footprint and cache traffic on N64; prior finer-cell experiments show native
+  scan-count improvements alone are insufficient.
+- **Larger generic caches: low priority.** The existing cell cache already had
+  about 94% hits and no replay overflow. The accepted envelope improves the
+  amount scanned per query instead of merely increasing cache capacity.
+
+### Integration and sweeps
+
+The native replay issues 88,559 integration sweeps. 72,500 (81.9%) have no
+surface candidates. Only 273 sweeps occur in a second correction pass; 88,286
+are in the first pass. Only 21 report a hit in this replay. Rare hits remain
+essential collision behavior; these counts are not permission to skip tests.
+Crowded vehicle impacts and overturned vehicles need separate stress coverage.
+
+**Most specific next candidate: exact per-pass Banshee duplicate reuse.** The
+retail definitions contain 22 Banshee mass points but 15 unique local positions;
+seven pairs repeat positions. The other three vehicles have no such pairs.
+The integration query has no radius parameter, so those repeated positions
+can produce identical sweeps within a pass. In the combined native workload,
+a 16-entry recent-query cache could catch 25,109 / 168,917 sweeps (14.9%);
+1/2/4/8-entry caches catch none. In the Banshee showcase the duplicate share
+is 31.8%. Generic search/hash overhead is therefore a poor starting point.
+
+A better prototype would precompute authored position aliases, reset validity
+per correction pass, and directly reuse a result only when input point/vector
+bits and flags match. Preserve defined output fields on misses, surface-order
+and equal-distance tie behavior, every mass-point stuck flag, and the original
+worst-collision reduction. Do not remove mass points or their force/mass
+contributions. This has a limited ceiling: it affects a fraction of the roughly
+2 ms integration path, and the accepted envelope already accelerates those
+queries. It is source-supported, not yet a measured target speed win.
+
+**Lower-priority options:** batch the remaining sweep broad phase within each
+pass, or share immutable polygon setup. Correction passes change position and
+orientation, so their candidate certificates must be renewed or checked for
+containment. The current polygon cache already shares projections; another
+cache must show useful misses/work before consuming RAM. Reducing correction
+passes, sweep frequency or collision precision is outside the lossless scope.
+
+### Animation preparation
+
+Page 8 now separates compressed decode, scatter, writeback, ROM-pose sampling,
+pose interpolation and DMA. Costs are inclusive where nested (sample includes
+DMA). Mesh/pose counts cover different helper families and are not FPS.
+
+| Diagnostic cost | Combat | Vehicles |
+| --- | ---: | ---: |
+| Compressed decode | 1.396 ms | 0.293 ms |
+| Vertex scatter | 1.450 ms | 0.278 ms |
+| Measured mesh/pose writeback | 0.602 ms | 0.293 ms |
+| ROM-pose sample | 0.809 ms | 0.843 ms |
+| Pose interpolation | 0.712 ms | 1.340 ms |
+| DMA (within sample) | 0.589 ms | 0.638 ms |
+| Whole deferred body/first-person animation | 5.693 ms | 3.205 ms |
+
+**Rejected target prototypes:** six-byte XYZ stores preserving adjacent normals,
+and a checked zero-normal template path with direct decoded-word copies. Both
+pass native byte comparisons at all 257 blend fractions, odd/even counts,
+normals/colors/UV/padding preservation, and zero-normal classification/fallback.
+The actual o64 target assembly was inspected. Partial stores returned
+25.2 / 26.6 / 24.0 alone and 25.6 / 26.6 / 24.6 with body candidates.
+Direct-word copying with body candidates returned 25.5 / 26.6 / 24.5.
+Neither establishes an additional quiet VI gain, so neither remains in release.
+Their source and ROMs remain in ignored research output. A separate CPU-cost
+trial measures combat scatter at 1.420 ms, versus 1.467 ms with the ordinary
+kernel in the matching reuse profiler. This small difference does not establish
+a substantial CPU gain. Fewer instructions are not enough evidence; memory
+traffic, cache locality and scheduling merit isolated kernel tests before more
+arithmetic variants. Their exact contribution was not measured.
+
+**Decode caching is poorly supported by this replay.** Exact asset/frame-pair/
+fraction keys repeat consecutively in less than 1% of combat calls and about
+6% of vehicle calls. Same-frame repeated keys account for about 3% of combat
+calls and less than 1% in vehicles. A multi-mesh decoded cache consumes scarce
+RAM for little observed reuse; one-slot reuse has a small potential ceiling.
+These are rounded call percentages, not saved-time percentages.
+
+Other strategies and prerequisites:
+
+- **Coalesce redundant writebacks:** small, low-risk opportunity if dirty
+  ranges and the first RSP borrower are tracked correctly. Compression followed
+  by a locomotion blend can write back the same mesh twice. The measured entire
+  mesh/pose writeback bucket is only about 0.6 ms in combat, so the removable
+  subset is smaller. Animation is deferred inside drawing, not wholly before
+  RSP submission; do not move writes past the first borrower or its slot fence.
+- **Exact endpoint copies / full-weight blend specialization:** preserve signed
+  truncation and every output byte. Do not assume seated bodies are static:
+  exported seat clips contain 4-65 frames, and service clips 10-126. First
+  measure endpoint/weight frequencies on the large meshes; tiny hatch/marker
+  endpoints alone will not produce a substantial gain.
+- **Predecoded endpoints or sparse-delta formats:** can reduce integer work but
+  increase resident bank/cache size or indirection. Require operation-weighted
+  reuse/sparsity counts and a target trial, not just compression ratios.
+- **RSP animation:** architectural experiment, not presumed free offload.
+  Preserve CPU signed interpolation/truncation, endpoint DMA alignment,
+  immutable queued inputs, cache coherency, and CPU overlays/blends that read
+  output vertices. Geometry already has a substantial pending tail. Establish
+  RSP capacity first, or fuse animation into vertex loading to avoid an extra
+  round trip and fence.
+
+### Frame scheduling, graphics and hardware
+
+Page 9 shows the existing serialized geometry-fence/RDP-drain clocks together
+with CPU costs and coarse SP/DP status samples. Audio servicing runs during
+these waits and its clock overlaps them. DP-busy percentages count polls;
+they are not time-weighted utilization. Serialization changes render cadence,
+simulation ticks per frame and overlap, so these are not release FPS costs.
+
+| Serialized control (stock body adapter) | Combat geometry tail | Vehicle geometry tail | Vehicle following RDP drain |
+| --- | ---: | ---: | ---: |
+| Normal pixel coverage, status sampling | 16.001 ms | 18.469 ms | 0.042 ms |
+| Empty 3D scissor, same geometry | 15.894 ms | 18.178 ms | 0.036 ms |
+| Empty scissor + minimal triangle attributes | 15.683 ms | 18.306 ms | 0.036 ms |
+
+The empty-scissor control suppresses 3D pixel coverage, retaining geometry
+submission, transformation and culling. The minimal control retains culling
+but strips shade/texture/depth draw flags through a verified linker wrapper;
+the installed Tiny3D library and SDK are untouched. These controls are
+restricted to serialized benchmarks by both argument and compile-time guards.
+Neither is a proposed visual simplification or a playable release option.
+DP is busy in 96% of vehicle-tail polls in the first two controls (95% in the
+third); SP is not halted in sampled tail polls. Merely reducing pixel coverage
+or packet attributes does not materially shorten this measured tail.
+
+**Important source finding:** Tiny3D's `rspq_triangle.inc` calculates attribute
+slopes using combined vector lanes even when some packet attributes are
+omitted. Thus the minimal-packet control does not remove all setup arithmetic.
+Its vertex loader also transforms normals without directional lights, and
+matrix setup normalizes three normal-matrix vectors. The source deliberately
+avoids a runtime lighting branch because of scheduling costs. Both gameplay
+and frontend currently set zero lights and use no custom vertex FX.
+
+**Highest-priority graphics strategy:** investigate a compile-time unlit RSP
+variant or targeted command specialization. Keep MVP/projection, homogeneous
+W, clipping/fog, UVs, color arithmetic and output packets unchanged. Eliminate
+only normal/light/FX work proven unused under explicit zero-light/FX-none
+preconditions. A static specialization avoids the generic runtime branch.
+Build it as a local library override, guard unsupported lighting/FX, preserve
+clipping-overlay layout/restore metadata and the stock fallback, and verify
+RSP vertex/packet goldens plus multi-angle Ares pixels. This is a concrete
+source-supported next prototype; its gain has not been measured here.
+
+Other scheduling/visibility strategies:
+
+- **Earlier independent simulation while waiting:** conditional on actual
+  waiting slack. Preserve 30 Hz tick order, input edges, pause/menu ownership,
+  catch-up ceilings and geometry fences. Current ordinary wait/queue clocks
+  are small; the graphics tail is large. Do not add display buffers/latency
+  merely to hide a throughput bottleneck.
+- **Conservative occlusion / original PVS:** promising for indoor maps, more
+  modest here. The retail map has 30 clusters, 70 portals and a 120-byte PVS.
+  A sample of its 71 starting locations plus 0.62 Z sees 26 clusters at 62
+  locations; the other counts are 21-27. This is not a camera replay. Original
+  PVS cannot simply be trusted after occluder simplification: derive conservative
+  chunk memberships, account for altered geometry, and fail open outside known
+  leaves. Preserve the FOV bleed and verify that no visible pixels disappear.
+- **Triangle/vertex batching and command locality:** inspect actual RSP command,
+  DMA and clipping work after unlit specialization. Current indexed strips and
+  immutable blocks already remove much CPU submission work. Preserve each
+  vertex attribute and primitive ordering; avoid precision/LOD reductions.
+
+Hardware acceptance remains open. Use the same pinned asset/toolchain bank,
+4 MiB configuration, NTSC, three display surfaces/two geometry slots/32 KiB
+queues, warmup and 75-second quiet replay. Run baseline/candidate/baseline
+repeats, record exact ROM SHA, actual VI poses, interval tails, fresh-pose
+skips, memory minima and audio underruns. Add clustered crashes, all vehicles,
+scoped long views, active shields/camo and mixed reloads. A console/capture feed
+was not available to this investigation; Ares results are not console evidence.
+The >25 vehicle and final 30 FPS gates remain open.
+
+The maintained native work-count tool can reproduce the query audit without
+changing source or banks:
+
+```sh
+build/n64-python/bin/python port/n64/investigate_vehicle_queries.py \
+  --output-dir build/n64-strategy-research/query-flat --no-vehicle-body-candidates
+build/n64-python/bin/python port/n64/investigate_vehicle_queries.py \
+  --output-dir build/n64-strategy-research/query-body --vehicle-body-candidates
+```
+
+Ignored evidence, prototype implementations and exact ROM identities are under
+`build/n64-strategy-research/`. The retained production change is the bounded
+body candidate stream; diagnostics and investigative tooling carry the findings
+forward without retaining the failed animation kernels.
+
+Final verification: host/header/checkpoint groups pass 15/15, including ordinary
+and LTO traces against `c860aa12`; contracts/assets pass 28/28. The five target
+groups pass, including 33 configurations / 132 translation units. Frozen tick
+1148 retains every one of 425,250 gameplay pixels in a four-camera crop; macOS
+chrome and its top-three-row content shadow are excluded. The frontend runs
+all eight weapons and match/results/menu transitions: 37/37, zero RDP errors
+or warnings, using the previously verified 8 KiB validation queues.
+
+The 32 KiB validator lifecycle repeatedly produced a black viewport even after
+an emulator restart. The matching 8 KiB fixture completed. The SDK validator
+has a bounded 12-buffer journal; its exact failure cause was not captured, so
+this is recorded as a validation-configuration constraint, not proof of OOM
+or a physics regression. Validation defaults now select 8 KiB unless explicitly
+overridden. Normal release/quiet queues remain 32 KiB. Hardware acceptance is
+still separate.

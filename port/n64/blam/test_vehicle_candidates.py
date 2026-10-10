@@ -17,7 +17,7 @@ C = r"""
 static uint32_t test_seed=0xb10c;
 static uint32_t rnd(void){test_seed=test_seed*1664525u+1013904223u;return test_seed;}
 int main(void){
- world_load();unsigned queries=0,ids=0,empty=0;
+ world_load();unsigned queries=0,ids=0,empty=0,body_used=0,body_overflow=0;
  static const float reaches[]={0,.000001f,.03f,.25f,.5f,1,2,4,4.001f,15};
  for(unsigned trial=0;trial<150000;trial++){
   float lo[3],hi[3];
@@ -26,7 +26,18 @@ int main(void){
    if(trial%3==0)center=nextafterf(center,trial&1?FLT_MAX:-FLT_MAX);
    float radius=reaches[(trial+a)%10];lo[a]=center-radius;hi[a]=center+radius;
   }
+#ifdef BG_BODY_CANDIDATES
+  if(trial%3==0){
+   float body_lo[3],body_hi[3];
+   for(unsigned a=0;a<3;a++){float extent=trial%7==0?40:1;body_lo[a]=lo[a]-extent;body_hi[a]=hi[a]+extent;}
+   body_candidates_collect(body_lo,body_hi);
+   body_overflow+=!vehicle_workspace->body_candidates.valid;
+  }else if(trial%3==2)vehicle_workspace->body_candidates.valid=false;
+#endif
   struct surface_query reference,cached;query_begin_raw(&reference,lo,hi);query_begin(&cached,lo,hi);
+#ifdef BG_BODY_CANDIDATES
+  body_used+=cached.cached==&vehicle_workspace->body_candidates;
+#endif
   unsigned count=0;
   for(;;){int old=query_next_raw(&reference),now=query_next(&cached);
    if(old!=now){fprintf(stderr,"query %u index %u: raw %d cached %d\n",trial,count,old,now);assert(0);}
@@ -35,6 +46,9 @@ int main(void){
   empty+=!count;queries++;
  }
  printf("PASS: %u ordered candidate streams / %u surface IDs / %u empty queries match raw BVH\n",queries,ids,empty);
+#ifdef BG_BODY_CANDIDATES
+ assert(body_used&&body_overflow);printf("BODY: %u shared streams; %u overflow fallbacks\n",body_used,body_overflow);
+#endif
 }
 """
 
@@ -67,6 +81,11 @@ def main():
     for label, math in (
         ("strict", ["-fno-fast-math"]),
         ("target", ["-ffast-math", "-ftrapping-math", "-fno-associative-math"]),
+        ("body-strict", ["-fno-fast-math", "-DBG_BODY_CANDIDATES"]),
+        (
+            "body-target",
+            ["-ffast-math", "-ftrapping-math", "-fno-associative-math", "-DBG_BODY_CANDIDATES"],
+        ),
     ):
         binary = out / label
         subprocess.run(

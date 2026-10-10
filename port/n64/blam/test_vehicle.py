@@ -28,7 +28,7 @@ def validate(out, regenerate=False):
     # shared bank. This emits source only; immutable game assets are untouched.
     solver = OUT / 'blam-vehicle'
     run([sys.executable, ROOT/'port/n64/blam/prepare_vehicle.py', '--output', solver])
-    flags = ['-std=c17', '-O1', '-g', '-Wall', '-Wextra', '-Werror',
+    flags = ['-std=c17', '-O1', '-g', '-Wall', '-Wextra', '-Werror', '-DBG_BODY_CANDIDATES',
              '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
              '-fno-fast-math', '-ffp-contract=off', '-fno-strict-aliasing', '-fwrapv',
              '-Wno-multichar', '-Wno-unused-function', '-Wno-unused-parameter',

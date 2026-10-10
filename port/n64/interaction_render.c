@@ -7,6 +7,10 @@
 #include "asset_firstperson.h"
 #include "game.h"
 #include "interaction_cache.h"
+#include "animation_profile.h"
+#ifdef BG_PROFILE
+bg_animation_metrics bg_animation_profile;
+#endif
 static uint8_t *scratch;
 static uint32_t rom, rom_size;
 static bg_pose_cache cache;
@@ -32,13 +36,17 @@ void bg_interaction_render_release(void) {
     memset(&cache, 0, sizeof(cache));
 }
 static void read_frames(void *out, uint32_t offset, uint32_t bytes) {
+    BG_ANIM_BEGIN(dma_begin);
     BG_COUNT(BG_COUNT_DMA_READS, 1);
     BG_COUNT(BG_COUNT_DMA_BYTES, bytes);
     data_cache_hit_invalidate(out, bytes);
     dma_read(out, rom + offset, bytes);
+    BG_ANIM_END(dma, dma_begin);
 }
 static int sample(const bg_rom_pose *p, float seconds, bool loop, const int16_t **a,
                   const int16_t **b) {
+    BG_ANIM_COUNT(poses);
+    BG_ANIM_BEGIN(sample_begin);
     bg_interaction_render_init();
     float phase = fmaxf(0, seconds / p->duration);
     if (loop)
@@ -56,11 +64,13 @@ static int sample(const bg_rom_pose *p, float seconds, bool loop, const int16_t 
                                               p->stride * (f1 == f0 ? 1 : 2), read_frames);
     *a = (const int16_t *)data;
     *b = f1 == f0 ? *a : (const int16_t *)(data + p->stride);
+    BG_ANIM_END(sample, sample_begin);
     return (frame - f0) * 256;
 }
 void bg_interaction_pose(T3DVertPacked *out, const bg_rom_pose *p, float seconds, bool loop) {
     const int16_t *a, *b;
     int fraction = sample(p, seconds, loop, &a, &b);
+    BG_ANIM_BEGIN(interpolate_begin);
     for (unsigned i = 0; i < p->vertices; i++) {
         int16_t *pos = t3d_vertbuffer_get_pos(out, i);
         for (unsigned c = 0; c < 3; c++) {
@@ -68,12 +78,16 @@ void bg_interaction_pose(T3DVertPacked *out, const bg_rom_pose *p, float seconds
             pos[c] = a[k] + ((int)b[k] - a[k]) * fraction / 256;
         }
     }
+    BG_ANIM_END(interpolate, interpolate_begin);
+    BG_ANIM_BEGIN(writeback_begin);
     data_cache_hit_writeback(out, ((p->vertices + 1) & ~1u) * 16);
+    BG_ANIM_END(writeback, writeback_begin);
 }
 void bg_interaction_pose_blend(T3DVertPacked *out, const bg_rom_pose *p, float seconds, bool loop,
                                float weight) {
     const int16_t *a, *b;
     int fraction = sample(p, seconds, loop, &a, &b), blend = (int)(weight * 256);
+    BG_ANIM_BEGIN(interpolate_begin);
     for (unsigned i = 0; i < p->vertices; i++) {
         int16_t *pos = t3d_vertbuffer_get_pos(out, i);
         for (unsigned c = 0; c < 3; c++) {
@@ -82,16 +96,21 @@ void bg_interaction_pose_blend(T3DVertPacked *out, const bg_rom_pose *p, float s
             pos[c] += (target - pos[c]) * blend / 256;
         }
     }
+    BG_ANIM_END(interpolate, interpolate_begin);
+    BG_ANIM_BEGIN(writeback_begin);
     data_cache_hit_writeback(out, ((p->vertices + 1) & ~1u) * 16);
+    BG_ANIM_END(writeback, writeback_begin);
 }
 void bg_interaction_points(int16_t (*out)[3], const bg_rom_pose *p, float seconds) {
     const int16_t *a, *b;
     int fraction = sample(p, seconds, false, &a, &b);
+    BG_ANIM_BEGIN(interpolate_begin);
     for (unsigned i = 0; i < p->vertices; i++)
         for (unsigned c = 0; c < 3; c++) {
             unsigned k = i * 3 + c;
             out[i][c] = a[k] + ((int)b[k] - a[k]) * fraction / 256;
         }
+    BG_ANIM_END(interpolate, interpolate_begin);
 }
 void bg_interaction_needles(T3DVertPacked *out, unsigned ammo, float seconds) {
     if (ammo > 20)
@@ -99,6 +118,7 @@ void bg_interaction_needles(T3DVertPacked *out, unsigned ammo, float seconds) {
     const bg_rom_pose *p = &bg_ready_needles[ammo];
     const int16_t *a, *b;
     int fraction = sample(p, seconds, false, &a, &b);
+    BG_ANIM_BEGIN(interpolate_begin);
     for (unsigned i = 0; i < p->vertices; i++) {
         int16_t *pos = t3d_vertbuffer_get_pos(out, bg_ready_needle_vertices[i]);
         for (unsigned c = 0; c < 3; c++) {
@@ -106,5 +126,8 @@ void bg_interaction_needles(T3DVertPacked *out, unsigned ammo, float seconds) {
             pos[c] = a[k] + ((int)b[k] - a[k]) * fraction / 256;
         }
     }
+    BG_ANIM_END(interpolate, interpolate_begin);
+    BG_ANIM_BEGIN(writeback_begin);
     data_cache_hit_writeback(out, ((bg_fp_models[BG_W_NEEDLER].vertex_count + 1) & ~1u) * 16);
+    BG_ANIM_END(writeback, writeback_begin);
 }

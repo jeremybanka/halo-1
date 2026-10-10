@@ -14,6 +14,9 @@ static float vehicle_steering[BG_MAX_VEHICLES];
 struct surface_candidates {int32_t bounds[6];uint16_t ids[64],count;bool valid;};
 struct vehicle_workspace {
  struct surface_candidates candidates[16];
+#ifdef BG_BODY_CANDIDATES
+ struct surface_candidates body_candidates;
+#endif
  struct mass_point_datum contact[22];
  struct powered_mass_point_datum power[2];
  struct collision_feature_list features;
@@ -138,6 +141,13 @@ static int query_next_raw(struct surface_query*q){
  * and original BVH order are retained; overflow takes the uncached path. */
 static void query_begin(struct surface_query*q,const float lo[3],const float hi[3]){
  query_begin_raw(q,lo,hi);
+#ifdef BG_BODY_CANDIDATES
+ struct surface_candidates*body=&vehicle_workspace->body_candidates;
+ if(body->valid){
+  bool inside=true;for(unsigned a=0;a<3;a++)if(q->bounds[a]<body->bounds[a]||q->bounds[a+3]>body->bounds[a+3]){inside=false;break;}
+  if(inside){BG_COUNT(BG_COUNT_BODY_HIT,1);q->cached=body;q->first=0;q->remaining=body->count;return;}
+ }
+#endif
  float extent=MAX(hi[0]-lo[0],MAX(hi[1]-lo[1],hi[2]-lo[2]));if(extent>8){BG_COUNT(BG_COUNT_WORLD_BYPASS,1);return;}
  int32_t half=extent>4?4:extent>2?2:1,cell[3];uint32_t hash=half-1;
  for(unsigned a=0;a<3;a++){cell[a]=bg_floor_word((lo[a]+hi[a])*(.25f/half));hash=hash*31u+(uint32_t)cell[a];}
@@ -157,6 +167,27 @@ static int query_next(struct surface_query*q){
  while(q->remaining){q->remaining--;unsigned id=q->cached->ids[q->first++];if(overlaps(q->bounds,bg_vehicle_surface_bounds[id]))return id;}
  return -1;
 }
+#ifdef BG_BODY_CANDIDATES
+/* One conservative static-world candidate stream per vehicle step. Every
+ * query still applies its own exact integer box and original feature tests.
+ * A query outside this envelope or a 64-ID overflow retains the cell path. */
+static void body_candidates_collect(const float lo[3],const float hi[3]){
+ BG_COUNT(BG_COUNT_BODY_REFILL,1);
+ struct surface_candidates*c=&vehicle_workspace->body_candidates;c->valid=false;
+ struct surface_query q;query_begin_raw(&q,lo,hi);memcpy(c->bounds,q.bounds,sizeof(c->bounds));c->count=0;int id;
+ while((id=query_next_raw(&q))>=0){if(c->count==64){BG_COUNT(BG_COUNT_BODY_OVERFLOW,1);return;}c->ids[c->count++]=id;}
+ c->valid=true;
+}
+static void body_candidates_begin(unsigned i){
+ struct physics_instance instance;physics_instance_new(&instance,i);float lo[3],hi[3];
+ for(int j=0;j<instance.physics->mass_points.count;j++){
+  const struct mass_point_definition*m=TAG_BLOCK_GET_ELEMENT(&instance.physics->mass_points,j,struct mass_point_definition);
+  real_point3d p;matrix4x3_transform_point(&instance.world_matrix,&m->position,&p);
+  for(unsigned a=0;a<3;a++){float l=p.n[a]-m->radius,h=p.n[a]+m->radius;if(!j){lo[a]=l;hi[a]=h;}else{lo[a]=MIN(lo[a],l);hi[a]=MAX(hi[a],h);}}
+ }
+ body_candidates_collect(lo,hi);
+}
+#endif
 /* Immutable zero-height polygon projections are shared by contacts, sweeps
  * and camera rays. The constructor retains original edge order, projection
  * helpers and feature metadata; width is supplied only when copying a contact. */
@@ -479,6 +510,9 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
  if(v->flipping&&v->kind==BG_V_BANSHEE&&v->flip_elapsed<90&&n->object.up.k<.9f)
   n->object.translational_velocity.k=MAX(n->object.translational_velocity.k,.025f);
  if(!TEST_FLAG(n->object.flags,_object_at_rest_bit)){
+#ifdef BG_BODY_CANDIDATES
+  body_candidates_begin(i);
+#endif
   /* physics_compute_new clears the active contact records itself. */
   memset(vehicle_workspace->power,0,sizeof(vehicle_workspace->power));
   switch(v->kind){
@@ -488,6 +522,9 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
    case BG_V_BANSHEE:update_alien_fighter_physics_new(i,vehicle_workspace->power,vehicle_workspace->contact);break;
   }
   suspension_update(i);compute_airborne_ticks(i,vehicle_workspace->contact,vehicle_workspace->power);
+#ifdef BG_BODY_CANDIDATES
+  vehicle_workspace->body_candidates.valid=false;
+#endif
   if(TEST_FLAG(n->object.flags,_object_at_rest_bit))n->vehicle.stop_time=15;
   if(d->vehicle_type==_vehicle_type_alien_fighter){
    if(bg_vehicle_floor!=0&&n->object.position.z<bg_vehicle_floor)n->object.translational_velocity.k+=((bg_vehicle_floor-n->object.position.z)*.015625f-n->object.translational_velocity.k*.0625f)*n->unit.seat_power[0];

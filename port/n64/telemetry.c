@@ -15,7 +15,8 @@ void bg_telemetry_report(void) {
            "floor_miss=%u projectile_full=%u events_full=%u drop_reclaim=%u drop_full=%u "
            "pose_alloc=%u pose_free=%u world_hit=%u world_miss=%u world_overflow=%u "
            "world_bypass=%u world_negative_hit=%u prism_hit=%u prism_miss=%u edge_hit=%u "
-           "edge_miss=%u vector_queries=%u vector_zero=%u pose_partial=%u pose_reused_bytes=%u\n",
+           "edge_miss=%u vector_queries=%u vector_zero=%u pose_partial=%u pose_reused_bytes=%u "
+           "body_refill=%u body_hit=%u body_overflow=%u\n",
            free_bytes, minimum_free, (unsigned)bg_counters[0], (unsigned)bg_counters[1],
            (unsigned)bg_counters[2], (unsigned)bg_counters[3], (unsigned)bg_counters[4],
            (unsigned)bg_counters[5], (unsigned)bg_counters[6], (unsigned)bg_counters[7],
@@ -25,6 +26,8 @@ void bg_telemetry_report(void) {
            (unsigned)bg_counters[17], (unsigned)bg_counters[18], (unsigned)bg_counters[19],
            (unsigned)bg_counters[20], (unsigned)bg_counters[21], (unsigned)bg_counters[22],
            (unsigned)bg_counters[23], (unsigned)bg_counters[24], (unsigned)bg_counters[25],
-           (unsigned)bg_counters[26], (unsigned)bg_counters[27]);
+           (unsigned)bg_counters[26], (unsigned)bg_counters[27],
+           (unsigned)bg_counters[BG_COUNT_BODY_REFILL], (unsigned)bg_counters[BG_COUNT_BODY_HIT],
+           (unsigned)bg_counters[BG_COUNT_BODY_OVERFLOW]);
 }
 #endif

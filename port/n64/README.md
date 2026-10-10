@@ -197,9 +197,17 @@ work can overlap queued graphics. The shared SDK is unchanged. Use
 [RSPQ.md](RSPQ.md) for provenance checks and controlled comparisons.
 
 For inclusive CPU attribution, use `--benchmark --benchmark-page 5` (broad),
-`6` (collision/camera), or `7` (solver/sky). These clocks overlap and are
+`6` (collision/camera), `7` (solver/sky), `8` (animation/reuse), or `9`
+(pipeline). These clocks overlap and are
 excluded from normal release and quiet VI builds. Use `--vi-benchmark` for
 actual presentation-rate comparisons; see [OPTIMIZATION.md](OPTIMIZATION.md).
+The bounded per-vehicle world candidate stream is enabled by default; use
+`--no-vehicle-body-candidates` for a matched control. Pipeline isolation flags
+`--gpu-empty-scissor` and `--gpu-minimal-attributes` require serialized benchmark
+diagnostics and intentionally suppress 3D output. They cannot be release modes.
+RDP validation defaults to the verified 8 KiB queue configuration for the
+4 MiB lifecycle fixture; explicit queue overrides are respected. Normal
+release/quiet builds retain 32 KiB queues.
 
 ```sh
 # Reuse the existing venv and extracted maps when available.

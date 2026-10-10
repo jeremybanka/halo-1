@@ -24,6 +24,13 @@ for name in functions:
         new_body = new_body.replace(projection_block(scene), "PROJECTION_REGION")
     old, new = compact(old_body), compact(new_body)
     new = re.sub(r"BG_VP_BEGIN;|BG_VP_END\([^;]*\);", "", new)
+    new = re.sub(r"BG_ANIM_(?:BEGIN|END|COUNT)\([^;]*\);", "", new)
+    if name == "animate_mesh":
+        region = re.search(r"#ifdefBG_PROFILEbg_decode_keykey=.*?#endif", new).group()
+        assert not any(token in region for token in ("rspq_", "rdpq_", "t3d_"))
+        new = new.replace(region, "")
+    if name == "prepare_frame":
+        new = new.replace("decode_key_count=0;", "")
     if name == "visible_bounds":
         assert "return!bounds->valid||" in new and "bg_frustum_box_cached" in new
         continue  # optional cache path and invalid boxes checked by cull/pose fixtures
@@ -35,6 +42,8 @@ for name in functions:
         assert new.count("texture_blocks[i]=record_texture(i);") == 1
         new = new.replace("texture_blocks[i]=record_texture(i);", "")
     if name == "draw_view":
+        assert new.count("#ifdefBG_GPU_EMPTY_SCISSORrdpq_set_scissor(0,0,0,0);#endif") == 2
+        new = new.replace("#ifdefBG_GPU_EMPTY_SCISSORrdpq_set_scissor(0,0,0,0);#endif", "")
         for timer in (
             "#ifdefBG_PROFILEuint64_tsky_begin=get_ticks_us();#endif",
             "#ifdefBG_PROFILEbg_scene_profile.sky_us+=get_ticks_us()-sky_begin;#endif",

@@ -23,6 +23,7 @@
 #include "weapon_effects_draw.h"
 #include "vehicle_visuals.h"
 #include "render_animation.h"
+#include "animation_profile.h"
 #include "render_lod.h"
 #include "asset_micro.h"
 #include "render_micro_lod.h"
@@ -33,6 +34,15 @@
 #include "hud.h"
 #include "scene.h"
 #include "runtime_qa.h"
+#ifdef BG_PROFILE
+typedef struct {
+    const bg_anim_asset *asset;
+    unsigned f0, f1;
+    int fraction;
+} bg_decode_key;
+static bg_decode_key decode_keys[16], decode_last;
+static unsigned decode_key_count;
+#endif
 
 extern T3DVertPacked bg_vertices[];
 extern uint16_t bg_textures[][32 * 32];
@@ -455,9 +465,35 @@ static void animate_mesh(T3DVertPacked *output, const bg_anim_asset *a, unsigned
     assertf(a->tracks <= motion_capacity, "Animation scratch capacity");
     const uint8_t *src0 = a->positions + f0 * a->tracks * 3,
                   *src1 = a->positions + f1 * a->tracks * 3;
+    BG_ANIM_COUNT(meshes);
+#ifdef BG_PROFILE
+    /* Diagnostic-only exact-key reuse opportunity; decoding still executes. */
+    bg_decode_key key = {a, f0, f1, fraction};
+    if (decode_last.asset == a && decode_last.f0 == f0 && decode_last.f1 == f1 &&
+        decode_last.fraction == fraction)
+        bg_animation_profile.repeat_last++;
+    decode_last = key;
+    bool found_key = false;
+    for (unsigned i = 0; i < decode_key_count; i++)
+        if (decode_keys[i].asset == a && decode_keys[i].f0 == f0 && decode_keys[i].f1 == f1 &&
+            decode_keys[i].fraction == fraction) {
+            found_key = true;
+            break;
+        }
+    if (found_key)
+        bg_animation_profile.repeat_frame++;
+    else if (decode_key_count < 16)
+        decode_keys[decode_key_count++] = key;
+#endif
+    BG_ANIM_BEGIN(decode_begin);
     bg_motion_decode(motion_tracks, a->tracks, src0, src1, a->origin, fraction);
+    BG_ANIM_END(decode, decode_begin);
+    BG_ANIM_BEGIN(scatter_begin);
     bg_motion_scatter(output, a->vertices, a->indices, motion_tracks);
+    BG_ANIM_END(scatter, scatter_begin);
+    BG_ANIM_BEGIN(writeback_begin);
     data_cache_hit_writeback(output, ((a->vertices + 1) & ~1u) * 16);
+    BG_ANIM_END(writeback, writeback_begin);
 #ifdef BG_PROFILE
     animated_tracks += a->tracks;
     animated_vertices += a->vertices;
@@ -1017,6 +1053,7 @@ static void ensure_firstperson_animation(unsigned p) {
 }
 static void prepare_frame(void) {
 #ifdef BG_PROFILE
+    decode_key_count = 0;
     uint64_t begin = get_ticks_us();
 #endif
     body_animation_ready = fp_animation_ready = 0;
@@ -1285,6 +1322,9 @@ static void draw_view(unsigned p) {
     unsigned before = triangles, animation_before = animation_us;
 #endif
     t3d_viewport_attach(vp);
+#ifdef BG_GPU_EMPTY_SCISSOR
+    rdpq_set_scissor(0, 0, 0, 0);
+#endif
 #ifdef BG_PROFILE
     uint64_t sky_begin = get_ticks_us();
 #endif
@@ -1558,6 +1598,9 @@ static void draw_view(unsigned p) {
          * while its own surfaces and hands still occlude each other. */
         rdpq_clear_z(ZBUF_MAX);
         t3d_viewport_attach(&gun_viewports[slot][p]);
+#ifdef BG_GPU_EMPTY_SCISSOR
+        rdpq_set_scissor(0, 0, 0, 0);
+#endif
         t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH | T3D_FLAG_CULL_BACK);
         rdpq_mode_zbuf(true, true);
         t3d_segment_set(T3D_SEGMENT_1, firstperson[slot][p]);

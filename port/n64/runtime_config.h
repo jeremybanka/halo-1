@@ -1,5 +1,11 @@
 #ifndef BG_RUNTIME_CONFIG_H
 #define BG_RUNTIME_CONFIG_H
+#if defined(BG_GPU_EMPTY_SCISSOR) && (!defined(BG_GPU_DIAGNOSTIC) || !defined(BG_BENCHMARK))
+#error "Empty-scissor control is restricted to serialized benchmark diagnostics"
+#endif
+#if defined(BG_GPU_MINIMAL_ATTRIBUTES) && !defined(BG_GPU_EMPTY_SCISSOR)
+#error "Minimal-attribute control requires empty scissoring"
+#endif
 #if !defined(BG_RELOAD_QA) && !defined(BG_COMBAT_QA) && !defined(BG_MOVEMENT_QA) &&                \
     !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) &&                 \
     !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)

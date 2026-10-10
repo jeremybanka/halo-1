@@ -56,7 +56,7 @@ int main(int argc,char**argv){
 """
 
 
-def run(reference, output, solver_opt=2, lto=False):
+def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True):
     output.mkdir(parents=True, exist_ok=True)
     candidate_solver = output / "candidate-solver"
     subprocess.run(
@@ -121,6 +121,7 @@ def run(reference, output, solver_opt=2, lto=False):
         trace = output / "trace.c"
         trace.write_text(TRACE)
         flags = [
+            *(["-DBG_BODY_CANDIDATES"] if vehicle_body_candidates else []),
             "-std=c17",
             "-O2",
             "-fno-fast-math",
@@ -223,7 +224,10 @@ if __name__ == "__main__":
         "--lto", action="store_true", help="Compare candidate link-time optimization"
     )
     parser.add_argument(
+        "--vehicle-body-candidates", action=argparse.BooleanOptionalAction, default=True
+    )
+    parser.add_argument(
         "--output-dir", type=Path, default=ROOT / "build/n64-validation/equivalence"
     )
     args = parser.parse_args()
-    run(args.reference, args.output_dir, args.solver_opt, args.lto)
+    run(args.reference, args.output_dir, args.solver_opt, args.lto, args.vehicle_body_candidates)

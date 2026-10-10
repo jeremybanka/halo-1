@@ -222,7 +222,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--hud-qa-page",
         type=int,
-        choices=range(7),
+        choices=range(13),
         help="Hold one HUD QA page instead of cycling; requires --hud-qa",
     )
     mode.add_argument(
@@ -770,6 +770,15 @@ def main():
         ):
             build_error("Stale combat bank; rerun port/n64/extract_combat.py: " + name)
     asset_root = out
+    prompt_report = asset_root / "generated/prompt-icons/icons-report.json"
+    if not prompt_report.exists():
+        build_error("Bake local Xbox prompt icons first: port/n64/pack_prompt_icons.py")
+    prompt_icons = json.loads(prompt_report.read_text())
+    for name, expected in {**prompt_icons["inputs"],
+                           "build/n64/generated/prompt-icons/prompt_icons_data.c":
+                           prompt_icons["generated_sha256"]}.items():
+        if not (ROOT / name).is_file() or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error("Stale prompt silhouette bank; rerun port/n64/pack_prompt_icons.py: " + name)
     out = args.output_dir.resolve() if args.output_dir else asset_root
     out.mkdir(parents=True, exist_ok=True)
     objects = []
@@ -813,6 +822,7 @@ def main():
         "frontend.c",
         "frontend_draw.c",
         "hud.c",
+        "hud_messages.c",
         "firstperson_ammo.c",
         "sound.c",
         "sound_mix.c",
@@ -865,6 +875,7 @@ def main():
         "models_data.c",
         "audio_data.c",
         "hud_data.c",
+        "prompt-icons/prompt_icons_data.c",
         "menu_data.c",
         "frontend_data.c",
         "firstperson_data.c",

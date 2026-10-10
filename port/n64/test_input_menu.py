@@ -43,6 +43,7 @@ static joypad_inputs_t joypad_get_inputs(unsigned p){assert(p<4);reads[0][p]++;r
 static joypad_buttons_t joypad_get_buttons(unsigned p){assert(p<4);reads[1][p]++;return snapshot[p].btn;}
 static joypad_buttons_t joypad_get_buttons_pressed(unsigned p){assert(p<4);reads[2][p]++;return edges[p];}
 void bg_reset(void){resets++;for(unsigned p=0;p<4;p++)bg_players[p].vehicle=-1;}
+void bg_hud_messages_reset(void){}
 static void bg_scene_reset(void){view_resets++;}
 void bg_set_players(unsigned n){sets++;last_set=n;assert(n==1||n==2||n==4);}
 '''

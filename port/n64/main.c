@@ -267,6 +267,7 @@ static bool input(bg_input in[4]) {
             bg_set_players(views);
             bg_set_score_limit(15);
             bg_reset();
+            bg_hud_messages_reset();
             game_time = 0;
             match_ended = 0;
             bg_scene_reset();
@@ -308,6 +309,7 @@ static bool input(bg_input in[4]) {
 #endif
     if (result.action == BG_MENU_ACTION_RESTART) {
         bg_reset();
+        bg_hud_messages_reset();
         game_time = 0;
         bg_scene_reset();
 #ifdef BG_FRONTEND
@@ -765,6 +767,10 @@ int main(void) {
     bg_fx_draw_init();
     rdpq_text_register_font(1, rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
     bg_menu_init(&menu, views);
+#ifdef BG_HUD_QA
+    for (unsigned p = 0; p < BG_PLAYERS; p++)
+        menu.styles[p] = p & 1 ? BG_CONTROLS_XBOX : BG_CONTROLS_N64;
+#endif
 #ifdef BG_SCORES_BENCHMARK
     for (unsigned p = 0; p < 4; p++)
         menu.styles[p] = BG_CONTROLS_XBOX;
@@ -777,6 +783,7 @@ int main(void) {
     bg_hud_init();
     bg_set_players(views);
     bg_reset();
+    bg_hud_messages_reset();
     bg_sound_init();
     assertf(dfs_init(DFS_DEFAULT_LOCATION) == DFS_ESUCCESS, "Game filesystem");
 #ifdef BG_FRONTEND
@@ -793,6 +800,7 @@ int main(void) {
     bg_scene_reset();
     for (uint32_t tick = 0; tick != (uint32_t)BG_SNAPSHOT_TICK; tick++) {
         bg_replay_snapshot_tick(&game_time);
+        bg_hud_messages_update();
         bg_scene_update(BLAM_TICK_SECONDS, game_time);
         bg_sound_update();
     }
@@ -962,6 +970,7 @@ int main(void) {
 #endif
             bg_clear_events();
             bg_tick(in, BLAM_TICK_SECONDS);
+            bg_hud_messages_update();
             game_time += BLAM_TICK_SECONDS;
 #ifdef BG_SHOWCASE
             bg_showcase_observe();
@@ -1163,7 +1172,7 @@ int main(void) {
         rdpq_set_mode_standard();
         rdpq_text_print(NULL, 1, 4, 237, bg_effects_qa_label());
 #endif
-#ifdef BG_MODEL_QA
+#if defined(BG_MODEL_QA) && !defined(BG_HUD_QA)
         rdpq_set_mode_standard();
         rdpq_text_printf(NULL, 1, 4, 237, "MODEL QA %u: %s", bg_qa_page(), bg_qa_label());
 #endif
@@ -1200,8 +1209,13 @@ int main(void) {
 #endif
 #if defined(RDPQ_VALIDATE) && !defined(BG_MENU_QA)
         rdpq_set_mode_standard();
+#ifdef BG_HUD_QA
+        /* The ordinary footer covers lower-player prompts in pixel QA. */
+        rdpq_text_printf(NULL, 1, 4, 88, "RDP %u/%u", validation_errors, validation_warnings);
+#else
         rdpq_text_printf(NULL, 1, 4, 215, "RDP %u ERRORS %u WARNINGS", validation_errors,
                          validation_warnings);
+#endif
         if (validation_errors || validation_warnings)
             rdpq_text_print(NULL, 1, 4, 225, validation_message);
 #endif

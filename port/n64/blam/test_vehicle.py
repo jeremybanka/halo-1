@@ -59,6 +59,7 @@ def validate(out, regenerate=False):
         'combat': ['port/n64/test_combat.c', *shared],
         'fidelity': ['port/n64/test_fidelity.c', *shared],
         'pickups': ['port/n64/test_pickups.c', *shared],
+        'hud-messages': ['port/n64/test_hud_messages.c', 'port/n64/hud_messages.c', *shared],
         'weapon-effects': ['port/n64/test_weapon_effects.c', 'port/n64/weapon_effects.c',
                            'build/n64/generated/weapon_effects_data.c', *shared],
         'effects-staging': ['port/n64/test_effects_qa.c', 'port/n64/effects_qa.c',

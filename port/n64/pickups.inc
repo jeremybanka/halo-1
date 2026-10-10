@@ -102,7 +102,7 @@ static void collect_nearby(unsigned owner){
             event(BG_EVENT_SHIELD,owner,p->weapon,p->pos,1);
         }else if(q->weapon==BG_PICK_CAMO){if(p->invisibility<=0){p->camo_opacity=1;p->camo_quiet=0;}p->invisibility=bg_camo_duration;consume=true;amount=1;}
         if(consume)q->active=false;
-        if(amount>0)event(BG_EVENT_PICKUP,owner,q->weapon,p->pos,amount);
+        if(amount>0)event(q->weapon<BG_WEAPON_COUNT?BG_EVENT_AMMO:BG_EVENT_PICKUP,owner,q->weapon,p->pos,amount);
     }
 }
 static void update_pickups(float dt){

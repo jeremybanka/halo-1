@@ -76,7 +76,9 @@ typedef enum {
     BG_EVENT_SUPERCOMBINE,
     BG_EVENT_VEHICLE_DESTROYED,
     BG_EVENT_SHIELD_HIT,
-    BG_EVENT_SHIELD_BREAK
+    BG_EVENT_SHIELD_BREAK,
+    BG_EVENT_AMMO, /* Actual reserve rounds transferred; distinguishes weapon acquisition. */
+    BG_EVENT_KILL  /* player=credited killer (-1 environment), weapon=victim viewport. */
 } bg_event_kind;
 typedef enum {
     BG_P_PLASMA,

@@ -716,6 +716,7 @@ static void kill(unsigned victim, int owner) {
     p->anim_time = 0;
     kill_chain[victim] = kill_spree[victim] = 0;
     event(BG_EVENT_DIE, victim, p->weapon, p->pos, 1);
+    event(BG_EVENT_KILL, owner, victim, p->pos, 1);
     if (owner >= 0 && owner < (int)active_players) {
         bg_player *k = &bg_players[owner];
         if (owner == (int)victim)

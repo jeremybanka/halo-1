@@ -13,7 +13,7 @@ partial columns account for the last one or two rounds. The meter is 39×11
 pixels, below the loaded count; reserve ammo remains beneath it. The on-gun
 counter is unchanged. Pips and health cells have centered, even backing instead
 of a diagonal drop shadow. Other Xbox weapons retain their individual magazine
-capacities. Energy weapons show battery charge numerically and a labeled heat
+capacities. Energy weapons show battery charge numerically and a heat
 bar. Red indicates overheating; shield depletion and low health also use red,
 with yellow for intermediate health and an additional overshield layer.
 
@@ -42,7 +42,7 @@ The frozen HUD fixture cycles every 20 seconds through AR 60/59/20/0;
 pistol/needler/shotgun/sniper; energy/overheat/rocket/respawn; scopes and damaged
 health/shields; one player; two players; and vehicle reticles. It uses the production renderer
 and HUD with staged gameplay values, and is not a performance test.
-Add `--hud-qa-page 0` through `--hud-qa-page 6` to hold a single page.
+Add `--hud-qa-page 0` through `--hud-qa-page 12` to hold a single page.
 Local screenshots, matching before/after views and timing evidence are in
 `build/n64/hud-audit/`. The quiet VI replay is the separate timing check.
 
@@ -67,3 +67,60 @@ All eight weapon reticles, four vehicle reticles, and scoped overlays were
 checked in Ares with zero RDP errors/warnings. The correction's quiet replay
 measured 28.7 / 29.0 / 28.3 FPS overall/combat/vehicles, with 86 KiB free heap.
 The larger shared atlas avoids the old per-reticle scaled sprite blocks.
+
+## Compact prompts and receipts
+
+Gameplay text uses mixed case in the same native 4×6 font. Lowercase and
+`+`, `!`, `.` occupy formerly empty atlas cells: the 4,096-byte bank, existing
+digits, meters and reticle pixels are unchanged. `test_hud_prompts.py` checks
+every changed pixel against the preceding bank and rejects overlap with old art.
+Text stays at integer coordinates with point sampling and a five-pixel advance.
+
+Weapon prompts distinguish a free inventory slot (`Hold [use] Pick up`) from
+replacement (`Hold [use] Swap for`). An original weapon messaging silhouette
+identifies the target. `pack_prompt_icons.py` bakes the Xbox `hud_msg_icons`
+sequences into a separate, immutable 2,048-byte IA4 bank, at most 31×12 pixels
+per weapon. The sniper coverage threshold retains its thin, connected barrel.
+Long weapons use an identity row above the bottom prompt in four-player views;
+short ones fit inline. The font never shrinks. The source silhouettes and packed
+data remain in the private bank. Normal ROM builds consume that bank without
+reopening the source disc or importing extraction dependencies.
+
+Vehicle prompts name both action and vehicle: `Drive Warthog`, `Gunner Warthog`,
+`Ride Scorpion`, `Flip Ghost`. N64-style use shows B; Xbox-style use shows C-left.
+The persistent exit hint stays removed. `Reloading`, `Overheated`, and the extra
+`HEAT` caption are removed; animations, audio and heat/battery graphics remain.
+
+`hud_messages.c` maintains four 16-byte receipts per player (256 bytes total,
+plus two 32-bit counters), without allocation. Examples are `+ Assault Rifle`,
+`+50 Assault Rifle`, `+1 Frag Grenade`, `+3 Plasma Grenades`, `+ Health Pack`,
+`+ Overshield`, and `+ Active Camo`. Ammo events carry the actual transferred
+rounds, separately from acquiring a weapon. Repeated ammo or item receipts merge
+quantities, refresh their timestamp and move newest; expired slots are reused,
+then the oldest entry is replaced if full. Death receipts are broadcast, with
+profile identities matching the score screen. Multi-kill/spree notices are local.
+
+The Xbox's two-second uptime and two-second power-1.9 fade are preserved at
+30 Hz. A 61-byte alpha table avoids transcendental math in the draw path;
+text and shadows fade together. At most two receipt lines appear in split-screen,
+three in a full view, above the interaction prompt and beside the unchanged radar.
+Long text wraps at spaces. Messages are fed after every simulation tick, including
+catch-up ticks, and cleared for each new match/restart. Pause freezes their age.
+
+Original USA Rev 2 `default.xbe` embeds the missing multiplayer text directly:
+`You killed %s`, `Double Kill!`, `Triple Kill!`, `Rejoin in %d`, and
+`Hold BACK for score`. The port uses compact equivalents, including `Rejoin in n`
+and `Killing Spree!`; four-or-more rapid kills use `Killtacular!`. A depleted
+weapon offers `Switch [weapon silhouette]` only if the stowed weapon has ammo,
+using R for N64 controls or C-up for Xbox controls. It is suppressed during
+reload/readying. The initial 15-second score hint shows `Hold [R] Scores`
+only for Xbox-style controls, where the existing score binding is available;
+interaction prompts and receipts take priority. No control binding changes.
+
+Pages 7/8 inspect all eight Xbox weapon prompts with alternating B/C-left;
+9 inspects staged receipts; 10 covers staged kill/award/overshield/rejoin text;
+11/12 cover one- and two-player placement, including reload/vent states without
+invented labels. These frozen fixtures verify the real renderer, not live kills
+or frame rate. Native integration tests separately verify actual partial ammo,
+grenade, power-up and kill events, queue pressure, profile identity and expiry.
+Current screenshots and quiet VI evidence are in `build/n64-prompt-audit/`.

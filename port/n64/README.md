@@ -232,6 +232,7 @@ Then follow the six expanded extraction/reduction/packing commands in
 
 ```sh
 build/n64-python/bin/python port/n64/extract_menu_assets.py
+build/n64-python/bin/python port/n64/pack_prompt_icons.py
 build/n64-python/bin/python port/n64/pack_interactions.py
 build/n64-python/bin/python port/n64/validate_assets.py
 build/n64-python/bin/python port/n64/extract_camera.py

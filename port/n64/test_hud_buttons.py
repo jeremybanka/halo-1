@@ -1,10 +1,13 @@
 """Validate the exact runtime icon bank, pixel symmetries and prompt footprint."""
 from pathlib import Path
+import argparse
 import subprocess
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
-out = ROOT/'build/n64/button-audit'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output', type=Path, default=ROOT/'build/n64/button-audit')
+out = parser.parse_args().output.resolve()
 out.mkdir(parents=True, exist_ok=True)
 c = out/'icon-test.c'
 c.write_text('''#include <stdint.h>

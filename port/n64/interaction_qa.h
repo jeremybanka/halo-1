@@ -4,7 +4,7 @@
  * Only staging and inspection cameras differ from ordinary gameplay. */
 static int interaction_qa_vehicles[4];
 static void interaction_qa_stage(void){
-    bg_set_players(4);bg_reset();bg_set_score_limit(1000);bg_pickup_count=bg_vehicle_count=0;
+    bg_set_players(4);bg_reset();bg_hud_messages_reset();bg_set_score_limit(1000);bg_pickup_count=bg_vehicle_count=0;
     for(unsigned p=0;p<4;p++){
         bg_player*q=&bg_players[p];q->pos[0]=p*6;q->pos[2]=4;q->pos[1]=bg_floor(q->pos[0],4,100)+.015f;
         q->yaw=-1.5707963f;q->pitch=0;
@@ -34,7 +34,7 @@ static void interaction_qa_stage(void){
     }
     for(unsigned tick=0;tick!=(unsigned)BG_INTERACTION_TICK;tick++){
         for(unsigned p=0;p<4;p++)in[p].interact=tick<10||(BG_INTERACTION_QA!=4&&tick>=90&&tick<100);
-        bg_clear_events();bg_tick(in,1.f/30);
+        bg_clear_events();bg_tick(in,1.f/30);bg_hud_messages_update();
     }
     if(BG_INTERACTION_QA<2)for(unsigned p=0;p<4;p++)bg_players[p].invisibility=1;
     (*qa.seconds)=BG_INTERACTION_TICK/30.f;

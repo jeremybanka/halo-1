@@ -18,12 +18,31 @@ static const uint8_t hud_font[][6]={
     {14,9,9,14,8,8}, {6,9,9,9,11,7}, {14,9,9,14,10,9},
     {7,8,6,1,1,14}, {15,2,2,2,2,2}, {9,9,9,9,9,6},
     {9,9,9,9,6,6}, {9,9,9,15,15,9}, {9,9,6,6,9,9},
-    {9,9,6,2,2,2}, {15,1,2,4,8,15}, {0,0,0,15,0,0}
+    {9,9,6,2,2,2}, {15,1,2,4,8,15}, {0,0,0,15,0,0},
+    /* Lowercase shares the same 4x6 grid, baseline and five-pixel advance.
+     * Ascenders use all six rows; descenders stay inside that footprint. */
+    {0,6,1,7,9,7}, {8,8,14,9,9,14}, {0,0,7,8,8,7},
+    {1,1,7,9,9,7}, {0,6,9,15,8,7}, {3,4,14,4,4,4},
+    {0,7,9,7,1,6}, {8,8,14,9,9,9}, {2,0,6,2,2,7},
+    {1,0,1,1,9,6}, {8,8,9,10,12,10}, {6,2,2,2,2,7},
+    {0,0,14,15,9,9}, {0,0,14,9,9,9}, {0,0,6,9,9,6},
+    {0,14,9,14,8,8}, {0,7,9,7,1,1}, {0,0,11,12,8,8},
+    {0,0,7,12,3,14}, {4,4,14,4,4,3}, {0,0,9,9,9,7},
+    {0,0,9,9,6,6}, {0,0,9,9,15,6}, {0,0,9,6,6,9},
+    {0,9,9,7,1,6}, {0,0,15,2,4,15},
+    {0,2,2,15,2,2}, {2,2,2,2,0,2}, {0,0,0,0,0,2}
 };
 static int hud_glyph(char c){
     if(c>='0'&&c<='9')return c-'0';
     if(c>='A'&&c<='Z')return c-'A'+10;
-    return c=='-'?36:-1;
+    if(c>='a'&&c<='z')return c-'a'+37;
+    return c=='-'?36:c=='+'?63:c=='!'?64:c=='.'?65:-1;
+}
+static int hud_glyph_x(unsigned g){
+    return g<37?(g%10)*6:g<52?40+(g-37)%5*4:60;
+}
+static int hud_glyph_y(unsigned g){
+    return g<37?(g/10)*8:g<52?52+(g-37)/5*6:(g-52)*6;
 }
 static void hud_ink(int x,int y){
     unsigned n=y*HUD_PIXEL_W+x;
@@ -35,7 +54,7 @@ static void hud_ink_box(int x,int y,int w,int h){
 static void hud_pixels_init(void){
     for(unsigned g=0;g<sizeof(hud_font)/sizeof(hud_font[0]);g++)
         for(int y=0;y<6;y++)for(int x=0;x<4;x++)
-            if(hud_font[g][y]&(8>>x))hud_ink((g%10)*6+x,(g/10)*8+y);
+            if(hud_font[g][y]&(8>>x))hud_ink(hud_glyph_x(g)+x,hud_glyph_y(g)+y);
     for(int col=0;col<20;col++)for(int row=0;row<3;row++)
         hud_ink_box(col*2,32+row*4,1,3);
     for(int i=0;i<12;i++)hud_ink_box(i*3,44,2,5);

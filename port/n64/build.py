@@ -151,7 +151,7 @@ def parse_args(argv=None):
     mode.add_argument(
         "--combat-qa",
         type=int,
-        choices=range(8),
+        choices=range(9),
         help="Staged combat and rollover comparisons through production gameplay",
     )
     mode.add_argument(

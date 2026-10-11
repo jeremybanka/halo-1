@@ -65,7 +65,12 @@ reject separated contact AABBs; 5,000 differential cases match the untouched
 source routine bit-for-bit, including forces, torques and wake flags. The adapter translates coordinates and center of mass, feeds the
 existing fixed 30 Hz tick, and converts velocities between units/tick and
 units/second. Camera aim is a desired heading: it no longer directly rotates the
-chassis. Banshee pitch controls flight direction; jump requests the original
+chassis. The original tick constant is namespaced as
+`BG_VEHICLE_TICKS_PER_SECOND` (30), so the SDK's CPU-count `TICKS_PER_SECOND`
+cannot replace it. Host regressions also define the hardware macro while
+testing drive/steer. A raw Xbox/N64 controller fixture verifies steering in
+the actual MIPS build with `--combat-qa 8`.
+Banshee pitch controls flight direction; jump requests the original
 brake behavior. The renderer and seats consume the full forward/up basis, so
 body roll is visible and passengers follow it. Original suspension ray/channel
 smoothing drives the reduced wheel rig; its neutral visual offset is an

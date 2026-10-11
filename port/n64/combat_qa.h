@@ -3,6 +3,30 @@
 /* Identical staging in before/after ROMs; all attacks use production input. */
 static void combat_qa_input(bg_input in[4],float time){
     static int previous=-1;const float duration=BG_COMBAT_QA>=5?24:12;int cycle=(int)(time/duration);float t=time-cycle*duration;
+#if BG_COMBAT_QA == 8
+    if(cycle!=previous){
+        previous=cycle;bg_set_players(2);bg_reset();bg_set_score_limit(1000);(*qa.views)=2;
+        bg_vehicle_count=bg_pickup_count=0;bg_scene_reset();
+        for(unsigned p=0;p<2;p++){
+            float pos[3]={p?-12.f:0,bg_floor(p?-12.f:0,p?5.f:4.f,100),p?5.f:4.f};
+            int vi=bg_add_vehicle(BG_V_WARTHOG,pos,0);
+            bg_player*q=&bg_players[p];q->vehicle=vi;q->seat=0;q->seat_state=BG_SEAT_STABLE;
+            q->yaw=q->pitch=0;bg_vehicles[vi].occupants[0]=p;
+        }
+    }
+    memset(in,0,sizeof(bg_input)*4);
+    for(unsigned p=0;p<2;p++){
+        /* Raw controller -> actual style mapper -> production simulation.
+         * The top view is Xbox; the bottom is N64. */
+        bg_control_state raw={0};
+        if(t>=6&&t<12){
+            if(p)raw.stick_y=80;else raw.held=BG_BUTTON_D_UP;
+        }
+        if(t>=3&&t<4)raw.stick_x=-45;
+        bg_controls_map(&in[p],&raw,p?BG_CONTROLS_N64:BG_CONTROLS_XBOX,true);
+    }
+    return;
+#endif
 #if BG_COMBAT_QA == 7
     if(cycle!=previous){
         previous=cycle;bg_set_players(4);bg_reset();bg_set_score_limit(1000);(*qa.views)=4;
@@ -116,6 +140,6 @@ static void combat_qa_input(bg_input in[4],float time){
     }
 }
 static const char*combat_qa_title(void){
-    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK","ROLLOVER: THREE OCCUPANTS","DEATH DROP / P3 RECOVERY","STAGED DEATHS / SLAYER SPAWNS","CAMO: INFANTRY / TURRET"}[BG_COMBAT_QA];
+    return (const char*[]){"PISTOL: BODY / HEAD","OVERCHARGE / PLASMA RIFLE","SHOTGUN: NEAR / FAR","MELEE: FRONT / BACK","ROLLOVER: THREE OCCUPANTS","DEATH DROP / P3 RECOVERY","STAGED DEATHS / SLAYER SPAWNS","CAMO: INFANTRY / TURRET","STEERING: XBOX / N64 RAW INPUT"}[BG_COMBAT_QA];
 }
 #endif

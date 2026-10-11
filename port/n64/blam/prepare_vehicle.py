@@ -19,6 +19,7 @@ def structure(path,name):
 def adapt(s):
  s=re.sub(r'\bunsigned long\b','uint32_t',s);s=re.sub(r'\blong\b','int32_t',s)
  s=s.replace('LONG_MAX','INT32_MAX').replace('LONG_MIN','INT32_MIN')
+ s=re.sub(r'\bTICKS_PER_SECOND\b','BG_VEHICLE_TICKS_PER_SECOND',s)
  s=s.replace('__inline ', 'static inline ')
  return s
 
@@ -105,7 +106,7 @@ def prepare():
  start=full.index('\tSET_FLAG(vehicle->vehicle.flags, 2,');end=full.index('\n\tmatch_assert("c:\\\\halo\\\\SOURCE\\\\units\\\\vehicles.c", 308,',start)
  control='static void vehicle_control_update(int32_t vehicle_index){\nstruct vehicle_datum *vehicle=vehicle_datum_get(vehicle_index);\nstruct vehicle_definition *definition=vehicle_specific_definition_get(vehicle->definition_index);\nreal steering_angle,torque;\n'+full[start:end]+'\nvehicle_steering[vehicle_index]=steering_angle;\n}\n'
  funcs['vehicle_control_update']=adapt(control)
- records.append(dict(source='source/units/vehicles.c',name='vehicle_update control blocks',source_sha256=hashlib.sha256(vs.encode()).hexdigest(),adaptations=['Retain contiguous control blocks; adapter dispatches supported vehicle types and gameplay/presentation services separately']))
+ records.append(dict(source='source/units/vehicles.c',name='vehicle_update control blocks',source_sha256=hashlib.sha256(vs.encode()).hexdigest(),adaptations=['Retain contiguous control blocks; adapter dispatches supported vehicle types and gameplay/presentation services separately','Namespace original 30 Hz TICKS_PER_SECOND to avoid libdragon CPU-counter macro collision']))
  # Damage kick arithmetic comes from the original aftermath block; callers
  # supply the exported effect/object values instead of the engine tag registry.
  ds=(ROOT/'source/objects/damage.c').read_text();damage=function(ds,'object_damage_aftermath')

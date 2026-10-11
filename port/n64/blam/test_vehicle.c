@@ -1,6 +1,11 @@
 /* Exercise the retained solver against retail tags and map geometry, including
  * private contact state. This TU substitutes no physics/world implementation. */
+/* Model the SDK macro in host regressions too. Blam must retain its 30 Hz
+ * clock even when the surrounding platform uses a CPU count frequency. */
+#define TICKS_PER_SECOND 46875000
 #include "vehicle_physics.c"
+_Static_assert(TICKS_PER_SECOND == 46875000, "Platform clock was overwritten");
+_Static_assert(BG_VEHICLE_TICKS_PER_SECOND == 30, "Vehicle simulation clock");
 #include "vehicle_pair_reference.c"
 bg_vehicle bg_vehicles[BG_MAX_VEHICLES];
 bg_player bg_players[BG_PLAYERS];

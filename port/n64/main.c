@@ -767,6 +767,10 @@ int main(void) {
     bg_fx_draw_init();
     rdpq_text_register_font(1, rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
     bg_menu_init(&menu, views);
+#if defined(BG_COMBAT_QA) && BG_COMBAT_QA == 8
+    menu.styles[0] = BG_CONTROLS_XBOX;
+    menu.styles[1] = BG_CONTROLS_N64;
+#endif
 #ifdef BG_HUD_QA
     for (unsigned p = 0; p < BG_PLAYERS; p++)
         menu.styles[p] = p & 1 ? BG_CONTROLS_XBOX : BG_CONTROLS_N64;
@@ -1153,6 +1157,12 @@ int main(void) {
                          bg_players[2].grenades[1]);
 #elif BG_COMBAT_QA == 6
         rdpq_text_printf(NULL, 1, 4, 225, "16 SLAYER POINTS | THREE CAMPERS");
+#elif BG_COMBAT_QA == 8
+        for(unsigned p=0;p<2;p++){
+            rdpq_text_printf(NULL,1,4,110+p*120,"A %.2f H %.2f T %.2f V %.2f",
+                (double)bg_players[p].yaw,(double)bg_vehicles[p].yaw,
+                (double)bg_vehicles[p].steering,(double)bg_vehicles[p].speed);
+        }
 #else
         rdpq_text_printf(NULL, 1, 4, 225, "TARGETS S/H: %.1f/%.1f | %.1f/%.1f",
                          bg_players[1].shield, (double)bg_players[1].health, bg_players[3].shield,

@@ -98,6 +98,12 @@ hand-grenade/Needler rules with adapters driven by the owned Xbox definitions:
   The original flipped predicate is `up.k < 0.2`; six consecutive ticks and
   a 0.3-second same-vehicle splatter grace are explicit adapter choices.
   An airborne Banshee is exempt. Exit placement is clamped above local support.
+- Low-speed vehicle contact uses the source's unhalved capsule displacement
+  and live-player half-strength velocity impulse. Bounded hull/terrain
+  depenetration replaces the single clearance guess. A demake clearance failure
+  alone does not cause death; lethal contact requires the source 2 units/s hull
+  or 1 unit/s relative velocity threshold. This deliberately avoids the
+  original unresolved-pill crush fallback on approximate collision seams.
 
 ### Acceptance boundaries
 

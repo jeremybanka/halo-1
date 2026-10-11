@@ -53,6 +53,8 @@ def validate(out, regenerate=False):
         'shields': ['port/n64/test_shields.c', *shared],
         'powerups': ['port/n64/test_powerups.c', *shared],
         'vehicle-edges': ['port/n64/test_vehicle_edges.c', *shared],
+        'vehicle-contacts': ['port/n64/test_vehicle_contacts.c',
+                             *[s for s in shared if s != 'port/n64/game.c']],
         'view-camera': ['port/n64/test_view_camera.c', 'build/n64/generated/camera_data.c'],
         'game': ['port/n64/test_game.c', *shared],
         'combat-geometry': ['port/n64/test_combat_geometry.c', *shared],

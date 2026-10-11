@@ -1941,12 +1941,23 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                     p->grounded = false;
                     bg_player displaced = *p;
                     for (unsigned a = 0; a < 3; a++)
-                        displaced.pos[a] += acceleration[a] * (2.f / 30);
+                        /* collision_fix_pill uses the unhalved impulse;
+                         * biped_accelerate halves only the velocity kick. */
+                        displaced.pos[a] += acceleration[a] * (4.f / 30);
                     bool clear = bg_terrain_clearance(&displaced) &&
                                  !bg_vehicle_contacts_player(v, &displaced);
+                    for (unsigned attempt = 0; !clear && attempt < 4; attempt++) {
+                        bg_vehicle_resolve_player(v, &displaced);
+                        bg_move_capsule(&displaced, 0);
+                        clear = bg_terrain_clearance(&displaced) &&
+                                !bg_vehicle_contacts_player(v, &displaced);
+                    }
                     if (clear)
                         memcpy(p->pos, displaced.pos, 12);
-                    if (!clear || hull_speed > 2 || speed > 1) {
+                    /* A bounded demake clearance failure can be a seam or
+                     * shallow resting overlap, not proof of lethal crushing.
+                     * Retain CE's 2 / 1 units-per-second impact thresholds. */
+                    if (hull_speed > 2 || speed > 1) {
                         damage_player_profile(
                             j, driver,
                             bg_combat_amount(&bg_damage_profiles[BG_D_COLLISION], 1, .5f), false,

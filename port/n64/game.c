@@ -1947,10 +1947,17 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                     bool clear = bg_terrain_clearance(&displaced) &&
                                  !bg_vehicle_contacts_player(v, &displaced);
                     for (unsigned attempt = 0; !clear && attempt < 4; attempt++) {
+                        bg_player previous;
+                        memcpy(&previous, &displaced, sizeof(previous));
                         bg_vehicle_resolve_player(v, &displaced);
                         bg_move_capsule(&displaced, 0);
                         clear = bg_terrain_clearance(&displaced) &&
                                 !bg_vehicle_contacts_player(v, &displaced);
+                        /* The solver is deterministic and the hull is fixed
+                         * during this loop. An unchanged complete state is
+                         * a fixed point; repeating it cannot find clearance. */
+                        if (!clear && !memcmp(&previous, &displaced, sizeof(previous)))
+                            break;
                     }
                     if (clear)
                         memcpy(p->pos, displaced.pos, 12);

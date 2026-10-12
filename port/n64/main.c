@@ -1282,6 +1282,9 @@ int main(void) {
 #ifdef BG_HUD_QA
         /* The ordinary footer covers lower-player prompts in pixel QA. */
         rdpq_text_printf(NULL, 1, 4, 88, "RDP %u/%u", validation_errors, validation_warnings);
+#elif defined(BG_FRONTEND_QA)
+        rdpq_text_printf(NULL, 1, 4, 226, "RDP %u ERRORS %u WARNINGS", validation_errors,
+                         validation_warnings);
 #else
         rdpq_text_printf(NULL, 1, 4, 215, "RDP %u ERRORS %u WARNINGS", validation_errors,
                          validation_warnings);

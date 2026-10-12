@@ -75,29 +75,29 @@ uses Wizard's selected collision adapter when playing Wizard.
       and one-player architecture; all four pages show zero RDP errors/warnings.
 - [x] Ares 69-step Wizard → Blood Gulch → Wizard with the accepted eight-slot
       cache and 32 KiB queues: all eight weapons, three 15-kill matches and
-      canceled quit/resume. Earlier reduced-cache results are superseded.
-- [ ] Four-player VI timing, tail latency and minimum free heap; >25 FPS
-      development gate and final 30 FPS target.
+      canceled quit/resume. RDP validation also passes all 69 steps with the
+      same eight-slot cache (diagnostic 8 KiB queues), zero errors/warnings.
+      Earlier reduced-cache results are superseded.
+- [x] Quiet four-player VI timing and accepted-checkpoint comparison.
+- [ ] Wizard >25 FPS overall development gate and final 30 FPS hardware target.
 
-Initial Ares inspection and the 37-step Wizard menu-to-results flow passed
-with zero RDP errors or warnings. Extended cross-map testing found and is
-checking allocation-order fixes. Earlier reduced-cache production and RDP-validator builds completed all 69
-steps. Those runs are superseded by verification with the unchanged accepted
-cache and allocator. The first
-quiet replay measured 24.1 FPS, with 253 KiB free heap. Balanced 8×8×4 material
-bins measured 24.8 FPS and 337 KiB free, retaining all 2,972 source triangles,
-materials, interpolated texture wrap, collision and scenario tables. Existing
-color merging still permits an eight-unit RGB difference. Overly broad
-16×16×8 bins regressed to 24.2 FPS; 8×8×2 bins measured 24.7 FPS.
-The final allocation layout measured 24.9 FPS, early 24.4 / late 25.3,
-with 335 KiB free heap and 66.8 ms P95/maximum presentation intervals.
-The accepted Blood Gulch checkpoint measured 23.5 FPS in the current session.
-A restored-cache run overlapped host tests and is not a clean performance
-comparison; an idle-host comparison is pending. Blood Gulch is a regression
-check for this PR, not an optimization target.
-These are emulator measurements, not real-console acceptance. The >25 FPS
-development gate and final 30 FPS target remain open. Do not replace the
-previous verified release until the full native lifecycle checks pass.
+Balanced 8×8×4 material bins retain all 2,972 source triangles, materials,
+interpolated texture wrap, collision and scenario tables while reducing draw
+chunks from 481 to 228. Existing color merging permits an eight-unit RGB
+difference. The initial 4×4×2 bins measured 24.1 FPS; overly broad 16×16×8
+bins measured 24.2, and 8×8×2 bins measured 24.7.
+
+Final accepted-budget quiet replays measured Wizard at 24.9 FPS (early 24.4 /
+late 25.3), with 335 KiB free at the result page and 66.8 ms P95/maximum
+presentation intervals. Blood Gulch measured 23.7 FPS (combat 26.3 / vehicles
+21.2) versus the accepted checkpoint's 23.5 (26.3 / 20.9), with identical
+production budgets: no measured regression. Blood Gulch's result-page free
+heap is 27 KiB versus 39 KiB at the checkpoint, reflecting the added map code;
+these readings are not a tracked minimum-heap watermark. P95 remains 66.8 ms
+and the maximum 167.1 ms. Blood Gulch is a regression check for this PR.
+These are emulator measurements, not real-console acceptance. Wizard's >25 FPS
+overall development gate and final 30 FPS hardware target remain open. The
+previous verified release manifest is unchanged by this map PR.
 
 Reproduction commands:
 
@@ -111,7 +111,7 @@ build/n64-python/bin/python port/n64/build.py --preset release --initial-map wiz
 ```
 
 `--wizard-qa 0..3 --validate` selects frozen source-start, upper-route,
-teleporter and one-player architecture views. Local logs, build identities and
+teleporter and one-player architecture views. Local logs, build identities,
 ROMs and native screenshots are under `build/n64-wizard-audit/`.
 `comparison.html` includes the original menu reference, all native inspection
 pages, countdown evidence, gameplay video, lifecycle results and VI timing.

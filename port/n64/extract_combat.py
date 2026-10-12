@@ -17,7 +17,7 @@ def main():
   def get(path,kind):return tag_values(h.get_meta(next(i for i,e in enumerate(es) if e.path==path and e.class_1.enum_name==kind)))
   unit=get(r'characters\cyborg_mp\cyborg_mp','biped')
   collision=get(unit['obje_attrs']['collision_model'],'model_collision_geometry')
-  rows=[];sources={}
+  rows=[];sources={r'characters\cyborg_mp\cyborg_mp|grenade_velocity':unit['unit_attrs']['grenade_velocity']}
   mounted_specs=[('HOG','warthog','warthog gun','bullet','bullet',0),('GHOST','ghost','ghost gun','ghost bolt','ghost bolt',0),('TANK','scorpion','scorpion cannon','shell explosion','tank shell',0),('TANK_MG','scorpion','scorpion cannon','bullet','bullet',1),('BANSHEE','banshee','banshee gun','banshee bolt','banshee bolt',0),('FUEL_ROD','banshee','banshee gun','fuel rod explosion','banshee fuel rod',1)]
   mounted=[]
   for name,weapon,leaf in PROFILES+[(n,v,l) for n,v,w,l,p,t in mounted_specs]:
@@ -52,8 +52,9 @@ def main():
   stun_config=[stun[k] for k in ['stun_movement_penalty','stun_turning_penalty','stun_jumping_penalty','minimum_stun_time','maximum_stun_time']]
   grenades=[]
   for name in ['frag grenade','plasma grenade']:
-   path='weapons\\'+name+'\\'+name;v=get(path,'projectile')['proj_attrs'];m=v['material_responses'][0]
-   grenades.append(dict(arming=v['detonation']['arming_time'],fuse=v['detonation']['timer']['from'],gravity=v['physics']['air_gravity_scale'],parallel=m['parallel_refriction'],perpendicular=m['perpendicular_friction']))
+   path='weapons\\'+name+'\\'+name;v=get(path,'projectile')['proj_attrs'];materials=v['material_responses']
+   assert len(materials)==33
+   grenades.append(dict(arming=v['detonation']['arming_time'],fuse=v['detonation']['timer']['from'],gravity=v['physics']['air_gravity_scale'],parallel=[m['parallel_refriction'] for m in materials],perpendicular=[m['perpendicular_friction'] for m in materials]))
    sources[path+'|projectile']=v
   needle=get(r'weapons\needler\needle','projectile')['proj_attrs'];sources[r'weapons\needler\needle|projectile']=needle
   from extract_combat_geometry import vehicle_meshes
@@ -83,14 +84,14 @@ def main():
  lines+=['};','const bg_trigger_profile bg_trigger_profiles[9]={']
  for row in triggers:lines.append('{'+','.join('.'+k+'='+ (str(int(v)) if isinstance(v,(int,bool)) else f(v)) for k,v in row.items())+'},')
  lines+=['};','const bg_grenade_profile bg_grenade_profiles[2]={']
- for row in grenades:lines.append('{'+','.join('.'+k+'='+f(v) for k,v in row.items())+'},')
- lines+=['};','const float bg_fall_distances[3]={'+','.join(map(f,fall_distances))+'};','const float bg_stun_config[5]={'+','.join(map(f,stun_config))+'};']
+ for row in grenades:lines.append('{'+','.join('.'+k+'='+ ('{'+','.join(map(f,v))+'}' if isinstance(v,list) else f(v)) for k,v in row.items())+'},')
+ lines+=['};','const float bg_grenade_velocity='+f(unit['unit_attrs']['grenade_velocity'])+';','const float bg_fall_distances[3]={'+','.join(map(f,fall_distances))+'};','const float bg_stun_config[5]={'+','.join(map(f,stun_config))+'};']
  for key,val in [('fuse',needle['detonation']['timer']['from']),('turn',needle['physics']['guided_angular_velocity']),('range',needle['detonation']['maximum_range'])]:lines.append('const float bg_needle_'+key+'='+f(val)+';')
  lines+=['const float bg_vehicle_child_damage[4]={'+','.join(map(f,children))+'};','const bg_mounted_profile bg_mounted_profiles[6]={']
  for row in mounted:lines.append('{.profile=BG_D_'+row['profile']+',.chamber='+f(row['chamber'])+',.trigger={'+','.join('.'+k+'='+f(v) for k,v in row['trigger'].items())+'}},')
  lines+=['};']
  lines+=geometry_lines+player_lines
  target=out/'combat_data.c';target.write_text('\n'.join(lines)+'\n')
- report={'player_geometry':player_report,'mounted':mounted,'child_damage':children,'geometry':geometry_report,'profiles':dict(rows),'triggers':triggers,'grenades':grenades,'fall_distances':fall_distances,'stun_config':stun_config,'collision':{k:collision[k] for k in ('body','shield','materials')},'sources':sources,'inputs':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__).resolve(),ROOT/'port/n64/extract_combat_geometry.py',ROOT/'port/n64/extract_player_hits.py',ROOT/'port/n64/pack_fp_ammo.py',ROOT/'port/n64/vehicle_parts.py',ROOT/'build/n64/assets/extended-reduced.json',ROOT/'build/n64/assets/extended-raw.json',ROOT/'build/n64/assets/a30-decompressed.map',cache,ROOT/'source/objects/damage.c',ROOT/'source/items/projectiles.c',ROOT/'source/units/units.c',ROOT/'source/items/weapons.c',ROOT/'source/units/bipeds.c']},'files':{'build/n64/frontend-files/player-hits.bin':hashlib.sha256((ROOT/'build/n64/frontend-files/player-hits.bin').read_bytes()).hexdigest()},'generated_sha256':hashlib.sha256(target.read_bytes()).hexdigest()}
+ report={'player_geometry':player_report,'mounted':mounted,'child_damage':children,'geometry':geometry_report,'profiles':dict(rows),'triggers':triggers,'grenades':grenades,'grenade_velocity':unit['unit_attrs']['grenade_velocity'],'fall_distances':fall_distances,'stun_config':stun_config,'collision':{k:collision[k] for k in ('body','shield','materials')},'sources':sources,'inputs':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__).resolve(),ROOT/'port/n64/extract_combat_geometry.py',ROOT/'port/n64/extract_player_hits.py',ROOT/'port/n64/pack_fp_ammo.py',ROOT/'port/n64/vehicle_parts.py',ROOT/'build/n64/assets/extended-reduced.json',ROOT/'build/n64/assets/extended-raw.json',ROOT/'build/n64/assets/a30-decompressed.map',cache,ROOT/'source/objects/damage.c',ROOT/'source/items/projectiles.c',ROOT/'source/units/units.c',ROOT/'source/items/weapons.c',ROOT/'source/units/bipeds.c']},'files':{'build/n64/frontend-files/player-hits.bin':hashlib.sha256((ROOT/'build/n64/frontend-files/player-hits.bin').read_bytes()).hexdigest()},'generated_sha256':hashlib.sha256(target.read_bytes()).hexdigest()}
  (out/'combat-report.json').write_text(json.dumps(report,indent=2)+'\n');print('Extracted combat, trigger, grenade, stun and fall profiles.')
 if __name__=='__main__':main()

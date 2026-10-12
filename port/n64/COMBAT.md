@@ -83,6 +83,16 @@ hand-grenade/Needler rules with adapters driven by the owned Xbox definitions:
   tests the source 5-by-5 ray fan, applying one damage event.
 - Frag/plasma grenade gravity, surface-normal bounces, arming and fuse times.
   Plasma grenades stick to units/vehicles, rather than every terrain surface.
+  Grenade launch now follows the Spartan tag's 10 units/second along the aim
+  vector. Each world contact uses its original global material's normal and
+  tangential friction, rather than applying dirt friction everywhere. Gravity
+  uses average velocity for the sweep and impact-time velocity for reflection;
+  the remaining tick is swept again, bounded to ten contacts. Projectile rays
+  include short segments below the camera/weapon ray bias. A 0.001-unit normal
+  separation prevents repeated surface contacts; the rest threshold converts
+  the Xbox squared tick-speed epsilon into squared units/second.
+  `test_grenades.c` checks real sand/stone rebounds, wall reflection, throw
+  velocity, short contacts and the original arming delay under sanitizers.
   Source radial damage profiles and four core obstruction rays replace the
   old universal linear blast. Vehicle hulls now obstruct those rays.
 - Needler launch-time target retention, bounded turning at constant speed,

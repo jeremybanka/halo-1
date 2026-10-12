@@ -9,6 +9,8 @@ void bg_vehicle_world_preload(void);
 /* Shared original polygon/BVH ray service in demake coordinates. */
 float bg_world_raycast(const float origin[3],const float direction[3],float distance);
 float bg_world_raycast_normal(const float origin[3],const float direction[3],float distance,float normal[3]);
+/* Projectile contacts include sub-bias segments and the Xbox material type. */
+float bg_world_projectile_raycast(const float origin[3],const float direction[3],float distance,float normal[3],int *material);
 /* Five short camera rays share a single conservative surface query. */
 void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]);
 void bg_vehicle_physics_prepare(void);

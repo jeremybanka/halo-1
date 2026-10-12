@@ -21,11 +21,13 @@ typedef struct {
     uint16_t reload_full,reload_empty,reload_enter,melee_frames,melee_key;
     bool zoom_accurate,automatic;
 } bg_trigger_profile;
-typedef struct {float arming,fuse,gravity,parallel,perpendicular;} bg_grenade_profile;
+enum {BG_GRENADE_MATERIALS=33};
+typedef struct {float arming,fuse,gravity,parallel[BG_GRENADE_MATERIALS],perpendicular[BG_GRENADE_MATERIALS];} bg_grenade_profile;
 typedef struct {bg_trigger_profile trigger;float chamber;uint8_t profile;} bg_mounted_profile;
 extern const bg_mounted_profile bg_mounted_profiles[6];
 extern const float bg_vehicle_child_damage[4];
 extern const bg_grenade_profile bg_grenade_profiles[2];
+extern const float bg_grenade_velocity;
 extern const float bg_needle_fuse,bg_needle_turn,bg_needle_range;
 extern const float bg_fall_distances[3],bg_stun_config[5];
 extern const bg_trigger_profile bg_trigger_profiles[9];

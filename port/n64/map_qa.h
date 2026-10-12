@@ -5,7 +5,7 @@
 #include "pickup_rules.h"
 /* Camera selection is diagnostic only; all positions are authored starts. */
 static unsigned model_qa_page=BG_MAP_QA;
-static const char *const model_qa_labels[]={"MAP: SOURCE STARTS","MAP: UPPER ROUTES","MAP: LOWER ROUTES","MAP: ONE PLAYER"};
+static const char *const model_qa_labels[]={"MAP: SOURCE STARTS","MAP: ROUTE VIEWS","MAP: LOWER ROUTES","MAP: ONE PLAYER"};
 static bool model_qa_firstperson(void){return true;}
 static void model_qa_camera(unsigned p,T3DVec3*eye,T3DVec3*target){(void)p;(void)eye;(void)target;}
 static void model_qa_stage(uint64_t now){
@@ -22,8 +22,24 @@ static void model_qa_stage(uint64_t now){
         }
     for(unsigned p=0;p<4;p++){
         bg_player*q=&bg_players[p];const bg_spawn*s=&bg_spawns[starts[(BG_MAP_QA==0?p*count/4:p)%count]];
+        if(bg_map_id()==BG_MAP_BATTLE_CREEK&&(BG_MAP_QA==1||BG_MAP_QA==3)){
+            /* Owned-cache Slayer starts in the courtyard and beside the river. */
+            const unsigned courtyard[]={62,63,66,25};
+            assertf(courtyard[p]<bg_spawn_count&&bg_slayer_spawns[courtyard[p]],"Battle Creek inspection start");
+            s=&bg_spawns[courtyard[p]];
+        }
         memcpy(q->pos,s->pos,12);q->pos[1]=bg_floor(q->pos[0],q->pos[2],q->pos[1]+.5f)+.015f;
         q->yaw=s->yaw;q->pitch=-.06f;q->invisibility=1;q->camo_opacity=0;
+        /* Battle Creek's cliff starts face rock. Keep the authored camera
+         * positions, but look toward the arena for useful inspection views. */
+        if(bg_map_id()==BG_MAP_BATTLE_CREEK){
+            float center_x=0,center_z=0;
+            for(unsigned i=0;i<count;i++){
+                center_x+=bg_spawns[starts[i]].pos[0];
+                center_z+=bg_spawns[starts[i]].pos[2];
+            }
+            q->yaw=-atan2f(center_z/count-q->pos[2],center_x/count-q->pos[0]);
+        }
         memcpy(q->last_pos,q->pos,12);q->animation=BG_ANIM_IDLE;q->anim_time=0;
     }
 }

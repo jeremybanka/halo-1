@@ -23,10 +23,13 @@ Source graphics/audio remain private in `halo64-assets`.
 - [x] Final scenery silhouettes/colors from multiple angles: whole-card removal,
       original vertices/UVs retained; 24 direction coverage gate plus 8-angle
       textured full-silhouette comparison (worst 96px 97.1%, 32px 96.3%).
-- [ ] Map-specific asset batching/reduction and quiet four-player timings.
-- [ ] Blood Gulch/Wizard comparison against the merged checkpoint.
-- [ ] Native menu/countdown/quit-resume/results cycle, normal and validator ROMs.
-- [ ] Final screenshots/gameplay videos and committed release boot.
+- [x] Map-specific asset batching/reduction trials and quiet four-player timings.
+- [x] Blood Gulch/Wizard comparison against the merged checkpoint.
+- [x] Native normal-budget cycle and assertion-logging validator: 117/117 steps,
+      six completed matches, zero validator RDP errors/warnings.
+- [ ] Final validator cycle without the diagnostic assertion wrapper.
+- [x] Native gameplay screenshots and silent gameplay videos for all three maps.
+- [ ] Committed release boot.
 - [ ] One PR containing all three maps.
 
 ## Source limits
@@ -76,3 +79,57 @@ The maintained regression additionally compares 15,300 Blood Gulch simulation
 ticks (the replay plus six showcases) against merged main `0ac2d7c9`: all
 144,170,464 serialized state bytes match. The original 69-step cycle remains
 available; `--maps-cycle` adds three matches, for 117 steps/six live matches.
+
+
+## Four-player timing and remaining performance work
+
+The final banks retain all BSP architecture and source collision. Hang 'Em High
+keeps the original 8×8×4 bins (329 chunks): broader 16×16×8 bins reduced chunks
+to 191, but gave no useful timing improvement; finer 6×6×3 bins increased
+chunks to 374 and also measured 19.5 FPS. Chill Out uses 6×6×3 bins (238 chunks)
+and Battle Creek uses 12×12×6 bins (247 chunks). Battle Creek scenery retains
+2,069 of 2,394 source triangles; complete overlapping foliage cards account for
+the reduction. Pedestals and teleporter structures remain complete.
+
+| Map | Overall FPS | Early / combat | Late / vehicles | P95 / maximum interval | End free heap |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Hang 'Em High | 19.5 | 18.7 | 20.2 | 66.8 / 66.8 ms | 266 KiB |
+| Chill Out | 20.7 | 20.8 | 20.7 | 66.8 / 66.8 ms | 261 KiB |
+| Battle Creek | 20.1 | 19.0 | 21.2 | 66.8 / 100.3 ms | 154 KiB |
+| Blood Gulch | 24.1 | 26.4 | 22.1 | 66.8 / 167.1 ms | 22 KiB |
+| Wizard | 24.9 | 24.4 | 25.3 | 66.8 / 66.8 ms | 329 KiB |
+
+These are distinct simulation poses displayed by the native VI callback over
+75 seconds (75.017–75.050) after a one-second warmup, in Ares NTSC with 4 MiB, release LTO,
+three display surfaces and 32 KiB queues. New maps have no vehicles; their
+benchmark's COMBAT/VEHICLES headings mean early/late on-foot replay segments.
+Free heap is a result-page reading, not a minimum watermark. The capture videos
+are silent Ares window recordings with actual wall-clock frame timestamps.
+
+Matched merged-main `0ac2d7c9` measurements are Blood Gulch **24.0 / 26.4 / 21.8**
+and Wizard **24.9 / 24.4 / 25.3**. There is no measured old-map regression in these
+runs. The new maps' **>25 FPS development gate and final 30 FPS target remain
+open**; none of these measurements certify physical-console performance.
+Accepted shared model, pose-cache, geometry-workspace and queue budgets remain.
+
+`build/n64-three-map-audit/comparison.html` contains native inspection images,
+gameplay recordings, the source/reduced scenery comparisons and timing evidence.
+`timing.json` binds each result to its ROM and selected-map bank hash. Timed
+candidates were built before commit; compiler-input and selected-bank hashes
+are compared to the committed release rather than treating their recorded base
+commit as the final source identity.
+
+Final reproduction commands:
+
+```sh
+build/n64-python/bin/python port/n64/test_map_assets.py
+build/n64-python/bin/python port/n64/test_maps.py --maps-cycle
+build/n64-python/bin/python port/n64/build.py --preset release --maps-cycle --validate --output-dir build/n64-three-map-audit/frontend-cycle-final-validator
+build/n64-python/bin/python port/n64/build.py --preset release --output-dir build/n64-three-map-audit/release
+build/n64-python/bin/python port/n64/build.py --preset release --initial-map hangemhigh --vi-benchmark --output-dir build/n64-three-map-audit/hangemhigh-final-timing
+```
+
+Use `--initial-map chillout` or `beavercreek` for their timing runs. `--map-qa 1`
+and `3` inspect routes and one-player architecture without simulation. Battle
+Creek uses authored courtyard/river Slayer starts facing the arena for those
+pages; the other maps use their authored starts and headings.

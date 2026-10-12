@@ -1321,10 +1321,8 @@ static void grenade(unsigned index) {
         return;
     float dir[3], origin[3];
     aim(p, dir, origin);
-    dir[1] += .25f;
-    normalize(dir);
     bg_projectile *q = projectile(p->grenade_kind ? BG_P_PLASMA_GRENADE : BG_P_FRAG, index, origin,
-                                  dir, 5, 260, 2.2f);
+                                  dir, bg_grenade_velocity, 260, 2.2f);
     if (q) {
         q->life = bg_grenade_profiles[p->grenade_kind].fuse;
         p->grenades[p->grenade_kind]--;
@@ -1402,6 +1400,101 @@ static void vehicle_local_point(const bg_vehicle *v, const float world[3], float
         local[axis] = dot(delta, basis);
     }
 }
+static void update_grenade_motion(bg_projectile *q, const bg_grenade_profile *g, float dt) {
+    float remaining = dt, gravity = bg_movement.gravity * g->gravity;
+    /* projectiles.c integrates average velocity, restores gravity to the
+     * impact time, then sweeps the reflected motion through the remaining tick.
+     * Retain its ten-contact bound for corners and coincident surfaces. */
+    for (unsigned contacts = 0; contacts < 10 && remaining > 1e-7f; contacts++) {
+        float dir[3];
+        memcpy(dir, q->velocity, sizeof(dir));
+        dir[1] -= gravity * remaining * .5f;
+        float speed = sqrtf(dot(dir, dir)), length = speed * remaining;
+        if (speed <= 1e-8f) {
+            q->velocity[1] -= gravity * remaining;
+            return;
+        }
+        for (unsigned a = 0; a < 3; a++)
+            dir[a] /= speed;
+        float nearest = length;
+        int region = 1, vehicle = -1;
+        int target = target_ray(q->owner, q->pos, dir, &nearest, &region);
+        unsigned hull_material = 0;
+        for (unsigned j = 0; j < bg_vehicle_count; j++) {
+            bg_vehicle *v = &bg_vehicles[j];
+            if (!v->active || bg_players[q->owner].vehicle == (int)j)
+                continue;
+            unsigned candidate_material = 0;
+            float hit = bg_vehicle_hit_ray_material(v, q->pos, dir, nearest, &candidate_material);
+            if (hit < nearest) {
+                nearest = hit;
+                hull_material = candidate_material;
+                target = -1;
+                vehicle = j;
+            }
+        }
+        float normal[3] = {-dir[0], -dir[1], -dir[2]}, world_normal[3];
+        int material = 0, world_material = 0;
+        float terrain = bg_world_projectile_raycast(q->pos, dir, length, world_normal, &world_material);
+        if (terrain < nearest) {
+            nearest = terrain;
+            target = vehicle = -1;
+            memcpy(normal, world_normal, sizeof(normal));
+            material = world_material;
+        } else if (target >= 0)
+            material = bg_players[target].shield > 0 ? 18 : 17; /* cyborg shield/armor */
+        else if (vehicle >= 0) {
+            static const unsigned hull_types[4] = {7, 6, 8, 9}; /* thick/thin metal, rubber, glass */
+            material = hull_types[hull_material < 4 ? hull_material : 0];
+        }
+        bool impact = nearest < length;
+        float elapsed = remaining * (nearest / length);
+        q->velocity[1] -= gravity * elapsed;
+        q->distance += nearest;
+        for (unsigned a = 0; a < 3; a++)
+            q->pos[a] += dir[a] * nearest;
+        if (!impact)
+            return;
+        remaining -= elapsed;
+        if (q->kind == BG_P_PLASMA_GRENADE && (target >= 0 || vehicle >= 0)) {
+            q->attached = target >= 0 ? target : BG_PLAYERS + vehicle;
+            q->countdown = true;
+            q->life = g->fuse;
+            memset(q->velocity, 0, sizeof(q->velocity));
+            if (target >= 0)
+                sub(q->attached_offset, q->pos, bg_players[target].pos);
+            else
+                vehicle_local_point(&bg_vehicles[vehicle], q->pos, q->attached_offset);
+            return;
+        }
+        if (q->kind == BG_P_FRAG && !q->countdown && normal[1] > .3f) {
+            q->countdown = true;
+            q->life = g->fuse;
+        }
+        if (material < 0 || material >= BG_GRENADE_MATERIALS)
+            material = 0;
+        normalize(normal);
+        float along = dot(q->velocity, normal);
+        for (unsigned a = 0; a < 3; a++) {
+            q->velocity[a] = (1 - g->perpendicular[material]) * (q->velocity[a] - along * normal[a]) -
+                             (1 - g->parallel[material]) * along * normal[a];
+            /* Separate along the contact normal so shallow hits do not start
+             * the following sweep inside the surface. */
+            q->pos[a] += normal[a] * .001f;
+        }
+        /* Xbox compares tick velocity squared with _real_epsilon (.0001).
+         * Convert that threshold to the port's units per second: .0001*30*30. */
+        if (normal[1] > .3f && dot(q->velocity, q->velocity) < .09f) {
+            q->attached = -2;
+            memset(q->velocity, 0, sizeof(q->velocity));
+            if (!q->countdown) {
+                q->countdown = true;
+                q->life = g->fuse;
+            }
+            return;
+        }
+    }
+}
 static void update_projectiles(float dt) {
     for (unsigned i = 0; i < BG_MAX_PROJECTILES; i++) {
         bg_projectile *q = bg_projectile_at(i);
@@ -1462,120 +1555,91 @@ static void update_projectiles(float dt) {
                     }
                 }
             }
-            if (q->damage_profile >= BG_D_HOG) {
-                const bg_damage_profile *d = &bg_damage_profiles[q->damage_profile];
-                float speed = sqrtf(dot(q->velocity, q->velocity));
-                float energy = clamp((q->distance - d->range_start) /
-                                         fmaxf(.001f, d->range_end - d->range_start),
-                                     0, 1);
-                float desired =
-                    30 *
-                    sqrtf(d->speed_start * d->speed_start +
-                          (d->speed_end * d->speed_end - d->speed_start * d->speed_start) * energy);
-                if (speed > 1e-6f)
-                    for (unsigned a = 0; a < 3; a++)
-                        q->velocity[a] *= desired / speed;
-                q->velocity[1] -= bg_movement.gravity * d->gravity * dt;
-                if (q->distance >= d->range) {
-                    q->active = false;
-                    continue;
-                }
-            }
-            if (grenade_kind)
-                q->velocity[1] -= bg_movement.gravity * g->gravity * dt;
-            float speed = sqrtf(dot(q->velocity, q->velocity)), dir[3];
-            memcpy(dir, q->velocity, sizeof(dir));
-            if (speed > 1e-8f)
-                for (int a = 0; a < 3; a++)
-                    dir[a] /= speed;
-            float length = speed * dt, nearest = length;
-            int region = 1;
-            int target = target_ray(q->owner, q->pos, dir, &nearest, &region), vehicle = -1;
-            unsigned material = 0;
-            for (unsigned j = 0; j < bg_vehicle_count; j++) {
-                bg_vehicle *v = &bg_vehicles[j];
-                if (!v->active || bg_players[q->owner].vehicle == (int)j)
-                    continue;
-                float hit = bg_vehicle_hit_ray_material(v, q->pos, dir, nearest, &material);
-                if (hit < nearest) {
-                    nearest = hit;
-                    target = -1;
-                    vehicle = j;
-                }
-            }
-            float normal[3] = {-dir[0], -dir[1], -dir[2]};
-            float terrain = bg_world_raycast_normal(q->pos, dir, length, normal);
-            if (terrain < nearest) {
-                nearest = terrain;
-                target = vehicle = -1;
-            } else if (target >= 0 || vehicle >= 0)
-                for (unsigned a = 0; a < 3; a++)
-                    normal[a] = -dir[a];
-            bool impact = nearest < length;
-            q->distance += nearest;
-            for (int a = 0; a < 3; a++)
-                q->pos[a] += dir[a] * (impact ? fmaxf(0, nearest - .003f) : nearest);
-            if (impact) {
-                if (grenade_kind) {
-                    if (q->kind == BG_P_PLASMA_GRENADE && (target >= 0 || vehicle >= 0)) {
-                        q->attached = target >= 0 ? target : BG_PLAYERS + vehicle;
-                        q->countdown = true;
-                        q->life = g->fuse;
-                        memset(q->velocity, 0, sizeof(q->velocity));
-                        if (target >= 0)
-                            sub(q->attached_offset, q->pos, bg_players[target].pos);
-                        else
-                            vehicle_local_point(&bg_vehicles[vehicle], q->pos, q->attached_offset);
-                    } else {
-                        if (q->kind == BG_P_FRAG && !q->countdown) {
-                            q->countdown = true;
-                            q->life = g->fuse;
-                        }
-                        float along = dot(q->velocity, normal);
+            if (grenade_kind) {
+                update_grenade_motion(q, g, dt);
+            } else {
+                if (q->damage_profile >= BG_D_HOG) {
+                    const bg_damage_profile *d = &bg_damage_profiles[q->damage_profile];
+                    float speed = sqrtf(dot(q->velocity, q->velocity));
+                    float energy = clamp((q->distance - d->range_start) /
+                                             fmaxf(.001f, d->range_end - d->range_start),
+                                         0, 1);
+                    float desired =
+                        30 *
+                        sqrtf(d->speed_start * d->speed_start +
+                              (d->speed_end * d->speed_end - d->speed_start * d->speed_start) * energy);
+                    if (speed > 1e-6f)
                         for (unsigned a = 0; a < 3; a++)
-                            q->velocity[a] =
-                                (1 - g->perpendicular) * (q->velocity[a] - along * normal[a]) -
-                                (1 - g->parallel) * along * normal[a];
-                        /* Quantized rest threshold prevents subpixel contacts
-                         * from bouncing forever under the N64 contact bias. */
-                        if (normal[1] > .3f && dot(q->velocity, q->velocity) < .04f) {
-                            q->attached = -2;
-                            memset(q->velocity, 0, sizeof(q->velocity));
-                            if (!q->countdown) {
-                                q->countdown = true;
-                                q->life = g->fuse;
+                            q->velocity[a] *= desired / speed;
+                    q->velocity[1] -= bg_movement.gravity * d->gravity * dt;
+                    if (q->distance >= d->range) {
+                        q->active = false;
+                        continue;
+                    }
+                }
+                float speed = sqrtf(dot(q->velocity, q->velocity)), dir[3];
+                memcpy(dir, q->velocity, sizeof(dir));
+                if (speed > 1e-8f)
+                    for (int a = 0; a < 3; a++)
+                        dir[a] /= speed;
+                float length = speed * dt, nearest = length;
+                int region = 1;
+                int target = target_ray(q->owner, q->pos, dir, &nearest, &region), vehicle = -1;
+                unsigned material = 0;
+                for (unsigned j = 0; j < bg_vehicle_count; j++) {
+                    bg_vehicle *v = &bg_vehicles[j];
+                    if (!v->active || bg_players[q->owner].vehicle == (int)j)
+                        continue;
+                    float hit = bg_vehicle_hit_ray_material(v, q->pos, dir, nearest, &material);
+                    if (hit < nearest) {
+                        nearest = hit;
+                        target = -1;
+                        vehicle = j;
+                    }
+                }
+                float normal[3] = {-dir[0], -dir[1], -dir[2]};
+                float terrain = bg_world_raycast_normal(q->pos, dir, length, normal);
+                if (terrain < nearest) {
+                    nearest = terrain;
+                    target = vehicle = -1;
+                } else if (target >= 0 || vehicle >= 0)
+                    for (unsigned a = 0; a < 3; a++)
+                        normal[a] = -dir[a];
+                bool impact = nearest < length;
+                q->distance += nearest;
+                for (int a = 0; a < 3; a++)
+                    q->pos[a] += dir[a] * (impact ? fmaxf(0, nearest - .003f) : nearest);
+                if (impact) {
+                    if (q->kind == BG_P_NEEDLE && target >= 0) {
+                        needle_attach(q, target);
+                    } else if (q->radius > 0) {
+                        explode_profile(q->pos, q->owner, q->damage, q->radius, q->kind,
+                                        q->damage_profile);
+                        q->active = false;
+                    } else {
+                        if (target >= 0) {
+                            float amount = q->damage, energy = 1;
+                            if (q->damage_profile) {
+                                const bg_damage_profile *d = &bg_damage_profiles[q->damage_profile];
+                                energy = bg_combat_range_scale(d, q->distance);
+                                amount = bg_combat_amount(d, energy, .5f + .5f * random_signed());
                             }
+                            damage_player_profile(target, q->owner, amount, q->kind == BG_P_PLASMA,
+                                                  q->damage_profile && region == 2, q->damage_profile,
+                                                  region == 0, false, energy);
                         }
-                    }
-                } else if (q->kind == BG_P_NEEDLE && target >= 0) {
-                    needle_attach(q, target);
-                } else if (q->radius > 0) {
-                    explode_profile(q->pos, q->owner, q->damage, q->radius, q->kind,
-                                    q->damage_profile);
-                    q->active = false;
-                } else {
-                    if (target >= 0) {
-                        float amount = q->damage, energy = 1;
-                        if (q->damage_profile) {
+                        if (vehicle >= 0) {
                             const bg_damage_profile *d = &bg_damage_profiles[q->damage_profile];
-                            energy = bg_combat_range_scale(d, q->distance);
-                            amount = bg_combat_amount(d, energy, .5f + .5f * random_signed());
+                            float amount =
+                                q->damage_profile
+                                    ? bg_combat_amount(d, bg_combat_range_scale(d, q->distance),
+                                                       .5f + .5f * random_signed())
+                                    : q->damage;
+                            damage_vehicle_profile(vehicle, q->owner, amount, q->damage_profile,
+                                                   material, false);
                         }
-                        damage_player_profile(target, q->owner, amount, q->kind == BG_P_PLASMA,
-                                              q->damage_profile && region == 2, q->damage_profile,
-                                              region == 0, false, energy);
+                        q->active = false;
                     }
-                    if (vehicle >= 0) {
-                        const bg_damage_profile *d = &bg_damage_profiles[q->damage_profile];
-                        float amount =
-                            q->damage_profile
-                                ? bg_combat_amount(d, bg_combat_range_scale(d, q->distance),
-                                                   .5f + .5f * random_signed())
-                                : q->damage;
-                        damage_vehicle_profile(vehicle, q->owner, amount, q->damage_profile,
-                                               material, false);
-                    }
-                    q->active = false;
                 }
             }
         }

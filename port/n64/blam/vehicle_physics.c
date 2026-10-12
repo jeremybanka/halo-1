@@ -353,10 +353,9 @@ static bool ray_bounds(const int16_t bounds[6],const float origin[3],const float
  }
  *entry=near;return true;
 }
-float bg_world_raycast_normal(const float origin[3],const float direction[3],float distance,float normal[3]){
- if(distance<=.003f)return distance;
+static float world_raycast(const float origin[3],const float direction[3],float distance,float normal[3],int *material,float bias){
+ if(distance<=bias)return distance;
  world_load();
- float bias=.003f;
  real_point3d p={.n={origin[0]+direction[0]*bias+bg_map_origin()[0],-origin[2]-direction[2]*bias+bg_map_origin()[1],origin[1]+direction[1]*bias+bg_map_origin()[2]}};
  real_vector3d d={.n={direction[0]*(distance-bias),-direction[2]*(distance-bias),direction[1]*(distance-bias)}};
  float scaled[3],inverse[3];bool zero[3];
@@ -380,15 +379,17 @@ float bg_world_raycast_normal(const float origin[3],const float direction[3],flo
    if(!ray_bounds(bg_vehicle_surface_bounds[si],scaled,inverse,zero,nearest,&entry))continue;
    const struct collision_surface*surface=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
    real_plane3d plane;bsp3d_get_plane_from_designator(&b->bsp3d,surface->plane_designator,&plane);
-   float den=dot_product3d(&plane.n,&d);if(fabsf(den)<1e-9f)continue;
+   float den=dot_product3d(&plane.n,&d);if(fabsf(den)<1e-9f||(material&&den>=0))continue;
    float t=-plane3d_distance_to_point(&plane,&p)/den;if(t<0||t>nearest)continue;
    real_point3d hit;point_from_line3d(&p,&d,t,&hit);int axis=projection_from_vector3d(&plane.n);
    bool sign=projection_sign_from_vector3d(&plane.n,axis);real_point2d q;project_point3d(&hit,axis,sign,&q);
-   if(cached_polygon_contains(cached_polygon(b,si),&q)){nearest=t;if(normal){normal[0]=plane.n.i;normal[1]=plane.n.k;normal[2]=-plane.n.j;}}
+   if(cached_polygon_contains(cached_polygon(b,si),&q)){nearest=t;if(normal){normal[0]=plane.n.i;normal[1]=plane.n.k;normal[2]=-plane.n.j;}if(material)*material=surface->material_index;}
   }
  }
  return bias+nearest*(distance-bias);
 }
+float bg_world_raycast_normal(const float o[3],const float d[3],float distance,float normal[3]){return world_raycast(o,d,distance,normal,NULL,.003f);}
+float bg_world_projectile_raycast(const float o[3],const float d[3],float distance,float normal[3],int *material){return world_raycast(o,d,distance,normal,material,0);}
 float bg_world_raycast(const float o[3],const float d[3],float distance){return bg_world_raycast_normal(o,d,distance,NULL);}
 void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]){
  BG_VP_BEGIN;

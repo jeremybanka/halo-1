@@ -16,6 +16,7 @@ from blam.test_vehicle import validate as host_suites
 
 ROOT = Path(__file__).resolve().parents[2]
 CONTRACTS = (
+    "test_map_material_modes.py",
     "test_camera_batch.py",
     "test_camera_packet.py",
     "test_vehicle_camera_packet.py",
@@ -41,6 +42,7 @@ CONTRACTS = (
     "test_input_menu.py",
 )
 ASSETS = (
+    "test_map_assets.py",
     "test_announcer.py",
     "test_hud_prompts.py",
     "test_interaction_assets.py",

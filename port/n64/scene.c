@@ -1372,24 +1372,31 @@ static void draw_view(unsigned p) {
                             T3D_FLAG_CULL_FRONT);
     t3d_matrix_push(&terrain_matrix);
     unsigned bound = ~0u;
-    bool palette_mode = false, overlay_mode = false;
+    bool palette_mode = false;
+    unsigned overlay_mode = 0;
     for (unsigned b = 0; b < bg_chunk_count; b++) {
         const bg_chunk *c = &bg_chunks[b];
         if (!bg_frustum_box_cached((const float (*)[4])vp->viewFrustum.planes, cull_selected[p],
                                    c->bounds))
             continue;
         if (bound != c->material) {
-            bool overlay = bg_texture_overlay[c->material];
-            if (overlay != overlay_mode) {
+            unsigned material_mode = bg_texture_overlay[c->material];
+            bool overlay = material_mode & 1;
+            if (material_mode != overlay_mode) {
+                /* New-map foliage: alpha-tested, depth-writing, optionally
+                 * two-sided. Existing opaque/overlay modes remain identical. */
+                if ((material_mode ^ overlay_mode) & 4)
+                    t3d_state_set_drawflags(T3D_FLAG_TEXTURED | T3D_FLAG_SHADED | T3D_FLAG_DEPTH |
+                        ((material_mode & 4) ? 0 : T3D_FLAG_CULL_FRONT));
                 rdpq_mode_begin();
                 rdpq_mode_zbuf(true, !overlay);
-                rdpq_mode_alphacompare(overlay ? 128 : 0);
+                rdpq_mode_alphacompare(material_mode & 3 ? 128 : 0);
                 rdpq_mode_blender(0);
                 rdpq_mode_antialias(overlay ? AA_NONE : AA_STANDARD);
                 __rdpq_mode_change_som(SOM_ZMODE_MASK,
                                        overlay ? SOM_ZMODE_TRANSPARENT : SOM_ZMODE_OPAQUE);
                 rdpq_mode_end();
-                overlay_mode = overlay;
+                overlay_mode = material_mode;
             }
             bool paletted = bg_texture_ci4[c->material];
             if (paletted != palette_mode) {

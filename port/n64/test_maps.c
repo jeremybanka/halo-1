@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 static bg_input input[4];
 #if defined(BG_INITIAL_MAP) && BG_INITIAL_MAP == 10
@@ -27,6 +28,9 @@ static void frontend_cycle(void) {
         if (front.page != BG_FRONT_PLAY) {
             bg_front_action action = bg_front_update(&front, raw, (uint64_t)frame * 33333);
             if (action == BG_FRONT_START_MATCH) {
+#ifdef BG_MAPS_CYCLE
+                const unsigned expected[]={10,9,10,5,6,0};assert(matches<6&&front.map==expected[matches]);
+#endif
                 bg_map_unload();
                 bg_map_load(front.map);
                 bg_set_players(front.count);
@@ -57,9 +61,14 @@ static void frontend_cycle(void) {
             bg_map_unload();
         }
     }
-    assert(bg_front_qa_done() && matches == 3 && front.page == BG_FRONT_MAIN);
-    printf("PASS: %u-step Wizard/Blood Gulch/Wizard menu cycle, three live matches and quit/resume\n",
-           bg_front_qa_steps());
+    assert(bg_front_qa_done() && matches ==
+#ifdef BG_MAPS_CYCLE
+ 6
+#else
+ 3
+#endif
+ && front.page == BG_FRONT_MAIN);
+    printf("PASS: %u-step menu cycle, %u live matches and quit/resume\n",bg_front_qa_steps(),matches);
 }
 #endif
 static void tick(unsigned count) {
@@ -147,7 +156,71 @@ static void wizard_rules(void) {
     assert(bg_match_finished() && bg_players[0].score == 15);
     printf("Wizard staged match: 15 live kills, results after %.2f seconds\n", ticks / 30.f);
 }
+static void new_maps(void) {
+    const unsigned ids[]={BG_MAP_HANG_EM_HIGH,BG_MAP_CHILL_OUT,BG_MAP_BATTLE_CREEK};
+    const unsigned starts[]={28,25,22},items[]={43,32,30},portals[]={0,3,2};
+    for(unsigned i=0;i<3;i++){
+        bg_map_load(ids[i]);bg_set_players(4);bg_reset();memset(input,0,sizeof(input));
+        assert(bg_vehicle_count==0&&bg_map_item_count==items[i]&&bg_teleporter_count==portals[i]);
+        unsigned count=0;
+        for(unsigned j=0;j<bg_spawn_count;j++)if(bg_slayer_spawns[j]){
+            bg_player probe=bg_players[0];memcpy(probe.pos,bg_spawns[j].pos,12);
+            float floor=bg_floor(probe.pos[0],probe.pos[2],probe.pos[1]+.5f);
+            assert(floor>-999);probe.pos[1]=floor+.015f;
+            if(!bg_terrain_clearance(&probe)){
+                fprintf(stderr,"map%u start%u clearance fail %.4f %.4f %.4f\n",ids[i],j,probe.pos[0],probe.pos[1],probe.pos[2]);
+                for(unsigned f=0;f<bg_collision_count;f++){
+                    float axis[3],surface[3];float distance=bg_capsule_triangle(probe.pos,bg_body_height(&probe),bg_movement.radius,&bg_collision[f],axis,surface);
+                    if(distance<(bg_movement.radius-.001f)*(bg_movement.radius-.001f))fprintf(stderr,"hit%u flags%u distance%.4f axis%.3f %.3f %.3f surface%.3f %.3f %.3f\n",f,bg_collision_flags[f],sqrtf(distance),axis[0],axis[1],axis[2],surface[0],surface[1],surface[2]);
+                }
+            }
+            assert(bg_terrain_clearance(&probe));count++;
+        }
+        assert(count==starts[i]);
+        for(unsigned p=0;p<4;p++){
+            assert(bg_players[p].weapon==bg_start_weapons[0]);
+            for(unsigned g=0;g<2;g++)assert(bg_players[p].grenades[g]==bg_start_grenades[g]);
+        }
+        for(unsigned t=0;t<bg_teleporter_count;t++){
+            bg_reset();alone();bg_player*p=&bg_players[0];memcpy(p->pos,bg_teleporters[t].source,12);p->teleport_cooldown=0;
+            tick(1);assert(p->teleport_cooldown>0);
+            float dx=p->pos[0]-bg_teleporters[t].destination[0],dz=p->pos[2]-bg_teleporters[t].destination[2];
+            assert(dx*dx+dz*dz<.01f&&p->health==100&&bg_terrain_clearance(p));
+        }
+        bg_reset();bg_set_players(4);bg_set_score_limit(1000);
+        unsigned shots=0;
+        for(unsigned t=0;t<2250;t++){
+            bg_replay_input(input,t/30.f);bg_clear_events();bg_tick(input,1.f/30);
+            for(unsigned e=0;e<bg_event_count;e++)shots+=bg_events[e].kind==BG_EVENT_FIRE;
+            for(unsigned p=0;p<4;p++)for(unsigned a=0;a<3;a++)assert(isfinite(bg_players[p].pos[a]));
+            assert(bg_vehicle_count==0&&bg_event_count<=BG_MAX_EVENTS);
+        }
+        assert(shots>100);printf("PASS map%u: %u source spawn clearances, %u items, %u teleporters, original loadout, 2250 live replay ticks / %u shots\n",ids[i],count,items[i],portals[i],shots);
+        bg_map_unload();assert(!bg_map_loaded()&&!bg_map_resident_bytes());
+    }
+}
+static void export_spawn_clearance(void) {
+    const unsigned ids[]={BG_MAP_HANG_EM_HIGH,BG_MAP_CHILL_OUT,BG_MAP_BATTLE_CREEK};
+    bool first=true;printf("[");
+    for(unsigned i=0;i<3;i++){
+        bg_map_load(ids[i]);bg_set_players(4);bg_reset();
+        for(unsigned j=0;j<bg_spawn_count;j++)if(bg_slayer_spawns[j]){
+            bg_player probe=bg_players[0];memcpy(probe.pos,bg_spawns[j].pos,12);
+            probe.pos[1]=bg_floor(probe.pos[0],probe.pos[2],probe.pos[1]+.5f)+.015f;
+            if(bg_terrain_clearance(&probe))continue;
+            float original[3];memcpy(original,probe.pos,12);memset(probe.velocity,0,12);probe.support_triangle=0;
+            for(unsigned pass=0;pass<8&&!bg_terrain_clearance(&probe);pass++)bg_move_capsule(&probe,0);
+            assert(bg_terrain_clearance(&probe));float d[3],distance=0;
+            for(unsigned a=0;a<3;a++){d[a]=probe.pos[a]-original[a];distance+=d[a]*d[a];}
+            assert(distance<.075f*.075f);
+            printf("%s{\"id\":%u,\"start\":%u,\"delta\":[%.9g,%.9g,%.9g]}",first?"":",",ids[i],j,d[0],d[1],d[2]);first=false;
+        }
+        bg_map_unload();
+    }
+    puts("]");
+}
 int main(void) {
+    if(getenv("BG_EXPORT_SPAWN_CLEARANCE")){export_spawn_clearance();return 0;}
     for(unsigned pass=0;pass<4;pass++) {
         unsigned map=pass%2?10:9;bg_map_load(map);bg_set_players(4);bg_reset();memset(input,0,sizeof(input));
         printf("map%u triangles%u chunks%u spawns%u items%u cars%u portals%u RAM%u\n",map,bg_collision_count,bg_chunk_count,bg_spawn_count,bg_pickup_count,bg_vehicle_count,bg_teleporter_count,bg_map_resident_bytes());
@@ -180,5 +253,6 @@ int main(void) {
 #if defined(BG_INITIAL_MAP) && BG_INITIAL_MAP == 10
     frontend_cycle();
 #endif
+    new_maps();
     puts("PASS: original starts/items, clean alternating map residency, source-coordinate rays, Wizard navigation and live replay");
 }

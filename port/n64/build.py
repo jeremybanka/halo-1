@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 from setup_assets import connect_assets
+from asset_ids import map_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOWCASES = [
@@ -29,7 +30,7 @@ def parse_args(argv=None):
         choices=["release"],
         help="Maintained 4 MiB release: paced presentation, three surfaces, 32 KiB queues",
     )
-    parser.add_argument("--initial-map", choices=("bloodgulch", "wizard"), default="bloodgulch",
+    parser.add_argument("--initial-map", choices=tuple(map_ids()), default="bloodgulch",
                         help="Default menu selection; QA/replay starts with this map")
     parser.add_argument(
         "--output-dir",
@@ -150,6 +151,8 @@ def parse_args(argv=None):
         help="Use original Blam BSP collision; requires an 8 MiB Expansion Pak",
     )
     mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--map-qa", type=int, choices=range(4),
+                      help="Frozen selected-map starts, upper/lower routes and one-player views")
     mode.add_argument("--wizard-qa", type=int, choices=range(4),
                       help="Frozen Wizard source starts, upper routes, teleporters and one-player views")
     mode.add_argument(
@@ -267,7 +270,11 @@ def parse_args(argv=None):
         action="store_true",
         help="Script four-angle vehicle destruction, wreck settling, blinking and respawn",
     )
+    parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all five maps through the real menus")
     args = parser.parse_args(argv)
+    if args.maps_cycle:
+        if args.frontend_qa not in (None,4):parser.error("--maps-cycle needs four-player frontend QA")
+        args.frontend_qa=4;args.initial_map="wizard"
     if args.benchmark_page and not args.benchmark:
         parser.error("--benchmark-page requires --benchmark")
     if args.game_source and not (
@@ -365,7 +372,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-flto"] if args.lto else []),
         *(["-DBG_BODY_CANDIDATES"] if args.vehicle_body_candidates else []),
         "-DBG_STREAM_MAPS",
-        "-DBG_INITIAL_MAP=" + str(10 if args.initial_map == "wizard" else 9),
+        "-DBG_INITIAL_MAP=" + str(map_ids()[args.initial_map]),
         "-DBG_BENCHMARK_PAGE=" + str(args.benchmark_page),
         *(["-DBG_BENCHMARK_HOLD_PAGE"] if args.benchmark_page else []),
         "-march=vr4300",
@@ -429,10 +436,13 @@ def compile_options(args, sdk, tiny, out, source):
             or args.environment_qa
             or args.ground_qa
             or args.hud_qa
+            or args.map_qa is not None
             or args.wizard_qa is not None
             else []
         ),
         *(["-DBG_AIM_QA=" + str(args.aim_qa)] if args.aim_qa is not None else []),
+        *(["-DBG_MAPS_CYCLE"] if args.maps_cycle else []),
+        *(["-DBG_MAP_QA=" + str(args.map_qa)] if args.map_qa is not None else []),
         *(["-DBG_WIZARD_QA=" + str(args.wizard_qa)] if args.wizard_qa is not None else []),
         *(["-DBG_HUD_QA"] if args.hud_qa else []),
         *(["-DBG_HUD_QA_PAGE=" + str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
@@ -508,6 +518,8 @@ def rom_name(args):
     )
     if args.snapshot_tick is not None:
         name += "-snapshot-" + str(args.snapshot_tick)
+    if args.map_qa is not None:
+        name += "-map-qa" + str(args.map_qa)
     if args.wizard_qa is not None:
         name += "-wizard-qa" + str(args.wizard_qa)
     if args.shield_qa is not None:
@@ -544,6 +556,8 @@ def rom_name(args):
         name += "-destruction-qa"
     if args.menu_qa:
         name += "-menu-qa"
+    if args.maps_cycle:
+        name += "-maps-cycle"
     if args.frontend_qa:
         name += "-frontend-qa" + str(args.frontend_qa)
     if args.blam_bsp:

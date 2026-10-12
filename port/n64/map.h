@@ -3,7 +3,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 /* IDs follow the original Xbox menu catalog. */
-enum { BG_MAP_BLOOD_GULCH = 9, BG_MAP_WIZARD = 10 };
+enum {
+#define BG_MAP(id,symbol,name) BG_MAP_##symbol = id,
+#include "map_catalog.def"
+#undef BG_MAP
+};
 typedef struct { float pos[3], yaw; uint32_t kind; } bg_map_vehicle;
 #ifdef BG_STREAM_MAPS
 typedef struct {

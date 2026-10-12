@@ -1,9 +1,9 @@
 #include "frontend.h"
 #include <string.h>
 const bg_front_entry bg_front_maps[13] = {
-    {"Battle Creek", false}, {"Sidewinder", false}, {"Damnation", false},
-    {"Rat Race", false},     {"Prisoner", false},   {"Hang 'Em High", false},
-    {"Chill Out", false},    {"Derelict", false},   {"Boarding Action", false},
+    {"Battle Creek", true}, {"Sidewinder", false}, {"Damnation", false},
+    {"Rat Race", false},     {"Prisoner", false},   {"Hang 'Em High", true},
+    {"Chill Out", true},    {"Derelict", false},   {"Boarding Action", false},
     {"Blood Gulch", true},   {"Wizard", true},      {"Chiron TL34", false},
     {"Longest", false}};
 const bg_front_entry bg_front_types[26] = {

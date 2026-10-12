@@ -19,9 +19,12 @@ from PIL import Image
 from pack_terrain import indexed_terrain
 from extract_extended import tag_values
 from blam.tags.export_collision import check, polygons
+from asset_ids import map_ids, MAP_SCHEMA
+from pack_map_materials import Materials
+from pack_map_scenery import scenery
 
 ROOT = Path(__file__).resolve().parents[2]
-NAMES = ('bloodgulch', 'wizard')
+NAMES = tuple(map_ids())
 STRIDES = (32,24,2,2048,1,1,1,2,12,6,1,4,2,16,20,1,24,16,28,20,3,16,60)
 HEADER_BYTES = 16 + len(STRIDES) * 12
 KINDS = {'weapons'+chr(92)+n+chr(92)+n: i for i,n in enumerate(
@@ -147,19 +150,32 @@ def world_bank(data, materials):
         layout.append((len(blob),len(rows)));blob.extend(packed(fmt,rows))
     return blob,packed('15I',[(len(blob),*(v for pair in layout for v in pair))])
 
-def wizard(output, sky):
+def uv_safe_triangles(triangles):
+    """Split only overly long texture edges; preserve the surface and UV tiling."""
+    pending=list(triangles);result=[]
+    while pending:
+        tri=pending.pop()
+        edges=[(max(abs(tri[a][k]-tri[b][k]) for k in (6,7)),a,b) for a,b in ((0,1),(1,2),(2,0))]
+        length,a,b=max(edges)
+        if length<=32767:result.append(tri);continue
+        c=3-a-b;mid=tuple(round((tri[a][k]+tri[b][k])/2) for k in range(8))
+        pending.extend([[tri[a],mid,tri[c]],[mid,tri[b],tri[c]]])
+    return result[::-1]
+
+def arena(output, sky, name="wizard", bins=(8,8,4)):
+    legacy=name=="wizard"; map_id=map_ids()[name]
     from reclaimer.meta.wrappers.halo1_map import Halo1Map
     from reclaimer.bitmaps.bitmap_decompilation import extract_bitmaps
     from reclaimer.util.compression import decompress_normal32
-    cache=ROOT/'build/n64-map-survey/wizard-decompressed.map'
+    cache=ROOT/'build/n64-map-survey'/f'{name}-decompressed.map'
     if not cache.exists():
         import zlib
-        original=(ROOT/'build/assets/halo-retail/maps/wizard.map').read_bytes()
+        original=(ROOT/'build/assets/halo-retail/maps'/f'{name}.map').read_bytes()
         expected=struct.unpack_from('<I',original,8)[0]
         raw=original if len(original)==expected else original[:2048]+zlib.decompress(original[2048:])
-        cache=output/'wizard-decompressed.map';cache.write_bytes(raw)
-    textures=output/'wizard-textures';textures.mkdir(exist_ok=True)
-    with (output/'wizard-extract.log').open('w') as log,contextlib.redirect_stdout(log):
+        cache=output/f'{name}-decompressed.map';cache.write_bytes(raw)
+    textures=output/f'{name}-textures';textures.mkdir(exist_ok=True)
+    with (output/f'{name}-extract.log').open('w') as log,contextlib.redirect_stdout(log):
         h=Halo1Map();h.load_map(cache);es=h.tag_index.tag_index
         bsp=h.get_meta(next(i for i,e in enumerate(es) if e.class_1.enum_name=='scenario_structure_bsp'))
         sc=tag_values(h.scnr_meta)
@@ -167,13 +183,18 @@ def wizard(output, sky):
         def bitmap(ref,name):
             m=h.get_meta(ref.id&65535);h.meta_to_tag_data(m,'bitm',es[ref.id&65535]);extract_bitmaps(m,name,out_dir=textures,bitmap_ext='png',halo_map=h)
         bitmap(bsp.lightmap_bitmaps,'lightmap')
-        materials={};images=[];overlays=[];groups=collections.defaultdict(list);raw_tris=list(struct.iter_unpack('<3H',bsp.surface.STEPTREE))
+        new_materials=None if legacy else Materials(h,textures)
+        materials={} if legacy else new_materials.ids
+        images=[] if legacy else new_materials.images
+        overlays=[] if legacy else new_materials.flags
+        groups=collections.defaultdict(list);raw_tris=list(struct.iter_unpack('<3H',bsp.surface.STEPTREE))
         for light in bsp.lightmaps.STEPTREE:
             lm_file=textures/f'lightmap__{light.bitmap_index}.png'
             if light.bitmap_index==0 and not lm_file.exists():lm_file=textures/'lightmap.png'
             lightmap=Image.open(lm_file).convert('RGB') if lm_file.exists() else None
             for m in light.materials.STEPTREE:
                 path=m.shader.filepath
+                if not legacy:new_materials.add(path)
                 if path not in materials:
                     mi=len(materials);materials[path]=mi
                     shader=h.get_meta(m.shader.id&65535)
@@ -198,7 +219,7 @@ def wizard(output, sky):
                 colors=[]
                 for i in range(n):
                     uv=struct.unpack_from('<2h',raw,n*32+i*8+4) if m.lightmap_vertices_count else (0,0)
-                    if lightmap and m.lightmap_vertices_count and not overlays[mi]:
+                    if lightmap and m.lightmap_vertices_count and not (overlays[mi]&1):
                         x=min(lightmap.width-1,max(0,round(uv[0]/32767*lightmap.width-.5)))
                         y=min(lightmap.height-1,max(0,round(uv[1]/32767*lightmap.height-.5)))
                         colors.append(lightmap.getpixel((x,y)))
@@ -208,17 +229,34 @@ def wizard(output, sky):
                     tri=[]
                     for v in face:
                         x,y,z=positions[v];u,t=uvs[v]
-                        if overlays[mi]:
+                        if overlays[mi]&1:
                             nx,ny,nz=decompress_normal32(struct.unpack_from('<I',raw,v*32+12)[0])
                             x+=nx/32;y+=ny/32;z+=nz/32
-                        tri.append((round(x*256),round(z*256),round(-y*256),*colors[v],round(u*1024),round(t*1024)))
+                        tri.append((round(x*256),round(z*256),round(-y*256),*colors[v],round(u*(1024 if legacy else new_materials.sizes[mi]*32)),round(t*(1024 if legacy else new_materials.sizes[mi]*32))))
                     # Wizard's compact room keeps most fine cells visible at
                     # once. Coarser bins share corners and reduce CPU/RSP
                     # submissions without changing source triangle geometry.
-                    groups[(mi,math.floor(center[0]/8),math.floor(center[1]/8),math.floor(center[2]/4))].append(tri)
+                    groups[(mi,*(math.floor(center[a]/bins[a]) for a in range(3)))].append(tri)
+        if not legacy:
+            preview={'source_sha256':hashlib.sha256(cache.read_bytes()).hexdigest(),'materials':list(materials),'groups':[(list(k),v) for k,v in groups.items()]}
+            (textures/'bsp-source.json').write_text(json.dumps(preview))
+        blocks=bsp.collision_bsp.STEPTREE;assert len(blocks)==1;data={}
+        fmts={'bsp3d_nodes':'3i','planes':'4f','leaves':'Hhi','bsp2d_references':'2i','bsp2d_nodes':'3f2i','surfaces':'2iBBh','edges':'6i','vertices':'3fi'}
+        for field,fmt in fmts.items():data[field]=list(struct.iter_unpack('<'+fmt,bytes(getattr(blocks[0],field).STEPTREE)))
+        check(data)
+        collision_materials=[(int(m.unknown)>>16)&65535 for m in bsp.collision_materials.STEPTREE]
+        scenery_report=[]
+        if not legacy:
+            def add_scenery(mi,points):
+                center=[sum(p[a] for p in points)/3 for a in range(3)]
+                period=new_materials.sizes[mi]*32
+                tri=[(round(x*256),round(z*256),round(-y*256),255,255,255,round(u*period),round((1-v)*period)) for x,y,z,u,v in points]
+                groups[(mi,*(math.floor(center[a]/bins[a]) for a in range(3)))].append(tri)
+            scenery_report=scenery(h,new_materials,data,collision_materials,add_scenery)
         vertices=[];chunks=[];indices=[]
-        for key,tris in sorted(groups.items(),key=lambda kv:(overlays[kv[0][0]],*kv[0])):
-            for batch in indexed_terrain(tris):
+        for key,tris in sorted(groups.items(),key=lambda kv:((overlays[kv[0][0]] if legacy else overlays[kv[0][0]]&1),*kv[0])):
+            if not legacy:tris=uv_safe_triangles(tris)
+            for batch in indexed_terrain(tris,uv_period=1024 if legacy else new_materials.sizes[key[0]]*32):
                 first=len(vertices);unique=batch['vertices'];vertices.extend(unique)
                 bounds=[math.floor(min(v[a] for v in unique)/8) for a in range(3)]+[math.ceil(max(v[a] for v in unique)/8) for a in range(3)]
                 start=len(indices);indices.extend(batch['indices']);count=len(batch['indices'])
@@ -230,10 +268,6 @@ def wizard(output, sky):
         for a,b in zip(vertices[::2],vertices[1::2]):
             rgba=lambda v:(v[3]<<24)|(v[4]<<16)|(v[5]<<8)|255
             vp.append((*a[:3],0,*b[:3],0,rgba(a),rgba(b),*a[6:],*b[6:]))
-        blocks=bsp.collision_bsp.STEPTREE;assert len(blocks)==1;data={}
-        fmts={'bsp3d_nodes':'3i','planes':'4f','leaves':'Hhi','bsp2d_references':'2i','bsp2d_nodes':'3f2i','surfaces':'2iBBh','edges':'6i','vertices':'3fi'}
-        for name,fmt in fmts.items():data[name]=list(struct.iter_unpack('<'+fmt,bytes(getattr(blocks[0],name).STEPTREE)))
-        check(data)
         corners=[(v[0],v[2],-v[1]) for v in data['vertices']];faces=[];flags=[]
         for surface,poly in zip(data['surfaces'],polygons(data)):
             plane=data['planes'][surface[0]&0x7fffffff];sign=-1 if surface[0]<0 else 1
@@ -256,11 +290,22 @@ def wizard(output, sky):
         spawns=[(*s['position'].values(),s['facing'],s['team_index']) for s in sc['player_starting_locations']]
         spawns=[(x,z,-y,yaw,team) for x,y,z,yaw,team in spawns]
         spawnflags=[int(eligible(s)) for s in sc['player_starting_locations']]
+        authored_spawns=spawns.copy()
+        spawn_corrections=[]
+        correction_file=output/'spawn-clearance.json'
+        if not legacy and correction_file.exists():
+            corrections=json.loads(correction_file.read_text())
+            assert corrections['source_sha256'][name]==hashlib.sha256(cache.read_bytes()).hexdigest()
+            spawn_corrections=[row for row in corrections['corrections'] if row['id']==map_id]
+            for row in spawn_corrections:
+                i=row['start'];assert spawnflags[i] and sum(v*v for v in row['delta'])<.075**2
+                spawns[i]=tuple(spawns[i][a]+row['delta'][a] for a in range(3))+spawns[i][3:]
+
         def collection(path):return tag_values(meta(path,'item_collection'))
         start=next(s for s in sc['starting_equipments'] if eligible(s));weapons=[]
         for i in range(1,7):
-            name=start['item_collection_'+str(i)]
-            if name:weapons.append(KINDS[collection(name)['item_permutations'][0]['item']])
+            collection_path=start['item_collection_'+str(i)]
+            if collection_path:weapons.append(KINDS[collection(collection_path)['item_permutations'][0]['item']])
         weapons=(weapons+[-1,-1])[:2];grenades=[0,0] if start['flags']['no_grenades'] else [4,0]
         if start['flags']['plasma_grenades']:grenades=[0,sum(grenades)]
         items=[]
@@ -275,23 +320,37 @@ def wizard(output, sky):
             dest=next(d for d in sc['netgame_flags'] if d['type']=='teleport_to' and d['team_index']==f['team_index'])
             a=f['position'];b=dest['position'];teleport.append((a['x'],a['z'],-a['y'],b['x'],b['z'],-b['y'],dest['facing']))
         pixels=[]
-        for i,image in enumerate(images):pixels.append(tuple(((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|int(not overlays[i] or max(r,g,b)>=24) for r,g,b in image.get_flattened_data()))
-        world,layout=world_bank(data,[(int(m.unknown)>>16)&65535 for m in bsp.collision_materials.STEPTREE])
-        (output/'wizard-world.bin').write_bytes(world)
-    sections=[packed('3hH3hHII4h',vp),packed('IHH6hHH',chunks),packed('H',[(i,) for i in indices]),packed('1024H',pixels),
-              bytes([32]*len(images)),bytes(len(images)),bytes(map(int,overlays)),bytes(32),packed('3f',corners),packed('3H',faces),bytes(flags),
+        if legacy:
+            for i,image in enumerate(images):pixels.append(tuple(((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|int(not overlays[i] or max(r,g,b)>=24) for r,g,b in image.get_flattened_data()))
+        world,layout=world_bank(data,collision_materials)
+        (output/f'{name}-world.bin').write_bytes(world)
+    sections=[packed('3hH3hHII4h',vp),packed('IHH6hHH',chunks),packed('H',[(i,) for i in indices]),packed('1024H',pixels) if legacy else b''.join(new_materials.tiles),
+              bytes([32]*len(images)) if legacy else bytes(new_materials.sizes),bytes(len(images)) if legacy else bytes(new_materials.ci4),bytes(overlays),bytes(32) if legacy else new_materials.palette,packed('3f',corners),packed('3H',faces),bytes(flags),
               packed('2H',grid),packed('H',[(i,) for i in grid_indices]),packed('4f',[(*lo,*size)]),packed('4fi',spawns),bytes(spawnflags),
-              packed('4fH2b2B2x',items),packed('4i',[(*weapons,*grenades)]),packed('7f',teleport),b'',sky,packed('4f',[(0,0,0,-12.5)]),layout]
-    info=bank(output/'wizard.map64',10,sections)
+              packed('4fH2b2B2x',items),packed('4i',[(*weapons,*grenades)]),packed('7f',teleport),b'',sky,packed('4f',[(0,0,0,-12.5 if legacy else min(p[1] for p in corners)-5)]),layout]
+    info=bank(output/f'{name}.map64',map_id,sections)
     info.update(render_triangles=len(raw_tris),collision_triangles=len(faces),materials=list(materials),chunks=len(chunks),spawns=len(spawns),eligible_slayer_spawns=sum(spawnflags),items=len(items),vehicles=0,teleporters=len(teleport),climbable_triangles=sum(bool(f&2) for f in flags),world_bytes=len(world),starting_weapons=weapons,starting_grenades=grenades,source_sha256=hashlib.sha256(cache.read_bytes()).hexdigest(),lighting='Original compressed lightmap UVs sampled into vertex RGB; base textures BOX-filtered to32px; geometry retained.')
+    if not legacy:
+        info.update(authored_spawns=authored_spawns,spawn_clearance_offsets=spawn_corrections,scenery=scenery_report,scenery_triangles=sum(d['triangles'] for d in scenery_report),materials_detail=new_materials.records,bins=bins)
+        if name=='chillout':
+            sky_meta=h.get_meta(h.scnr_meta.skies.STEPTREE[0].sky.id&65535)
+            color=tuple(round(v*255) for v in sky_meta.outdoor_fog_color)
+            sections[20]=bytes(color)*33
+            rewritten=bank(output/f'{name}.map64',map_id,sections);info.update(rewritten)
     return info
 
 def main(output):
     output.mkdir(parents=True,exist_ok=True)
-    bg,sky=blood(output);wiz=wizard(output,sky)
-    paths=[Path(__file__),ROOT/'port/n64/map_format.h',ROOT/'port/n64/pack_terrain.py',ROOT/'port/n64/scenario.inc',ROOT/'port/n64/game.c']
+    bg,sky=blood(output);maps={"bloodgulch":bg}
+    bin_file=output/'map-bins.json'
+    bins=json.loads(bin_file.read_text()) if bin_file.exists() else {}
+    assert not any(n in bins for n in ('bloodgulch','wizard')),'Accepted map bins are immutable'
+    for name in NAMES[1:]:maps[name]=arena(output,sky,name,tuple(bins.get(name,(8,8,4))))
+    paths=[Path(__file__),MAP_SCHEMA,ROOT/'port/n64/pack_map_materials.py',ROOT/'port/n64/pack_map_scenery.py',ROOT/'port/n64/extract_ground.py',ROOT/'port/n64/map_format.h',ROOT/'port/n64/pack_terrain.py',ROOT/'port/n64/scenario.inc',ROOT/'port/n64/game.c']
+    for file in ('spawn-clearance.json','map-bins.json','scenery-reduced.json'):
+        if (output/file).exists():paths.append(output/file)
     paths += [ROOT/'build/n64/generated'/name for name in ('render_data.c','terrain_data.c','pickup_data.c','sky_data.c','vehicle_data.c','vehicle-report.json','asset-report.json')]
-    report={'maps':{'bloodgulch':bg,'wizard':wiz},'inputs':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},'files':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in output.iterdir() if p.suffix in ('.map64','.bin','.c')}}
+    report={'maps':maps,'inputs':{str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in paths},'files':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in output.iterdir() if p.suffix in ('.map64','.bin','.c')}}
     (output/'maps-report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({k:{n:v[n] for n in ('bytes','render_triangles','collision_triangles','spawns','items','vehicles','teleporters','world_bytes')} for k,v in report['maps'].items()},indent=2))
 

@@ -23,6 +23,17 @@ for name in functions:
         old_body = old_body.replace(projection_block(reference), "PROJECTION_REGION")
         new_body = new_body.replace(projection_block(scene), "PROJECTION_REGION")
     old, new = compact(old_body), compact(new_body)
+    if name == "draw_view":
+        # The new-map cutout/two-sided state is covered by an independent
+        # trace of the actual draw code for 2000 legacy material sequences.
+        old=old.replace("boolpalette_mode=false,overlay_mode=false;",
+                                  "boolpalette_mode=false;unsignedoverlay_mode=0;")
+        a=old.index("booloverlay=bg_texture_overlay[c->material];")
+        b=old.index("boolpaletted=bg_texture_ci4[c->material];",a)
+        old=old[:a]+"MAP_MATERIAL_STATE;"+old[b:]
+        a=new.index("unsignedmaterial_mode=bg_texture_overlay[c->material];")
+        b=new.index("boolpaletted=bg_texture_ci4[c->material];",a)
+        new=new[:a]+"MAP_MATERIAL_STATE;"+new[b:]
     new = re.sub(r"BG_VP_BEGIN;|BG_VP_END\([^;]*\);", "", new)
     new = re.sub(r"BG_ANIM_(?:BEGIN|END|COUNT)\([^;]*\);", "", new)
     if name == "animate_mesh":

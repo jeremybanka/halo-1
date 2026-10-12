@@ -8,6 +8,7 @@
 #include "combat_geometry.h"
 #include "movement.h"
 #include "terrain.h"
+#include "map.h"
 #include "blam/runtime.h"
 #include "blam/core.h"
 #include <math.h>
@@ -23,11 +24,13 @@ extern const blam_collision_bsp bg_blam_collision_bsp;
 #endif
 
 /* Original netgame teleport_from/to pairs, matched by the scenario channel. */
+#ifndef BG_STREAM_MAPS
 const bg_teleporter bg_teleporters[2] = {
     {{27.583809f, 1.806952f, 37.451904f}, {14.827766f, .702073f, -3.472870f}, 3.091712f},
     {{-27.943108f, 1.814917f, -35.083984f}, {-24.204594f, .241005f, 8.231079f}, -.162618f},
 };
 const unsigned bg_teleporter_count = 2;
+#endif
 bg_player bg_players[BG_PLAYERS];
 static bg_shot_trace sniper_traces[BG_PLAYERS];
 const bg_shot_trace *bg_sniper_trace(unsigned player) {
@@ -186,26 +189,30 @@ static int cell(float x, float z) {
 }
 static float floor_uncached(float x, float z, float ceiling) {
 #ifdef BG_BLAM_BSP
-    /* Original cache coordinates are Halo XYZ; the presentation coordinates
-     * subtract (68,-118,0), use Y up and reverse the original Y axis. */
-    if (cell(x, z) < 0)
+    /* This optional source BSP is the Blood Gulch bank. Other maps use
+     * their selected, original collision triangles rather than that bank. */
+    if (bg_map_id() == BG_MAP_BLOOD_GULCH) {
+        /* Original cache coordinates are Halo XYZ; the presentation coordinates
+         * subtract (68,-118,0), use Y up and reverse the original Y axis. */
+        if (cell(x, z) < 0)
+            return -1000;
+        float origin[3] = {x + 68.f, -z - 118.f, ceiling};
+        for (unsigned attempt = 0; attempt < 8; attempt++) {
+            float displacement[3] = {0, 0, -1000.f - origin[2]};
+            blam_collision_hit hit;
+            if (!blam_collision_segment(&bg_blam_collision_bsp, origin, displacement, true, &hit))
+                break;
+            float height = origin[2] + displacement[2] * hit.fraction;
+            float length2 = dot(hit.normal, hit.normal);
+            /* BSP includes the downward-facing sky enclosure and room ceilings.
+             * Their normals are steep enough but they cannot support a player. */
+            if (hit.normal[2] > 0 && hit.normal[2] * hit.normal[2] >= .38f * length2)
+                return height;
+            origin[2] = height - .001f;
+        }
         return -1000;
-    float origin[3] = {x + 68.f, -z - 118.f, ceiling};
-    for (unsigned attempt = 0; attempt < 8; attempt++) {
-        float displacement[3] = {0, 0, -1000.f - origin[2]};
-        blam_collision_hit hit;
-        if (!blam_collision_segment(&bg_blam_collision_bsp, origin, displacement, true, &hit))
-            break;
-        float height = origin[2] + displacement[2] * hit.fraction;
-        float length2 = dot(hit.normal, hit.normal);
-        /* BSP includes the downward-facing sky enclosure and room ceilings.
-         * Their normals are steep enough but they cannot support a player. */
-        if (hit.normal[2] > 0 && hit.normal[2] * hit.normal[2] >= .38f * length2)
-            return height;
-        origin[2] = height - .001f;
     }
-    return -1000;
-#else
+#endif
     int index = cell(x, z);
     float best = -1000;
     if (index < 0)
@@ -229,7 +236,6 @@ static float floor_uncached(float x, float z, float ceiling) {
             best = y;
     }
     return best;
-#endif
 }
 
 float bg_floor(float x, float z, float ceiling) {
@@ -242,6 +248,13 @@ float bg_floor(float x, float z, float ceiling) {
         float height;
         bool valid;
     } cache[64];
+#ifdef BG_STREAM_MAPS
+    static unsigned cached_map;
+    if (cached_map != bg_map_id()) {
+        memset(cache, 0, sizeof(cache));
+        cached_map = bg_map_id();
+    }
+#endif
     uint32_t key[3];
     memcpy(&key[0], &x, sizeof(x));
     memcpy(&key[1], &z, sizeof(z));
@@ -269,6 +282,8 @@ float bg_raycast(const float origin[3], const float direction[3], float max_dist
         return 0;
     if (max_distance <= .003f)
         return max_distance;
+    if (bg_map_id() != BG_MAP_BLOOD_GULCH)
+        return bg_world_raycast(origin, direction, max_distance);
     float skip = .003f, range = max_distance - skip;
     float point[3] = {origin[0] + direction[0] * skip + 68.f,
                       -origin[2] - direction[2] * skip - 118.f, origin[1] + direction[1] * skip};
@@ -463,7 +478,32 @@ int bg_add_vehicle(bg_vehicle_kind kind, const float pos[3], float yaw) {
     memcpy(v->home, v->pos, sizeof(v->home));
     return index;
 }
+#ifndef BG_STREAM_MAPS
 #include "scenario.inc"
+#else
+static void load_scenario(void) {
+    for (unsigned i = 0; i < bg_map_vehicle_count; i++) {
+        const bg_map_vehicle *v = &bg_map_vehicles[i];
+        bg_add_vehicle(v->kind, v->pos, v->yaw);
+    }
+    for (unsigned i = 0; i < bg_map_item_count; i++) {
+        const bg_map_item *m = &bg_map_items[i];
+        int index = bg_add_pickup(m->kind[0], m->pos);
+        if (index < 0) break;
+        bg_pickup *q = &bg_pickups[index];
+        q->yaw = m->yaw; q->period = m->period; q->respawn = m->period;
+        q->alternate = m->kind[1]; q->first_weight = m->first_weight; q->total_weight = m->total_weight;
+        refill_pickup(q);
+    }
+    if (bg_map_current()->id == BG_MAP_BLOOD_GULCH) {
+        /* Preserve the existing deliberate Blood Gulch extras. */
+        bg_add_pickup(BG_W_NEEDLER, (float[]){-28, 1.8f, -40});
+        bg_add_pickup(BG_W_NEEDLER, (float[]){28, 1.8f, 43});
+        bg_add_pickup(BG_W_PLASMA_PISTOL, (float[]){-26, 1.8f, -40});
+        bg_add_pickup(BG_W_PLASMA_PISTOL, (float[]){26, 1.8f, 43});
+    }
+}
+#endif
 void bg_reset(void) {
     bg_terrain_reset();
     memset(&statistics, 0, sizeof(statistics));
@@ -738,7 +778,9 @@ static void kill(unsigned victim, int owner) {
                 event(BG_EVENT_DOUBLE_KILL, owner, k->weapon, k->pos, 2);
             if (kill_chain[owner] >= 3)
                 event(BG_EVENT_TRIPLE_KILL, owner, k->weapon, k->pos, kill_chain[owner]);
-            if (kill_spree[owner] == 5)
+            /* CE gives the multikill precedence over a simultaneous spree;
+             * otherwise the single announcer voice would replace Killtacular. */
+            if (kill_spree[owner] == 5 && kill_chain[owner] == 1)
                 event(BG_EVENT_KILLING_SPREE, owner, k->weapon, k->pos, 5);
             if (k->score >= (int)bg_score_limit() && match_winner < 0) {
                 match_winner = owner;
@@ -1889,7 +1931,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                 else
                     passenger->support_vehicle = 0;
             }
-        if (v->pos[1] < -8 || cell(v->pos[0], v->pos[2]) < 0) {
+        if (v->pos[1] < bg_map_void_height() || cell(v->pos[0], v->pos[2]) < 0) {
             damage_vehicle(i, driver, 10000);
             continue;
         }
@@ -2211,6 +2253,11 @@ static bool tick_player_movement(unsigned player_index, const bg_input *input, f
         bool jump =
             input->jump && player->grounded && !(player->hard_landing && player->landing_time > 0);
         if (jump) {
+            if (player->climbing) {
+                for (unsigned a = 0; a < 3; a++)
+                    player->velocity[a] += player->ground_normal[a] * bg_movement.jump * .5f;
+                player->climbing = false;
+            }
             if (player->support_vehicle) {
                 const bg_vehicle *v = &bg_vehicles[player->support_vehicle - 1];
                 float offset[3], spin[3];
@@ -2234,7 +2281,7 @@ static bool tick_player_movement(unsigned player_index, const bg_input *input, f
              * 1/128 world units per tick. Collision removes only the
              * inward component, retaining slope-tangent motion. */
             float *n = player->ground_normal;
-            if (n[1] <= 0) {
+            if (n[1] <= 0 && !player->climbing) {
                 n[0] = n[2] = 0;
                 n[1] = 1;
             }
@@ -2270,7 +2317,7 @@ static bool tick_player_movement(unsigned player_index, const bg_input *input, f
             damage_player_profile(player_index, -1,
                                   bg_combat_amount(&bg_damage_profiles[BG_D_DISTANCE], 1, .5f),
                                   false, false, BG_D_DISTANCE, false, false, 1);
-        if (player->pos[1] < -6 || cell(player->pos[0], player->pos[2]) < 0) {
+        if (player->pos[1] < bg_map_void_height() + 2 || cell(player->pos[0], player->pos[2]) < 0) {
             kill(player_index, player_index);
             return false;
         }

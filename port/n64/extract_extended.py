@@ -24,7 +24,8 @@ AUDIO_TAGS={
 'jump':598,'footstep':571,'shield_hit':224,'shield_charge':226,'death':235,'respawn':1663,'slayer':1653,'game_over':1633,
 'double_kill':1646,'triple_kill':1647,'killing_spree':1650,'teleporter':1659,'ambience':1804,
 'banshee':('a30',1491),'warthog_gun':698,'scorpion_gun':776,'ghost_gun':911,
-'banshee_gun':('a30',1552),'banshee_bomb':('a30',1593)}
+'banshee_gun':('a30',1552),'banshee_bomb':('a30',1593),
+'killtacular':1648}
 # These are the sound references in the original vehicle firing effects.
 # Verify identical decoded samples before sharing the runtime PCM buffer.
 AUDIO_ALIASES={'scorpion_gun':'explosion','ghost_gun':'plasma_rifle','banshee_gun':'plasma_rifle'}
@@ -122,11 +123,12 @@ def open_cache(path, output):
     halo=Halo1Map();halo.load_map(target);return halo
 
 
-def extract_audio(caches,output):
+def extract_audio(caches,output,names=None):
     from reclaimer.sounds.sound_decompilation import extract_h1_sounds
     sound_dir=output/'sounds';sound_dir.mkdir(exist_ok=True)
     sounds={}
     for name,source in AUDIO_TAGS.items():
+        if names is not None and name not in names:continue
         cache,ix=source if isinstance(source,tuple) else ('bloodgulch',source)
         halo=caches[cache];entry=halo.tag_index.tag_index[ix]
         meta=halo.get_meta(ix);halo.meta_to_tag_data(meta,'snd!',entry)

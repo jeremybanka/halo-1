@@ -41,6 +41,7 @@ CONTRACTS = (
     "test_input_menu.py",
 )
 ASSETS = (
+    "test_announcer.py",
     "test_hud_prompts.py",
     "test_interaction_assets.py",
     "test_pack_bounds.py",
@@ -102,6 +103,9 @@ def main():
 
     if "host" in groups:
         check("game/vehicle sanitizer suites", lambda: host_suites(out / "host"))
+        check("selected-map sanitizer suite", lambda: command(
+            [sys.executable, "port/n64/test_maps.py", "--frontend-cycle", "--output-dir", out / "maps"]
+        ))
     if "host" in groups or "headers" in groups:
         (out / "host").mkdir(parents=True, exist_ok=True)
         for name in HEADERS:

@@ -54,6 +54,13 @@ void bg_fp_ammo_prepare(unsigned slot,unsigned player,unsigned weapon,unsigned c
         if(bg_players[player].weapon_ready>0){
             bg_interaction_needles(firstperson_vertices,ammo,bg_ready_times[weapon]-bg_players[player].weapon_ready);return;
         }
+        if(bg_players[player].reload>0){
+            /* Match the full source skin, never overwrite it with the eight
+             * reduced reload samples. Regrowth and ammo folding share its clock. */
+            float seconds=bg_players[player].anim_time;
+            bg_interaction_reload_needles(firstperson_vertices,
+                bg_needler_ammo_state(ammo,reserve,seconds),seconds);return;
+        }
         bg_needler_ammo_sample(firstperson_vertices,&bg_needler_ammo,clip,f0,f1,fraction,
             bg_needler_ammo_state(ammo,reserve,reload_elapsed));
         data_cache_hit_writeback(firstperson_vertices,(bg_needler_ammo.base_vertices+1u)/2u*32u);

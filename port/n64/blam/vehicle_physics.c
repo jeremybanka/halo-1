@@ -1,5 +1,6 @@
 /* Native CE solvers with bounded object, tag, and Blood Gulch world adapters. */
 #include "vehicle_physics.h"
+#include "../map.h"
 #include "vehicle_private.h"
 #include "../telemetry.h"
 #include "../word_round.h"
@@ -7,6 +8,8 @@
 #include <stdlib.h>
 #ifdef N64
 #include <libdragon.h>
+#elif defined(BG_STREAM_MAPS)
+#define assertf(c, ...) assert(c)
 #endif
 static struct vehicle_datum native[BG_MAX_VEHICLES];
 static float body_radius[BG_VEHICLE_COUNT];
@@ -77,23 +80,47 @@ static void stamps_load(void){
 
 /* Typed floats/topology have exactly the same big-endian representation as
  * the prior static N64 arrays. Only their residency changes at menu boundaries. */
-#ifdef N64
+#if defined(N64) || defined(BG_STREAM_MAPS)
 static void *world_blocks[7];
 static bool world_loaded;
 static void world_load(void){
  if(world_loaded)return;
  vehicle_workspace=calloc(1,sizeof(*vehicle_workspace));assertf(vehicle_workspace,"Vehicle workspace RAM");
- FILE*f=fopen("rom:/vehicle-world.bin","rb");assertf(f,"Vehicle world bank");
+#ifdef BG_STREAM_MAPS
+ const bg_map_info *map=bg_map_current();
+ const uint32_t (*layout)[2]=map->world_layout;unsigned world_bytes=map->world_bytes;
+ FILE*f=fopen(bg_map_world_path(),"rb");
+#else
+ const unsigned (*layout)[2]=bg_vehicle_world_layout;unsigned world_bytes=bg_vehicle_world_bytes;
+ FILE*f=fopen("rom:/vehicle-world.bin","rb");
+#endif
+ assertf(f,"Vehicle world bank");
+ /* Reserve large immutable blocks before smaller blocks fragment the heap.
+  * File offsets keep the original topology/order independent of allocation. */
+ unsigned order[7],sizes[7];
  for(unsigned i=0;i<7;i++){
-  unsigned end=i<6?bg_vehicle_world_layout[i+1][0]:bg_vehicle_world_bytes;
-  unsigned size=end-bg_vehicle_world_layout[i][0];
+  unsigned end=i<6?layout[i+1][0]:world_bytes;
+  order[i]=i;sizes[i]=end-layout[i][0];
+ }
+ for(unsigned i=1;i<7;i++){
+  unsigned id=order[i],j=i;
+  while(j&&sizes[order[j-1]]<sizes[id]){order[j]=order[j-1];j--;}
+  order[j]=id;
+ }
+ for(unsigned at=0;at<7;at++){
+  unsigned i=order[at],size=sizes[i];
   world_blocks[i]=malloc(size);assertf(world_blocks[i],"Vehicle world RAM block %u (%u bytes)",i,size);
+  fseek(f,layout[i][0],SEEK_SET);
   assertf(fread(world_blocks[i],1,size,f)==size,"Vehicle world read");
+#if defined(BG_STREAM_MAPS) && !defined(__MIPSEB__)
+  bg_map_host_world_order(i,world_blocks[i],size);
+#endif
+
  }
  fclose(f);
- bg_vehicle_bsp=(struct collision_bsp){.bsp3d={.planes={bg_vehicle_world_layout[0][1],world_blocks[0],NULL}},
-  .surfaces={bg_vehicle_world_layout[1][1],world_blocks[1],NULL},.edges={bg_vehicle_world_layout[2][1],world_blocks[2],NULL},
-  .vertices={bg_vehicle_world_layout[3][1],world_blocks[3],NULL}};
+ bg_vehicle_bsp=(struct collision_bsp){.bsp3d={.planes={layout[0][1],world_blocks[0],NULL}},
+  .surfaces={layout[1][1],world_blocks[1],NULL},.edges={layout[2][1],world_blocks[2],NULL},
+  .vertices={layout[3][1],world_blocks[3],NULL}};
  bg_vehicle_bvh=world_blocks[4];bg_vehicle_surface_bounds=world_blocks[5];bg_vehicle_surface_indices=world_blocks[6];
  stamps_load();world_loaded=true;
 }
@@ -108,6 +135,8 @@ void bg_vehicle_world_release(void){
 static void world_load(void){if(!vehicle_workspace->stamps[0])stamps_load();}
 void bg_vehicle_world_release(void){}
 #endif
+
+void bg_vehicle_world_preload(void){world_load();}
 
 /* The BVH only selects candidates; all contacts use original feature tests. */
 static uint8_t stamp;
@@ -328,7 +357,7 @@ float bg_world_raycast_normal(const float origin[3],const float direction[3],flo
  if(distance<=.003f)return distance;
  world_load();
  float bias=.003f;
- real_point3d p={.n={origin[0]+direction[0]*bias+68,-origin[2]-direction[2]*bias-118,origin[1]+direction[1]*bias}};
+ real_point3d p={.n={origin[0]+direction[0]*bias+bg_map_origin()[0],-origin[2]-direction[2]*bias+bg_map_origin()[1],origin[1]+direction[1]*bias+bg_map_origin()[2]}};
  real_vector3d d={.n={direction[0]*(distance-bias),-direction[2]*(distance-bias),direction[1]*(distance-bias)}};
  float scaled[3],inverse[3];bool zero[3];
  for(unsigned k=0;k<3;k++){scaled[k]=p.n[k]*64;zero[k]=fabsf(d.n[k])<1e-12f;inverse[k]=zero[k]?0:1/(d.n[k]*64);}
@@ -366,7 +395,7 @@ void bg_world_camera_rays(const float origin[3],const float rays[5][3],const flo
  world_load();real_point3d p[5];real_vector3d d[5];float lo[3],hi[3],nearest[5];
  float scaled[5][3],inverse[5][3];bool parallel[5][3];
  for(unsigned i=0;i<5;i++){
-  p[i]=(real_point3d){.n={origin[0]+rays[i][0]*.003f+68,-origin[2]-rays[i][2]*.003f-118,origin[1]+rays[i][1]*.003f}};
+  p[i]=(real_point3d){.n={origin[0]+rays[i][0]*.003f+bg_map_origin()[0],-origin[2]-rays[i][2]*.003f+bg_map_origin()[1],origin[1]+rays[i][1]*.003f+bg_map_origin()[2]}};
   float length=MAX(0,reaches[i]-.003f);
   d[i]=(real_vector3d){.n={rays[i][0]*length,-rays[i][2]*length,rays[i][1]*length}};nearest[i]=1;
   for(unsigned a=0;a<3;a++){

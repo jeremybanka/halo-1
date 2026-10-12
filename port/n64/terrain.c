@@ -164,10 +164,11 @@ float bg_move_capsule(bg_player*p,float dt){
     bool was_grounded=p->grounded;unsigned previous=p->support_triangle;p->support_triangle=0;bool contacted=false;
     float distance=sqrtf(dot(p->velocity,p->velocity))*dt;
     unsigned steps=(unsigned)ceilf(distance/(r*.4f));if(steps<1)steps=1;if(steps>64)steps=64;
+    bool climbing=false;
     float step=dt/steps;bool supported=false;float support[3]={0,1,0};
     for(unsigned s=0;s<steps;s++){
         for(int k=0;k<3;k++)p->pos[k]+=p->velocity[k]*step;
-        supported=false;
+        supported=false;climbing=false;
         for(unsigned iteration=0;iteration<3;iteration++){
             bool adjusted=false;const terrain_candidates*c=nearby(p);
             unsigned count=c->count==UINT16_MAX?bg_collision_count:c->count;
@@ -181,8 +182,12 @@ float bg_move_capsule(bg_player*p,float dt){
                     if(d<1e-6f){float ab[3],ac[3];sub(ab,t->p[1],t->p[0]);sub(ac,t->p[2],t->p[0]);cross(n,ab,ac);float len=sqrtf(dot(n,n));if(len<1e-8f)continue;for(int k=0;k<3;k++)n[k]/=len;if(dot(n,p->velocity)>0)for(int k=0;k<3;k++)n[k]=-n[k];}
                     else for(int k=0;k<3;k++)n[k]/=d;
                     float into=dot(p->velocity,n);
-                    if(n[1]>=bg_movement.slope[0]-.0001f&&into<=.01f){
-                        if(!supported||n[1]>support[1])memcpy(support,n,12);
+                    unsigned ti=c->count==UINT16_MAX?j:c->ids[j];
+                    bool ladder=(bg_collision_flags[ti]&BG_SURFACE_CLIMBABLE)&&fabsf(n[1])<.5f&&
+                        n[0]*cosf(p->yaw)-n[2]*sinf(p->yaw)<=.5f;
+                    if((ladder||n[1]>=bg_movement.slope[0]-.0001f)&&into<=.01f){
+                        if(ladder||(!climbing&&(!supported||n[1]>support[1])))memcpy(support,n,12);
+                        climbing|=ladder;
                         supported=true;p->support_triangle=(c->count==UINT16_MAX?j:c->ids[j])+1;impact=fmaxf(impact,-into);
                     }
                     if(d<r+skin-.00001f){for(int k=0;k<3;k++)p->pos[k]+=n[k]*(r+skin-d);adjusted=true;}
@@ -192,6 +197,6 @@ float bg_move_capsule(bg_player*p,float dt){
         }
     }
     if(!contacted&&was_grounded&&recover_support(p,previous,support))supported=true;
-    p->grounded=supported;if(supported)memcpy(p->ground_normal,support,12);
+    p->climbing=climbing;p->grounded=supported;if(supported)memcpy(p->ground_normal,support,12);
     p->vy=p->velocity[1];return impact;
 }

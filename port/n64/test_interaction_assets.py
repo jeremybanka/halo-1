@@ -16,13 +16,13 @@ def poses(node):
  else:
   for child in node:yield from poses(child)
 checked=0;maximum=0
-for name in ['bg_seat_poses','bg_seat_grips','bg_body_ready_poses','bg_body_ready_grip','bg_ready_poses','bg_ready_needles','bg_ready_ar_digits','bg_ready_scope','bg_hatch_poses','bg_service_poses','bg_service_details','bg_service_vents','bg_reload_ar_digits','bg_shotgun_fire_muzzle']:
+for name in ['bg_seat_poses','bg_seat_grips','bg_body_ready_poses','bg_body_ready_grip','bg_ready_poses','bg_ready_needles','bg_reload_needles','bg_ready_ar_digits','bg_ready_scope','bg_hatch_poses','bg_service_poses','bg_service_details','bg_service_vents','bg_reload_ar_digits','bg_shotgun_fire_muzzle']:
  for offset,stride,vertices,frames,duration,bounds in poses(array(name)):
   if not vertices:
    assert frames==stride==offset==0;continue
   assert offset%16==stride%16==0 and vertices*6<=stride and stride-vertices*6<16
   assert 0<frames<=126 and duration>0 and offset+frames*stride<=len(bank)
-  scale=4096 if any(s in name for s in ['grip','digits','scope','hatch','plasma','vents','details','muzzle']) else 256 if name in ['bg_ready_poses','bg_ready_needles','bg_service_poses'] else 128
+  scale=4096 if any(s in name for s in ['grip','digits','scope','hatch','plasma','vents','details','muzzle']) else 256 if name in ['bg_ready_poses','bg_ready_needles','bg_reload_needles','bg_service_poses'] else 128
   allpoints=[]
   for frame in range(frames):
    points=np.frombuffer(bank,dtype='>i2',count=vertices*3,offset=offset+stride*frame).reshape(-1,3)/scale
@@ -49,11 +49,12 @@ assert [len(row) for row in r['seats']]==[3,1,5,1] and r['hold_ticks']==7
 print(f'PASS: {checked} ROM frames, aligned DMA ranges, exact source one-shot frame counts/timings, conservative bounds, closed hatch transforms, {maximum} bytes scratch')
 
 services=array('bg_service_poses')
-assert len(services)==15
+assert len(services)==16
 for pose,definition in zip(services,r['service']):
  assert pose[3]==definition['source_frames']+1
  assert abs(pose[4]-definition['source_frames']/30)<1e-6
-assert [d['source_frames'] for d in r['service']]==[87,34,24,9,24,111,125,58,50,35,65,67,83,94,26]
+assert [d['source_frames'] for d in r['service']]==[87,34,24,9,24,111,125,58,50,35,65,67,83,94,26,70]
+assert all(p[3]==71 and abs(p[4]-70/30)<1e-6 for p in array('bg_reload_needles'))
 print('PASS: complete magazine reloads, both plasma vent state chains and shotgun recoil/pump source frames')
 # Dense rebaking must preserve the approved mesh at retained source keyframes.
 # This catches wrong joint maps, hand/gun bind recovery, or reordered indices.
@@ -63,7 +64,7 @@ from pack_firstperson import prepare_model, split_details
 from pack_assets import position
 fp=json.loads((ROOT/'build/n64/assets/firstperson-reduced.json').read_text())
 raw=json.loads((ROOT/'build/n64/assets/firstperson-raw.json').read_text())
-for name,service in [('ar',0),('rocket',5),('pistol',10),('sniper',12),('shotgun',14)]:
+for name,service in [('ar',0),('rocket',5),('pistol',10),('sniper',12),('shotgun',14),('needler',15)]:
  weapon=fp['weapons'][name]
  if name=='sniper':weapon,*_=split_details(weapon,name)
  mesh,clips,_=prepare_model(weapon,name)

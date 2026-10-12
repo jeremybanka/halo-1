@@ -33,6 +33,7 @@
 #include "blam/runtime.h"
 #include "hud.h"
 #include "scene.h"
+#include "map.h"
 #include "runtime_qa.h"
 #ifdef BG_PROFILE
 typedef struct {
@@ -44,12 +45,18 @@ static bg_decode_key decode_keys[16], decode_last;
 static unsigned decode_key_count;
 #endif
 
+#ifdef BG_STREAM_MAPS
+#define bg_vertices ((T3DVertPacked *)bg_map_vertex_data)
+#define bg_textures ((uint16_t (*)[32 * 32])bg_map_texture_data)
+#else
 extern T3DVertPacked bg_vertices[];
 extern uint16_t bg_textures[][32 * 32];
+#endif
 static const color_t colors[4] = {
     {225, 45, 38, 255}, {39, 92, 215, 255}, {215, 179, 44, 255}, {57, 183, 69, 255}};
 static surface_t textures[32];
 static rspq_block_t *texture_blocks[32];
+static unsigned world_block_count, world_texture_count;
 static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[7][12] __attribute__((aligned(16)));
 static T3DVertPacked *firstperson[BG_FRAME_SLOTS][4];
 static unsigned firstperson_bytes[BG_FRAME_SLOTS][4];
@@ -241,6 +248,36 @@ static rspq_block_t *record_texture(unsigned material) {
                     &(rdpq_texparms_t){.s.repeats = REPEAT_INFINITE, .t.repeats = REPEAT_INFINITE});
     return rspq_block_end();
 }
+void bg_scene_release_world(void) {
+    rspq_wait();
+    for (unsigned i = 0; i < world_block_count; i++) {
+        rspq_block_free(world_blocks[i]); world_blocks[i] = NULL;
+    }
+    for (unsigned i = 0; i < world_texture_count; i++) {
+        rspq_block_free(texture_blocks[i]); texture_blocks[i] = NULL;
+    }
+    world_block_count = world_texture_count = 0;
+}
+void bg_scene_load_world(void) {
+#ifdef BG_STREAM_MAPS
+    /* The main menu needs shared models, not a temporary level allocation.
+     * Bind the selected world's commands only when starting a match. */
+    if (!bg_map_loaded()) return;
+#endif
+    if (world_block_count) return;
+    assertf(bg_chunk_count <= 512 && bg_material_count <= 32, "World asset capacity");
+    data_cache_hit_writeback(bg_vertices, bg_vertex_count * 16);
+    data_cache_hit_writeback((void *)bg_ground_palette, 32);
+    for (unsigned i = 0; i < bg_material_count; i++) {
+        unsigned size = bg_texture_sizes[i];
+        textures[i] = surface_make(bg_textures[i], bg_texture_ci4[i] ? FMT_CI4 : FMT_RGBA16, size,
+                                  size, bg_texture_ci4[i] ? size / 2 : size * 2);
+        data_cache_hit_writeback(bg_textures[i], 2048);
+        texture_blocks[i] = record_texture(i);
+    }
+    for (unsigned i = 0; i < bg_chunk_count; i++) world_blocks[i] = record_indexed(&bg_chunks[i]);
+    world_block_count = bg_chunk_count; world_texture_count = bg_material_count;
+}
 static void init_scene(void) {
     const float terrain_scale = BG_SCALE / BG_TERRAIN_SCALE;
     t3d_mat4fp_from_srt_euler(&terrain_matrix,
@@ -267,17 +304,7 @@ static void init_scene(void) {
                 motion_capacity = bg_fp_animations[weapon][clip].tracks;
     motion_tracks = malloc(motion_capacity * sizeof(*motion_tracks));
     assertf(motion_tracks, "Animation interpolation scratch allocation");
-    data_cache_hit_writeback(bg_vertices, bg_vertex_count * 16);
-    data_cache_hit_writeback((void *)bg_ground_palette, 32);
-    for (unsigned i = 0; i < bg_material_count; i++) {
-        unsigned size = bg_texture_sizes[i];
-        textures[i] = surface_make(bg_textures[i], bg_texture_ci4[i] ? FMT_CI4 : FMT_RGBA16, size,
-                                   size, bg_texture_ci4[i] ? size / 2 : size * 2);
-        data_cache_hit_writeback(bg_textures[i], 2048);
-        texture_blocks[i] = record_texture(i);
-    }
-    for (unsigned i = 0; i < bg_chunk_count; i++)
-        world_blocks[i] = record_indexed(&bg_chunks[i]);
+    bg_scene_load_world();
     for (unsigned m = 0; m < BG_M_COUNT; m++) {
         const bg_model_asset *a = &bg_model_assets[m];
         prepare_model(a);
@@ -1693,6 +1720,16 @@ void bg_scene_load_bodies(void) {
 }
 void bg_scene_load_firstperson(void) {
     firstperson_buffers_load();
+}
+void bg_scene_reserve_firstperson(unsigned players) {
+    assertf(players <= BG_PLAYERS, "First-person player capacity");
+    rspq_wait();
+    /* Only match-start allocation order changes for streamed map banks.
+     * The accepted workspace allocator and gameplay path remain unchanged. */
+    unsigned previous_slot = slot;
+    for (slot = 0; slot < BG_FRAME_SLOTS; slot++)
+        for (unsigned p = 0; p < players; p++) firstperson_buffer_resize(p, 0);
+    slot = previous_slot;
 }
 void bg_scene_release_bodies(void) {
     body_buffers_release();

@@ -4,6 +4,8 @@
 #include "game.h"
 #include "asset_models.h"
 #include "sound.h"
+#include "announcer.h"
+#include "sound_stream.h"
 #include "shields.h"
 #include "shield_assets.h"
 #include "shield_audio.h"
@@ -25,6 +27,20 @@ static FILE *title_music;
 static int8_t music_buffer[4096];
 static unsigned music_at, music_count, music_fraction;
 static bg_audio_asset menu_effects[4];
+/* The new voice stays in ROM rather than subtracting 14 KiB from the accepted
+ * map/pose working sets. Existing resident effects and mixer are unchanged. */
+static int8_t announcer_buffer[1024] __attribute__((aligned(16)));
+static bg_sound_stream announcer_stream;
+static uint32_t announcer_rom;
+static bool announcer_streaming;
+static const int8_t *read_announcer(unsigned at,unsigned bytes) {
+    uint32_t address=announcer_rom+at;
+    unsigned prefix=address&15,span=(prefix+bytes+15)&~15u;
+    assertf(span<=sizeof(announcer_buffer),"Announcer PCM window");
+    data_cache_hit_invalidate(announcer_buffer,span);
+    dma_read(announcer_buffer,address&~15u,span);
+    return announcer_buffer+prefix;
+}
 void bg_sound_frontend(bool active) {
     if (active == (title_music != NULL))
         return;
@@ -107,6 +123,15 @@ static void play(unsigned channel, unsigned sound, int volume, int pan, bool loo
     v->loop = loop;
     v->left = volume * (256 - pan) / 256;
     v->right = volume * pan / 256;
+    if(channel==12){
+        announcer_streaming=sound==BG_S_KILLTACULAR;
+        announcer_stream=(bg_sound_stream){0};
+        if(announcer_streaming&&!announcer_rom){
+            announcer_rom=dfs_rom_addr("killtacular.s8");
+            assertf(announcer_rom&&(unsigned)dfs_rom_size("killtacular.s8")==v->asset->count,
+                "Missing Killtacular voice");
+        }
+    }
 }
 void bg_sound_announce(unsigned sound) {
     play(12, sound, 160, 128, false);
@@ -141,10 +166,8 @@ void bg_sound_update(void) {
             bg_sound_announce(BG_S_GAME_OVER);
             continue;
         case BG_EVENT_DOUBLE_KILL:
-            bg_sound_announce(BG_S_DOUBLE_KILL);
-            continue;
         case BG_EVENT_TRIPLE_KILL:
-            bg_sound_announce(BG_S_TRIPLE_KILL);
+            bg_sound_announce(bg_multikill_sound(e->amount));
             continue;
         case BG_EVENT_KILLING_SPREE:
             bg_sound_announce(BG_S_KILLING_SPREE);
@@ -277,6 +300,9 @@ void bg_sound_pump(void) {
     while (audio_can_write()) {
         int16_t *out = audio_write_begin();
         int count = audio_get_buffer_length();
+        if(announcer_streaming)
+            announcer_streaming=bg_sound_stream_refill(&announcer_stream,&voices[12],
+                &bg_audio_assets[BG_S_KILLTACULAR],(unsigned)count,read_announcer);
         bg_sound_mix(voices, 17, out, (unsigned)count);
         mix_title(out, (unsigned)count);
         audio_write_end();

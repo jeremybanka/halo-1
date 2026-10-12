@@ -19,6 +19,9 @@ TRACE = r"""
 #include "replay.h"
 #include "showcase.h"
 #include "blam/runtime.h"
+#ifdef BG_STREAM_MAPS
+#include "map.h"
+#endif
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -38,6 +41,9 @@ static void state(FILE*out){
 }
 int main(int argc,char**argv){
     assert(argc==2);FILE*out=fopen(argv[1],"wb");assert(out);
+#ifdef BG_STREAM_MAPS
+    bg_map_load(BG_MAP_BLOOD_GULCH);
+#endif
     for(unsigned scenario=0;scenario<7;scenario++){
         bg_set_players(4);bg_set_score_limit(1000);bg_reset();
         if(scenario)bg_showcase_begin(scenario-1);
@@ -56,7 +62,8 @@ int main(int argc,char**argv){
 """
 
 
-def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True):
+def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True, streamed_maps=False):
+    output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     candidate_solver = output / "candidate-solver"
     subprocess.run(
@@ -64,6 +71,10 @@ def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True
         cwd=ROOT,
         check=True,
     )
+    if streamed_maps:
+        subprocess.run([sys.executable, ROOT / "port/n64/blam/export_vehicle.py",
+                        "--output", candidate_solver, "--rom-files", candidate_solver],
+                       cwd=ROOT, check=True)
     with tempfile.TemporaryDirectory(prefix="halo-checkpoint-") as directory:
         baseline = Path(directory)
         # Compare both implementations, including shared collision/movement and
@@ -167,6 +178,15 @@ def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True
         ]:
             binary = output / label
             record = output / (label + ".bin")
+            bank_sources = [str(ROOT / "build/n64/generated" / s) for s in shared]
+            candidate_flags = []
+            if label == "candidate" and streamed_maps:
+                candidate_flags.append("-DBG_STREAM_MAPS")
+                bank_sources = [p for p in bank_sources if Path(p).name not in
+                                ("pickup_data.c", "vehicle_data.c", "terrain_data.c")]
+                bank_sources += [str(ROOT / "halo64-assets/generated/maps/common_data.c"),
+                                 str(candidate_solver / "vehicle_data.c"),
+                                 str(ROOT / "port/n64/map.c")]
             paths = [
                 str((baseline if label == "checkpoint" else ROOT / "port/n64") / s) for s in sources
             ]
@@ -174,7 +194,7 @@ def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True
                 adapter = str(ROOT / "port/n64/blam/vehicle_physics.c")
                 obj = output / ("vehicle-o" + str(solver_opt) + ".o")
                 subprocess.run(
-                    ["clang", *flags, "-O" + str(solver_opt), "-c", adapter, "-o", str(obj)],
+                    ["clang", *flags, *candidate_flags, "-O" + str(solver_opt), "-c", adapter, "-o", str(obj)],
                     cwd=ROOT,
                     check=True,
                 )
@@ -185,10 +205,11 @@ def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True
                     *(["-flto"] if lto and label == "candidate" else []),
                     *includes,
                     *flags,
+                    *candidate_flags,
                     str(trace),
                     str(game),
                     *paths,
-                    *(str(ROOT / "build/n64/generated" / s) for s in shared),
+                    *bank_sources,
                     "-lm",
                     "-o",
                     str(binary),
@@ -214,6 +235,8 @@ def run(reference, output, solver_opt=2, lto=False, vehicle_body_candidates=True
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference", default="ffc5e53d")
+    parser.add_argument("--streamed-maps", action="store_true",
+                        help="Compare selected Blood Gulch banks against the checkpoint's static tables")
     parser.add_argument(
         "--solver-opt",
         type=lambda value: int(value) if value in ("2", "3") else value,
@@ -230,4 +253,5 @@ if __name__ == "__main__":
         "--output-dir", type=Path, default=ROOT / "build/n64-validation/equivalence"
     )
     args = parser.parse_args()
-    run(args.reference, args.output_dir, args.solver_opt, args.lto, args.vehicle_body_candidates)
+    run(args.reference, args.output_dir, args.solver_opt, args.lto, args.vehicle_body_candidates,
+        args.streamed_maps)

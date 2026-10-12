@@ -14,6 +14,7 @@ static inline int bg_firstperson_service(const bg_player*p,float*seconds,bool*lo
         if(p->weapon==BG_W_PISTOL)return p->ammo?BG_SERVICE_PISTOL_FULL:BG_SERVICE_PISTOL_EMPTY;
         if(p->weapon==BG_W_SNIPER)return p->ammo?BG_SERVICE_SNIPER_FULL:BG_SERVICE_SNIPER_EMPTY;
         if(p->weapon==BG_W_ROCKET)return p->ammo?BG_SERVICE_ROCKET_FULL:BG_SERVICE_ROCKET_EMPTY;
+        if(p->weapon==BG_W_NEEDLER)return BG_SERVICE_NEEDLER;
     }
     if((p->weapon==BG_W_PLASMA_PISTOL||p->weapon==BG_W_PLASMA_RIFLE)&&p->overheated){
         float elapsed=fmaxf(0,(1-p->heat)/.2f),remaining=fmaxf(0,(p->heat-.15f)/.2f);

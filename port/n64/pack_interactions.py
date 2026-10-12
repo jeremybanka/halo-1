@@ -152,7 +152,7 @@ def run():
     service_slots=service_keys()
     service=[None]*len(service_slots);service_details=service.copy();service_vents=service.copy();service_report=service.copy()
     reload_ar=shotgun_muzzle=None
-    ready=[];readytimes=[];fp_report={};needle_defs=[];needle_indices=[];ar_def=scope_def=None;plasma_defs=[]
+    ready=[];readytimes=[];fp_report={};needle_defs=[];reload_needle_defs=[];needle_indices=[];ar_def=scope_def=None;plasma_defs=[]
     for name,w in fp['weapons'].items():
         if name=='flamethrower':continue
         original=fpraw['weapons'][name];g=meta(h,'model_animations',MODEL_PATHS[name].rsplit('\\',1)[0]+r'\fp\fp')
@@ -227,16 +227,19 @@ def run():
             for vi,ci in enumerate(mesh['sources']):
                 part,weights,p=corners[ci]
                 if part and any('needle' in original['gun']['nodes'][b]['name'] for b,_ in weights):needle_indices.append(vi)
-            for ammo,overlay in enumerate(ammometa['needler']['frames']):
-                fs=[];folded={i for i,o in enumerate(overlay) if sum(x*x for x in o['q'][:3])>.2}
-                for states in c['frames']:
-                    poses=skin_fp(overlay_states(states,overlay,ammometa['needler']['flags']));result=[]
-                    allmat=matrices(overlay_states(states,overlay,ammometa['needler']['flags']),skeleton)
-                    for vi in needle_indices:
-                        ci=mesh['sources'][vi];bone=node_maps[1][corners[ci][1][0][0]]
-                        result.append(allmat[bone][:3,3].tolist() if bone in folded else poses[ci])
-                    fs.append(result)
-                needle_defs.append(emit(fs,c['duration'],256))
+            reload_clip=clip(g,next(i for i,a in enumerate(g.animations.STEPTREE) if a.name=='first-person reload-full'))
+            for animation,definitions,terminal in [(c,needle_defs,False),(reload_clip,reload_needle_defs,True)]:
+                for ammo,overlay in enumerate(ammometa['needler']['frames']):
+                    fs=[];folded={i for i,o in enumerate(overlay) if sum(x*x for x in o['q'][:3])>.2}
+                    for states in animation['frames']:
+                        overlaid=overlay_states(states,overlay,ammometa['needler']['flags'])
+                        poses=skin_fp(overlaid);result=[];allmat=matrices(overlaid,skeleton)
+                        for vi in needle_indices:
+                            ci=mesh['sources'][vi];bone=node_maps[1][corners[ci][1][0][0]]
+                            result.append(allmat[bone][:3,3].tolist() if bone in folded else poses[ci])
+                        fs.append(result)
+                    if terminal:fs.append(fs[-1])
+                    definitions.append(emit(fs,animation['duration'],256))
     assert len(ready)==8 and len(seats[2])==5
     ready.append(ready[0]);readytimes.append(readytimes[0]) # Optional PC extra aliases Xbox AR.
     F.mkdir(exist_ok=True);(F/'interactions.bin').write_bytes(bank)
@@ -245,7 +248,7 @@ def run():
     lines.append('const bg_rom_pose bg_locomotion_grips[6]={'+','.join(init(d) for d in locomotion_grips)+'};')
     lines.append('const bg_rom_pose bg_hatch_poses[2][2]={'+','.join('{'+','.join(init(d) for d in pair)+'}' for pair in hatches)+'};')
     lines.append('const bg_rom_pose bg_seat_poses[][3][2]={'+','.join('{'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in group)+'}' for group in groups)+'};')
-    for symbol,ds in [('bg_service_vents',service_vents),('bg_service_poses',service),('bg_service_details',service_details),('bg_ready_plasma',plasma_defs),('bg_ready_poses',ready),('bg_ready_needles',needle_defs),('bg_seat_grips',grips),('bg_body_ready_poses',body_ready_poses)]:lines.append('const bg_rom_pose '+symbol+'['+str(len(ds))+']={'+','.join(init(d) for d in ds)+'};')
+    for symbol,ds in [('bg_service_vents',service_vents),('bg_service_poses',service),('bg_service_details',service_details),('bg_ready_plasma',plasma_defs),('bg_ready_poses',ready),('bg_ready_needles',needle_defs),('bg_reload_needles',reload_needle_defs),('bg_seat_grips',grips),('bg_body_ready_poses',body_ready_poses)]:lines.append('const bg_rom_pose '+symbol+'['+str(len(ds))+']={'+','.join(init(d) for d in ds)+'};')
     for symbol,d in [('bg_shotgun_fire_muzzle',shotgun_muzzle),('bg_reload_ar_digits',reload_ar),('bg_ready_ar_digits',ar_def),('bg_ready_scope',scope_def),('bg_body_ready_grip',ready_grip)]:lines.append('const bg_rom_pose '+symbol+'='+init(d)+';')
     lines.append('const uint16_t bg_ready_needle_vertices[]={'+','.join(map(str,needle_indices))+'};')
     lines.append(f'const unsigned bg_interaction_scratch_bytes={scratch};')

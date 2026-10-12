@@ -4,7 +4,7 @@ const bg_front_entry bg_front_maps[13] = {
     {"Battle Creek", false}, {"Sidewinder", false}, {"Damnation", false},
     {"Rat Race", false},     {"Prisoner", false},   {"Hang 'Em High", false},
     {"Chill Out", false},    {"Derelict", false},   {"Boarding Action", false},
-    {"Blood Gulch", true},   {"Wizard", false},     {"Chiron TL34", false},
+    {"Blood Gulch", true},   {"Wizard", true},      {"Chiron TL34", false},
     {"Longest", false}};
 const bg_front_entry bg_front_types[26] = {
     {"Slayer", true},       {"Slayer Pro", false}, {"Elimination", false}, {"Phantoms", false},

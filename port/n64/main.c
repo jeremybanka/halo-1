@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "map.h"
 #include "combat_geometry.h"
 #include "blam/vehicle_physics.h"
 #include "blam/vehicle_profile.h"
@@ -39,6 +40,23 @@
 #include "residency.h"
 #include "asset_interaction.h"
 #include "runtime_qa.h"
+#ifdef BG_FRONTEND_QA
+#include <stdarg.h>
+static void frontend_qa_text(const void *parms, unsigned font, int x, int y, const char *text) {
+    (void)parms; (void)font;
+    bg_hud_qa_text(text, x, y - 6);
+}
+static void frontend_qa_printf(const void *parms, unsigned font, int x, int y, const char *format, ...) {
+    char text[128];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(text, sizeof(text), format, args);
+    va_end(args);
+    frontend_qa_text(parms, font, x, y, text);
+}
+#define rdpq_text_printf frontend_qa_printf
+#define rdpq_text_print frontend_qa_text
+#endif
 #ifdef BG_GPU_MINIMAL_ATTRIBUTES
 void __real_t3d_state_set_drawflags(enum T3DDrawFlags flags);
 void __wrap_t3d_state_set_drawflags(enum T3DDrawFlags flags) {
@@ -263,6 +281,22 @@ static bool input(bg_input in[4]) {
         memset(scores, 0, sizeof(scores));
         if (action == BG_FRONT_START_MATCH) {
             bg_front_draw_release();
+#ifdef BG_STREAM_MAPS
+            /* Menu PCM is no longer needed after the countdown. Reclaim it
+             * before loading a map, without changing gameplay cache budgets.
+             * Audio mixing resumes after this transition completes. */
+            bg_sound_frontend(false);
+            bg_scene_release_world();
+            /* Terrain indices are converted in place when recording RSP
+             * blocks. A new match must bind fresh serialized indices. */
+            bg_map_unload();
+            /* Keep the accepted body allocations intact; reserve their large
+             * blocks before the selected map fragments the free heap. */
+            bg_scene_load_bodies();
+            bg_residency_prepare_match(front.count);
+            bg_map_load(front.map);
+            bg_scene_load_world();
+#endif
             views = front.count;
             bg_set_players(views);
             bg_set_score_limit(15);
@@ -280,9 +314,13 @@ static bool input(bg_input in[4]) {
                 menu.styles[p] = front.styles[bg_player_profiles[p]];
                 bg_scene_profile_changed(p);
             }
+#ifndef BG_STREAM_MAPS
             bg_sound_frontend(false);
+#endif
         } else if (action == BG_FRONT_RESUME_MATCH) {
             bg_front_draw_release();
+            bg_scene_load_bodies();
+            bg_residency_prepare_match(front.count);
             menu.open = false;
         } else if (action == BG_FRONT_LEAVE_MATCH) {
             menu.open = false;
@@ -616,6 +654,12 @@ static void benchmark_vi_page(surface_t *screen) {
     rdpq_text_printf(NULL, 1, 8, 28, "%u MS / 1S WARMUP / 2 VI TARGET",
                      (unsigned)(bg_presentation_meter()->fresh.result[0].elapsed / 1000));
     const char *labels[] = {"ALL", "COMBAT", "VEHICLES"};
+#ifdef BG_STREAM_MAPS
+    if (bg_map_id() == BG_MAP_WIZARD) {
+        labels[1] = "EARLY";
+        labels[2] = "LATE";
+    }
+#endif
     for (unsigned g = 0; g < 3; g++) {
         const bg_cadence_result *c = &bg_presentation_meter()->fresh.result[g];
         const bg_vi_result *r = &bg_presentation_meter()->result[g];
@@ -765,7 +809,9 @@ int main(void) {
     t3d_init((T3DInitParams){});
     bg_fp_ammo_init();
     bg_fx_draw_init();
+#ifndef BG_FRONTEND_QA
     rdpq_text_register_font(1, rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
+#endif
     bg_menu_init(&menu, views);
 #if defined(BG_COMBAT_QA) && BG_COMBAT_QA == 8
     menu.styles[0] = BG_CONTROLS_XBOX;
@@ -783,15 +829,29 @@ int main(void) {
     bg_menu_draw_init();
 #endif
     surface_t depth = surface_alloc(FMT_RGBA16, 320, 240);
+    assertf(dfs_init(DFS_DEFAULT_LOCATION) == DFS_ESUCCESS, "Game filesystem");
+#ifndef BG_INITIAL_MAP
+#define BG_INITIAL_MAP BG_MAP_BLOOD_GULCH
+#endif
+#ifndef BG_FRONTEND
+    bg_residency_prepare_match(views);
+#endif
+#if defined(BG_STREAM_MAPS) && !defined(BG_FRONTEND)
+    bg_map_load(BG_INITIAL_MAP);
+#endif
     bg_scene_init();
     bg_hud_init();
     bg_set_players(views);
+#if !defined(BG_FRONTEND) || !defined(BG_STREAM_MAPS)
     bg_reset();
+#endif
     bg_hud_messages_reset();
     bg_sound_init();
-    assertf(dfs_init(DFS_DEFAULT_LOCATION) == DFS_ESUCCESS, "Game filesystem");
 #ifdef BG_FRONTEND
     bg_front_init(&front);
+#ifdef BG_STREAM_MAPS
+    front.map = BG_INITIAL_MAP;
+#endif
     paused = true;
     bg_residency_menu(false);
 #endif
@@ -1222,6 +1282,9 @@ int main(void) {
 #ifdef BG_HUD_QA
         /* The ordinary footer covers lower-player prompts in pixel QA. */
         rdpq_text_printf(NULL, 1, 4, 88, "RDP %u/%u", validation_errors, validation_warnings);
+#elif defined(BG_FRONTEND_QA)
+        rdpq_text_printf(NULL, 1, 4, 226, "RDP %u ERRORS %u WARNINGS", validation_errors,
+                         validation_warnings);
 #else
         rdpq_text_printf(NULL, 1, 4, 215, "RDP %u ERRORS %u WARNINGS", validation_errors,
                          validation_warnings);

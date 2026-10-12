@@ -6,12 +6,15 @@
  * Caller MUST retire the slot's RSP fence before prepare; view drawing and HUD
  * reads finish before that slot is reused. Display ownership is independent. */
 void bg_scene_init(void);
+void bg_scene_load_world(void);
+void bg_scene_release_world(void);
 color_t bg_scene_team_color(unsigned player);
 void bg_scene_reset(void);
 void bg_scene_fired(unsigned player, float seconds);
 void bg_scene_update(float dt, float seconds);
 void bg_scene_load_bodies(void);
 void bg_scene_load_firstperson(void);
+void bg_scene_reserve_firstperson(unsigned players);
 void bg_scene_release_bodies(void);
 void bg_scene_release_firstperson(void);
 void bg_scene_profile_changed(unsigned player);

@@ -1,5 +1,6 @@
 #include "menu_draw.h"
 #include "asset_menu.h"
+#include "map.h"
 #include <assert.h>
 #include <libdragon.h>
 #include <stdio.h>
@@ -182,7 +183,7 @@ static void background(void) {
 }
 static void root_page(const bg_menu *m) {
     static const char *const labels[] = {"RESUME", "SETUP", "CONTROLS"};
-    static const char *const help[] = {"RETURN TO BLOOD GULCH", "LOCAL PLAYERS AND MATCH RESET",
+    const char *const help[] = {bg_map_id() == BG_MAP_WIZARD ? "RETURN TO WIZARD" : "RETURN TO BLOOD GULCH", "LOCAL PLAYERS AND MATCH RESET",
                                        "CHANGE YOUR CONTROL STYLE"};
     for (unsigned row = 0; row < 3; row++) {
         float y = 78 + 34 * row;
@@ -216,7 +217,8 @@ static void setup_page(const bg_menu *m) {
     text(BG_MENU_FONT_LARGE, 226, 101, .92f, white, count);
     text(BG_MENU_FONT_LARGE, 42, 144, .92f, m->row == BG_MENU_RESTART_ROW ? white : blue,
          "RESTART MATCH");
-    text(BG_MENU_FONT_SMALL, 35, 180, .72f, soft, "BLOOD GULCH / LOCAL SPLITSCREEN");
+    text(BG_MENU_FONT_SMALL, 35, 180, .72f, soft,
+         bg_map_id() == BG_MAP_WIZARD ? "WIZARD / LOCAL SPLITSCREEN" : "BLOOD GULCH / LOCAL SPLITSCREEN");
     text(BG_MENU_FONT_SMALL, 35, 195, .70f, soft,
          m->row == BG_MENU_PLAYERS_ROW ? "CHOOSE 1, 2 OR 4 PLAYERS"
                                        : "RESET SCORES AND RESPAWN EVERYONE");

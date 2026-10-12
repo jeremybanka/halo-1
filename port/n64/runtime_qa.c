@@ -20,7 +20,9 @@ static struct {
     float *seconds;
 } qa;
 #ifdef BG_MODEL_QA
-#if defined(BG_AIM_QA)
+#if defined(BG_WIZARD_QA)
+#include "wizard_qa.h"
+#elif defined(BG_AIM_QA)
 #include "aim_qa.h"
 #elif defined(BG_HUD_QA)
 #include "hud_qa.h"

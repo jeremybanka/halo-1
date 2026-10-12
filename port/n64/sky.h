@@ -3,7 +3,11 @@
 #include <math.h>
 #include <stdint.h>
 
+#ifdef BG_STREAM_MAPS
+extern const uint8_t (*bg_sky_rgb)[3];
+#else
 extern const uint8_t bg_sky_rgb[33][3];
+#endif
 
 /* Reconstruct a world-space sky ray from the production projection, including
  * the Xbox reticle offset and zoom. Translation cannot affect the sky. */

@@ -174,6 +174,21 @@ static void hud_text(const char *text, int x, int y, color_t color) {
         }
     }
 }
+#ifdef BG_FRONTEND_QA
+void bg_hud_qa_text(const char *text, int x, int y) {
+    current_combiner = current_filter = -1;
+    rdpq_set_mode_standard();
+    rdpq_mode_zbuf(false, false);
+    rdpq_mode_persp(false);
+    rdpq_mode_tlut(TLUT_NONE);
+    rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+    rdpq_set_scissor(0, 0, 320, 240);
+    set_filter(true);
+    set_combiner(1);
+    rdpq_tex_upload(TILE0, &pixel_atlas, NULL);
+    hud_text(text, x, y, hud_cyan);
+}
+#endif
 static void hud_number(int value, int x, int y, unsigned places, color_t color) {
     char text[16];
     unsigned at = sizeof(text) - 1;

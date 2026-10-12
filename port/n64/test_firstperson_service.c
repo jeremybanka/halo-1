@@ -12,6 +12,16 @@ int main(void){
     p.ammo=3;assert(bg_firstperson_service(&p,&seconds,&loop)==BG_SERVICE_PISTOL_FULL);
     p.weapon=BG_W_SNIPER;p.ammo=0;assert(bg_firstperson_service(&p,&seconds,&loop)==BG_SERVICE_SNIPER_EMPTY);
     p.ammo=2;assert(bg_firstperson_service(&p,&seconds,&loop)==BG_SERVICE_SNIPER_FULL);
+    p.weapon=BG_W_NEEDLER;
+    for(int ammo=0;ammo<20;ammo++){
+        p.ammo=ammo;
+        for(int tick=0;tick<70;tick++){
+            p.anim_time=tick/30.f;
+            assert(bg_firstperson_service(&p,&seconds,&loop)==BG_SERVICE_NEEDLER);
+            assert(seconds==p.anim_time&&!loop);
+        }
+    }
+    p.reload=0;assert(bg_firstperson_service(&p,&seconds,&loop)==-1);
     p.reload=0;p.weapon=BG_W_PLASMA_PISTOL;p.overheated=true;p.heat=1;
     assert(bg_firstperson_service(&p,&seconds,&loop)==BG_SERVICE_HEAT_ENTER&&seconds==0&&!loop);
     p.overheat_charged[0]=true;

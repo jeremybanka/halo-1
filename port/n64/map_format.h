@@ -15,4 +15,7 @@ enum {
 enum { BG_MAP_MAGIC = 0x484d3634, BG_MAP_VERSION = 1,
        BG_MAP_HEADER_BYTES = 16 + BG_MAP_SECTIONS * 12 };
 typedef struct { uint32_t offset, count, stride; } bg_map_section;
+/* BG_MAP_TEXTURE_OVERLAY byte: legacy 0/1 retain identical draw commands.
+ * New maps may add 2 = alpha-tested depth writer, 4 = two-sided geometry.
+ * Transparent and depth-writing cutout flags are mutually exclusive. */
 #endif

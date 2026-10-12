@@ -3,7 +3,11 @@
 #include <math.h>
 #include <string.h>
 #include "map.h"
+#include "terrain.h"
+#include "pickup_rules.h"
+#include "movement.h"
 #include "game.h"
+#include "blam/vehicle_physics.h"
 /* Separately named fixture: controller edges navigate production menus.
  * Combat is staged, but health, damage, respawn, score limit and game-over
  * dispatch are the normal simulation. No scores/winner are assigned. */
@@ -58,6 +62,29 @@ static const step script[]={
  RESUME_CHECK
  {BG_FRONT_RESULTS,4,1,BG_BUTTON_A},
 #endif
+#ifdef BG_MAPS_CYCLE
+ /* Existing Wizard/Blood/Wizard proof, then the three new maps. */
+ {BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},{BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},
+ {BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},{BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},
+ {BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},{BG_FRONT_MAP,1,1,BG_BUTTON_A},
+ {BG_FRONT_TYPE,1,1,BG_BUTTON_A},{BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
+ {BG_FRONT_PREGAME,1,1,BG_BUTTON_A},{BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
+ RESUME_CHECK
+ {BG_FRONT_RESULTS,2,1,BG_BUTTON_A},
+ {BG_FRONT_MAP,1,1,BG_BUTTON_D_RIGHT},{BG_FRONT_MAP,1,1,BG_BUTTON_A},
+ {BG_FRONT_TYPE,1,1,BG_BUTTON_A},{BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
+ {BG_FRONT_PREGAME,1,1,BG_BUTTON_A},{BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
+ RESUME_CHECK
+ {BG_FRONT_RESULTS,2,1,BG_BUTTON_A},
+ {BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},{BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},
+ {BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},{BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},
+ {BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},{BG_FRONT_MAP,1,1,BG_BUTTON_D_LEFT},
+ {BG_FRONT_MAP,1,1,BG_BUTTON_A},{BG_FRONT_TYPE,1,1,BG_BUTTON_A},
+ {BG_FRONT_PREGAME,1,1,BG_BUTTON_A},{BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
+ {BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
+ RESUME_CHECK
+ {BG_FRONT_RESULTS,2,1,BG_BUTTON_A},
+#endif
  {BG_FRONT_MAP,3,1,BG_BUTTON_B},
  {BG_FRONT_JOIN,2,1,BG_BUTTON_B},{BG_FRONT_JOIN,2,1,BG_BUTTON_B},
  {BG_FRONT_JOIN,2,1,BG_BUTTON_B},{BG_FRONT_MULTIPLAYER,3,1,BG_BUTTON_B},
@@ -106,17 +133,53 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
                (s->page==BG_FRONT_PLAY&&f->page==BG_FRONT_PREGAME));entered=0;return;
     }
     if(!entered)entered=now;
-    if(now-entered<s->seconds*1000000ull)return;
+    unsigned dwell=s->seconds;
+#ifdef BG_MAPS_CYCLE
+    if(s->page!=BG_FRONT_PLAY&&s->page!=BG_FRONT_QUIT&&dwell>1)dwell=1;
+#endif
+    if(now-entered<dwell*1000000ull)return;
     for(unsigned p=0;p<4;p++)if(s->ports&(1u<<p))raw[p].held=raw[p].pressed=s->buttons;
     if(s->page==BG_FRONT_RESULTS){assert(f->count==BG_FRONTEND_QA_PLAYERS&&f->final_scores[0]==15&&f->winner==0);}
     if(++current==sizeof(script)/sizeof(script[0])){
 #ifdef WIZARD_CYCLE
-        assert(resumed==3&&!quit_pending);
+        assert(resumed==
+#ifdef BG_MAPS_CYCLE
+ 6
+#else
+ 3
+#endif
+ &&!quit_pending);
 #endif
         complete=true;current--;
     }
     entered=0;
 }
+#ifdef BG_STREAM_MAPS
+static bool new_map_duel(bg_player*a,bg_player*b) {
+    static unsigned selected=~0u;static float pair[2][3];
+    unsigned id=bg_map_id();if(id==BG_MAP_BLOOD_GULCH||id==BG_MAP_WIZARD)return false;
+    if(selected!=id){
+        bool found=false;
+        for(unsigned s=0;s<bg_spawn_count&&!found;s++)if(bg_slayer_spawns[s])for(unsigned d=0;d<4&&!found;d++){
+            bg_player x=*a,y=*b;memcpy(x.pos,bg_spawns[s].pos,12);
+            x.pos[1]=bg_floor(x.pos[0],x.pos[2],x.pos[1]+.5f)+.015f;memcpy(y.pos,x.pos,12);
+            y.pos[d/2?2:0]+=(d&1)?-.8f:.8f;y.pos[1]=bg_floor(y.pos[0],y.pos[2],x.pos[1]+.5f)+.015f;
+            if(fabsf(x.pos[1]-y.pos[1])>.05f||!bg_terrain_clearance(&x)||!bg_terrain_clearance(&y))continue;
+            float origin[3]={x.pos[0],x.pos[1]+bg_eye_height(&x),x.pos[2]},dir[3];float length=0;
+            for(unsigned k=0;k<3;k++){dir[k]=y.pos[k]-origin[k]+(k==1?.35f:0);length+=dir[k]*dir[k];}
+            length=sqrtf(length);for(unsigned k=0;k<3;k++)dir[k]/=length;
+            if(bg_world_raycast(origin,dir,length)<length-.01f)continue;
+            memcpy(pair[0],x.pos,12);memcpy(pair[1],y.pos,12);found=true;
+        }
+        assert(found);selected=id;
+    }
+    memcpy(a->pos,pair[0],12);memcpy(b->pos,pair[1],12);
+    float dx=b->pos[0]-a->pos[0],dz=b->pos[2]-a->pos[2];
+    a->yaw=-atan2f(dz,dx);b->yaw=a->yaw+3.14159265f;
+    a->pitch=atan2f(b->pos[1]+.35f-a->pos[1]-bg_eye_height(a),hypotf(dx,dz));
+    return true;
+}
+#endif
 void bg_front_qa_tick(bg_input in[4],float seconds){
     memset(in,0,4*sizeof(*in));if(bg_match_finished()||seconds<2)return;
     /* Exercise both fenced workspaces for all four players, including the
@@ -132,6 +195,11 @@ void bg_front_qa_tick(bg_input in[4],float seconds){
     bg_player*a=&bg_players[0],*b=&bg_players[1];
     if(b->health<=0)return;
     if(a->weapon!=BG_W_SHOTGUN||a->ammo==0)bg_give_weapon(0,BG_W_SHOTGUN);
+    bool staged=false;
+#ifdef BG_STREAM_MAPS
+    staged=new_map_duel(a,b);
+#endif
+    if(!staged){
     float ceiling=100;
 #ifdef BG_STREAM_MAPS
     if(bg_map_current()->id==BG_MAP_WIZARD)ceiling=-3;
@@ -139,6 +207,7 @@ void bg_front_qa_tick(bg_input in[4],float seconds){
     a->pos[0]=0;a->pos[2]=4;a->pos[1]=bg_floor(0,4,ceiling)+.015f;
     b->pos[0]=.8f;b->pos[2]=4;b->pos[1]=bg_floor(.8f,4,ceiling)+.015f;
     a->yaw=0;b->yaw=3.14159265f;a->pitch=atan2f(b->pos[1]+.35f-(a->pos[1]+.62f),.8f);
+    }
     a->vy=b->vy=0;a->grounded=b->grounded=true;
     memcpy(a->last_pos,a->pos,sizeof(a->pos));memcpy(b->last_pos,b->pos,sizeof(b->pos));
     in[0].fire=!a->fire_held;

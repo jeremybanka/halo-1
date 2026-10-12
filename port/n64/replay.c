@@ -38,6 +38,7 @@ static void equip(unsigned p,int weapon,bg_input*in){
 }
 #ifdef BG_STREAM_MAPS
 #include "wizard_replay.h"
+#include "new_map_replay.h"
 #endif
 static void start_vehicles(void){
     const float locations[4][2]={{-5,4},{5,4},{0,-1},{0,9}};
@@ -159,6 +160,7 @@ static void driving_input(bg_input input[BG_PLAYERS],float t){
 void bg_replay_input(bg_input input[BG_PLAYERS],float time){
 #ifdef BG_STREAM_MAPS
     if(bg_map_current()->id==BG_MAP_WIZARD){wizard_replay_input(input,time);return;}
+    if(bg_map_current()->id!=BG_MAP_BLOOD_GULCH){new_map_replay_input(input,time);return;}
 #endif
     memset(input,0,sizeof(bg_input)*BG_PLAYERS);
     int next_cycle=(int)(time/REPLAY_DURATION);float t=fmodf(fmaxf(0,time),REPLAY_DURATION);

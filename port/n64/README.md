@@ -36,10 +36,14 @@ The current on-foot control pass is documented in [MOVEMENT.md](MOVEMENT.md).
 The maintained cleanup, validation baseline, module ownership and compiler
 contracts are documented in [RUNTIME.md](RUNTIME.md).
 
+The three-map addition, source rules, material approximations and reproduction
+checks are documented in [MAP_EXPANSION.md](MAP_EXPANSION.md).
+
 ## Play
 
-Blood Gulch and Wizard are selectable in the original local multiplayer menu;
-other maps and modes remain greyed out. Both use the same one-to-four-player
+Blood Gulch, Wizard, Hang 'Em High, Chill Out and Battle Creek are selectable
+in the original local multiplayer menu;
+other maps and modes remain greyed out. All five use the same one-to-four-player
 Slayer rules, weapons, animation, HUD, profiles, countdown and results flow.
 Wizard keeps the Xbox map's plasma-pistol/no-grenade starting loadout, 16
 Slayer-eligible starts, 30 item placements, four paired teleporter links and

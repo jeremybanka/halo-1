@@ -37,21 +37,25 @@ static bg_triangle *triangles;
 static bool loaded;
 static unsigned resident;
 static bg_map_info current = {.id = BG_MAP_BLOOD_GULCH, .origin = {68, -118, 0}, .void_height = -8};
-static const char *const names[] = {"bloodgulch", "wizard"};
+static const struct { unsigned id; const char *name,*world; } catalog[] = {
+#define BG_MAP(id,symbol,name) {id,name,"rom:/maps/" name "-world.bin"},
+#include "map_catalog.def"
+#undef BG_MAP
+};
 static unsigned map_index(unsigned id) {
-    assertf(id == BG_MAP_BLOOD_GULCH || id == BG_MAP_WIZARD, "Unsupported map %u", id);
-    return id == BG_MAP_WIZARD;
+    for(unsigned i=0;i<sizeof(catalog)/sizeof(*catalog);i++)if(catalog[i].id==id)return i;
+    assertf(false, "Unsupported map %u", id);return 0;
 }
 const bg_map_info *bg_map_current(void) { return &current; }
 bool bg_map_loaded(void) { return loaded; }
 unsigned bg_map_resident_bytes(void) { return resident; }
 const char *bg_map_world_path(void) {
 #ifdef N64
-    return current.id == BG_MAP_WIZARD ? "rom:/maps/wizard-world.bin" : "rom:/maps/bloodgulch-world.bin";
+    return catalog[map_index(current.id)].world;
 #else
     static char path[512];
     const char *directory = getenv("BG_MAP_DIRECTORY");
-    snprintf(path, sizeof(path), "%s/%s-world.bin", directory ? directory : "halo64-assets/generated/maps", names[map_index(current.id)]);
+    snprintf(path, sizeof(path), "%s/%s-world.bin", directory ? directory : "halo64-assets/generated/maps", catalog[map_index(current.id)].name);
     return path;
 #endif
 }
@@ -132,10 +136,10 @@ bool bg_map_load(unsigned id) {
     bg_map_unload();
     char path[512];
 #ifdef N64
-    snprintf(path, sizeof(path), "rom:/maps/%s.map64", names[index]);
+    snprintf(path, sizeof(path), "rom:/maps/%s.map64", catalog[index].name);
 #else
     const char *directory = getenv("BG_MAP_DIRECTORY");
-    snprintf(path, sizeof(path), "%s/%s.map64", directory ? directory : "halo64-assets/generated/maps", names[index]);
+    snprintf(path, sizeof(path), "%s/%s.map64", directory ? directory : "halo64-assets/generated/maps", catalog[index].name);
 #endif
     FILE *f = fopen(path, "rb"); assertf(f, "Map bank %s", path);
     uint8_t header[BG_MAP_HEADER_BYTES];
@@ -264,7 +268,8 @@ bool bg_map_load(unsigned id) {
         assertf(bg_grid_indices[i] < bg_collision_count, "Map grid triangle");
     for (unsigned i = 0; i < bg_material_count; i++)
         assertf((bg_texture_sizes[i] == 32 || (bg_texture_sizes[i] == 64 && bg_texture_ci4[i])) &&
-                bg_texture_ci4[i] <= 1 && bg_texture_overlay[i] <= 1, "Map texture format");
+                bg_texture_ci4[i] <= 1 && bg_texture_overlay[i] <= 7 &&
+                (bg_texture_overlay[i]&3)!=3, "Map texture format");
     for (unsigned i = 0; i < bg_chunk_count; i++) {
         const bg_chunk *c = &bg_chunks[i];
         assertf(c->material < bg_material_count && c->first % 2 == 0 && c->count <= 60 &&

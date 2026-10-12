@@ -53,6 +53,6 @@ int main(void){
     const int wizard_scores[4]={15,3,2,1};bg_front_results(&f,wizard_scores,0);
     press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP&&f.map==10);
     press(&f,0,BG_BUTTON_D_LEFT);assert(f.map==9);
-    for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i)==(i==9||i==10));
+    for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i)==(i==0||i==5||i==6||i==9||i==10));
     puts("front-end: all rosters/hosts, two maps, 26 presets, capability guards, countdown, cancel, results, controls PASS");
 }

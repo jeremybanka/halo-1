@@ -25,8 +25,9 @@ static void model_qa_stage(uint64_t now){
         if(bg_map_id()==BG_MAP_BATTLE_CREEK&&(BG_MAP_QA==1||BG_MAP_QA==3)){
             /* Owned-cache Slayer starts in the courtyard and beside the river. */
             const unsigned courtyard[]={62,63,66,25};
-            assertf(courtyard[p]<bg_spawn_count&&bg_slayer_spawns[courtyard[p]],"Battle Creek inspection start");
-            s=&bg_spawns[courtyard[p]];
+            const unsigned start=courtyard[BG_MAP_QA==3?3:p];
+            assertf(start<bg_spawn_count&&bg_slayer_spawns[start],"Battle Creek inspection start");
+            s=&bg_spawns[start];
         }
         memcpy(q->pos,s->pos,12);q->pos[1]=bg_floor(q->pos[0],q->pos[2],q->pos[1]+.5f)+.015f;
         q->yaw=s->yaw;q->pitch=-.06f;q->invisibility=1;q->camo_opacity=0;

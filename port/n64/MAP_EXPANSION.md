@@ -27,10 +27,11 @@ Source graphics/audio remain private in `halo64-assets`.
 - [x] Blood Gulch/Wizard comparison against the merged checkpoint.
 - [x] Native normal-budget cycle and assertion-logging validator: 117/117 steps,
       six completed matches, zero validator RDP errors/warnings.
-- [ ] Final validator cycle without the diagnostic assertion wrapper.
+- [x] Final validator cycle without the diagnostic assertion wrapper: 117/117,
+      six matches and zero RDP errors/warnings.
 - [x] Native gameplay screenshots and silent gameplay videos for all three maps.
-- [ ] Committed release boot.
-- [ ] One PR containing all three maps.
+- [x] Committed production release boot reaches the original main menu.
+- [x] One PR containing all three maps: https://github.com/jeremybanka/halo-1/pull/6.
 
 ## Source limits
 

@@ -1,4 +1,4 @@
-# Blood Gulch for Nintendo 64
+# Halo: Combat Evolved for Nintendo 64
 
 A four-player local Slayer demake built with libdragon and Tiny3D. It boots on
 an emulated **4 MiB N64**, using the supplied Xbox disc for map, model,
@@ -38,11 +38,44 @@ contracts are documented in [RUNTIME.md](RUNTIME.md).
 
 ## Play
 
-Load `build/n64-release/halo-blood-gulch-paced30-rspq32k.z64` in ares as a Nintendo 64
+Blood Gulch and Wizard are selectable in the original local multiplayer menu;
+other maps and modes remain greyed out. Both use the same one-to-four-player
+Slayer rules, weapons, animation, HUD, profiles, countdown and results flow.
+Wizard keeps the Xbox map's plasma-pistol/no-grenade starting loadout, 16
+Slayer-eligible starts, 30 item placements, four paired teleporter links and
+climbable ladder sheets. Its structural geometry and collision are retained;
+32×32 base textures and original lightmaps baked into vertex colors provide
+the compact material approximation. Small emissive sheets use the established
+wall clearance and alpha-tested light treatment.
+Wizard's source audit, memory lifetime and pending Ares acceptance checks are
+recorded in [WIZARD.md](WIZARD.md).
+
+`pack_maps.py` builds private big-endian ROM banks under
+`halo64-assets/generated/maps/`. Blood Gulch is serialized from the existing
+emitted C values, preserving its geometry, UVs, palette and collision floats.
+`map.c` allocates individual sections only for the selected map, reclaims
+serialized collision indices after fixing corner pointers, and frees map
+residency at menu boundaries. World render blocks are fenced and freed before
+their backing data. The separate original collision/BVH bank is loaded lazily
+for the selected map; shared characters, weapons and audio are not duplicated.
+Quit confirmation retains the active world so cancelling it resumes the match.
+
+To regenerate banks from locally owned caches:
+`build/n64-python/bin/python port/n64/pack_maps.py`.
+Normal builds consume the baked banks without reopening the disc. Use
+`--initial-map wizard` for the default menu selection or a Wizard replay;
+`--wizard-qa 0..3` holds source-start, upper-route, teleporter or one-player
+inspection views. `test_maps.py` runs the real loader and game under sanitizers,
+including repeated map switches, source spawn clearance, teleports, ladders
+and a 2,250-tick four-player combat replay. Ares/console pixels and VI timing
+are separate acceptance checks; source triangle counts do not certify FPS.
+
+
+Load `build/n64-release/halo-64-paced30-rspq32k.z64` in ares as a Nintendo 64
 cartridge. Build the recommended four-player profile with
 `build/n64-python/bin/python port/n64/build.py --preset release --output-dir build/n64-release`.
 This uses three display surfaces for four player views. The ordinary
-`halo-blood-gulch.z64` retains the unpaced presenter.
+`halo-64.z64` retains the unpaced presenter.
 The merged reload/overheat checkpoint measured **23.9 displayed FPS overall /
 26.1 in combat / 21.9 around vehicles**, with 43 KiB free in the quiet Ares
 fixture. The vehicle section is below the >25 FPS development target. P95 pose

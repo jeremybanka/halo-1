@@ -46,5 +46,13 @@ int main(void){
     press(&f,0,BG_BUTTON_B);press(&f,0,BG_BUTTON_B);assert(f.styles[0]==BG_CONTROLS_XBOX);
     joins(&f,3,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);f.map=0;
     bg_control_state empty[4]={0};assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_NONE&&f.page==BG_FRONT_JOIN);
-    puts("front-end: all rosters/hosts, 26 presets, capability guards, countdown, cancel, results, controls PASS");
+    joins(&f,15,0);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.map==10);
+    press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_TYPE);
+    press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME&&f.map==10);
+    assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_START_MATCH);
+    const int wizard_scores[4]={15,3,2,1};bg_front_results(&f,wizard_scores,0);
+    press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP&&f.map==10);
+    press(&f,0,BG_BUTTON_D_LEFT);assert(f.map==9);
+    for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i)==(i==9||i==10));
+    puts("front-end: all rosters/hosts, two maps, 26 presets, capability guards, countdown, cancel, results, controls PASS");
 }

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <math.h>
 #include <string.h>
+#include "map.h"
 /* Separately named fixture: controller edges navigate production menus.
  * Combat is staged, but health, damage, respawn, score limit and game-over
  * dispatch are the normal simulation. No scores/winner are assigned. */
@@ -9,6 +10,13 @@
 #define BG_FRONTEND_QA_PLAYERS 4
 #endif
 #define ALL (BG_FRONTEND_QA_PLAYERS==3?11:15)
+#if defined(BG_INITIAL_MAP) && BG_INITIAL_MAP == 10
+#define MAP_PROBE BG_BUTTON_D_RIGHT
+#define MAP_RETURN BG_BUTTON_D_LEFT
+#else
+#define MAP_PROBE BG_BUTTON_D_LEFT
+#define MAP_RETURN BG_BUTTON_D_RIGHT
+#endif
 typedef struct {bg_front_page page;unsigned seconds,ports;uint32_t buttons;} step;
 static const step script[]={
  {BG_FRONT_MAIN,4,1,BG_BUTTON_D_UP},{BG_FRONT_MAIN,2,1,BG_BUTTON_A},
@@ -16,8 +24,8 @@ static const step script[]={
  {BG_FRONT_MULTIPLAYER,4,1,BG_BUTTON_A},
  {BG_FRONT_JOIN,4,ALL,BG_BUTTON_START},{BG_FRONT_JOIN,3,ALL,BG_BUTTON_A},
  {BG_FRONT_JOIN,4,1,BG_BUTTON_A},
- {BG_FRONT_MAP,4,1,BG_BUTTON_D_RIGHT},{BG_FRONT_MAP,3,1,BG_BUTTON_A},
- {BG_FRONT_MAP,2,1,BG_BUTTON_D_LEFT},{BG_FRONT_MAP,2,1,BG_BUTTON_A},
+ {BG_FRONT_MAP,4,1,MAP_PROBE},{BG_FRONT_MAP,3,1,BG_BUTTON_A},
+ {BG_FRONT_MAP,2,1,MAP_RETURN},{BG_FRONT_MAP,2,1,BG_BUTTON_A},
  {BG_FRONT_TYPE,4,1,BG_BUTTON_D_RIGHT},{BG_FRONT_TYPE,3,1,BG_BUTTON_A},
  {BG_FRONT_TYPE,2,1,BG_BUTTON_D_LEFT},{BG_FRONT_TYPE,2,1,BG_BUTTON_A},
  {BG_FRONT_PREGAME,2,1,BG_BUTTON_C_LEFT},{BG_FRONT_PREGAME,2,1,BG_BUTTON_B},
@@ -64,8 +72,12 @@ void bg_front_qa_tick(bg_input in[4],float seconds){
     bg_player*a=&bg_players[0],*b=&bg_players[1];
     if(b->health<=0)return;
     if(a->weapon!=BG_W_SHOTGUN||a->ammo==0)bg_give_weapon(0,BG_W_SHOTGUN);
-    a->pos[0]=0;a->pos[2]=4;a->pos[1]=bg_floor(0,4,100)+.015f;
-    b->pos[0]=.8f;b->pos[2]=4;b->pos[1]=bg_floor(.8f,4,100)+.015f;
+    float ceiling=100;
+#ifdef BG_STREAM_MAPS
+    if(bg_map_current()->id==BG_MAP_WIZARD)ceiling=-3;
+#endif
+    a->pos[0]=0;a->pos[2]=4;a->pos[1]=bg_floor(0,4,ceiling)+.015f;
+    b->pos[0]=.8f;b->pos[2]=4;b->pos[1]=bg_floor(.8f,4,ceiling)+.015f;
     a->yaw=0;b->yaw=3.14159265f;a->pitch=atan2f(b->pos[1]+.35f-(a->pos[1]+.62f),.8f);
     a->vy=b->vy=0;a->grounded=b->grounded=true;
     memcpy(a->last_pos,a->pos,sizeof(a->pos));memcpy(b->last_pos,b->pos,sizeof(b->pos));

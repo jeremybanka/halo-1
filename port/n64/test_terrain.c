@@ -9,6 +9,7 @@ static float roof_p[3][3]={{-10,3,-10},{10,3,-10},{0,3,10}};
 static float wall_p[3][3]={{1,-10,-10},{1,10,-10},{1,0,10}};
 const bg_triangle bg_collision[]={{{floor_p[0],floor_p[1],floor_p[2]}},{{roof_p[0],roof_p[1],roof_p[2]}},{{wall_p[0],wall_p[1],wall_p[2]}}};
 const unsigned bg_collision_count=3;
+const uint8_t bg_collision_flags[3]={BG_SURFACE_FLOOR,BG_SURFACE_FLOOR,0};
 const bg_cell bg_grid[BG_GRID*BG_GRID]={{0,3}};
 const uint16_t bg_grid_indices[]={0,1,2};
 const float bg_grid_origin[2]={-10,-10},bg_grid_size[2]={20,20};

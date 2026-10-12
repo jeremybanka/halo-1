@@ -2,11 +2,16 @@
 #include "scene.h"
 #include "sound.h"
 #include "blam/vehicle_physics.h"
+#include "map.h"
 void bg_residency_menu(bool release_bodies) {
     bg_vehicle_world_release();
     bg_scene_release_firstperson();
     if (release_bodies)
         bg_scene_release_bodies();
+#ifdef BG_STREAM_MAPS
+    bg_scene_release_world();
+    bg_map_unload();
+#endif
     bg_sound_frontend(true);
 }
 void bg_residency_quit_confirmation(void) {

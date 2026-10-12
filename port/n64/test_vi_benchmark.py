@@ -49,7 +49,7 @@ class QuietBuild(unittest.TestCase):
                 self.assertNotIn(forbidden, c)
         rom = next(c for c in calls if Path(c[0]).name == 'n64tool')
         self.assertEqual(Path(rom[rom.index('--output') + 1]).name,
-                         'halo-blood-gulch-replay-vi-benchmark.z64')
+                         'halo-64-replay-vi-benchmark.z64')
 
     def test_quiet_paced(self):
         calls = self.build(['--vi-benchmark', '--paced30'])
@@ -58,7 +58,7 @@ class QuietBuild(unittest.TestCase):
         self.assertNotIn('-DBG_PROFILE', compile)
         rom = next(c for c in calls if Path(c[0]).name == 'n64tool')
         self.assertEqual(Path(rom[rom.index('--output') + 1]).name,
-                         'halo-blood-gulch-replay-vi-benchmark-paced30.z64')
+                         'halo-64-replay-vi-benchmark-paced30.z64')
 
     def test_legacy_benchmark(self):
         calls = self.build(['--benchmark', '--paced30'])
@@ -68,7 +68,7 @@ class QuietBuild(unittest.TestCase):
         self.assertNotIn('-DBG_VI_BENCHMARK', compile)
         rom = next(c for c in calls if Path(c[0]).name == 'n64tool')
         self.assertEqual(Path(rom[rom.index('--output') + 1]).name,
-                         'halo-blood-gulch-replay-benchmark-paced30.z64')
+                         'halo-64-replay-benchmark-paced30.z64')
 
     def test_extra_surfaces_are_explicit(self):
         for buffers in (3, 4, 5):
@@ -78,7 +78,7 @@ class QuietBuild(unittest.TestCase):
             rom = next(c for c in calls if Path(c[0]).name == 'n64tool')
             suffix = f'-buffers{buffers}' if buffers > 3 else ''
             self.assertEqual(Path(rom[rom.index('--output') + 1]).name,
-                             'halo-blood-gulch-replay-vi-benchmark-paced30' + suffix + '.z64')
+                             'halo-64-replay-vi-benchmark-paced30' + suffix + '.z64')
         for buffers in (2, 3, 4, 5, 6):
             with self.subTest(buffers=buffers), self.assertRaises(SystemExit):
                 self.build(['--paced30-buffers', str(buffers)])
@@ -94,7 +94,7 @@ class QuietBuild(unittest.TestCase):
             self.assertNotIn(f'-DBG_PACED30_BUFFERS={buffers}', compile)
             rom = next(c for c in calls if Path(c[0]).name == 'n64tool')
             self.assertEqual(Path(rom[rom.index('--output') + 1]).name,
-                             'halo-blood-gulch-snapshot-1148.z64')
+                             'halo-64-snapshot-1148.z64')
 
     def test_quiet_rejects_instrumented_or_different_scenes(self):
         for flags in (['--benchmark'], ['--profile'], ['--validate'], ['--gpu-diagnostic'],

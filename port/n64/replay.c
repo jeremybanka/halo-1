@@ -1,4 +1,7 @@
 #include "replay.h"
+#include "map.h"
+#include "movement.h"
+#include "pickup_rules.h"
 #include <math.h>
 #include <string.h>
 
@@ -33,6 +36,9 @@ static void equip(unsigned p,int weapon,bg_input*in){
      * active slot. Use the same switch action available to a human player. */
     if(bg_players[p].weapon!=weapon)in->switch_weapon=true;
 }
+#ifdef BG_STREAM_MAPS
+#include "wizard_replay.h"
+#endif
 static void start_vehicles(void){
     const float locations[4][2]={{-5,4},{5,4},{0,-1},{0,9}};
     const float yaw[4]={0,REPLAY_PI,-REPLAY_PI/2,REPLAY_PI/2};
@@ -151,6 +157,9 @@ static void driving_input(bg_input input[BG_PLAYERS],float t){
     }
 }
 void bg_replay_input(bg_input input[BG_PLAYERS],float time){
+#ifdef BG_STREAM_MAPS
+    if(bg_map_current()->id==BG_MAP_WIZARD){wizard_replay_input(input,time);return;}
+#endif
     memset(input,0,sizeof(bg_input)*BG_PLAYERS);
     int next_cycle=(int)(time/REPLAY_DURATION);float t=fmodf(fmaxf(0,time),REPLAY_DURATION);
     if(time<previous_time||next_cycle!=cycle){

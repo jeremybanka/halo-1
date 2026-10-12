@@ -5,6 +5,7 @@
 #define BG_SCALE 32.0f
 #define BG_TERRAIN_SCALE 256.0f
 #define BG_GRID 24
+enum { BG_SURFACE_FLOOR = 1, BG_SURFACE_CLIMBABLE = 2 };
 /* Shared immutable float corners retain the exact collision coordinates.
  * Three 32-bit pointers replace nine repeated floats on the N64. */
 typedef struct { const float *p[3]; } bg_triangle;
@@ -16,6 +17,20 @@ typedef struct {
     int16_t bounds[6];
     uint16_t index_first, index_count;
 } bg_chunk;
+#ifdef BG_STREAM_MAPS
+extern const bg_triangle *bg_collision;
+extern unsigned bg_collision_count, bg_spawn_count;
+extern const uint8_t *bg_collision_flags;
+extern const bg_cell *bg_grid;
+extern const uint16_t *bg_grid_indices;
+extern const float *bg_grid_origin, *bg_grid_size;
+extern const bg_spawn *bg_spawns;
+extern unsigned bg_chunk_count, bg_vertex_count, bg_material_count;
+extern const bg_chunk *bg_chunks;
+extern int16_t *bg_chunk_indices;
+extern const uint8_t *bg_texture_sizes, *bg_texture_ci4, *bg_texture_overlay;
+extern const uint16_t *bg_ground_palette;
+#else
 extern const bg_triangle bg_collision[];
 extern const unsigned bg_collision_count;
 extern const uint8_t bg_collision_flags[]; /* Bit 0: upward, floor-query eligible. */
@@ -33,4 +48,5 @@ extern int16_t bg_chunk_indices[];
 extern const uint8_t bg_texture_sizes[], bg_texture_ci4[];
 extern const uint8_t bg_texture_overlay[];
 extern const uint16_t bg_ground_palette[16];
+#endif
 #endif

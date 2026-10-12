@@ -29,6 +29,8 @@ def parse_args(argv=None):
         choices=["release"],
         help="Maintained 4 MiB release: paced presentation, three surfaces, 32 KiB queues",
     )
+    parser.add_argument("--initial-map", choices=("bloodgulch", "wizard"), default="bloodgulch",
+                        help="Default menu selection; QA/replay starts with this map")
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -148,6 +150,8 @@ def parse_args(argv=None):
         help="Use original Blam BSP collision; requires an 8 MiB Expansion Pak",
     )
     mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--wizard-qa", type=int, choices=range(4),
+                      help="Frozen Wizard source starts, upper routes, teleporters and one-player views")
     mode.add_argument(
         "--combat-qa",
         type=int,
@@ -273,6 +277,8 @@ def parse_args(argv=None):
     if args.preset == "release":
         args.paced30 = True
         args.paced30_buffers = args.paced30_buffers or 3
+    if args.wizard_qa is not None:
+        args.initial_map = "wizard"
     if args.lto is None:
         args.lto = args.preset == "release"
     if args.rspq_buffer_kib is None:
@@ -358,6 +364,8 @@ def compile_options(args, sdk, tiny, out, source):
     return [
         *(["-flto"] if args.lto else []),
         *(["-DBG_BODY_CANDIDATES"] if args.vehicle_body_candidates else []),
+        "-DBG_STREAM_MAPS",
+        "-DBG_INITIAL_MAP=" + str(10 if args.initial_map == "wizard" else 9),
         "-DBG_BENCHMARK_PAGE=" + str(args.benchmark_page),
         *(["-DBG_BENCHMARK_HOLD_PAGE"] if args.benchmark_page else []),
         "-march=vr4300",
@@ -421,9 +429,11 @@ def compile_options(args, sdk, tiny, out, source):
             or args.environment_qa
             or args.ground_qa
             or args.hud_qa
+            or args.wizard_qa is not None
             else []
         ),
         *(["-DBG_AIM_QA=" + str(args.aim_qa)] if args.aim_qa is not None else []),
+        *(["-DBG_WIZARD_QA=" + str(args.wizard_qa)] if args.wizard_qa is not None else []),
         *(["-DBG_HUD_QA"] if args.hud_qa else []),
         *(["-DBG_HUD_QA_PAGE=" + str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
         *(["-DBG_PLASMA_QA=" + str(args.plasma_qa)] if args.plasma_qa is not None else []),
@@ -492,12 +502,14 @@ def compile_options(args, sdk, tiny, out, source):
 
 def rom_name(args):
     name = (
-        "halo-blood-gulch-showcase-" + args.showcase
+        "halo-64-showcase-" + args.showcase
         if args.showcase
-        else "halo-blood-gulch-replay" if args.demo else "halo-blood-gulch"
+        else "halo-64-replay" if args.demo else "halo-64"
     )
     if args.snapshot_tick is not None:
         name += "-snapshot-" + str(args.snapshot_tick)
+    if args.wizard_qa is not None:
+        name += "-wizard-qa" + str(args.wizard_qa)
     if args.shield_qa is not None:
         name += f"-shield{args.shield_qa}"
     if args.interaction_qa is not None:
@@ -770,6 +782,17 @@ def main():
         ):
             build_error("Stale combat bank; rerun port/n64/extract_combat.py: " + name)
     asset_root = out
+    maps_path = asset_root / "generated/maps/maps-report.json"
+    if not maps_path.exists():
+        build_error("Bake the per-map banks first: port/n64/pack_maps.py")
+    maps_report = json.loads(maps_path.read_text())
+    for name, expected in maps_report["inputs"].items():
+        if not (ROOT / name).is_file() or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error("Stale map bank; rerun port/n64/pack_maps.py: " + name)
+    for name, expected in maps_report["files"].items():
+        path = asset_root / "generated/maps" / name
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            build_error("Map bank differs from its source report: " + name)
     prompt_report = asset_root / "generated/prompt-icons/icons-report.json"
     if not prompt_report.exists():
         build_error("Bake local Xbox prompt icons first: port/n64/pack_prompt_icons.py")
@@ -802,6 +825,7 @@ def main():
         ]
     )
     sources = [
+        "map.c",
         "combat_geometry.c",
         "terrain.c",
         "movement.c",
@@ -859,10 +883,9 @@ def main():
     if args.frontend_qa:
         sources.append("frontend_qa.c")
     generated = [
-        "pickup_data.c",
+        "maps/common_data.c",
         "combat_data.c",
         "movement_data.c",
-        "sky_data.c",
         "camera_data.c",
         "shield_data.c",
         "interaction_defs.c",
@@ -870,8 +893,6 @@ def main():
         "vehicle_visuals_data.c",
         "weapon_effects_data.c",
         "vehicle_data.c",
-        "render_data.c",
-        "terrain_data.c",
         "models_data.c",
         "audio_data.c",
         "hud_data.c",
@@ -972,12 +993,18 @@ def main():
             target = out / "frontend-files" / source.name
             if not target.exists():
                 target.symlink_to(source.resolve())
+    maps_directory = out / "frontend-files/maps"
+    maps_directory.mkdir(parents=True, exist_ok=True)
+    for source in (asset_root / "generated/maps").iterdir():
+        if source.suffix in (".map64", ".bin"):
+            target = maps_directory / source.name
+            if not target.exists(): target.symlink_to(source.resolve())
     run([sdk / "bin/mkdfs", out / "frontend.dfs", out / "frontend-files"])
     run(
         [
             sdk / "bin/n64tool",
             "--title",
-            "HALO BLOOD GULCH",
+            "HALO 64",
             "--toc",
             "--output",
             rom,
@@ -1045,6 +1072,7 @@ def main():
         "service_ids": hashlib.sha256(
             (ROOT / "port/n64/interaction_services.def").read_bytes()
         ).hexdigest(),
+        "maps": maps_report,
         "options": {
             name: str(value) if isinstance(value, Path) else value
             for name, value in vars(args).items()

@@ -477,7 +477,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
             label(513, 133, y, value, white);
         }
         label(535, 4, 32, NULL, blue);
-        label(528, 330, 257, "Blood Gulch", white);
+        label(528, 330, 257, bg_front_maps[f->map].name, white);
         label(530, 400, 278, "Slayer", white);
         label(531, 342, 299, "Free-for-all", white);
         snprintf(value, sizeof(value), "%u", f->count);

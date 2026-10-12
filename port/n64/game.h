@@ -107,6 +107,7 @@ typedef struct {
     float health;
     int ammo, score;
     bool grounded;
+    bool climbing;
     float shield, shield_delay, heat, charge, recoil, gait, anim_time, melee_time, invisibility;
     /* Source damage flash decays independently of remaining shield vitality. */
     float shield_hit, shield_break, shield_break_pos[3];
@@ -198,8 +199,13 @@ typedef struct {
     float start[3], end[3];
 } bg_shot_trace;
 const bg_shot_trace *bg_sniper_trace(unsigned player);
+#ifdef BG_STREAM_MAPS
+extern const bg_teleporter *bg_teleporters;
+extern unsigned bg_teleporter_count;
+#else
 extern const bg_teleporter bg_teleporters[2];
 extern const unsigned bg_teleporter_count;
+#endif
 extern bg_player bg_players[BG_PLAYERS];
 /* Profile identity is independent of physical controller and viewport. */
 extern unsigned bg_player_profiles[BG_PLAYERS];

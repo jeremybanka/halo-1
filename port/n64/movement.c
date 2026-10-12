@@ -32,9 +32,16 @@ void bg_walk_velocity(bg_player*p,float forward,float strafe,float dt){
     float s=strafe*(bg_movement.run[2]+(bg_movement.sneak[2]-bg_movement.run[2])*c);
     float cy=cosf(p->yaw),sy=sinf(p->yaw),v[3]={cy*f+sy*s,0,-sy*f+cy*s};
     const float*n=p->ground_normal,*k=bg_movement.slope;
-    if(p->grounded&&n[1]>0){
+    if(p->grounded&&(n[1]>0||p->climbing)){
         float speed=hypotf(f,s);
-        v[1]=-(v[0]*n[0]+v[2]*n[2])/n[1];
+        if(p->climbing){
+            /* bipeds.c vertical-support branch: project aiming and strafe
+             * onto the wall, then amplify vertical intent by five. */
+            float cp=cosf(p->pitch);v[0]=cy*cp*f+sy*s;v[1]=sinf(p->pitch)*f;v[2]=-sy*cp*f+cy*s;
+            float into=v[0]*n[0]+v[1]*n[1]+v[2]*n[2];
+            for(unsigned a=0;a<3;a++)v[a]-=n[a]*into;
+            v[1]*=5;
+        }else v[1]=-(v[0]*n[0]+v[2]*n[2])/n[1];
         float len=sqrtf(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
         if(len>0){
             for(unsigned a=0;a<3;a++)v[a]/=len;

@@ -1,5 +1,6 @@
 /* Native CE solvers with bounded object, tag, and Blood Gulch world adapters. */
 #include "vehicle_physics.h"
+#include "../map.h"
 #include "vehicle_private.h"
 #include "../telemetry.h"
 #include "../word_round.h"
@@ -7,6 +8,8 @@
 #include <stdlib.h>
 #ifdef N64
 #include <libdragon.h>
+#elif defined(BG_STREAM_MAPS)
+#define assertf(c, ...) assert(c)
 #endif
 static struct vehicle_datum native[BG_MAX_VEHICLES];
 static float body_radius[BG_VEHICLE_COUNT];
@@ -77,23 +80,34 @@ static void stamps_load(void){
 
 /* Typed floats/topology have exactly the same big-endian representation as
  * the prior static N64 arrays. Only their residency changes at menu boundaries. */
-#ifdef N64
+#if defined(N64) || defined(BG_STREAM_MAPS)
 static void *world_blocks[7];
 static bool world_loaded;
 static void world_load(void){
  if(world_loaded)return;
  vehicle_workspace=calloc(1,sizeof(*vehicle_workspace));assertf(vehicle_workspace,"Vehicle workspace RAM");
- FILE*f=fopen("rom:/vehicle-world.bin","rb");assertf(f,"Vehicle world bank");
+#ifdef BG_STREAM_MAPS
+ const bg_map_info *map=bg_map_current();
+ const uint32_t (*layout)[2]=map->world_layout;unsigned world_bytes=map->world_bytes;
+ FILE*f=fopen(bg_map_world_path(),"rb");
+#else
+ const unsigned (*layout)[2]=bg_vehicle_world_layout;unsigned world_bytes=bg_vehicle_world_bytes;
+ FILE*f=fopen("rom:/vehicle-world.bin","rb");
+#endif
+ assertf(f,"Vehicle world bank");
  for(unsigned i=0;i<7;i++){
-  unsigned end=i<6?bg_vehicle_world_layout[i+1][0]:bg_vehicle_world_bytes;
-  unsigned size=end-bg_vehicle_world_layout[i][0];
+  unsigned end=i<6?layout[i+1][0]:world_bytes;
+  unsigned size=end-layout[i][0];
   world_blocks[i]=malloc(size);assertf(world_blocks[i],"Vehicle world RAM block %u (%u bytes)",i,size);
   assertf(fread(world_blocks[i],1,size,f)==size,"Vehicle world read");
+#if defined(BG_STREAM_MAPS) && !defined(__MIPSEB__)
+  bg_map_host_world_order(i,world_blocks[i],size);
+#endif
  }
  fclose(f);
- bg_vehicle_bsp=(struct collision_bsp){.bsp3d={.planes={bg_vehicle_world_layout[0][1],world_blocks[0],NULL}},
-  .surfaces={bg_vehicle_world_layout[1][1],world_blocks[1],NULL},.edges={bg_vehicle_world_layout[2][1],world_blocks[2],NULL},
-  .vertices={bg_vehicle_world_layout[3][1],world_blocks[3],NULL}};
+ bg_vehicle_bsp=(struct collision_bsp){.bsp3d={.planes={layout[0][1],world_blocks[0],NULL}},
+  .surfaces={layout[1][1],world_blocks[1],NULL},.edges={layout[2][1],world_blocks[2],NULL},
+  .vertices={layout[3][1],world_blocks[3],NULL}};
  bg_vehicle_bvh=world_blocks[4];bg_vehicle_surface_bounds=world_blocks[5];bg_vehicle_surface_indices=world_blocks[6];
  stamps_load();world_loaded=true;
 }
@@ -328,7 +342,7 @@ float bg_world_raycast_normal(const float origin[3],const float direction[3],flo
  if(distance<=.003f)return distance;
  world_load();
  float bias=.003f;
- real_point3d p={.n={origin[0]+direction[0]*bias+68,-origin[2]-direction[2]*bias-118,origin[1]+direction[1]*bias}};
+ real_point3d p={.n={origin[0]+direction[0]*bias+bg_map_origin()[0],-origin[2]-direction[2]*bias+bg_map_origin()[1],origin[1]+direction[1]*bias+bg_map_origin()[2]}};
  real_vector3d d={.n={direction[0]*(distance-bias),-direction[2]*(distance-bias),direction[1]*(distance-bias)}};
  float scaled[3],inverse[3];bool zero[3];
  for(unsigned k=0;k<3;k++){scaled[k]=p.n[k]*64;zero[k]=fabsf(d.n[k])<1e-12f;inverse[k]=zero[k]?0:1/(d.n[k]*64);}
@@ -366,7 +380,7 @@ void bg_world_camera_rays(const float origin[3],const float rays[5][3],const flo
  world_load();real_point3d p[5];real_vector3d d[5];float lo[3],hi[3],nearest[5];
  float scaled[5][3],inverse[5][3];bool parallel[5][3];
  for(unsigned i=0;i<5;i++){
-  p[i]=(real_point3d){.n={origin[0]+rays[i][0]*.003f+68,-origin[2]-rays[i][2]*.003f-118,origin[1]+rays[i][1]*.003f}};
+  p[i]=(real_point3d){.n={origin[0]+rays[i][0]*.003f+bg_map_origin()[0],-origin[2]-rays[i][2]*.003f+bg_map_origin()[1],origin[1]+rays[i][1]*.003f+bg_map_origin()[2]}};
   float length=MAX(0,reaches[i]-.003f);
   d[i]=(real_vector3d){.n={rays[i][0]*length,-rays[i][2]*length,rays[i][1]*length}};nearest[i]=1;
   for(unsigned a=0;a<3;a++){
@@ -429,7 +443,7 @@ static void publish(unsigned i){
  BG_VP_BEGIN;
  bg_vehicle*v=&bg_vehicles[i];struct vehicle_datum*n=&native[i];struct physics_instance instance;
  physics_instance_new(&instance,i);
- v->pos[0]=instance.world_matrix.position.x-68;v->pos[1]=instance.world_matrix.position.z;v->pos[2]=-instance.world_matrix.position.y-118;
+ v->pos[0]=instance.world_matrix.position.x-bg_map_origin()[0];v->pos[1]=instance.world_matrix.position.z-bg_map_origin()[2];v->pos[2]=-instance.world_matrix.position.y+bg_map_origin()[1];
  game_vector(&n->object.forward,v->forward);game_vector(&n->object.up,v->up);
  game_vector(&n->object.translational_velocity,v->velocity);game_vector(&n->object.angular_velocity,v->angular_velocity);
  for(int a=0;a<3;a++){v->velocity[a]*=30;v->angular_velocity[a]*=30;}
@@ -450,7 +464,7 @@ void bg_vehicle_physics_prepare(void){
   struct vehicle_datum*n=&native[i];memset(n,0,sizeof(*n));n->definition_index=v->kind;
   n->object.forward=(real_vector3d){.n={cosf(v->yaw)*cosf(v->pitch),sinf(v->yaw)*cosf(v->pitch),sinf(v->pitch)}};
   n->object.up=(real_vector3d){.n={-cosf(v->yaw)*sinf(v->pitch),-sinf(v->yaw)*sinf(v->pitch),cosf(v->pitch)}};
-  n->object.position=(real_point3d){.n={v->pos[0]+68,-v->pos[2]-118,v->pos[1]}};
+  n->object.position=(real_point3d){.n={v->pos[0]+bg_map_origin()[0],-v->pos[2]+bg_map_origin()[1],v->pos[1]+bg_map_origin()[2]}};
   real_matrix4x3 frame;matrix4x3_from_point_and_vectors(&frame,&n->object.position,&n->object.forward,&n->object.up);
   matrix4x3_transform_point(&frame,&bg_vehicle_physics_defs[v->kind].center_of_mass,&n->object.position);
   n->object.translational_velocity=halo_vector(v->velocity);scale_vector3d(&n->object.translational_velocity,1.f/30,&n->object.translational_velocity);
@@ -561,7 +575,7 @@ void bg_vehicle_physics_flip(unsigned i,const float player_position[3]){
  n->vehicle.flags|=FLAG(4);/* players.c flip action selects the roll/pitch direction from approach. */
  if(fabsf(n->object.forward.k)>.70710677f)n->vehicle.upending_type=(n->object.forward.k<0)+3;
  else{
-  real_vector3d delta={.n={n->object.position.x-(player_position[0]+68),n->object.position.y-(-player_position[2]-118),n->object.position.z-player_position[1]}};
+  real_vector3d delta={.n={n->object.position.x-(player_position[0]+bg_map_origin()[0]),n->object.position.y-(-player_position[2]+bg_map_origin()[1]),n->object.position.z-(player_position[1]+bg_map_origin()[2])}};
   cross_product3d(global_up3d,&delta,&delta);
   n->vehicle.upending_type=(dot_product3d(&delta,&n->object.forward)>0)+1;
  }n->vehicle.upending_ticks=0;n->object.flags&=~FLAG(_object_at_rest_bit);
@@ -574,7 +588,7 @@ void bg_vehicle_physics_damage(unsigned i,const float origin[3],float strength,b
  float scale=bg_vehicle_acceleration_scale[bg_vehicles[i].kind];
  if(strength<=_real_epsilon||scale<=_real_epsilon)return;
  bg_vehicle_physics_prepare();
- real_vector3d direction={.n={native[i].object.position.x-(origin[0]+68),native[i].object.position.y-(-origin[2]-118),native[i].object.position.z-origin[1]}},acceleration;
+ real_vector3d direction={.n={native[i].object.position.x-(origin[0]+bg_map_origin()[0]),native[i].object.position.y-(-origin[2]+bg_map_origin()[1]),native[i].object.position.z-(origin[1]+bg_map_origin()[2])}},acceleration;
  normalize3d(&direction);vehicle_damage_acceleration(&direction,strength,scale,&acceleration);
  if(explosive)scale_vector3d(&acceleration,2,&acceleration);
  vehicle_accelerate(i,&acceleration);publish(i);

@@ -113,7 +113,7 @@ def export():
    assert tuple(struct.unpack('>'+fmt,packed))==tuple(value)
    blob.extend(packed)
  bank=ROM_FILES/'vehicle-world.bin';bank.parent.mkdir(parents=True,exist_ok=True);bank.write_bytes(blob)
- lines=lines[:geometry_start]+['#ifndef N64']+lines[geometry_start:]+['#else',
+ lines=lines[:geometry_start]+['#if !defined(N64) && !defined(BG_STREAM_MAPS)']+lines[geometry_start:]+['#else',
   'struct collision_bsp bg_vehicle_bsp;',
   'const struct vehicle_bvh_node *bg_vehicle_bvh;',
   'const uint16_t *bg_vehicle_surface_indices;',

@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include "game.h"
+#include "map.h"
 #include "combat_geometry.h"
 #include "blam/vehicle_physics.h"
 #include "blam/vehicle_profile.h"
@@ -263,6 +264,14 @@ static bool input(bg_input in[4]) {
         memset(scores, 0, sizeof(scores));
         if (action == BG_FRONT_START_MATCH) {
             bg_front_draw_release();
+#ifdef BG_STREAM_MAPS
+            bg_scene_release_world();
+            /* Terrain indices are converted in place when recording RSP
+             * blocks. A new match must bind fresh serialized indices. */
+            bg_map_unload();
+            bg_map_load(front.map);
+            bg_scene_load_world();
+#endif
             views = front.count;
             bg_set_players(views);
             bg_set_score_limit(15);
@@ -783,15 +792,24 @@ int main(void) {
     bg_menu_draw_init();
 #endif
     surface_t depth = surface_alloc(FMT_RGBA16, 320, 240);
+    assertf(dfs_init(DFS_DEFAULT_LOCATION) == DFS_ESUCCESS, "Game filesystem");
+#ifdef BG_STREAM_MAPS
+#ifndef BG_INITIAL_MAP
+#define BG_INITIAL_MAP BG_MAP_BLOOD_GULCH
+#endif
+    bg_map_load(BG_INITIAL_MAP);
+#endif
     bg_scene_init();
     bg_hud_init();
     bg_set_players(views);
     bg_reset();
     bg_hud_messages_reset();
     bg_sound_init();
-    assertf(dfs_init(DFS_DEFAULT_LOCATION) == DFS_ESUCCESS, "Game filesystem");
 #ifdef BG_FRONTEND
     bg_front_init(&front);
+#ifdef BG_STREAM_MAPS
+    front.map = BG_INITIAL_MAP;
+#endif
     paused = true;
     bg_residency_menu(false);
 #endif

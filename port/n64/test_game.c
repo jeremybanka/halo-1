@@ -290,7 +290,7 @@ int main(void){
     bg_players[1].shield=0;bg_players[1].shield_delay=6;bg_players[1].health=70;in[2].melee=true;ticks(1);in[2].melee=false;ticks(4);
     assert(bg_match_stats()->kills[2]==2&&bg_match_stats()->assists[0]==1);
     bg_set_score_limit(25);
-    /* Consecutive real kills announce double/triple kills and a five-kill spree. */
+    /* CE gives 4+ multikills precedence over a simultaneous five-kill spree. */
     duel();equip(BG_W_PISTOL);unsigned announcement_mask=0;
     for(unsigned kill=0;kill<5;kill++){
         memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;bg_players[1].shield=0;
@@ -298,12 +298,28 @@ int main(void){
         assert(bg_players[1].health==0);
         for(unsigned e=0;e<bg_event_count;e++){
             if(bg_events[e].kind==BG_EVENT_DOUBLE_KILL)announcement_mask|=1;
-            if(bg_events[e].kind==BG_EVENT_TRIPLE_KILL)announcement_mask|=2;
-            if(bg_events[e].kind==BG_EVENT_KILLING_SPREE)announcement_mask|=4;
+            if(bg_events[e].kind==BG_EVENT_TRIPLE_KILL){
+                assert(bg_events[e].amount==kill+1);
+                announcement_mask|=kill==2?2:kill==3?4:8;
+            }
+            assert(bg_events[e].kind!=BG_EVENT_KILLING_SPREE);
         }
         ticks(100);assert(bg_players[1].health==100);
     }
-    assert(announcement_mask==7&&bg_players[0].score==5);
+    assert(announcement_mask==15&&bg_players[0].score==5);
+    /* The spree still plays when the fifth kill is outside the multikill window. */
+    duel();equip(BG_W_PISTOL);bool spree=false;
+    for(unsigned kill=0;kill<5;kill++){
+        memcpy(bg_players[1].pos,bg_players[0].pos,12);bg_players[1].pos[0]+=.8f;bg_players[1].shield=0;
+        aim_head();bg_clear_events();in[0].fire=true;bg_tick(in,1.f/30);in[0].fire=false;
+        assert(bg_players[1].health==0);
+        for(unsigned e=0;e<bg_event_count;e++){
+            assert(bg_events[e].kind!=BG_EVENT_DOUBLE_KILL&&bg_events[e].kind!=BG_EVENT_TRIPLE_KILL);
+            if(bg_events[e].kind==BG_EVENT_KILLING_SPREE){assert(kill==4);spree=true;}
+        }
+        ticks(140);
+    }
+    assert(spree);
     /* Sustained four-controller play cannot overflow pools or leak bad state. */
     reset();uint32_t rng=0xA11CE;
     for(unsigned frame=0;frame<1800;frame++){

@@ -112,10 +112,10 @@ void bg_interaction_points(int16_t (*out)[3], const bg_rom_pose *p, float second
         }
     BG_ANIM_END(interpolate, interpolate_begin);
 }
-void bg_interaction_needles(T3DVertPacked *out, unsigned ammo, float seconds) {
+static void needle_pose(T3DVertPacked *out, const bg_rom_pose poses[21], unsigned ammo, float seconds) {
     if (ammo > 20)
         ammo = 20;
-    const bg_rom_pose *p = &bg_ready_needles[ammo];
+    const bg_rom_pose *p = &poses[ammo];
     const int16_t *a, *b;
     int fraction = sample(p, seconds, false, &a, &b);
     BG_ANIM_BEGIN(interpolate_begin);
@@ -130,4 +130,10 @@ void bg_interaction_needles(T3DVertPacked *out, unsigned ammo, float seconds) {
     BG_ANIM_BEGIN(writeback_begin);
     data_cache_hit_writeback(out, ((bg_fp_models[BG_W_NEEDLER].vertex_count + 1) & ~1u) * 16);
     BG_ANIM_END(writeback, writeback_begin);
+}
+void bg_interaction_needles(T3DVertPacked *out, unsigned ammo, float seconds) {
+    needle_pose(out, bg_ready_needles, ammo, seconds);
+}
+void bg_interaction_reload_needles(T3DVertPacked *out, unsigned ammo, float seconds) {
+    needle_pose(out, bg_reload_needles, ammo, seconds);
 }

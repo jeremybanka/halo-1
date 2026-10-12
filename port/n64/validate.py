@@ -41,6 +41,7 @@ CONTRACTS = (
     "test_input_menu.py",
 )
 ASSETS = (
+    "test_announcer.py",
     "test_hud_prompts.py",
     "test_interaction_assets.py",
     "test_pack_bounds.py",

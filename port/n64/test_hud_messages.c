@@ -89,6 +89,8 @@ static void actual_kill_and_profile_identity(void) {
     staged(BG_EVENT_DOUBLE_KILL,1,0,2);receipt(1,0,"Double Kill!");
     staged(BG_EVENT_TRIPLE_KILL,2,0,3);receipt(2,0,"Triple Kill!");
     staged(BG_EVENT_TRIPLE_KILL,2,0,4);receipt(2,0,"Killtacular!");
+    staged(BG_EVENT_TRIPLE_KILL,2,0,5);receipt(2,0,"Killtacular!");
+    staged(BG_EVENT_TRIPLE_KILL,2,0,10);receipt(2,0,"Killtacular!");
     staged(BG_EVENT_KILLING_SPREE,3,0,5);receipt(3,0,"Killing Spree!");
     staged(BG_EVENT_KILL,-1,0,1);receipt(0,0,"Player 3 died");
 }

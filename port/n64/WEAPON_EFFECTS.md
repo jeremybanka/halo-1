@@ -163,3 +163,41 @@ Final verification for this follow-up: Ares 4 MiB release lifecycle 37/37 PASS,
 RDP diagnostic reports zero errors/warnings. Quiet VI replay: 23.9 FPS overall,
 26.1 combat, 21.9 vehicles (preceding run 24.3 / 26.2 / 22.5), P95 66.8 ms,
 maximum 200.5 ms, 43 KiB live heap. The >25 FPS vehicle gate remains open.
+
+
+## Needler full reload and multikill audio (2026-10-12)
+
+The original Needler `first-person reload-full` contains 70 frames at 30 Hz
+(2.333 seconds). The fallback retained eight poses over a synthetic 71-frame
+clip, smoothing away its lift/turn and needle-regrowth beats. It now uses the
+same full-source ROM pose service as the other magazine weapons, for empty
+and partial reloads. CE has one Needler reload clip for both cases.
+
+The ammunition overlay also needed dense reload poses: otherwise it replaced
+moving needles with the old eight-pose track. All 21 ammo states now sample
+that same 70-frame clock, with the existing tick-44 through tick-49 regrowth
+and a terminal hold. Ready, fire, melee, mesh topology and colors are unchanged.
+The bank grows by 1,364,336 ROM bytes; the existing 8,736-byte pair size and
+eight-slot cache allocation are unchanged.
+
+Xbox CE `source/game/game_engine.c` selects Double Kill for two, Triple Kill
+for three and Killtacular for four or more (including five and higher). The
+HUD already did this; sound dispatch ignored the event count. The owned map's
+`sound\dialog\multiplayer1\killtacular` tag (1648) now supplies the missing
+voice: 14,048 bytes of decoded mono 11,025 Hz signed-eight-bit PCM, streamed
+from DragonFS through a fixed 1,024-byte aligned window. It does not reserve
+the full clip in RAM; all existing effects and the mixer remain unchanged.
+Its ID is
+appended, preserving all earlier sound IDs. A simultaneous five-kill spree no
+longer replaces the multikill announcement, matching the source precedence.
+Spaced-out fifth kills still announce Killing Spree.
+
+Evidence lives in ignored `build/n64-needler-announcer-audit/`: timestamped
+before/after Ares videos, four starting magazines (0/4/12/19), the original
+voice clip, native renderer validation and the maintained sanitizer/asset
+regression results. The Ares capture videos are silent; they demonstrate the
+animation, not recorded announcer audio. Host tests verify real kill chains,
+HUD tiers, production sound selection, PCM provenance and source pose counts.
+Streamed playback also matches resident PCM and cursor progression byte for
+byte over 2.5 million stereo frames, including fractional-rate phase, replacement
+by another announcement and clip completion.

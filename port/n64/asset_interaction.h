@@ -9,4 +9,5 @@ void bg_interaction_pose(T3DVertPacked *out,const bg_rom_pose *pose,float second
 void bg_interaction_pose_blend(T3DVertPacked*out,const bg_rom_pose*p,float seconds,bool loop,float weight);
 void bg_interaction_points(int16_t (*out)[3],const bg_rom_pose *pose,float seconds);
 void bg_interaction_needles(T3DVertPacked *out,unsigned ammo,float seconds);
+void bg_interaction_reload_needles(T3DVertPacked *out,unsigned ammo,float seconds);
 #endif

@@ -22,7 +22,7 @@ display, first-person sleeves and original base geometry repairs are covered
 in [GEOMETRY_REPAIRS.md](GEOMETRY_REPAIRS.md).
 Source-based muzzle flashes, sniper smoke trails and sustained plasma charging
 are documented in [WEAPON_EFFECTS.md](WEAPON_EFFECTS.md), including the dense
-AR/magnum/sniper/rocket reloads, both plasma vent sequences, shotgun pump action
+AR/magnum/sniper/rocket/Needler reloads, both plasma vent sequences, shotgun pump action
 and masked rocket lettering.
 The source grass/sand bake and 64×64 paletted ground experiment are documented
 in [GROUND_TEXTURES.md](GROUND_TEXTURES.md).

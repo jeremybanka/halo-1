@@ -778,7 +778,9 @@ static void kill(unsigned victim, int owner) {
                 event(BG_EVENT_DOUBLE_KILL, owner, k->weapon, k->pos, 2);
             if (kill_chain[owner] >= 3)
                 event(BG_EVENT_TRIPLE_KILL, owner, k->weapon, k->pos, kill_chain[owner]);
-            if (kill_spree[owner] == 5)
+            /* CE gives the multikill precedence over a simultaneous spree;
+             * otherwise the single announcer voice would replace Killtacular. */
+            if (kill_spree[owner] == 5 && kill_chain[owner] == 1)
                 event(BG_EVENT_KILLING_SPREE, owner, k->weapon, k->pos, 5);
             if (k->score >= (int)bg_score_limit() && match_winner < 0) {
                 match_winner = owner;

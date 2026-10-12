@@ -11,6 +11,26 @@ from pack_mesh import indexed_mesh, emit_batches, trajectory_keys, remap_clip, M
 import pack_bounds
 
 
+def pack_audio(data,out,pc_extras=False):
+ lines=['/* Generated from local game audio; do not commit. */','#include "asset_models.h"']
+ for name in AUDIO_TAGS:
+  if name=='flamethrower' and not pc_extras:continue
+  if 'alias' in data['audio'][name]:continue
+  samples=Path(data['audio'][name]['file']).read_bytes()
+  if name=='killtacular':
+   files=out.parent/'frontend-files';files.mkdir(parents=True,exist_ok=True)
+   (files/'killtacular.s8').write_bytes(samples);continue
+  lines.append(f'static const int8_t audio_{name}[]={{'+','.join(str(x if x<128 else x-256) for x in samples)+'};')
+ lines.append('const bg_audio_asset bg_audio_assets[BG_S_COUNT]={')
+ for name in AUDIO_TAGS:
+  if name=='flamethrower' and not pc_extras:
+   lines.append('{0,0,11025,false},');continue
+  a=data['audio'][name];buffer=a.get('alias',name)
+  pointer='0' if name=='killtacular' else 'audio_'+buffer
+  lines.append(f'{{{pointer},{a["count"]},{a["rate"]},{str(a["loop"]).lower()}}},')
+ lines.append('};');(out/'audio_data.c').write_text('\n'.join(lines)+'\n')
+
+
 def pack(source,out,pc_extras=False):
  data=json.loads(source.read_text());out.mkdir(parents=True,exist_ok=True)
  raw=json.loads((source.parent/'extended-raw.json').read_text());rigs={}
@@ -153,19 +173,7 @@ def pack(source,out,pc_extras=False):
  lines.append('};');(out/'models_data.c').write_text('\n'.join(lines)+'\n')
  (out/'world-mesh-sources.json').write_text(json.dumps({n:meshes[n]['sources'] for n in ('spartan','spartan_lod')}))
  (out/'model-preview.json').write_text(json.dumps(previews))
- lines=['/* Generated from local game audio; do not commit. */','#include "asset_models.h"']
- for name in AUDIO_TAGS:
-  if name=='flamethrower' and not pc_extras:continue
-  if 'alias' in data['audio'][name]:continue
-  samples=Path(data['audio'][name]['file']).read_bytes()
-  lines.append(f'static const int8_t audio_{name}[]={{'+','.join(str(x if x<128 else x-256) for x in samples)+'};')
- lines.append('const bg_audio_asset bg_audio_assets[BG_S_COUNT]={')
- for name in AUDIO_TAGS:
-  if name=='flamethrower' and not pc_extras:
-   lines.append('{0,0,11025,false},');continue
-  a=data['audio'][name];buffer=a.get('alias',name)
-  lines.append(f'{{audio_{buffer},{a["count"]},{a["rate"]},{str(a["loop"]).lower()}}},')
- lines.append('};');(out/'audio_data.c').write_text('\n'.join(lines)+'\n')
+ pack_audio(data,out,pc_extras)
  hud_bytes,scope_bytes=pack_hud(raw['hud'],out,source.parent/'hud-sprites')
  report={'position_scale':1024,'model_position_scales':scales,'team_mask_bytes':sum(model_sizes[n] for n in ('spartan','spartan_lod')),'models':triangle_counts,'model_bytes':sum(v*16 for v in model_sizes.values()),
  'cull_bounds_bytes':len(MODEL_PATHS)*28+len(VEHICLES)*24+len(ANIM_NAMES)*48+sum(len(r['parts'])*24 for r in rigs.values()),
@@ -175,6 +183,7 @@ def pack(source,out,pc_extras=False):
  'color_weld_tolerances':{name:model_color_tolerance('world',name) for name in model_sizes},
  'animation_bytes':anim_bytes,'animation_uncompressed_bytes':sum(p['uncompressed_bytes'] for p in animation_packing.values()),'audio_bytes':sum(v['count'] for k,v in data['audio'].items() if 'alias' not in v and (pc_extras or k!='flamethrower')),'hud_bytes':hud_bytes,
  'scope_bytes':scope_bytes,'pc_extras':pc_extras,'audio_events':len(data['audio'])-(not pc_extras),'audio_unique_clips':sum('alias' not in v for k,v in data['audio'].items() if pc_extras or k!='flamethrower'),
+ 'audio_stream_bytes':data['audio']['killtacular']['count'],
  'vehicle_rigs':rigs}
  (out/'extended-report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
 
@@ -258,10 +267,18 @@ def pack_hud(hud,out,preview):
 if __name__=='__main__':
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('source',type=Path,nargs='?',default=Path('build/n64/assets/extended-reduced.json'))
  p.add_argument('--output',type=Path,default=Path('build/n64/generated'))
+ p.add_argument('--audio-only',action='store_true',help='Refresh audio without repacking accepted geometry/HUD')
  p.add_argument('--hud-only',action='store_true',help='Regenerate HUD arrays from current raw metadata without repacking models/audio')
  p.add_argument('--pc-extras',action='store_true',help='Include unused PC-only flamethrower model/audio arrays')
  a=p.parse_args()
- if a.hud_only:
+ if a.audio_only:
+  data=json.loads(a.source.read_text());pack_audio(data,a.output,a.pc_extras)
+  report_path=a.output/'extended-report.json';report=json.loads(report_path.read_text())
+  report.update(audio_bytes=sum(v['count'] for k,v in data['audio'].items() if 'alias' not in v and (a.pc_extras or k!='flamethrower')),
+   audio_stream_bytes=data['audio']['killtacular']['count'],
+   audio_events=len(data['audio'])-(not a.pc_extras),audio_unique_clips=sum('alias' not in v for k,v in data['audio'].items() if a.pc_extras or k!='flamethrower'))
+  report_path.write_text(json.dumps(report,indent=2)+'\n')
+ elif a.hud_only:
   raw=json.loads((a.source.parent/'extended-raw.json').read_text())
   total,scope=pack_hud(raw['hud'],a.output,a.source.parent/'hud-sprites')
   report_path=a.output/'extended-report.json';report=json.loads(report_path.read_text())

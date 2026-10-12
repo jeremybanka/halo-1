@@ -1,5 +1,6 @@
 #include "telemetry.h"
 #include "blam/vehicle_physics.h"
+#include "blam/vehicle_profile.h"
 #include "game.h"
 #include "combat.h"
 #include "camouflage.h"
@@ -12,6 +13,10 @@
 #include <math.h>
 #include <string.h>
 #include <float.h>
+#if defined(N64) && defined(BG_PROFILE)
+#include <libdragon.h>
+uint32_t bg_tick_profile[3];
+#endif
 #ifdef BG_BLAM_BSP
 #include "blam/collision.h"
 extern const blam_collision_bsp bg_blam_collision_bsp;
@@ -603,12 +608,18 @@ float bg_camera_clearance(const float origin[3], const float direction[3], float
 #else
     bg_world_camera_rays(origin, rays, reaches, hits);
 #endif
+    /* Finish all probes against one hull before visiting the next. The
+     * articulated collision cache is shared by model kind; interleaving
+     * several instances across five probes needlessly refits their parts.
+     * Each probe still visits vehicles in the original order. */
+    BG_VP_BEGIN;
+    for (unsigned v = 0; v < bg_vehicle_count; v++)
+        if ((int)v != ignore_vehicle && bg_vehicle_body_present(&bg_vehicles[v]))
+            bg_vehicle_camera_packet(&bg_vehicles[v], origin, (const float (*)[3])rays, reaches, hits);
+    BG_VP_END(BG_VP_HULL_CAMERA);
     for (unsigned i = 0; i < 5; i++) {
         if (reaches[i] < .001f)
             continue;
-        for (unsigned v = 0; v < bg_vehicle_count; v++)
-            if ((int)v != ignore_vehicle && bg_vehicle_body_present(&bg_vehicles[v]))
-                hits[i] = bg_vehicle_hit_ray(&bg_vehicles[v], origin, rays[i], hits[i]);
         nearest = fminf(nearest, hits[i] * length / reaches[i]);
     }
     return fmaxf(0, nearest - .15f);
@@ -705,6 +716,7 @@ static void kill(unsigned victim, int owner) {
     p->anim_time = 0;
     kill_chain[victim] = kill_spree[victim] = 0;
     event(BG_EVENT_DIE, victim, p->weapon, p->pos, 1);
+    event(BG_EVENT_KILL, owner, victim, p->pos, 1);
     if (owner >= 0 && owner < (int)active_players) {
         bg_player *k = &bg_players[owner];
         if (owner == (int)victim)
@@ -1888,6 +1900,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                 event(BG_EVENT_ENGINE, driver, v->kind, v->pos, fabsf(v->speed) / maxspeed);
         }
         float hull_speed = sqrtf(dot(v->velocity, v->velocity));
+        BG_VP_BEGIN;
         for (unsigned j = 0; j < active_players; j++) {
             bg_player *p = &bg_players[j];
             if (p->health <= 0 || p->vehicle >= 0 || p->support_vehicle == i + 1 ||
@@ -1928,12 +1941,30 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                     p->grounded = false;
                     bg_player displaced = *p;
                     for (unsigned a = 0; a < 3; a++)
-                        displaced.pos[a] += acceleration[a] * (2.f / 30);
+                        /* collision_fix_pill uses the unhalved impulse;
+                         * biped_accelerate halves only the velocity kick. */
+                        displaced.pos[a] += acceleration[a] * (4.f / 30);
                     bool clear = bg_terrain_clearance(&displaced) &&
                                  !bg_vehicle_contacts_player(v, &displaced);
+                    for (unsigned attempt = 0; !clear && attempt < 4; attempt++) {
+                        bg_player previous;
+                        memcpy(&previous, &displaced, sizeof(previous));
+                        bg_vehicle_resolve_player(v, &displaced);
+                        bg_move_capsule(&displaced, 0);
+                        clear = bg_terrain_clearance(&displaced) &&
+                                !bg_vehicle_contacts_player(v, &displaced);
+                        /* The solver is deterministic and the hull is fixed
+                         * during this loop. An unchanged complete state is
+                         * a fixed point; repeating it cannot find clearance. */
+                        if (!clear && !memcmp(&previous, &displaced, sizeof(previous)))
+                            break;
+                    }
                     if (clear)
                         memcpy(p->pos, displaced.pos, 12);
-                    if (!clear || hull_speed > 2 || speed > 1) {
+                    /* A bounded demake clearance failure can be a seam or
+                     * shallow resting overlap, not proof of lethal crushing.
+                     * Retain CE's 2 / 1 units-per-second impact thresholds. */
+                    if (hull_speed > 2 || speed > 1) {
                         damage_player_profile(
                             j, driver,
                             bg_combat_amount(&bg_damage_profiles[BG_D_COLLISION], 1, .5f), false,
@@ -1947,6 +1978,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                 }
             }
         }
+        BG_VP_END(BG_VP_PLAYER_CONTACTS);
         for (int seat = 0; seat < bg_seat_counts[v->kind]; seat++)
             if (v->occupants[seat] >= 0) {
                 bg_player *p = &bg_players[v->occupants[seat]];
@@ -2371,6 +2403,9 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     if (dt <= 0 || bg_match_finished())
         return;
     match_time += dt;
+#if defined(N64) && defined(BG_PROFILE)
+    uint32_t tick_begin = get_ticks_us();
+#endif
     update_pickups(dt);
     for (unsigned i = 0; i < active_players; i++) {
         bg_player *p = &bg_players[i];
@@ -2396,7 +2431,18 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     }
     if (!bg_match_finished()) {
         resolve_player_pairs();
+#if defined(N64) && defined(BG_PROFILE)
+        bg_tick_profile[0] += get_ticks_us() - tick_begin;
+        tick_begin = get_ticks_us();
+#endif
         update_vehicles(inputs, dt);
+#if defined(N64) && defined(BG_PROFILE)
+        bg_tick_profile[1] += get_ticks_us() - tick_begin;
+        tick_begin = get_ticks_us();
+#endif
         update_projectiles(dt);
+#if defined(N64) && defined(BG_PROFILE)
+        bg_tick_profile[2] += get_ticks_us() - tick_begin;
+#endif
     }
 }

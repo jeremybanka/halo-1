@@ -7,10 +7,31 @@ maintained release, quiet, telemetry and reload modes remains validate.py's job.
 import argparse
 from pathlib import Path
 import subprocess
+import contextlib
+import io
 from build import ROOT, parse_args, compile_options
 
 VARIANTS = {
     "release": ["--preset", "release"],
+    "solver-profile": ["--benchmark", "--benchmark-page", "7"],
+    "animation-profile": ["--benchmark", "--benchmark-page", "8"],
+    "pipeline-profile": ["--benchmark", "--benchmark-page", "9", "--gpu-diagnostic"],
+    "pipeline-empty": [
+        "--benchmark",
+        "--benchmark-page",
+        "9",
+        "--gpu-diagnostic",
+        "--gpu-empty-scissor",
+    ],
+    "pipeline-minimal": [
+        "--benchmark",
+        "--benchmark-page",
+        "9",
+        "--gpu-diagnostic",
+        "--gpu-empty-scissor",
+        "--gpu-minimal-attributes",
+    ],
+    "body-flat": ["--preset", "release", "--no-vehicle-body-candidates"],
     "profile": ["--profile"],
     "benchmark": ["--benchmark", "--paced30"],
     "quiet": ["--vi-benchmark", "--preset", "release"],
@@ -41,6 +62,25 @@ VARIANTS = {
 
 
 def main():
+    assert parse_args(["--preset", "release"]).rspq_buffer_kib == 32
+    assert parse_args(["--preset", "release", "--validate"]).rspq_buffer_kib == 8
+    assert (
+        parse_args(["--preset", "release", "--validate", "--rspq-buffer-kib", "32"]).rspq_buffer_kib
+        == 32
+    )
+    for flags in (
+        ["--preset", "release", "--gpu-empty-scissor"],
+        ["--preset", "release", "--gpu-minimal-attributes"],
+        ["--benchmark", "--gpu-diagnostic", "--gpu-minimal-attributes"],
+        ["--vi-benchmark", "--gpu-empty-scissor"],
+    ):
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                parse_args(flags)
+        except SystemExit as error:
+            assert error.code == 2
+        else:
+            raise AssertionError("Unsafe diagnostic combination accepted: " + str(flags))
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--output-dir", type=Path, default=ROOT / "build/n64-validation/configurations"

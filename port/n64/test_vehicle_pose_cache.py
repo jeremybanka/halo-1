@@ -27,6 +27,7 @@ pre=r'''
 #include "replay.h"
 #include "blam/runtime.h"
 #include "render_bounds.h"
+#include "render_cull.h"
 #include "render_pose_cache.h"
 #define BG_OBJECT_SCALE 1024.f
 #define BG_FRAME_SLOTS 2

@@ -11,6 +11,8 @@
 #include "asset_firstperson.h"
 #include "blam/vehicle_physics.h"
 #include "scene.h"
+#include "hud_messages.h"
+#include "controls.h"
 #include "runtime_qa.h"
 #ifdef BG_RUNTIME_QA
 static struct {

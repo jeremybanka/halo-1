@@ -9,6 +9,9 @@
 #define BG_MAX_PROJECTILES 48
 #define BG_MAX_PICKUPS 56
 #define BG_MAX_EVENTS 64
+#if defined(N64) && defined(BG_PROFILE)
+extern uint32_t bg_tick_profile[3]; /* players/pickups/pairs, vehicles, projectiles */
+#endif
 
 typedef enum {
     BG_W_AR,
@@ -73,7 +76,9 @@ typedef enum {
     BG_EVENT_SUPERCOMBINE,
     BG_EVENT_VEHICLE_DESTROYED,
     BG_EVENT_SHIELD_HIT,
-    BG_EVENT_SHIELD_BREAK
+    BG_EVENT_SHIELD_BREAK,
+    BG_EVENT_AMMO, /* Actual reserve rounds transferred; distinguishes weapon acquisition. */
+    BG_EVENT_KILL  /* player=credited killer (-1 environment), weapon=victim viewport. */
 } bg_event_kind;
 typedef enum {
     BG_P_PLASMA,

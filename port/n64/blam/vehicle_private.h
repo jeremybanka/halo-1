@@ -31,7 +31,9 @@ typedef uint16_t word;
 #define BIT_VECTOR_TEST_FLAG(f,b) ((f)[(b)>>5]&(UINT32_C(1)<<((b)&31)))
 #define NUMBEROF(a) (sizeof(a)/sizeof((a)[0]))
 #define DEGREES_TO_RADIANS(a) ((real)((real)(a)*(real)M_PI/180.f))
-#define TICKS_PER_SECOND 30
+/* libdragon also names its CPU count frequency TICKS_PER_SECOND. Keep the
+ * original simulation clock distinct regardless of SDK include order. */
+enum { BG_VEHICLE_TICKS_PER_SECOND = 30 };
 #define VEHICLE_ANGULAR_ACCELERATION 0.0139626344f
 #define match_assert(file,line,c) assert(c)
 #define match_vassert(file,line,c,...) assert(c)

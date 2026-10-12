@@ -3,7 +3,8 @@
 #include <stdio.h>
 static bg_benchmark sample;
 int main(void) {
-    unsigned phases[BG_BENCHMARK_PHASES]={1,2,3,4,5,6,7,8,9,10,0,0,13};
+    unsigned phases[BG_BENCHMARK_PHASES];
+    for(unsigned p=0;p<BG_BENCHMARK_PHASES;p++)phases[p]=p+1;
     for(unsigned i=100;i;i--){unsigned categories[6]={i,0,0,0,0,0};bg_benchmark_add(&sample,i*1000,i>60,i,i*2,phases,categories);}
     bg_benchmark_finish(&sample);
     assert(sample.result[0].frames==100&&sample.result[0].elapsed==5050000);
@@ -16,6 +17,11 @@ int main(void) {
     assert(sample.result[0].category_triangles[0]==5050&&sample.result[0].category_triangles[1]==0);
     assert(sample.result[0].phase_us[9]==1000&&sample.result[1].phase_us[3]==240);
     assert(sample.result[0].phase_us[12]==1300&&sample.result[2].phase_us[12]==520);
+    for(unsigned p=0;p<BG_BENCHMARK_PHASES;p++){
+        assert(sample.result[0].phase_us[p]==100*(p+1));
+        assert(sample.result[1].phase_us[p]==60*(p+1));
+        assert(sample.result[2].phase_us[p]==40*(p+1));
+    }
     puts("Benchmark quantiles, phase grouping, frame budget and sums pass");
     return 0;
 }

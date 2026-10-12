@@ -23,8 +23,11 @@ control and weapons become available after boarding finishes.
 Pickup, seat and flip prompts use native-size cyan button icons with
 integer coordinates and point sampling. There is no separator dash. A circular
 B represents N64 use; the Xbox layout shows the four-button C cluster with its
-left button filled. Weapon pickups retain the word HOLD. Vehicle prompts name
-the vehicle or seat, including FLIP WARTHOG, FLIP GHOST and FLIP BANSHEE.
+left button filled. Mixed-case weapon prompts distinguish `Pick up` and `Swap for`
+and show a native-pixel weapon silhouette. Vehicle prompts retain vehicle identity
+for every seat, including `Gunner Warthog`, `Ride Scorpion`, and `Flip Banshee`.
+Pickup receipts and their source-backed lifetime are covered in
+[HUD_PIXELS.md](HUD_PIXELS.md#compact-prompts-and-receipts).
 There is no persistent exit hint while seated. Use still exits immediately
 with B (N64 controls) or C-left (Xbox controls), including the exit animation.
 

@@ -23,7 +23,7 @@ end = prepare.index('data_cache_hit_writeback(transforms[slot]')
 loops = prepare[start:end]
 assert compact(loops).count('prepare_effect_bounds(&projectile_bounds[i],q->pos,.2f);') == 1
 draw = compact(function(main, 'draw_view'))
-assert '!q||!q->active||!visible_bounds(vp,&projectile_bounds[i])' in draw
+assert '!q||!q->active||!visible_bounds(vp,&projectile_bounds[i],cull_selected[p])' in draw
 assert 'prepare_effect_bounds(' not in draw
 c = r'''
 #include <assert.h>
@@ -31,6 +31,7 @@ c = r'''
 #include <string.h>
 #include "game.h"
 #include "render_bounds.h"
+#include "render_cull.h"
 #define BG_OBJECT_SCALE 1024.f
 typedef struct {float v[4];} T3DVec4;
 typedef struct {T3DVec4 planes[6];} T3DFrustum;
@@ -50,7 +51,7 @@ static void matrix(Matrix*out,float scale,float yaw,float pitch,const float pos[
 for src, ret, name, args in (
     (sdk.read_text(), 'bool', 't3d_frustum_vs_aabb_s16', 'const T3DFrustum*frustum,const int16_t min[3],const int16_t max[3]'),
     (main, 'void', 'prepare_effect_bounds', 'bg_cull_bounds*bounds,const float pos[3],float radius'),
-    (main, 'bool', 'visible_bounds', 'T3DViewport*vp,const bg_cull_bounds*bounds'),
+    (main, 'bool', 'visible_bounds', 'T3DViewport*vp,const bg_cull_bounds*bounds,const uint8_t selected[6][3]'),
 ):
     c += f'\nstatic {ret} {name}({args}){{{function(src,name)}}}\n'
 c += '\nstatic void prepare_effects(void){'+loops+'}\n'
@@ -71,7 +72,7 @@ static unsigned checks,overflow;
 static void check(T3DViewport*vp,const float pos[3],float radius,const bg_cull_bounds*cached){
     bg_cull_bounds old;
     bool expected=reference(vp,pos,radius,&old);
-    assert(visible_bounds(vp,cached)==expected);assert(old.valid==cached->valid);
+    assert(visible_bounds(vp,cached,NULL)==expected);assert(old.valid==cached->valid);
     if(old.valid){assert(!memcmp(old.min,cached->min,6));assert(!memcmp(old.max,cached->max,6));}
     else{assert(expected);overflow++;}
     checks++;

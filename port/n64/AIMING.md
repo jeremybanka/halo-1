@@ -58,9 +58,13 @@ packing rather than checking only ideal floating-point matrices.
 
 Zoom now uses `2*atan(tan(fov/2)/magnification)` so the projected size ratio is
 exactly 2x or 10x. Dividing the FOV angle produced excessive magnification.
-The scope-only far parameter doubles from 6200 to 12400 renderer units; near
-also doubles from 1.4 to 2.8 to preserve the far/near ratio. Ordinary views and
-the separate foreground projection retain their depth limits. Existing scoped
+The scope-only far parameter doubles from 6200 to 12400 renderer units. The
+world near plane is 4 render units unscoped and 32 (one Halo world unit) scoped;
+the scope has no foreground weapon to protect. This gives distant vehicle
+faces eight times more depth separation than the old scope near plane and
+reduces magnified z-fighting. W normalization, magnification and the separate
+foreground projection remain unchanged. Close world geometry inside the scope
+near plane is clipped. Existing scoped
 high-detail body/vehicle/held-weapon selection stays enabled.
 
 This is deliberately bounded rather than multiplying the far plane by 10.
@@ -77,7 +81,7 @@ unchanged.
 
 - `test_view_camera.c`: independent cubic-polynomial interpolation oracle,
   all ten seat tracks across the complete pitch range, yaw-basis conversion,
-  both viewport FOVs at magnifications 1..10, scope depth ratio.
+  both viewport FOVs at magnifications 1..10, scope depth range and separation.
 - `test_game.c`: rocket 2x zoom input and toggle back out; included in the
   ASan/UBSan vehicle/game/replay/showcase suite.
 - `build.py --aim-qa 0..3 --validate`: frozen production cameras, level/down/up

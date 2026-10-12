@@ -19,6 +19,7 @@ def structure(path,name):
 def adapt(s):
  s=re.sub(r'\bunsigned long\b','uint32_t',s);s=re.sub(r'\blong\b','int32_t',s)
  s=s.replace('LONG_MAX','INT32_MAX').replace('LONG_MIN','INT32_MIN')
+ s=re.sub(r'\bTICKS_PER_SECOND\b','BG_VEHICLE_TICKS_PER_SECOND',s)
  s=s.replace('__inline ', 'static inline ')
  return s
 
@@ -105,7 +106,7 @@ def prepare():
  start=full.index('\tSET_FLAG(vehicle->vehicle.flags, 2,');end=full.index('\n\tmatch_assert("c:\\\\halo\\\\SOURCE\\\\units\\\\vehicles.c", 308,',start)
  control='static void vehicle_control_update(int32_t vehicle_index){\nstruct vehicle_datum *vehicle=vehicle_datum_get(vehicle_index);\nstruct vehicle_definition *definition=vehicle_specific_definition_get(vehicle->definition_index);\nreal steering_angle,torque;\n'+full[start:end]+'\nvehicle_steering[vehicle_index]=steering_angle;\n}\n'
  funcs['vehicle_control_update']=adapt(control)
- records.append(dict(source='source/units/vehicles.c',name='vehicle_update control blocks',source_sha256=hashlib.sha256(vs.encode()).hexdigest(),adaptations=['Retain contiguous control blocks; adapter dispatches supported vehicle types and gameplay/presentation services separately']))
+ records.append(dict(source='source/units/vehicles.c',name='vehicle_update control blocks',source_sha256=hashlib.sha256(vs.encode()).hexdigest(),adaptations=['Retain contiguous control blocks; adapter dispatches supported vehicle types and gameplay/presentation services separately','Namespace original 30 Hz TICKS_PER_SECOND to avoid libdragon CPU-counter macro collision']))
  # Damage kick arithmetic comes from the original aftermath block; callers
  # supply the exported effect/object values instead of the engine tag registry.
  ds=(ROOT/'source/objects/damage.c').read_text();damage=function(ds,'object_damage_aftermath')
@@ -139,6 +140,26 @@ def prepare():
  table+='\n'+section('source/physics/physics.c','#define PHYSICS_POINT_FROM_LINE3D','/* ---------- structures */')
  output='/* Generated original implementations. See vehicle-source-manifest.json. */\n'+table+'\n'+'\n'.join(prototypes)+'\n'+'\n'.join(funcs.values())
  (OUT/'vehicle_original.c').write_text(output)
+ # Keep the release implementation byte-for-byte unchanged. Diagnostics
+ # time complete original bodies via wrappers; their arithmetic is untouched.
+ measured={
+  'compute_ground_plane':('BG_VP_GROUND','object_index, mass_point, mass_point_definition',False),
+  'collision_features_test_point':('BG_VP_FEATURE_TEST','features, point, collision',True),
+  'physics_compute_vehicle_collision':('BG_VP_PAIRS','instance0, instance1',True),
+  'physics_compute_new':('BG_VP_FORCE','instance, powered_mass_points, mass_points, total_force, total_torque',False),
+  'physics_update_new':('BG_VP_INTEGRATE','instance, powered_mass_points, mass_points, total_force, total_torque',False),
+  'vehicle_control_update':('BG_VP_CONTROL','vehicle_index',False),
+ }
+ profile=output;wrappers=[]
+ for name,(bucket,args,returns) in measured.items():
+  original=funcs[name];signature=original[:original.index('{')].strip()
+  renamed=original.replace(name+'(',name+'_measured(',1)
+  assert renamed!=original
+  profile=profile.replace(original,renamed,1)
+  call=name+'_measured('+args+')'
+  body=('boolean result='+call+';' if returns else call+';')
+  wrappers.append(signature+'{ BG_VP_BEGIN; '+body+' BG_VP_END('+bucket+'); '+('return result;' if returns else '')+' }')
+ (OUT/'vehicle_profile.c').write_text(profile+'\n'+'\n'.join(wrappers)+'\n')
  for record in records:
   if record['name'] in funcs:record['generated_sha256']=hashlib.sha256(funcs[record['name']].encode()).hexdigest()
  (OUT/'vehicle-source-manifest.json').write_text(json.dumps(records,indent=2)+'\n')

@@ -1,5 +1,6 @@
 #include "hud.h"
 #include "asset_hud.h"
+#include "asset_prompt_icons.h"
 #include "game.h"
 #include "camouflage.h"
 #include <libdragon.h>
@@ -13,6 +14,7 @@ static surface_t scope_images[BG_SCOPE_COUNT];
 #include "hud_buttons.h"
 static surface_t pixel_atlas;
 static surface_t button_atlas;
+static surface_t weapon_icon_atlas;
 static int current_combiner, current_filter;
 /* Static sprite geometry/texture uploads do not depend on health, ammo or
  * tint. Replaying these RDP blocks avoids repeating the large-sprite tiler
@@ -28,27 +30,6 @@ static unsigned blit_count;
  * Match coordinates only against this image's entries, not every HUD sprite.
  * The recorded blocks and their lifetime remain unchanged. */
 static uint16_t blit_heads[BG_H_COUNT], blit_next[192];
-enum {
-    HUD_EXIT,
-    HUD_PICKUP,
-    HUD_ENTER,
-    HUD_RELOAD,
-    HUD_OVERHEAT,
-    HUD_RESPAWN_0,
-    HUD_RESPAWN_1,
-    HUD_RESPAWN_2,
-    HUD_RESPAWN_3,
-    HUD_XBOX_EXIT,
-    HUD_XBOX_PICKUP,
-    HUD_XBOX_ENTER,
-    HUD_FLIP,
-    HUD_XBOX_FLIP,
-    HUD_STATUS_COUNT
-};
-static const char *const status_strings[HUD_STATUS_COUNT] = {
-    "B EXIT",         "B PICK UP",    "B ENTER",      "RELOADING",    "OVERHEATED",
-    "RESPAWN IN 0",   "RESPAWN IN 1", "RESPAWN IN 2", "RESPAWN IN 3", "C-LEFT EXIT",
-    "C-LEFT PICK UP", "C-LEFT ENTER", "B FLIP",       "C-LEFT FLIP"};
 static const color_t blue = {105, 166, 236, 255};
 static const color_t bright = {149, 207, 255, 255};
 static const color_t red = {248, 63, 58, 255};
@@ -59,14 +40,6 @@ static const unsigned reticles[BG_WEAPON_COUNT] = {
     BG_H_RETICLE_SNIPER,       BG_H_RETICLE_ROCKET,  BG_H_RETICLE_AR};
 static const int vehicle_reticles[BG_VEHICLE_COUNT] = {BG_H_RETICLE_WARTHOG, BG_H_RETICLE_GHOST,
                                                        BG_H_RETICLE_SCORPION, BG_H_RETICLE_BANSHEE};
-
-static int control_status(int status, bg_control_style style) {
-    if (style == BG_CONTROLS_XBOX && status >= HUD_EXIT && status <= HUD_ENTER)
-        return HUD_XBOX_EXIT + status - HUD_EXIT;
-    if (style == BG_CONTROLS_XBOX && status == HUD_FLIP)
-        return HUD_XBOX_FLIP;
-    return status;
-}
 
 static void set_combiner(int kind) {
     if (current_combiner == kind)
@@ -182,24 +155,22 @@ static void hud_reticle(unsigned id, int cx, int cy) {
     }
 }
 static int hud_text_width(const char *text) {
-    return (int)strlen(text) * 5 - 1;
+    return text[0] ? (int)strlen(text) * 5 - 1 : 0;
 }
 static void hud_text(const char *text, int x, int y, color_t color) {
     set_combiner(1);
     for (int shadow = 1; shadow >= 0; shadow--) {
-        rdpq_set_prim_color(shadow ? hud_shadow : color);
+        color_t tint = shadow ? hud_shadow : color;
+        if (shadow)
+            tint.a = (unsigned)tint.a * color.a / 255;
+        rdpq_set_prim_color(tint);
         for (unsigned i = 0; text[i]; i++) {
             int glyph = hud_glyph(text[i]);
             if (glyph < 0)
                 continue;
-            if (shadow && glyph < 10) {
-                int px = x + i * 5 - 1, py = y - 1;
-                rdpq_texture_rectangle(TILE0, px, py, px + 6, py + 8, glyph * 6, 116);
-                continue;
-            }
             int px = x + i * 5 + shadow, py = y + shadow;
-            rdpq_texture_rectangle(TILE0, px, py, px + 4, py + 6, (glyph % 10) * 6,
-                                   (glyph / 10) * 8);
+            rdpq_texture_rectangle(TILE0, px, py, px + 4, py + 6, hud_glyph_x(glyph),
+                                   hud_glyph_y(glyph));
         }
     }
 }
@@ -268,7 +239,7 @@ static void hud_ammunition(const bg_player *p, unsigned weapon, int x, int y) {
         int heat = (int)ceilf(fminf(fmaxf(p->heat, 0), 1) * 37);
         if (heat)
             pixel(x + 1, my + 1, heat, 2, p->heat > .75f ? red : hud_cyan);
-        hud_text("HEAT", x, my + 6, p->overheated ? red : hud_cyan);
+        /* Heat is already represented by the meter and weapon venting. */
         return;
     }
     if (weapon == BG_W_AR) {
@@ -342,23 +313,19 @@ static void radar(unsigned p, int x, int y, float scale) {
     pixel((int)cx - 1, (int)cy + 1, 3, 1, bright);
 }
 
-static void interaction_label(const bg_player *p, char *out, unsigned size) {
-    bg_use_target target = bg_interaction_target(p - bg_players);
-    const char *vehicles[] = {"WARTHOG", "GHOST", "SCORPION", "BANSHEE"};
+static void interaction_label(bg_use_target target, char *out, unsigned size) {
+    const char *vehicles[] = {"Warthog", "Ghost", "Scorpion", "Banshee"};
     out[0] = 0;
     if (target.kind == BG_USE_PICKUP)
-        snprintf(out, size, "PICK UP");
+        snprintf(out, size, "Pick up");
     /* Exit remains available through use, without a persistent HUD hint. */
     else if (target.kind == BG_USE_FLIP)
-        snprintf(out, size, "FLIP %s", vehicles[bg_vehicles[target.object].kind]);
+        snprintf(out, size, "Flip %s", vehicles[bg_vehicles[target.object].kind]);
     else if (target.kind == BG_USE_ENTER) {
         const bg_vehicle *v = &bg_vehicles[target.object];
         const bg_seat_definition *s = &bg_seat_definitions[v->kind][target.seat];
-        const char *role = s->flags & 4 ? "DRIVE" : s->flags & 8 ? "GUNNER" : "PASSENGER";
-        if (target.seat == 0)
-            snprintf(out, size, "%s %s", role, vehicles[v->kind]);
-        else
-            snprintf(out, size, "%s", role);
+        const char *role = s->flags & 4 ? "Drive" : s->flags & 8 ? "Gunner" : "Ride";
+        snprintf(out, size, "%s %s", role, vehicles[v->kind]);
     }
 }
 static void hud_button(unsigned id, int x, int y) {
@@ -369,22 +336,84 @@ static void hud_button(unsigned id, int x, int y) {
     rdpq_texture_rectangle(TILE0, x, y, x + hud_button_width[id], y + hud_button_height[id],
                            (id % 4) * 16, (id / 4) * 16);
 }
-static void interaction_prompt(const bg_player *p, bg_control_style style, int x, int y,
-                               int width) {
+/* Returns the first occupied row, so receipts cannot cover a weapon icon. */
+static int interaction_prompt(const bg_player *p, bg_control_style style, int x, int y,
+                              int width) {
     char label[48];
-    interaction_label(p, label, sizeof(label));
-    if (!label[0])
-        return;
     bg_use_target target = bg_interaction_target(p - bg_players);
+    interaction_label(target, label, sizeof(label));
+    if (!label[0])
+        return y;
     unsigned icon = style == BG_CONTROLS_XBOX ? HUD_BUTTON_C_LEFT : HUD_BUTTON_B;
     bool hold = target.kind == BG_USE_PICKUP;
+    unsigned weapon = hold ? bg_pickups[target.object].weapon : 0;
+    if (hold) {
+        bool matching = p->inventory[0] == (int)weapon || p->inventory[1] == (int)weapon;
+        if (matching || (p->inventory[0] >= 0 && p->inventory[1] >= 0))
+            snprintf(label, sizeof(label), "Swap for");
+    }
     int prefix = hold ? 24 : 0, iw = hud_button_width[icon];
-    int start = x + (width - prefix - iw - 3 - hud_text_width(label)) / 2;
+    int tw = hud_text_width(label), total = prefix + iw + 3 + tw;
+    const bg_prompt_icon *wi = hold ? &bg_prompt_icons[weapon] : NULL;
+    /* Long guns get a centered identity row in narrow views, avoiding the
+     * radar at lower left. Short guns remain inline. Font never shrinks. */
+    bool stacked = wi && width < 200 && total + 4 + wi->w > width - 70;
+    if (wi && !stacked)
+        total += 4 + wi->w;
+    int start = x + (width - total) / 2;
     if (hold)
-        hud_text("HOLD", start, y, hud_cyan);
+        hud_text("Hold", start, y, hud_cyan);
     hud_text(label, start + prefix + iw + 3, y, hud_cyan);
     rdpq_tex_upload(TILE0, &button_atlas, NULL);
     hud_button(icon, start + prefix, y - (hud_button_height[icon] - 6) / 2);
+    if (wi) {
+        int wx = stacked ? x + (width - wi->w) / 2 : start + prefix + iw + 3 + tw + 4;
+        int wy = stacked ? y - 14 : y - (wi->h - 6) / 2;
+        set_combiner(1);
+        rdpq_set_prim_color(hud_cyan);
+        rdpq_tex_upload(TILE0, &weapon_icon_atlas, NULL);
+        rdpq_texture_rectangle(TILE0, wx, wy, wx + wi->w, wy + wi->h, wi->x, wi->y);
+        if (stacked)
+            return wy;
+    }
+    return y - (hud_button_height[icon] - 6) / 2;
+}
+
+static void pickup_notices(unsigned player, int x, int bottom, int width, int max_lines) {
+    bg_notice messages[BG_NOTICE_SLOTS];
+    unsigned count = bg_hud_messages_get(player, messages);
+    if (!count)
+        return;
+    rdpq_tex_upload(TILE0, &pixel_atlas, NULL);
+    int lines = 0, max_chars = (width + 1) / 5;
+    for (unsigned i = 0; i < count && lines < max_lines; i++) {
+        char text[64];
+        bg_hud_message_text(player, &messages[i], text, sizeof(text));
+        if (!text[0])
+            continue;
+        char wrapped[2][64] = {{0}};
+        size_t length = strlen(text), split = length;
+        if (length > (size_t)max_chars) {
+            split = max_chars;
+            while (split && text[split] != ' ')
+                split--;
+            if (!split)
+                split = max_chars;
+        }
+        memcpy(wrapped[0], text, split);
+        if (split < length)
+            snprintf(wrapped[1], sizeof(wrapped[1]), "%s", text + split + (text[split] == ' '));
+        unsigned rows = wrapped[1][0] ? 2 : 1;
+        if (lines + (int)rows > max_lines)
+            break;
+        color_t color = hud_cyan;
+        color.a = bg_hud_message_alpha(&messages[i]);
+        for (unsigned row = 0; row < rows; row++) {
+            int py = bottom - (lines + rows - 1 - row) * 8;
+            hud_text(wrapped[row], x + (width - hud_text_width(wrapped[row])) / 2, py, color);
+        }
+        lines += rows;
+    }
 }
 
 static bool scoped(const bg_player *p) {
@@ -457,6 +486,9 @@ void bg_hud_init(void) {
     button_atlas =
         surface_make(hud_button_pixels, FMT_IA4, HUD_BUTTON_W, HUD_BUTTON_H, HUD_BUTTON_W / 2);
     data_cache_hit_writeback(hud_button_pixels, sizeof(hud_button_pixels));
+    weapon_icon_atlas = surface_make((void *)bg_prompt_icon_pixels, FMT_IA4,
+                                    BG_PROMPT_ICON_W, BG_PROMPT_ICON_H, BG_PROMPT_ICON_W / 2);
+    data_cache_hit_writeback((void *)bg_prompt_icon_pixels, sizeof(bg_prompt_icon_pixels));
 }
 
 void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control_style style) {
@@ -519,30 +551,50 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         hud_text(p->weapon == BG_W_SNIPER && p->zoom == 2 ? "10X" : "2X",
                  (int)roundf(aim_x) + ox - 5, (int)roundf(aim_y) + oy - 3, hud_cyan);
     }
-    int status = -1, status_y = y + height - margin - 6;
+    int status_y = y + height - margin - 6;
+    int notice_bottom = status_y - 14;
     if (p->health <= 0) {
         int seconds = (int)ceilf(p->respawn);
-        status_y = y + height / 2 + 8;
-        if (seconds >= 0 && seconds <= 3)
-            status = HUD_RESPAWN_0 + seconds;
-        else {
-            char label[32];
-            snprintf(label, sizeof(label), "RESPAWN IN %d", seconds);
-            hud_text(label, x + (width - hud_text_width(label)) / 2, status_y, hud_cyan);
+        char label[32];
+        snprintf(label, sizeof(label), "Rejoin in %d", seconds < 0 ? 0 : seconds);
+        hud_text(label, x + (width - hud_text_width(label)) / 2, y + height / 2 + 8, hud_cyan);
+    } else {
+        notice_bottom = interaction_prompt(p, style, x, status_y, width) - 9;
+        bg_notice pending[BG_NOTICE_SLOTS];
+        bg_use_target target = bg_interaction_target(index);
+        int swap = personal ? bg_hud_switch_target(p) : -1;
+        if (swap >= 0 && (target.kind == BG_USE_NONE || target.kind == BG_USE_EXIT)) {
+            const bg_prompt_icon *wi = &bg_prompt_icons[swap];
+            unsigned icon = style == BG_CONTROLS_XBOX ? HUD_BUTTON_C_UP : HUD_BUTTON_R;
+            int total = hud_button_width[icon] + 3 + hud_text_width("Switch") + 4 + wi->w;
+            int start = x + (width - total) / 2;
+            hud_text("Switch", start + hud_button_width[icon] + 3, status_y, hud_cyan);
+            rdpq_tex_upload(TILE0, &button_atlas, NULL);
+            hud_button(icon, start, status_y - (hud_button_height[icon] - 6) / 2);
+            set_combiner(1);
+            rdpq_set_prim_color(hud_cyan);
+            rdpq_tex_upload(TILE0, &weapon_icon_atlas, NULL);
+            int wx = start + total - wi->w, wy = status_y - (wi->h - 6) / 2;
+            rdpq_texture_rectangle(TILE0, wx, wy, wx + wi->w, wy + wi->h, wi->x, wi->y);
+            notice_bottom = (wy < notice_bottom + 9 ? wy : notice_bottom + 9) - 9;
+        } else if (style == BG_CONTROLS_XBOX && bg_match_time() < 15 &&
+            !bg_hud_messages_get(index, pending) &&
+            (target.kind == BG_USE_NONE || target.kind == BG_USE_EXIT)) {
+            const char *label = "Scores";
+            unsigned icon = HUD_BUTTON_R;
+            int start = x + (width - 24 - hud_button_width[icon] - 3 - hud_text_width(label)) / 2;
+            hud_text("Hold", start, status_y, hud_cyan);
+            hud_text(label, start + 24 + hud_button_width[icon] + 3, status_y, hud_cyan);
+            rdpq_tex_upload(TILE0, &button_atlas, NULL);
+            hud_button(icon, start + 24, status_y - 2);
         }
-    } else if (personal && p->reload > 0)
-        status = HUD_RELOAD;
-    else if (personal && p->overheated)
-        status = HUD_OVERHEAT;
-    else {
-        interaction_prompt(p, style, x, status_y, width);
     }
-    status = control_status(status, style);
-    if (status >= 0) {
-        const char *label = status_strings[status];
-        hud_text(label, x + (width - hud_text_width(label)) / 2, status_y,
-                 status == HUD_OVERHEAT ? red : hud_cyan);
-    }
+    /* Radar keeps its approved appearance. Receipts occupy the available
+     * lower HUD strip beside it; long text wraps on the same native grid. */
+    int notice_left = left;
+    if (p->health > 0 && !p->zoom)
+        notice_left += (int)ceilf(bg_hud_images[BG_H_MOTION_BG].w * scale) + 3;
+    pickup_notices(index, notice_left, notice_bottom, right - notice_left, height < 200 ? 2 : 3);
 #ifdef BG_INTERACTION_QA
     if (BG_INTERACTION_QA == 4) {
         const bg_vehicle *v = &bg_vehicles[index];

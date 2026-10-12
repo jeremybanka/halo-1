@@ -44,9 +44,11 @@ allocator overhead, GPU command blocks and the lazily loaded world workspace.
 The respective original collision/BVH ROM banks are 119,186 and 369,488 bytes.
 Large collision blocks are allocated first and read by their original file
 offsets. First-person vertices and the accepted animation cache are reserved before
-match map allocations. Map blocks and collision fixup pointers are allocated
-from largest to smallest; world commands are recorded before the existing body
-allocation path. All production workspace sizes and the eight-slot, 70,912-byte
+match map allocations. Shared models initialize before any level bank is loaded; the main menu
+does not load and immediately unload a temporary level. The existing body
+allocations are reserved before selected-map data. Map blocks and collision
+fixup pointers are allocated from largest to smallest. Menu PCM is released
+before the map-loading peak, using the existing audio transition API. All production workspace sizes and the eight-slot, 70,912-byte
 animation cache are unchanged. A temporary four-slot experiment was rejected
 and reverted; it is not part of the map addition.
 
@@ -71,8 +73,9 @@ uses Wizard's selected collision adapter when playing Wizard.
 - [x] Release, Wizard inspection and menu-to-results ROMs compile.
 - [x] Ares inspection of source starts, upper routes, teleporter approaches
       and one-player architecture; all four pages show zero RDP errors/warnings.
-- [ ] Reverify Ares 69-step Wizard → Blood Gulch → Wizard with the restored
-      accepted eight-slot cache. Earlier reduced-cache results are superseded.
+- [x] Ares 69-step Wizard → Blood Gulch → Wizard with the accepted eight-slot
+      cache and 32 KiB queues: all eight weapons, three 15-kill matches and
+      canceled quit/resume. Earlier reduced-cache results are superseded.
 - [ ] Four-player VI timing, tail latency and minimum free heap; >25 FPS
       development gate and final 30 FPS target.
 
@@ -136,3 +139,9 @@ and 36 renderer-helper equivalence checks pass.
 ```sh
 build/n64-python/bin/python port/n64/test_runtime_equivalence.py --reference d51bde69 --streamed-maps --output-dir build/n64-wizard-audit/accepted-blood-equivalence
 ```
+
+The native frontend diagnostic reuses the existing pixel HUD atlas for its
+status labels. Linking a second paragraph/text renderer added roughly 20 KiB
+to the test, enough to distort its memory acceptance. This diagnostic-only
+change removes that overhead while keeping production cache and queue budgets
+unchanged.

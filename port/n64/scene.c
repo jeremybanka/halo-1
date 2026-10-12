@@ -259,6 +259,11 @@ void bg_scene_release_world(void) {
     world_block_count = world_texture_count = 0;
 }
 void bg_scene_load_world(void) {
+#ifdef BG_STREAM_MAPS
+    /* The main menu needs shared models, not a temporary level allocation.
+     * Bind the selected world's commands only when starting a match. */
+    if (!bg_map_loaded()) return;
+#endif
     if (world_block_count) return;
     assertf(bg_chunk_count <= 512 && bg_material_count <= 32, "World asset capacity");
     data_cache_hit_writeback(bg_vertices, bg_vertex_count * 16);

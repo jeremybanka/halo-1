@@ -40,6 +40,9 @@ for name in functions:
         # Map initialization moved into a rebindable lifecycle helper. Expand
         # its actual body here, retaining the old GPU-command-order oracle.
         world = compact(function(scene, "bg_scene_load_world"))
+        unloaded = "#ifdefBG_STREAM_MAPSif(!bg_map_loaded())return;#endif"
+        assert world.startswith(unloaded)
+        world = world[len(unloaded):]
         assert world.startswith("if(world_block_count)return;assertf(")
         world = world[world.index("data_cache_hit_writeback("):]
         world = world.replace("world_block_count=bg_chunk_count;world_texture_count=bg_material_count;", "")

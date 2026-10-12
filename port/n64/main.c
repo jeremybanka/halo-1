@@ -40,6 +40,23 @@
 #include "residency.h"
 #include "asset_interaction.h"
 #include "runtime_qa.h"
+#ifdef BG_FRONTEND_QA
+#include <stdarg.h>
+static void frontend_qa_text(const void *parms, unsigned font, int x, int y, const char *text) {
+    (void)parms; (void)font;
+    bg_hud_qa_text(text, x, y - 6);
+}
+static void frontend_qa_printf(const void *parms, unsigned font, int x, int y, const char *format, ...) {
+    char text[128];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(text, sizeof(text), format, args);
+    va_end(args);
+    frontend_qa_text(parms, font, x, y, text);
+}
+#define rdpq_text_printf frontend_qa_printf
+#define rdpq_text_print frontend_qa_text
+#endif
 #ifdef BG_GPU_MINIMAL_ATTRIBUTES
 void __real_t3d_state_set_drawflags(enum T3DDrawFlags flags);
 void __wrap_t3d_state_set_drawflags(enum T3DDrawFlags flags) {
@@ -273,6 +290,9 @@ static bool input(bg_input in[4]) {
             /* Terrain indices are converted in place when recording RSP
              * blocks. A new match must bind fresh serialized indices. */
             bg_map_unload();
+            /* Keep the accepted body allocations intact; reserve their large
+             * blocks before the selected map fragments the free heap. */
+            bg_scene_load_bodies();
             bg_residency_prepare_match(front.count);
             bg_map_load(front.map);
             bg_scene_load_world();
@@ -299,6 +319,7 @@ static bool input(bg_input in[4]) {
 #endif
         } else if (action == BG_FRONT_RESUME_MATCH) {
             bg_front_draw_release();
+            bg_scene_load_bodies();
             bg_residency_prepare_match(front.count);
             menu.open = false;
         } else if (action == BG_FRONT_LEAVE_MATCH) {
@@ -788,7 +809,9 @@ int main(void) {
     t3d_init((T3DInitParams){});
     bg_fp_ammo_init();
     bg_fx_draw_init();
+#ifndef BG_FRONTEND_QA
     rdpq_text_register_font(1, rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
+#endif
     bg_menu_init(&menu, views);
 #if defined(BG_COMBAT_QA) && BG_COMBAT_QA == 8
     menu.styles[0] = BG_CONTROLS_XBOX;
@@ -813,13 +836,15 @@ int main(void) {
 #ifndef BG_FRONTEND
     bg_residency_prepare_match(views);
 #endif
-#ifdef BG_STREAM_MAPS
+#if defined(BG_STREAM_MAPS) && !defined(BG_FRONTEND)
     bg_map_load(BG_INITIAL_MAP);
 #endif
     bg_scene_init();
     bg_hud_init();
     bg_set_players(views);
+#if !defined(BG_FRONTEND) || !defined(BG_STREAM_MAPS)
     bg_reset();
+#endif
     bg_hud_messages_reset();
     bg_sound_init();
 #ifdef BG_FRONTEND

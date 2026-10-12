@@ -43,12 +43,12 @@ Selected-map payload is approximately
 allocator overhead, GPU command blocks and the lazily loaded world workspace.
 The respective original collision/BVH ROM banks are 119,186 and 369,488 bytes.
 Large collision blocks are allocated first and read by their original file
-offsets. First-person vertices, the animation cache and gameplay body buffers
-are reserved before match map allocations; all retain their existing sizes.
-This addresses fragmentation found during native cross-map testing, without
-reducing models. Production pose caching uses eight frame-pair slots on Wizard
-and four on Blood Gulch (70,912 and 35,456 bytes); validator ROMs use four.
-Cache eviction rereads identical ROM poses and does not change animations.
+offsets. First-person vertices and the accepted animation cache are reserved before
+match map allocations. Map blocks and collision fixup pointers are allocated
+from largest to smallest; world commands are recorded before the existing body
+allocation path. All production workspace sizes and the eight-slot, 70,912-byte
+animation cache are unchanged. A temporary four-slot experiment was rejected
+and reverted; it is not part of the map addition.
 
 Menu transitions fence and free world command blocks before their backing map
 data. Starting another match loads fresh indices before their in-place Tiny3D
@@ -71,16 +71,16 @@ uses Wizard's selected collision adapter when playing Wizard.
 - [x] Release, Wizard inspection and menu-to-results ROMs compile.
 - [x] Ares inspection of source starts, upper routes, teleporter approaches
       and one-player architecture; all four pages show zero RDP errors/warnings.
-- [x] Ares production and RDP-validator 69-step menu-to-match/results,
-      Wizard → Blood Gulch → Wizard, all eight weapons and quit/resume under
-      4 MiB; zero RDP errors or warnings.
+- [ ] Reverify Ares 69-step Wizard → Blood Gulch → Wizard with the restored
+      accepted eight-slot cache. Earlier reduced-cache results are superseded.
 - [ ] Four-player VI timing, tail latency and minimum free heap; >25 FPS
       development gate and final 30 FPS target.
 
 Initial Ares inspection and the 37-step Wizard menu-to-results flow passed
 with zero RDP errors or warnings. Extended cross-map testing found and is
-checking allocation-order fixes. Production and the RDP validator now complete
-all 69 steps, with zero RDP errors or warnings. The first
+checking allocation-order fixes. Earlier reduced-cache production and RDP-validator builds completed all 69
+steps. Those runs are superseded by verification with the unchanged accepted
+cache and allocator. The first
 quiet replay measured 24.1 FPS, with 253 KiB free heap. Balanced 8×8×4 material
 bins measured 24.8 FPS and 337 KiB free, retaining all 2,972 source triangles,
 materials, interpolated texture wrap, collision and scenario tables. Existing
@@ -88,9 +88,10 @@ color merging still permits an eight-unit RGB difference. Overly broad
 16×16×8 bins regressed to 24.2 FPS; 8×8×2 bins measured 24.7 FPS.
 The final allocation layout measured 24.9 FPS, early 24.4 / late 25.3,
 with 335 KiB free heap and 66.8 ms P95/maximum presentation intervals.
-Blood Gulch's final four-slot-cache replay measured 23.5 FPS overall,
-26.2 in combat / 21.1 with vehicles, 88 KiB free, and a 167.1 ms maximum
-interval. This is not a controlled comparison of cache capacities.
+The accepted Blood Gulch checkpoint measured 23.5 FPS in the current session.
+A restored-cache run overlapped host tests and is not a clean performance
+comparison; an idle-host comparison is pending. Blood Gulch is a regression
+check for this PR, not an optimization target.
 These are emulator measurements, not real-console acceptance. The >25 FPS
 development gate and final 30 FPS target remain open. Do not replace the
 previous verified release until the full native lifecycle checks pass.
@@ -113,3 +114,25 @@ ROMs and native screenshots are under `build/n64-wizard-audit/`.
 pages, countdown evidence, gameplay video, lifecycle results and VI timing.
 The pregame thumbnail follows the selected map, matching the existing dynamic
 map name. Wizard and Blood Gulch retain their original source thumbnail frames.
+
+## Scope and Blood Gulch regression contract
+
+This PR adds Wizard to the accepted `d51bde69` Blood Gulch systems. Shared
+combat, physics, rendering, HUD, audio and production cache budgets remain the
+baseline. Changes in those files are limited to selected-map data binding,
+map coordinates/limits, Wizard ladders, map lifetime and diagnostic fixtures.
+Blood Gulch geometry, textures, vehicles and weapons are not simplified.
+Wizard-only material batching reduces its draw chunks without architectural
+decimation; further compromises belong in Wizard's assets rather than shared
+systems or Blood Gulch.
+
+The selected Blood Gulch banks produce byte-identical complete gameplay state
+against the accepted checkpoint for 15,300 ticks: the four-player replay and
+all six showcase scenarios (144,170,464 bytes, SHA256
+`5a814a80ae9d49ef69cc96c2826fa21b30cccf8589b57c12349ef40d0e211781`).
+The cache implementation and first-person allocator are restored verbatim,
+and 36 renderer-helper equivalence checks pass.
+
+```sh
+build/n64-python/bin/python port/n64/test_runtime_equivalence.py --reference d51bde69 --streamed-maps --output-dir build/n64-wizard-audit/accepted-blood-equivalence
+```

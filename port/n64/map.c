@@ -181,7 +181,28 @@ bool bg_map_load(unsigned id) {
         current.world_layout[i][j] = be32(descriptor + 4 + (i * 2 + j) * 4);
     validate_world_layout();
     bg_vehicle_world_preload();
+    /* Only map-bank allocation order changes. Include the collision pointer
+     * fixup table among the large blocks, before small metadata creates holes. */
+    unsigned order[BG_MAP_SECTIONS + 1], sizes[BG_MAP_SECTIONS + 1];
     for (unsigned s = 0; s < BG_MAP_SECTIONS; s++) {
+        order[s] = s;
+        sizes[s] = s == BG_MAP_COLLISION_FACES ? 0 : sections[s].count * sections[s].stride;
+    }
+    order[BG_MAP_SECTIONS] = BG_MAP_SECTIONS;
+    sizes[BG_MAP_SECTIONS] = sections[BG_MAP_COLLISION_FACES].count * sizeof(*triangles);
+    for (unsigned at = 1; at <= BG_MAP_SECTIONS; at++) {
+        unsigned id = order[at], before = at;
+        while (before && sizes[order[before - 1]] < sizes[id]) {
+            order[before] = order[before - 1]; before--;
+        }
+        order[before] = id;
+    }
+    for (unsigned at = 0; at <= BG_MAP_SECTIONS; at++) {
+        unsigned s = order[at];
+        if (s == BG_MAP_SECTIONS) {
+            triangles = malloc(sizes[s]); assertf(triangles, "Map triangle pointers");
+            continue;
+        }
         /* Face indices are a fixup stream, never resident geometry. Avoid a
          * temporary 32 KiB allocation/hole on the 4 MiB Blood Gulch heap. */
         if (s == BG_MAP_COLLISION_FACES) continue;
@@ -198,7 +219,6 @@ bool bg_map_load(unsigned id) {
     bg_collision_count = sections[BG_MAP_COLLISION_FACES].count;
     assertf(sections[BG_MAP_COLLISION_FLAGS].count == bg_collision_count, "Map collision flags");
     const float (*vertices)[3] = blocks[BG_MAP_COLLISION_VERTICES];
-    triangles = malloc(bg_collision_count * sizeof(*triangles)); assertf(triangles, "Map triangle pointers");
     fseek(f, sections[BG_MAP_COLLISION_FACES].offset, SEEK_SET);
     uint8_t faces[128 * 6];
     for (unsigned first = 0; first < bg_collision_count; first += 128) {

@@ -42,7 +42,6 @@ def validate(out, regenerate=False):
         'terrain-cache': ['build/n64/generated/combat_data.c','port/n64/test_terrain_cache.c','port/n64/movement.c','build/n64/generated/movement_data.c','build/n64/generated/terrain_data.c'],
         'terrain': ['build/n64/generated/combat_data.c','port/n64/test_terrain.c','port/n64/terrain.c','port/n64/movement.c','build/n64/generated/movement_data.c'],
         'interaction-cache': ['port/n64/test_interaction_cache.c'],
-        'interaction-cache-validator': ['port/n64/test_interaction_cache.c'],
         'native': ['port/n64/blam/test_vehicle.c',
                    'port/n64/blam/test_vehicle_reference.c', 'port/n64/blam/collision.c',
                    'build/n64/generated/vehicle_data.c',
@@ -74,8 +73,7 @@ def validate(out, regenerate=False):
     }
     for name, sources in suites.items():
         exe = OUT / name
-        extra = ['-DRDPQ_VALIDATE'] if name == 'interaction-cache-validator' else []
-        run(['clang', *flags, *extra, *sources, '-lm', '-o', exe])
+        run(['clang', *flags, *sources, '-lm', '-o', exe])
         run([exe])
     print('PASS: native vehicle, game, replay and showcase sanitizer suites')
 

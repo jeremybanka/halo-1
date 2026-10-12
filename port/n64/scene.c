@@ -920,8 +920,8 @@ static void firstperson_buffers_release(void) {
             firstperson_weapon[s][p] = -1;
         }
 }
-static void firstperson_buffer_acquire(unsigned buffer_slot, unsigned p) {
-    if (!firstperson[buffer_slot][p]) {
+static void firstperson_buffer_resize(unsigned p, unsigned bytes) {
+    if (!firstperson[slot][p]) {
         /* Eight independently resized meshes fragmented the 4 MiB heap:
          * enough total free memory remained, but not one pistol-sized hole.
          * Reserve the authored maximum once per live slot/player. Menu entry
@@ -932,14 +932,11 @@ static void firstperson_buffer_acquire(unsigned buffer_slot, unsigned p) {
             if (required > capacity)
                 capacity = required;
         }
-        firstperson[buffer_slot][p] = malloc_uncached(capacity);
-        assertf(firstperson[buffer_slot][p], "First-person mesh allocation");
-        firstperson_bytes[buffer_slot][p] = capacity;
-        firstperson_weapon[buffer_slot][p] = -1;
+        firstperson[slot][p] = malloc_uncached(capacity);
+        assertf(firstperson[slot][p], "First-person mesh allocation");
+        firstperson_bytes[slot][p] = capacity;
+        firstperson_weapon[slot][p] = -1;
     }
-}
-static void firstperson_buffer_resize(unsigned p, unsigned bytes) {
-    firstperson_buffer_acquire(slot, p);
     assertf(bytes <= firstperson_bytes[slot][p], "First-person mesh capacity");
 }
 static void animate_firstperson(unsigned p) {
@@ -1722,10 +1719,12 @@ void bg_scene_load_firstperson(void) {
 void bg_scene_reserve_firstperson(unsigned players) {
     assertf(players <= BG_PLAYERS, "First-person player capacity");
     rspq_wait();
-    /* Reserve the same fixed per-slot maxima before map/world allocations
-     * fragment their holes. Menus still fence and reclaim every workspace. */
-    for (unsigned s = 0; s < BG_FRAME_SLOTS; s++)
-        for (unsigned p = 0; p < players; p++) firstperson_buffer_acquire(s, p);
+    /* Only match-start allocation order changes for streamed map banks.
+     * The accepted workspace allocator and gameplay path remain unchanged. */
+    unsigned previous_slot = slot;
+    for (slot = 0; slot < BG_FRAME_SLOTS; slot++)
+        for (unsigned p = 0; p < players; p++) firstperson_buffer_resize(p, 0);
+    slot = previous_slot;
 }
 void bg_scene_release_bodies(void) {
     body_buffers_release();

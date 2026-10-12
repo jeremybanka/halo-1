@@ -265,11 +265,15 @@ static bool input(bg_input in[4]) {
         if (action == BG_FRONT_START_MATCH) {
             bg_front_draw_release();
 #ifdef BG_STREAM_MAPS
+            /* Menu PCM is no longer needed after the countdown. Reclaim it
+             * before loading a map, without changing gameplay cache budgets.
+             * Audio mixing resumes after this transition completes. */
+            bg_sound_frontend(false);
             bg_scene_release_world();
             /* Terrain indices are converted in place when recording RSP
              * blocks. A new match must bind fresh serialized indices. */
             bg_map_unload();
-            bg_residency_prepare_match(front.count, front.map);
+            bg_residency_prepare_match(front.count);
             bg_map_load(front.map);
             bg_scene_load_world();
 #endif
@@ -290,10 +294,12 @@ static bool input(bg_input in[4]) {
                 menu.styles[p] = front.styles[bg_player_profiles[p]];
                 bg_scene_profile_changed(p);
             }
+#ifndef BG_STREAM_MAPS
             bg_sound_frontend(false);
+#endif
         } else if (action == BG_FRONT_RESUME_MATCH) {
             bg_front_draw_release();
-            bg_residency_prepare_match(front.count, front.map);
+            bg_residency_prepare_match(front.count);
             menu.open = false;
         } else if (action == BG_FRONT_LEAVE_MATCH) {
             menu.open = false;
@@ -805,7 +811,7 @@ int main(void) {
 #define BG_INITIAL_MAP BG_MAP_BLOOD_GULCH
 #endif
 #ifndef BG_FRONTEND
-    bg_residency_prepare_match(views, BG_INITIAL_MAP);
+    bg_residency_prepare_match(views);
 #endif
 #ifdef BG_STREAM_MAPS
     bg_map_load(BG_INITIAL_MAP);

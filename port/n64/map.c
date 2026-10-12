@@ -58,6 +58,20 @@ const char *bg_map_world_path(void) {
 static uint32_t be32(const uint8_t *p) {
     return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
 }
+static void validate_world_layout(void) {
+    const unsigned strides[7] = {16, 12, 12, 16, 16, 12, 2};
+    unsigned end = 0;
+    assertf(current.world_bytes < 2 * 1024 * 1024, "Map world bank capacity");
+    for (unsigned i = 0; i < 7; i++) {
+        const uint32_t *part = current.world_layout[i];
+        unsigned size = part[1] * strides[i];
+        assertf(part[0] == end && part[1] && part[1] <= 65535 &&
+                part[0] <= current.world_bytes && size <= current.world_bytes - part[0],
+                "Map world layout %u", i);
+        end = part[0] + size;
+    }
+    assertf(end == current.world_bytes, "Map world bank length");
+}
 #ifndef __MIPSEB__
 /* Host sanitizer fixtures use the same bank and loader as the real ROM. */
 static void swap16(uint8_t *p) { uint8_t a = p[0]; p[0] = p[1]; p[1] = a; }
@@ -157,7 +171,20 @@ bool bg_map_load(unsigned id) {
             sections[BG_MAP_GRID_BOUNDS].count == 1 && sections[BG_MAP_START].count == 1 &&
             sections[BG_MAP_ORIGIN].count == 1 && sections[BG_MAP_WORLD_LAYOUT].count == 1 &&
             sections[BG_MAP_SKY].count == 33, "Map section capacities");
+    /* The selected world bank is the largest immutable working set. Read
+     * its small descriptor and reserve it before finer map allocations. */
+    uint8_t descriptor[60];
+    fseek(f, sections[BG_MAP_WORLD_LAYOUT].offset, SEEK_SET);
+    assertf(fread(descriptor, 1, 60, f) == 60, "Map world descriptor");
+    current.id = id; current.world_bytes = be32(descriptor);
+    for (unsigned i = 0; i < 7; i++) for (unsigned j = 0; j < 2; j++)
+        current.world_layout[i][j] = be32(descriptor + 4 + (i * 2 + j) * 4);
+    validate_world_layout();
+    bg_vehicle_world_preload();
     for (unsigned s = 0; s < BG_MAP_SECTIONS; s++) {
+        /* Face indices are a fixup stream, never resident geometry. Avoid a
+         * temporary 32 KiB allocation/hole on the 4 MiB Blood Gulch heap. */
+        if (s == BG_MAP_COLLISION_FACES) continue;
         unsigned size = sections[s].count * sections[s].stride;
         if (!size) continue;
         blocks[s] = malloc(size); assertf(blocks[s], "Map RAM section %u (%u)", s, size);
@@ -168,19 +195,25 @@ bool bg_map_load(unsigned id) {
 #endif
         resident += size;
     }
-    fclose(f);
     bg_collision_count = sections[BG_MAP_COLLISION_FACES].count;
     assertf(sections[BG_MAP_COLLISION_FLAGS].count == bg_collision_count, "Map collision flags");
     const float (*vertices)[3] = blocks[BG_MAP_COLLISION_VERTICES];
-    const uint16_t (*faces)[3] = blocks[BG_MAP_COLLISION_FACES];
     triangles = malloc(bg_collision_count * sizeof(*triangles)); assertf(triangles, "Map triangle pointers");
-    for (unsigned i = 0; i < bg_collision_count; i++) for (unsigned j = 0; j < 3; j++) {
-        assertf(faces[i][j] < sections[BG_MAP_COLLISION_VERTICES].count, "Map corner");
-        triangles[i].p[j] = vertices[faces[i][j]];
+    fseek(f, sections[BG_MAP_COLLISION_FACES].offset, SEEK_SET);
+    uint8_t faces[128 * 6];
+    for (unsigned first = 0; first < bg_collision_count; first += 128) {
+        unsigned count = bg_collision_count - first;
+        if (count > 128) count = 128;
+        assertf(fread(faces, 6, count, f) == count, "Map corner stream");
+        for (unsigned i = 0; i < count; i++) for (unsigned j = 0; j < 3; j++) {
+            const uint8_t *pair = faces + i * 6 + j * 2;
+            unsigned index = (unsigned)pair[0] << 8 | pair[1];
+            assertf(index < sections[BG_MAP_COLLISION_VERTICES].count, "Map corner");
+            triangles[first + i].p[j] = vertices[index];
+        }
     }
+    fclose(f);
     resident += bg_collision_count * sizeof(*triangles);
-    resident -= sections[BG_MAP_COLLISION_FACES].count * 6;
-    free(blocks[BG_MAP_COLLISION_FACES]); blocks[BG_MAP_COLLISION_FACES] = NULL;
     bg_collision = triangles;
     bg_map_vertex_data = blocks[BG_MAP_VERTICES]; bg_vertex_count = sections[BG_MAP_VERTICES].count * 2;
     bg_chunks = blocks[BG_MAP_CHUNKS]; bg_chunk_count = sections[BG_MAP_CHUNKS].count;
@@ -201,19 +234,8 @@ bool bg_map_load(unsigned id) {
     current.id = id; current.bytes = bytes; memcpy(current.origin, origin, 12); current.void_height = origin[3];
     const uint32_t *world = blocks[BG_MAP_WORLD_LAYOUT];
     current.world_bytes = world[0]; memcpy(current.world_layout, world + 1, sizeof(current.world_layout));
-    const unsigned world_strides[7] = {16, 12, 12, 16, 16, 12, 2};
-    unsigned world_end = 0;
-    assertf(current.world_bytes < 2 * 1024 * 1024, "Map world bank capacity");
-    for (unsigned i = 0; i < 7; i++) {
-        const uint32_t *part = current.world_layout[i];
-        unsigned size = part[1] * world_strides[i];
-        assertf(part[0] == world_end && part[1] && part[1] <= 65535 &&
-                part[0] <= current.world_bytes && size <= current.world_bytes - part[0],
-                "Map world layout %u", i);
-        world_end = part[0] + size;
-    }
-    assertf(world_end == current.world_bytes && bg_grid_size[0] > 0 && bg_grid_size[1] > 0,
-            "Map world/grid dimensions");
+    validate_world_layout();
+    assertf(bg_grid_size[0] > 0 && bg_grid_size[1] > 0, "Map grid dimensions");
     for (unsigned i = 0; i < BG_GRID * BG_GRID; i++) {
         assertf((unsigned)bg_grid[i].first + bg_grid[i].count <= sections[BG_MAP_GRID_INDICES].count,
                 "Map grid cell");

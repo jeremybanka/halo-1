@@ -465,7 +465,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         art(508, 1, 105, 144, 255);
         art(521, 0, 0, 0, 255);
         art(523, 2, 4, 32, 255);
-        art(525, 9, 4, 32, 255);
+        art(525, f->map, 4, 32, 255);
         label(518, 71, 82, NULL, blue);
         char value[48];
         snprintf(value, sizeof(value), "%d", f->countdown);

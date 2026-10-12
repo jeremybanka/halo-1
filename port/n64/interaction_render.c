@@ -14,18 +14,21 @@ bg_animation_metrics bg_animation_profile;
 static uint8_t *scratch;
 static uint32_t rom, rom_size;
 static bg_pose_cache cache;
-void bg_interaction_render_init(void) {
+void bg_interaction_render_reserve(unsigned slots) {
     if (scratch)
         return;
+    assertf(slots && slots <= BG_POSE_CACHE_SLOTS, "Interaction cache slot capacity");
     rom = dfs_rom_addr("interactions.bin");
     rom_size = dfs_rom_size("interactions.bin");
     assertf(rom && rom_size, "Missing Xbox interaction pose bank");
-    scratch = memalign(16, bg_pose_cache_bytes(bg_interaction_scratch_bytes));
+    scratch = memalign(16, slots * (bg_interaction_scratch_bytes + BG_POSE_CACHE_SMALL));
     BG_COUNT(BG_COUNT_POSE_ALLOC, 1);
     assertf(scratch, "Interaction frame scratch allocation");
     cache.storage = scratch;
     cache.stride = bg_interaction_scratch_bytes;
+    cache.slots = slots;
 }
+void bg_interaction_render_init(void) { bg_interaction_render_reserve(BG_POSE_CACHE_SLOTS); }
 void bg_interaction_render_release(void) {
     /* Only the CPU reads the cached endpoints; RSP geometry contains copies.
      * Menus can reclaim this working set, and the next match reloads lazily. */

@@ -36,11 +36,19 @@ palette or collision floats.
 
 `map.c` validates section lengths, capacities, texture formats, grid ranges,
 world layout and local render indices. Individual allocations avoid requiring
-one large contiguous heap block. Collision face indices are reclaimed after
-fixing immutable shared-corner pointers. Selected-map payload is approximately
-229 KiB for Wizard and 268 KiB for Blood Gulch on the 32-bit target, excluding
+one large contiguous heap block. Collision face indices stream through a
+768-byte fixup buffer instead of a temporary 32 KiB heap allocation.
+Selected-map payload is approximately
+214 KiB for Wizard and 268 KiB for Blood Gulch on the 32-bit target, excluding
 allocator overhead, GPU command blocks and the lazily loaded world workspace.
 The respective original collision/BVH ROM banks are 119,186 and 369,488 bytes.
+Large collision blocks are allocated first and read by their original file
+offsets. First-person vertices, the animation cache and gameplay body buffers
+are reserved before match map allocations; all retain their existing sizes.
+This addresses fragmentation found during native cross-map testing, without
+reducing models. Production pose caching uses eight frame-pair slots on Wizard
+and four on Blood Gulch (70,912 and 35,456 bytes); validator ROMs use four.
+Cache eviction rereads identical ROM poses and does not change animations.
 
 Menu transitions fence and free world command blocks before their backing map
 data. Starting another match loads fresh indices before their in-place Tiny3D
@@ -61,14 +69,31 @@ uses Wizard's selected collision adapter when playing Wizard.
       invalid coordinates, vehicles or premature match completion.
 - [x] The same map tests pass with the optional Blood Gulch source BSP enabled.
 - [x] Release, Wizard inspection and menu-to-results ROMs compile.
-- [ ] Ares inspection of textures, lighting, seams and all inspection views.
-- [ ] Ares menu-to-match/results, cross-map switches and quit/resume under 4 MiB.
+- [x] Ares inspection of source starts, upper routes, teleporter approaches
+      and one-player architecture; all four pages show zero RDP errors/warnings.
+- [x] Ares production and RDP-validator 69-step menu-to-match/results,
+      Wizard → Blood Gulch → Wizard, all eight weapons and quit/resume under
+      4 MiB; zero RDP errors or warnings.
 - [ ] Four-player VI timing, tail latency and minimum free heap; >25 FPS
       development gate and final 30 FPS target.
 
-The Mac was locked during this implementation pass, so Ares captures and FPS
-are pending. Builds and host tests do not establish target visual quality or
-performance. Do not replace the previous verified release with these ROMs yet.
+Initial Ares inspection and the 37-step Wizard menu-to-results flow passed
+with zero RDP errors or warnings. Extended cross-map testing found and is
+checking allocation-order fixes. Production and the RDP validator now complete
+all 69 steps, with zero RDP errors or warnings. The first
+quiet replay measured 24.1 FPS, with 253 KiB free heap. Balanced 8×8×4 material
+bins measured 24.8 FPS and 337 KiB free, retaining all 2,972 source triangles,
+materials, interpolated texture wrap, collision and scenario tables. Existing
+color merging still permits an eight-unit RGB difference. Overly broad
+16×16×8 bins regressed to 24.2 FPS; 8×8×2 bins measured 24.7 FPS.
+The final allocation layout measured 24.9 FPS, early 24.4 / late 25.3,
+with 335 KiB free heap and 66.8 ms P95/maximum presentation intervals.
+Blood Gulch's final four-slot-cache replay measured 23.5 FPS overall,
+26.2 in combat / 21.1 with vehicles, 88 KiB free, and a 167.1 ms maximum
+interval. This is not a controlled comparison of cache capacities.
+These are emulator measurements, not real-console acceptance. The >25 FPS
+development gate and final 30 FPS target remain open. Do not replace the
+previous verified release until the full native lifecycle checks pass.
 
 Reproduction commands:
 
@@ -83,4 +108,8 @@ build/n64-python/bin/python port/n64/build.py --preset release --initial-map wiz
 
 `--wizard-qa 0..3 --validate` selects frozen source-start, upper-route,
 teleporter and one-player architecture views. Local logs, build identities and
-ROMs are under `build/n64-wizard-audit/`; no screenshots have been captured yet.
+ROMs and native screenshots are under `build/n64-wizard-audit/`.
+`comparison.html` includes the original menu reference, all native inspection
+pages, countdown evidence, gameplay video, lifecycle results and VI timing.
+The pregame thumbnail follows the selected map, matching the existing dynamic
+map name. Wizard and Blood Gulch retain their original source thumbnail frames.

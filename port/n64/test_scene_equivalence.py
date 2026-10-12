@@ -14,6 +14,10 @@ scene = (ROOT / "port/n64/scene.c").read_text()
 functions = re.findall(r"^static[ \t]+(?:const[ \t]+)?\w+[ \t*]+(\w+)\([^;{}]*\)\s*\{", scene, re.M)
 checked = []
 for name in functions:
+    if name == "firstperson_buffer_acquire":
+        body = function(scene, name)
+        assert not any(token in body for token in ("t3d_", "rspq_", "rdpq_"))
+        continue  # allocation helper checked by test_weapon_workspace
     if name == "record_texture":
         continue  # checked by test_texture_blocks and target RDP validation
     old_body, new_body = function(reference, name), function(scene, name)
@@ -23,6 +27,9 @@ for name in functions:
         old_body = old_body.replace(projection_block(reference), "PROJECTION_REGION")
         new_body = new_body.replace(projection_block(scene), "PROJECTION_REGION")
     old, new = compact(old_body), compact(new_body)
+    if name == "firstperson_buffer_resize":
+        acquire = compact(function(scene, "firstperson_buffer_acquire")).replace("buffer_slot", "slot")
+        new = new.replace("firstperson_buffer_acquire(slot,p);", acquire)
     new = re.sub(r"BG_VP_BEGIN;|BG_VP_END\([^;]*\);", "", new)
     new = re.sub(r"BG_ANIM_(?:BEGIN|END|COUNT)\([^;]*\);", "", new)
     if name == "animate_mesh":

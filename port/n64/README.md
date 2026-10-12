@@ -47,7 +47,7 @@ climbable ladder sheets. Its structural geometry and collision are retained;
 32×32 base textures and original lightmaps baked into vertex colors provide
 the compact material approximation. Small emissive sheets use the established
 wall clearance and alpha-tested light treatment.
-Wizard's source audit, memory lifetime and pending Ares acceptance checks are
+Wizard's source audit, memory lifetime, Ares acceptance and open performance gates are
 recorded in [WIZARD.md](WIZARD.md).
 
 `pack_maps.py` builds private big-endian ROM banks under

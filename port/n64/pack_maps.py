@@ -212,7 +212,10 @@ def wizard(output, sky):
                             nx,ny,nz=decompress_normal32(struct.unpack_from('<I',raw,v*32+12)[0])
                             x+=nx/32;y+=ny/32;z+=nz/32
                         tri.append((round(x*256),round(z*256),round(-y*256),*colors[v],round(u*1024),round(t*1024)))
-                    groups[(mi,math.floor(center[0]/4),math.floor(center[1]/4),math.floor(center[2]/2))].append(tri)
+                    # Wizard's compact room keeps most fine cells visible at
+                    # once. Coarser bins share corners and reduce CPU/RSP
+                    # submissions without changing source triangle geometry.
+                    groups[(mi,math.floor(center[0]/8),math.floor(center[1]/8),math.floor(center[2]/4))].append(tri)
         vertices=[];chunks=[];indices=[]
         for key,tris in sorted(groups.items(),key=lambda kv:(overlays[kv[0][0]],*kv[0])):
             for batch in indexed_terrain(tris):

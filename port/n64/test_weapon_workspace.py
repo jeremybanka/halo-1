@@ -17,6 +17,7 @@ code = r'''
 #include <stdbool.h>
 #include <stdio.h>
 #define BG_FRAME_SLOTS 2
+#define BG_PLAYERS 4
 #define assertf(v,...) assert(v)
 typedef unsigned char T3DVertPacked;
 static T3DVertPacked *firstperson[2][4];
@@ -30,13 +31,19 @@ static void *malloc_uncached(unsigned n){assert(!busy[slot]);allocated++;return 
 static void free_uncached(void*p){assert(!busy[slot]);assert(allocated);allocated--;free(p);}
 static void rspq_wait(void){busy[0]=busy[1]=false;fences++;}
 '''
-for name,args in [('firstperson_buffers_load','void'),('firstperson_buffers_release','void'),('firstperson_buffer_resize','unsigned p,unsigned bytes')]:
+for name,args in [('firstperson_buffers_load','void'),('firstperson_buffers_release','void'),('firstperson_buffer_acquire','unsigned buffer_slot,unsigned p'),('firstperson_buffer_resize','unsigned p,unsigned bytes')]:
     code += '\nstatic void '+name+'('+args+'){'+function(source,name)+'}\n'
+code += '\nstatic void bg_scene_reserve_firstperson(unsigned players){'+function(source,'bg_scene_reserve_firstperson')+'}\n'
 code += r'''
 int main(void){
  unsigned sizes[]={504,536,512,576,626,466,576,566};
  for(unsigned lifecycle=0;lifecycle<20;lifecycle++){
   firstperson_buffers_load();assert(allocated==0);
+  if(lifecycle%5==0){
+   busy[0]=busy[1]=true;
+   bg_scene_reserve_firstperson(4);assert(allocated==8&&!busy[0]&&!busy[1]);
+   void*old=firstperson[0][0];bg_scene_reserve_firstperson(4);assert(allocated==8&&firstperson[0][0]==old);
+  }
   for(unsigned frame=0;frame<64;frame++){
    slot=frame%2;busy[slot]=false; /* The renderer's completed frame-slot fence. */
    for(unsigned p=0;p<4;p++){
@@ -53,7 +60,7 @@ int main(void){
   assert(allocated==8);firstperson_buffers_release();assert(allocated==0);
   for(unsigned s=0;s<2;s++)for(unsigned p=0;p<4;p++)assert(!firstperson[s][p]&&!firstperson_bytes[s][p]&&firstperson_weapon[s][p]==-1);
  }
- assert(fences==20);puts("PASS: weapon workspace resize/reuse, fenced slots and 20 complete allocation lifecycles");
+ assert(fences==28);puts("PASS: early workspace reservation/reuse, fenced slots and 20 complete allocation lifecycles");
 }
 '''
 with tempfile.TemporaryDirectory(prefix='halo-workspace-') as temp:

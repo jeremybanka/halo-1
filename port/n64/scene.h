@@ -14,6 +14,7 @@ void bg_scene_fired(unsigned player, float seconds);
 void bg_scene_update(float dt, float seconds);
 void bg_scene_load_bodies(void);
 void bg_scene_load_firstperson(void);
+void bg_scene_reserve_firstperson(unsigned players);
 void bg_scene_release_bodies(void);
 void bg_scene_release_firstperson(void);
 void bg_scene_profile_changed(unsigned player);

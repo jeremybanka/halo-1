@@ -25,7 +25,9 @@ int main(void) {
             assert(!memcmp(bg_pose_cache_fetch(&c, 90000 + i * 128, 64, load),
                            rom + 90000 + i * 128, 64));
         }
-    assert(reads == 16);
+    /* The validator's smaller cache evicts this eight-track working set.
+     * Both layouts must still return every original ROM byte. */
+    assert(reads == (BG_POSE_CACHE_SLOTS >= 8 ? 16 : 30 * 16));
     /* Changed endpoint lengths, clip changes and repeated evictions must
      * return the same bytes as an uncached read, including maximum pairs. */
     for (unsigned i = 0; i < 10000; i++) {
@@ -44,9 +46,23 @@ int main(void) {
             unsigned at = i * 131072 + (frame < 60 ? frame : 119 - frame) * 400;
             assert(!memcmp(bg_pose_cache_fetch(&c, at, 800, load), rom + at, 800));
         }
-    assert(read_bytes < 400000);
+    if (BG_POSE_CACHE_SLOTS >= 8) assert(read_bytes < 400000);
     printf("Moving pairs: %u DMA bytes instead of 768000\n", read_bytes);
     free(c.storage);
-    puts("PASS: cached ROM frame pairs byte-identical through reuse, length changes and 10000 "
-         "evictions; 480 reads reduced to 16 for stable endpoints");
+    /* Blood Gulch uses four slots even in the eight-slot production build.
+     * Allocate exactly that budget so sanitizers catch either pool crossing
+     * its end; exercise both maximum body pairs and small marker tracks. */
+    c = (bg_pose_cache){.storage = malloc(4 * (stride + BG_POSE_CACHE_SMALL)),
+                        .stride = stride, .slots = 4};
+    assert(c.storage);
+    for (unsigned i = 0; i < 10000; i++) {
+        unsigned offset = (i * 31 % 100) * 8192;
+        assert(!memcmp(bg_pose_cache_fetch(&c, offset, stride, load), rom + offset, stride));
+        unsigned marker = 900000 + (i % 13) * 128;
+        assert(!memcmp(bg_pose_cache_fetch(&c, marker, 64, load), rom + marker, 64));
+    }
+    free(c.storage);
+    puts("PASS: runtime four-slot budget preserves body and marker bytes through 10000 evictions");
+    printf("PASS: %u-slot ROM frame cache byte-identical through reuse, length changes and 10000 evictions\n",
+           (unsigned)BG_POSE_CACHE_SLOTS);
 }

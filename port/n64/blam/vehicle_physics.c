@@ -95,14 +95,27 @@ static void world_load(void){
  FILE*f=fopen("rom:/vehicle-world.bin","rb");
 #endif
  assertf(f,"Vehicle world bank");
+ /* Reserve large immutable blocks before smaller blocks fragment the heap.
+  * File offsets keep the original topology/order independent of allocation. */
+ unsigned order[7],sizes[7];
  for(unsigned i=0;i<7;i++){
   unsigned end=i<6?layout[i+1][0]:world_bytes;
-  unsigned size=end-layout[i][0];
+  order[i]=i;sizes[i]=end-layout[i][0];
+ }
+ for(unsigned i=1;i<7;i++){
+  unsigned id=order[i],j=i;
+  while(j&&sizes[order[j-1]]<sizes[id]){order[j]=order[j-1];j--;}
+  order[j]=id;
+ }
+ for(unsigned at=0;at<7;at++){
+  unsigned i=order[at],size=sizes[i];
   world_blocks[i]=malloc(size);assertf(world_blocks[i],"Vehicle world RAM block %u (%u bytes)",i,size);
+  fseek(f,layout[i][0],SEEK_SET);
   assertf(fread(world_blocks[i],1,size,f)==size,"Vehicle world read");
 #if defined(BG_STREAM_MAPS) && !defined(__MIPSEB__)
   bg_map_host_world_order(i,world_blocks[i],size);
 #endif
+
  }
  fclose(f);
  bg_vehicle_bsp=(struct collision_bsp){.bsp3d={.planes={layout[0][1],world_blocks[0],NULL}},
@@ -122,6 +135,8 @@ void bg_vehicle_world_release(void){
 static void world_load(void){if(!vehicle_workspace->stamps[0])stamps_load();}
 void bg_vehicle_world_release(void){}
 #endif
+
+void bg_vehicle_world_preload(void){world_load();}
 
 /* The BVH only selects candidates; all contacts use original feature tests. */
 static uint8_t stamp;

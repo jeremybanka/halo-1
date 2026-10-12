@@ -269,6 +269,7 @@ static bool input(bg_input in[4]) {
             /* Terrain indices are converted in place when recording RSP
              * blocks. A new match must bind fresh serialized indices. */
             bg_map_unload();
+            bg_residency_prepare_match(front.count, front.map);
             bg_map_load(front.map);
             bg_scene_load_world();
 #endif
@@ -292,6 +293,7 @@ static bool input(bg_input in[4]) {
             bg_sound_frontend(false);
         } else if (action == BG_FRONT_RESUME_MATCH) {
             bg_front_draw_release();
+            bg_residency_prepare_match(front.count, front.map);
             menu.open = false;
         } else if (action == BG_FRONT_LEAVE_MATCH) {
             menu.open = false;
@@ -625,6 +627,12 @@ static void benchmark_vi_page(surface_t *screen) {
     rdpq_text_printf(NULL, 1, 8, 28, "%u MS / 1S WARMUP / 2 VI TARGET",
                      (unsigned)(bg_presentation_meter()->fresh.result[0].elapsed / 1000));
     const char *labels[] = {"ALL", "COMBAT", "VEHICLES"};
+#ifdef BG_STREAM_MAPS
+    if (bg_map_id() == BG_MAP_WIZARD) {
+        labels[1] = "EARLY";
+        labels[2] = "LATE";
+    }
+#endif
     for (unsigned g = 0; g < 3; g++) {
         const bg_cadence_result *c = &bg_presentation_meter()->fresh.result[g];
         const bg_vi_result *r = &bg_presentation_meter()->result[g];
@@ -793,10 +801,13 @@ int main(void) {
 #endif
     surface_t depth = surface_alloc(FMT_RGBA16, 320, 240);
     assertf(dfs_init(DFS_DEFAULT_LOCATION) == DFS_ESUCCESS, "Game filesystem");
-#ifdef BG_STREAM_MAPS
 #ifndef BG_INITIAL_MAP
 #define BG_INITIAL_MAP BG_MAP_BLOOD_GULCH
 #endif
+#ifndef BG_FRONTEND
+    bg_residency_prepare_match(views, BG_INITIAL_MAP);
+#endif
+#ifdef BG_STREAM_MAPS
     bg_map_load(BG_INITIAL_MAP);
 #endif
     bg_scene_init();

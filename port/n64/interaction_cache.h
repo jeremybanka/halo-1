@@ -8,11 +8,19 @@
 /* Immutable ROM frame pairs. Separate small marker entries keep grips and
  * hatches from evicting body poses. Returned bytes live until the next fetch;
  * callers interpolate immediately into their fenced geometry buffers. */
+#ifdef RDPQ_VALIDATE
+/* Validator code/trace storage has its own RAM cost. Diagnostic ROMs use
+ * fewer cache entries; fetched poses and rendered mesh detail are identical.
+ * Performance acceptance uses the production per-map cache budget. */
+#define BG_POSE_CACHE_SLOTS 4
+#else
 #define BG_POSE_CACHE_SLOTS 8
+#endif
 #define BG_POSE_CACHE_SMALL 128
 typedef struct {
     uint8_t *storage;
     uint32_t stride, next[2];
+    unsigned slots; /* zero selects the maximum for existing host fixtures */
     struct {
         uint32_t offset, bytes;
     } entries[BG_POSE_CACHE_SLOTS * 2];
@@ -23,10 +31,12 @@ static inline uint32_t bg_pose_cache_bytes(uint32_t stride) {
 static inline const uint8_t *bg_pose_cache_fetch(bg_pose_cache *c, uint32_t offset, uint32_t bytes,
                                                  void (*read)(void *, uint32_t, uint32_t)) {
     assert(bytes && bytes <= c->stride);
+    unsigned slots = c->slots ? c->slots : BG_POSE_CACHE_SLOTS;
+    assert(slots && slots <= BG_POSE_CACHE_SLOTS);
     unsigned small = bytes <= BG_POSE_CACHE_SMALL, first = small * BG_POSE_CACHE_SLOTS;
     uint32_t stride = small ? BG_POSE_CACHE_SMALL : c->stride;
-    uint8_t *base = c->storage + (small ? c->stride * BG_POSE_CACHE_SLOTS : 0);
-    for (unsigned i = 0; i < BG_POSE_CACHE_SLOTS; i++)
+    uint8_t *base = c->storage + (small ? c->stride * slots : 0);
+    for (unsigned i = 0; i < slots; i++)
         if (c->entries[first + i].bytes == bytes && c->entries[first + i].offset == offset) {
             BG_COUNT(BG_COUNT_POSE_HIT, 1);
             return base + i * stride;
@@ -34,7 +44,7 @@ static inline const uint8_t *bg_pose_cache_fetch(bg_pose_cache *c, uint32_t offs
     BG_COUNT(BG_COUNT_POSE_MISS, 1);
     unsigned slot = 0, shared_first = 0, shared_end = 0, shared_bytes = 0;
     assert(offset <= UINT32_MAX - bytes);
-    for (unsigned i = 0; i < BG_POSE_CACHE_SLOTS; i++) {
+    for (unsigned i = 0; i < slots; i++) {
         const uint32_t old_offset = c->entries[first + i].offset,
                        old_bytes = c->entries[first + i].bytes;
         if (!old_bytes)
@@ -65,7 +75,7 @@ static inline const uint8_t *bg_pose_cache_fetch(bg_pose_cache *c, uint32_t offs
         BG_COUNT(BG_COUNT_POSE_PARTIAL_HIT, 1);
         BG_COUNT(BG_COUNT_POSE_REUSED_BYTES, shared_bytes);
     } else {
-        slot = c->next[small]++ % BG_POSE_CACHE_SLOTS;
+        slot = c->next[small]++ % slots;
         data = base + slot * stride;
         read(data, offset, bytes);
     }

@@ -11,6 +11,57 @@
 #include <stdio.h>
 #include <string.h>
 static bg_input input[4];
+#if defined(BG_INITIAL_MAP) && BG_INITIAL_MAP == 10
+static void frontend_cycle(void) {
+    bg_frontend front;
+    bg_menu menu;
+    bg_front_init(&front);
+    front.map = BG_MAP_WIZARD;
+    bg_menu_init(&menu, 4);
+    menu.shell_session = true;
+    float game_time = 0;
+    unsigned matches = 0;
+    for (unsigned frame = 1; frame < 15000 && !bg_front_qa_done(); frame++) {
+        bg_control_state raw[4];
+        bg_front_qa_input(&front, raw, (uint64_t)frame * 33333);
+        if (front.page != BG_FRONT_PLAY) {
+            bg_front_action action = bg_front_update(&front, raw, (uint64_t)frame * 33333);
+            if (action == BG_FRONT_START_MATCH) {
+                bg_map_unload();
+                bg_map_load(front.map);
+                bg_set_players(front.count);
+                bg_set_score_limit(15);
+                bg_reset();
+                game_time = 0;
+                menu.open = false;
+                matches++;
+            } else if (action == BG_FRONT_RESUME_MATCH) menu.open = false;
+            continue;
+        }
+        bg_menu_input navigation[4];
+        bg_menu_inputs(&menu, raw, navigation);
+        bg_menu_result result = bg_menu_update(&menu, navigation, bg_player_count());
+        if (result.action == BG_MENU_ACTION_QUIT) {
+            bg_front_quit(&front);
+            continue;
+        }
+        if (menu.open) continue;
+        bg_front_qa_tick(input, game_time);
+        bg_clear_events();
+        bg_tick(input, 1.f / 30);
+        game_time += 1.f / 30;
+        if (bg_match_finished()) {
+            int scores[4];
+            for (unsigned p = 0; p < 4; p++) scores[p] = bg_players[p].score;
+            bg_front_results(&front, scores, bg_match_winner());
+            bg_map_unload();
+        }
+    }
+    assert(bg_front_qa_done() && matches == 3 && front.page == BG_FRONT_MAIN);
+    printf("PASS: %u-step Wizard/Blood Gulch/Wizard menu cycle, three live matches and quit/resume\n",
+           bg_front_qa_steps());
+}
+#endif
 static void tick(unsigned count) {
     while (count--) { bg_clear_events(); bg_tick(input, 1.f/30); }
 }
@@ -126,5 +177,8 @@ int main(void) {
     }
     printf("Wizard replay: 2250 real ticks, %u shots / %u kills / %u warps\n",shots,kills,warps);
     assert(shots>100);bg_map_unload();
+#if defined(BG_INITIAL_MAP) && BG_INITIAL_MAP == 10
+    frontend_cycle();
+#endif
     puts("PASS: original starts/items, clean alternating map residency, source-coordinate rays, Wizard navigation and live replay");
 }

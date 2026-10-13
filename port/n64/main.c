@@ -1221,7 +1221,7 @@ int main(void) {
             int y=34+p*47;
             rdpq_text_printf(NULL,1,4,y,"P%u V%u T%u B%u M%u",p,m->vertices,m->triangles,m->chunks,m->material_changes);
             rdpq_text_printf(NULL,1,4,y+12,"CPU%u DRAIN%u ALLT%u",m->world_cpu_us,camera_drain_us[p],camera_total_triangles[p]);
-            rdpq_text_printf(NULL,1,4,y+24,"PVS%03X REJ%u FR%u",m->pvs_mask,m->pvs_rejected,m->frustum_rejected);
+            rdpq_text_printf(NULL,1,4,y+24,"PVS%llX REJ%u FR%u",(unsigned long long)m->pvs_mask,m->pvs_rejected,m->frustum_rejected);
         }
 #endif
 #if defined(BG_DEMO) && !defined(BG_VI_MEASURE) && !defined(BG_SNAPSHOT_TICK)

@@ -3,9 +3,12 @@
 static bool finite_value(float value){
     uint32_t bits;memcpy(&bits,&value,4);return (bits&0x7f800000u)!=0x7f800000u;
 }
-uint16_t bg_pvs_camera_mask(const bg_pvs_data*d,const float eye[3],float radius){
-    if(!d||!d->cluster_count||d->cluster_count>16)return UINT16_MAX;
-    uint16_t all=(uint16_t)((1u<<d->cluster_count)-1u),visible=0;
+uint64_t bg_pvs_all_mask(const bg_pvs_data*d){
+    return !d||!d->cluster_count||d->cluster_count>=64?UINT64_MAX:((uint64_t)1<<d->cluster_count)-1;
+}
+uint64_t bg_pvs_camera_mask(const bg_pvs_data*d,const float eye[3],float radius){
+    if(!d||!d->cluster_count||d->cluster_count>64)return UINT64_MAX;
+    uint64_t all=bg_pvs_all_mask(d),visible=0;
     if(!d->node_count||!finite_value(radius)||radius<0)return all;
     for(unsigned a=0;a<3;a++)if(!finite_value(eye[a]))return all;
     int32_t stack[128]={0};unsigned pending=1,visited=0;
@@ -34,7 +37,7 @@ uint16_t bg_pvs_camera_mask(const bg_pvs_data*d,const float eye[3],float radius)
     }
     return visible?visible:all;
 }
-bool bg_pvs_keep_chunk(const bg_pvs_data*d,uint16_t camera_mask,unsigned chunk){
+bool bg_pvs_keep_chunk(const bg_pvs_data*d,uint64_t camera_mask,unsigned chunk){
     return !d||chunk>=d->chunk_count||!d->chunk_masks[chunk]||
            (d->chunk_masks[chunk]&camera_mask)!=0;
 }

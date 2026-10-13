@@ -36,7 +36,7 @@ DRIVER=r'''
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-extern const bg_pvs_data bg_chiron_pvs;
+extern const bg_pvs_data bg_world_pvs;
 static unsigned views=4;
 CAMERA
 typedef struct{unsigned chunks,vertices,triangles,materials,crossing,rejected;} counts;
@@ -46,12 +46,15 @@ static void count_view(unsigned p,unsigned tick,FILE*out){
  uint8_t selected[6][3];bg_frustum_prepare(selected,(const float(*)[4])f.planes);
  const float*o=bg_map_origin();float source_eye[3]={eye.x/BG_SCALE+o[0],-eye.z/BG_SCALE+o[1],eye.y/BG_SCALE+o[2]};
  float radius=bg_players[p].health>0&&bg_players[p].zoom?1.25f:.25f;
- uint16_t mask=bg_map_id()==BG_MAP_CHIRON_TL34?bg_pvs_camera_mask(&bg_chiron_pvs,source_eye,radius):UINT16_MAX;
+ uint64_t mask=bg_map_id()==bg_world_pvs.map_id?bg_pvs_camera_mask(&bg_world_pvs,source_eye,radius):UINT64_MAX;
  counts c[2]={{0}};unsigned material[2]={~0u,~0u};
  for(unsigned b=0;b<bg_chunk_count;b++){
   const bg_chunk*k=&bg_chunks[b];
   if(!bg_frustum_box_cached((const float(*)[4])f.planes,selected,k->bounds))continue;
-  bool keep=bg_map_id()!=BG_MAP_CHIRON_TL34||bg_pvs_keep_chunk(&bg_chiron_pvs,mask,b);
+  bool keep=bg_map_id()!=bg_world_pvs.map_id||bg_pvs_keep_chunk(&bg_world_pvs,mask,b);
+#ifdef BG_TRACE_PVS_CHUNKS
+  if(bg_map_id()==bg_world_pvs.map_id&&tick==180&&p==0&&!keep)fprintf(stderr,"PVS_CULLED_CHUNK %u\n",b);
+#endif
   unsigned crossing=0,rejected=0;
   for(unsigned i=0;i<k->index_count;i+=3){
    unsigned either=0,both=63;
@@ -75,9 +78,9 @@ static void count_view(unsigned p,unsigned tick,FILE*out){
    if(material[candidate]!=k->material){c[candidate].materials++;material[candidate]=k->material;}
   }
  }
- for(unsigned candidate=0;candidate<2;candidate++)fprintf(out,"%u,%u,%u,%u,%.9g,%.9g,%.9g,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
+ for(unsigned candidate=0;candidate<2;candidate++)fprintf(out,"%u,%u,%u,%u,%.9g,%.9g,%.9g,%u,%u,%llu,%u,%u,%u,%u,%u,%u\n",
   bg_map_id(),tick,p,candidate,eye.x/BG_SCALE,eye.y/BG_SCALE,eye.z/BG_SCALE,
-  bg_players[p].health>0,bg_players[p].zoom,mask,c[candidate].chunks,c[candidate].vertices,c[candidate].triangles,
+  bg_players[p].health>0,bg_players[p].zoom,(unsigned long long)mask,c[candidate].chunks,c[candidate].vertices,c[candidate].triangles,
   c[candidate].materials,c[candidate].crossing,c[candidate].rejected);
 }
 int main(int argc,char**argv){
@@ -97,7 +100,7 @@ int main(int argc,char**argv){
 '''
 
 
-def run(out,sidecar):
+def run(out,sidecar,trace_chunks=False):
     out=out.resolve();out.mkdir(parents=True,exist_ok=True);solver=out/'solver'
     for name in ('prepare_vehicle.py','export_vehicle.py'):
         cmd=[sys.executable,str(ROOT/'port/n64/blam'/name),'--output',str(solver)]
@@ -126,6 +129,7 @@ def run(out,sidecar):
     flags=['-std=c17','-O2','-g','-fsanitize=address,undefined','-ffp-contract=off','-fno-fast-math','-fno-strict-aliasing','-fwrapv',
            '-Wno-multichar','-Wno-unused-function','-Wno-incompatible-pointer-types','-DBG_STREAM_MAPS','-DBG_BODY_CANDIDATES',
            '-I'+str(out),'-I'+str(SDK),'-Iport/n64','-Ibuild/n64/blam-core','-I'+str(solver)]
+    if trace_chunks:flags.append('-DBG_TRACE_PVS_CHUNKS')
     cmd=['clang',*flags,str(driver),str(out/'visibility-data.c'),str(SDK/'t3d/t3dmath.c'),
          *(str(ROOT/'port/n64'/s) for s in sources),*(str(ROOT/'build/n64/generated'/s) for s in generated),
          str(ROOT/'halo64-assets/generated/maps/common_data.c'),str(solver/'vehicle_data.c'),'-lm','-o',str(out/'probe')]
@@ -153,4 +157,5 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,default=ROOT/'build/n64-chiron-visibility/camera-census')
     parser.add_argument('--sidecar',type=Path,default=ROOT/'build/n64-chiron-visibility/data/visibility.json')
-    args=parser.parse_args();run(args.output_dir,args.sidecar.resolve())
+    parser.add_argument('--trace-culled-chunks',action='store_true')
+    args=parser.parse_args();run(args.output_dir,args.sidecar.resolve(),args.trace_culled_chunks)

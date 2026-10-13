@@ -26,7 +26,7 @@ typedef struct {
     unsigned chunks,vertices,triangles,material_changes,pvs_rejected,frustum_rejected;
     unsigned world_cpu_us;
     float eye[3];
-    uint16_t pvs_mask;
+    uint64_t pvs_mask;
 } bg_world_view_metrics;
 extern bg_world_view_metrics bg_world_views[4];
 #endif

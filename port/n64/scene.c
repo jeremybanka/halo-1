@@ -30,9 +30,9 @@
 #include "render_pose_cache.h"
 #include "render_cull.h"
 #include "render_visibility.h"
-#ifdef BG_CHIRON_PVS
+#ifdef BG_WORLD_PVS
 #include "render_pvs.h"
-static uint16_t world_camera_masks[4];
+static uint64_t world_camera_masks[4];
 #endif
 #include "blam/runtime.h"
 #include "hud.h"
@@ -266,10 +266,10 @@ void bg_scene_release_world(void) {
     world_block_count = world_texture_count = 0;
 }
 void bg_scene_load_world(void) {
-#ifdef BG_CHIRON_PVS
-    assertf(get_memory_size()>=8*1024*1024,"Chiron PVS experiment requires Expansion Pak");
-    if(bg_map_id()==BG_MAP_CHIRON_TL34)
-        assertf(bg_chunk_count==bg_chiron_pvs.chunk_count,"PVS batch identity");
+#ifdef BG_WORLD_PVS
+    assertf(get_memory_size()>=8*1024*1024,"World PVS experiment requires Expansion Pak");
+    if(bg_map_id()==bg_world_pvs.map_id)
+        assertf(bg_chunk_count==bg_world_pvs.chunk_count,"PVS batch identity");
 #endif
 #ifdef BG_STREAM_MAPS
     /* The main menu needs shared models, not a temporary level allocation.
@@ -1278,17 +1278,17 @@ static void prepare_view(unsigned p) {
 #ifdef BG_GEOMETRY_CENSUS
     memset(&bg_world_views[p],0,sizeof(bg_world_views[p]));
     for(unsigned a=0;a<3;a++)bg_world_views[p].eye[a]=eye.v[a]/BG_SCALE;
-    bg_world_views[p].pvs_mask=UINT16_MAX;
+    bg_world_views[p].pvs_mask=UINT64_MAX;
 #endif
-#ifdef BG_CHIRON_PVS
-    world_camera_masks[p]=UINT16_MAX;
-    if(bg_map_id()==BG_MAP_CHIRON_TL34){
+#ifdef BG_WORLD_PVS
+    world_camera_masks[p]=UINT64_MAX;
+    if(bg_map_id()==bg_world_pvs.map_id){
         const float*o=bg_map_origin();
         float source_eye[3]={eye.v[0]/BG_SCALE+o[0],-eye.v[2]/BG_SCALE+o[1],eye.v[1]/BG_SCALE+o[2]};
         /* Enclose the near-plane rectangle plus exporter/rounding uncertainty.
          * The scoped near plane is wider in world space despite the narrow FOV. */
         float radius=scoped?1.25f:.25f;
-        world_camera_masks[p]=bg_pvs_camera_mask(&bg_chiron_pvs,source_eye,radius);
+        world_camera_masks[p]=bg_pvs_camera_mask(&bg_world_pvs,source_eye,radius);
     }
 #ifdef BG_GEOMETRY_CENSUS
     bg_world_views[p].pvs_mask=world_camera_masks[p];
@@ -1410,8 +1410,8 @@ static void draw_view(unsigned p) {
 #endif
     for (unsigned b = 0; b < bg_chunk_count; b++) {
         const bg_chunk *c = &bg_chunks[b];
-#ifdef BG_CHIRON_PVS
-        if(bg_map_id()==BG_MAP_CHIRON_TL34&&!bg_pvs_keep_chunk(&bg_chiron_pvs,world_camera_masks[p],b)){
+#ifdef BG_WORLD_PVS
+        if(bg_map_id()==bg_world_pvs.map_id&&!bg_pvs_keep_chunk(&bg_world_pvs,world_camera_masks[p],b)){
 #ifdef BG_GEOMETRY_CENSUS
             bg_world_views[p].pvs_rejected++;
 #endif

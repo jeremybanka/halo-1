@@ -45,8 +45,8 @@ def parse_args(argv=None):
     )
     parser.add_argument('--feature-cache-slots', type=int, choices=(128,512),
                         help='8 MiB research: isolated prism/edge cache adapter; benchmark/QA modes only')
-    parser.add_argument('--chiron-pvs-data',type=Path,
-                        help='8 MiB research: hash-bound conservative Chiron static-world PVS sidecar')
+    parser.add_argument('--world-pvs-data','--chiron-pvs-data',dest='world_pvs_data',type=Path,
+                        help='8 MiB research: hash-bound conservative selected-map static-world PVS sidecar')
     parser.add_argument('--geometry-census',action='store_true',
                         help='Fixed-tick per-camera submission counts and serialized graphics drains; snapshot QA only')
     parser.add_argument(
@@ -281,8 +281,8 @@ def parse_args(argv=None):
     args = parser.parse_args(argv)
     if args.geometry_census and args.snapshot_tick is None:
         parser.error('--geometry-census requires --snapshot-tick')
-    if args.chiron_pvs_data and not (args.benchmark or args.vi_benchmark or args.profile or args.validate or args.snapshot_tick is not None or args.frontend_qa or args.maps_cycle):
-        parser.error('--chiron-pvs-data requires an explicit benchmark or QA mode')
+    if args.world_pvs_data and not (args.benchmark or args.vi_benchmark or args.profile or args.validate or args.snapshot_tick is not None or args.frontend_qa or args.maps_cycle):
+        parser.error('--world-pvs-data requires an explicit benchmark or QA mode')
     if args.maps_cycle:
         if args.frontend_qa not in (None,4):parser.error("--maps-cycle needs four-player frontend QA")
         args.frontend_qa=4;args.initial_map="wizard"
@@ -429,7 +429,7 @@ def compile_options(args, sdk, tiny, out, source):
             else []
         ),
         *(["-DRDPQ_VALIDATE"] if args.validate else []),
-        *(['-DBG_CHIRON_PVS'] if args.chiron_pvs_data else []),
+        *(['-DBG_WORLD_PVS'] if args.world_pvs_data else []),
         *(['-DBG_GEOMETRY_CENSUS'] if args.geometry_census else []),
         *(["-DBG_COMBAT_QA=" + str(args.combat_qa)] if args.combat_qa is not None else []),
         *(["-DBG_MOVEMENT_QA=" + str(args.movement_qa)] if args.movement_qa is not None else []),
@@ -538,7 +538,7 @@ def rom_name(args):
     )
     if args.feature_cache_slots:
         name += '-features' + str(args.feature_cache_slots)
-    if args.chiron_pvs_data:name+='-chiron-pvs'
+    if args.world_pvs_data:name+='-world-pvs'
     if args.geometry_census:name+='-geometry-census'
     if args.snapshot_tick is not None:
         name += "-snapshot-" + str(args.snapshot_tick)
@@ -962,9 +962,9 @@ def main():
         )
         for name in sources
     ]
-    if args.chiron_pvs_data:
+    if args.world_pvs_data:
         from export_chiron_visibility import emit_c
-        visibility=json.loads(args.chiron_pvs_data.resolve().read_text())
+        visibility=json.loads(args.world_pvs_data.resolve().read_text())
         visibility_source=out/'visibility-data.c'
         emit_c(visibility,visibility_source)
         runtime_sources.extend([ROOT/'port/n64/render_pvs.c',visibility_source])
@@ -1131,13 +1131,14 @@ def main():
             }
             if args.feature_cache_slots else None
         ),
-        "chiron_pvs_experiment": ({
-            'sidecar_sha256':hashlib.sha256(args.chiron_pvs_data.resolve().read_bytes()).hexdigest(),
+        "world_pvs_experiment": ({
+            'sidecar_sha256':hashlib.sha256(args.world_pvs_data.resolve().read_bytes()).hexdigest(),
             'map_sha256':visibility['map_sha256'],
             'data_source_sha256':hashlib.sha256(visibility_source.read_bytes()).hexdigest(),
-            'required_ram_mib':8,'static_array_bytes':visibility['static_bytes'],
-            'scope':'Static Chiron world only; invalid/solid/uncertain leaves and unmapped batches fail open',
-        } if args.chiron_pvs_data else None),
+            'required_ram_mib':8,'static_array_bytes':len(visibility['nodes'])*12+len(visibility['planes'])*16+len(visibility['leaf_clusters'])*2+len(visibility['chunk_masks'])*8+visibility['clusters']*8,
+            'map_id':visibility['map_id'],
+            'scope':'Static selected world only; invalid/solid/uncertain leaves and unmapped batches fail open',
+        } if args.world_pvs_data else None),
         "service_ids": hashlib.sha256(
             (ROOT / "port/n64/interaction_services.def").read_bytes()
         ).hexdigest(),

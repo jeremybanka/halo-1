@@ -21,7 +21,7 @@ def without_experiments(source):
     it only selects the two reviewed #ifdef experiment blocks and their else
     paths. Their active behavior needs separate renderer/PVS/target checks.
     """
-    disabled={'BG_CHIRON_PVS','BG_GEOMETRY_CENSUS'}
+    disabled={'BG_CHIRON_PVS','BG_WORLD_PVS','BG_GEOMETRY_CENSUS'}
     stack=[];active=True;out=[]
     for line in source.splitlines(keepends=True):
         directive=line.strip()

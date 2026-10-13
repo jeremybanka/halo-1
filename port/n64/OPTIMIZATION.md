@@ -884,3 +884,76 @@ Local evidence: `build/n64-chiron-visibility/` includes `camera-census/cameras.c
 `quiet-timing.json`, `validation-final.json`, sanitizer logs, screenshots and
 per-ROM manifests. All payloads and source-derived sidecars remain private. Temporary Ares
 Expansion Pak/defocus preferences were restored.
+
+## Sidewinder and Rat Race visibility prototypes (October 13)
+
+Base: `231975df`. The same source-ID provenance and camera-sphere lookup now
+support up to 64 clusters with uint64 masks and a map-ID-bound descriptor.
+`--world-pvs-data` is the generic opt-in switch; `--chiron-pvs-data` remains an
+alias. Default rendering and the verified release artifact remain unchanged.
+The accepted Sidewinder and Rat Race banks regenerate byte for byte.
+
+### Pixel counterexample and conservative fallback
+
+Sidewinder initially removed 7.7% of sampled world vertex loads but lost 60
+scene pixels at frozen tick 180. Cursor contamination was removed by clean
+recapture; the scene difference remained reproducible. Nonopaque batches are
+now retained unconditionally: source-engine visibility assumptions cannot be
+used to hide N64 overlay/cutout/two-sided geometry. This rule is enforced when
+emitting even legacy sidecars.
+
+The nonopaque fallback alone did not eliminate the counterexample. Sidewinder
+therefore also retains ten opaque batches implicated by the first camera's
+rejected set: 7, 21, 59, 60, 117–122. This deliberately broad exception is bound
+to accepted bank SHA256
+`200a3e01cd0c29a4f3f6f2ab71a1737c81342d2d3950bf763e3e9417606f7948`.
+It is not a precise attribution to one culprit. An incompatible bank requires
+revalidation. Guarded ticks 180 and 1148 then match every compared pixel.
+
+Rat Race passes both frozen poses with the nonopaque fallback and no additional
+batch exceptions. Each map compares 850,500 RGB pixels in the same 750×567
+scaled gameplay crop, excluding window chrome/status/shadow; total **1,701,000
+pixels, zero differences** for the accepted prototypes. These sixteen sampled
+views do not establish exhaustive scope/portal or physical-console acceptance.
+
+### Matched work and quiet timing
+
+Each map uses the same 17 fixed ticks × four cameras and source camera math as
+Chiron. Static world only; dynamic models keep their existing culling. Clipping
+columns remain float estimates, not measured RSP operations. Sidewinder retains
+196 uncertain/nonopaque batches plus its ten pixel exceptions; Rat Race retains
+118 uncertain/nonopaque batches. Scenery remains fail-open.
+
+| Map | Sampled world vertex reduction | Static lookup arrays | Quiet ABAB FPS | P95 before / after | Maximum before / after |
+| --- | ---: | ---: | --- | --- | --- |
+| Sidewinder | 6.3% | 227,106 B (221.8 KiB) | 9.5 / 10.0 / 9.5 / 10.0 | 167.1 / 167.1 ms | 200.5 / 200.6 ms |
+| Rat Race | 14.6% | 54,874 B (53.6 KiB) | 21.0 / 22.3 / 21.0 / 22.3 | 66.8 / 66.8 ms | 100.2 / 66.8 ms |
+
+Both repeats have identical displayed-pose counts: Sidewinder **718 baseline /
+757 prototype**, Rat Race **1582 / 1674**. Quiet controls use Ares NTSC, 8 MiB,
+four players, LTO, three display surfaces and 32 KiB queues, with no concurrent
+host builds/tests. Sidewinder's gain is about 5%; Rat Race's about 6%.
+
+Result-page free heap changes 3083→2860 KiB on Sidewinder and 4327→4239 KiB on
+Rat Race. These 223/88 KiB endpoint differences include runtime residency and
+are not identical to the immutable array census or minimum-free measurements.
+The raw PVS opportunity does not directly predict FPS: frustum overlap, scenery,
+uncertainty and conservative pixel exceptions reduce the removable workload.
+
+Strict and target-math ASan/UBSan trials cover 30,000 camera spheres per map,
+all 35/16 clusters, and over 663,000/85,000 valid nearby points. Deterministic
+interior probes cover rare source clusters; uniform random sampling alone missed
+some Sidewinder clusters. Synthetic tests also exercise bits 34 and 63, all-mask
+construction at 64 clusters, invalid floats, boundaries, unknown batches and
+cycle/budget fallback. The widened Chiron guard tests and all 25 maintained
+contracts pass.
+
+Local evidence is `build/n64-visibility-rollout/`: per-map camera CSV/results,
+native counter records, frozen comparisons, quiet controls, sanitizer logs,
+RDP screenshots and per-ROM manifests. The initial rejected Sidewinder images
+are retained separately. No source-derived sidecars or ROMs are published.
+
+Native fixed-tick counts corroborate **16 exact host camera records** across the
+two baseline/prototype pairs. Both native four-view source-start inspections
+report **zero RDP errors and warnings** with 8 KiB validation queues. Temporary
+Ares memory/defocus settings were restored.

@@ -5,12 +5,13 @@ import re
 import subprocess
 from test_render_matrix import compact, function
 from test_projection_cache import projection_block
+from runtime_source import without_experiments
 
 ROOT = Path(__file__).resolve().parents[2]
 reference = subprocess.check_output(
     ["git", "show", "b3fba521:port/n64/main.c"], cwd=ROOT, text=True
 )
-scene = (ROOT / "port/n64/scene.c").read_text()
+scene = without_experiments((ROOT / "port/n64/scene.c").read_text())
 functions = re.findall(r"^static[ \t]+(?:const[ \t]+)?\w+[ \t*]+(\w+)\([^;{}]*\)\s*\{", scene, re.M)
 checked = []
 for name in functions:

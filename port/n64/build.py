@@ -45,6 +45,10 @@ def parse_args(argv=None):
     )
     parser.add_argument('--feature-cache-slots', type=int, choices=(128,512),
                         help='8 MiB research: isolated prism/edge cache adapter; benchmark/QA modes only')
+    parser.add_argument('--chiron-pvs-data',type=Path,
+                        help='8 MiB research: hash-bound conservative Chiron static-world PVS sidecar')
+    parser.add_argument('--geometry-census',action='store_true',
+                        help='Fixed-tick per-camera submission counts and serialized graphics drains; snapshot QA only')
     parser.add_argument(
         "--sdk",
         type=Path,
@@ -275,6 +279,10 @@ def parse_args(argv=None):
     )
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
     args = parser.parse_args(argv)
+    if args.geometry_census and args.snapshot_tick is None:
+        parser.error('--geometry-census requires --snapshot-tick')
+    if args.chiron_pvs_data and not (args.benchmark or args.vi_benchmark or args.profile or args.validate or args.snapshot_tick is not None or args.frontend_qa or args.maps_cycle):
+        parser.error('--chiron-pvs-data requires an explicit benchmark or QA mode')
     if args.maps_cycle:
         if args.frontend_qa not in (None,4):parser.error("--maps-cycle needs four-player frontend QA")
         args.frontend_qa=4;args.initial_map="wizard"
@@ -396,7 +404,7 @@ def compile_options(args, sdk, tiny, out, source):
         "-ftrapping-math",
         "-fno-associative-math",
         "-DN64",
-        *(["-fno-finite-math-only"] if source.name in ("scene.c", "weapon_effects_draw.c") else []),
+        *(["-fno-finite-math-only"] if source.name in ("scene.c", "weapon_effects_draw.c", "render_pvs.c") else []),
         "-Wall",
         "-Wextra",
         "-Werror",
@@ -421,6 +429,8 @@ def compile_options(args, sdk, tiny, out, source):
             else []
         ),
         *(["-DRDPQ_VALIDATE"] if args.validate else []),
+        *(['-DBG_CHIRON_PVS'] if args.chiron_pvs_data else []),
+        *(['-DBG_GEOMETRY_CENSUS'] if args.geometry_census else []),
         *(["-DBG_COMBAT_QA=" + str(args.combat_qa)] if args.combat_qa is not None else []),
         *(["-DBG_MOVEMENT_QA=" + str(args.movement_qa)] if args.movement_qa is not None else []),
         *(["-DBG_DEMO"] if args.demo else []),
@@ -528,6 +538,8 @@ def rom_name(args):
     )
     if args.feature_cache_slots:
         name += '-features' + str(args.feature_cache_slots)
+    if args.chiron_pvs_data:name+='-chiron-pvs'
+    if args.geometry_census:name+='-geometry-census'
     if args.snapshot_tick is not None:
         name += "-snapshot-" + str(args.snapshot_tick)
     if args.map_qa is not None:
@@ -950,6 +962,12 @@ def main():
         )
         for name in sources
     ]
+    if args.chiron_pvs_data:
+        from export_chiron_visibility import emit_c
+        visibility=json.loads(args.chiron_pvs_data.resolve().read_text())
+        visibility_source=out/'visibility-data.c'
+        emit_c(visibility,visibility_source)
+        runtime_sources.extend([ROOT/'port/n64/render_pvs.c',visibility_source])
     if args.feature_cache_slots:
         original = ROOT / 'port/n64/blam/vehicle_physics.c'
         candidate = out / 'feature-cache/vehicle_physics.c'
@@ -1113,6 +1131,13 @@ def main():
             }
             if args.feature_cache_slots else None
         ),
+        "chiron_pvs_experiment": ({
+            'sidecar_sha256':hashlib.sha256(args.chiron_pvs_data.resolve().read_bytes()).hexdigest(),
+            'map_sha256':visibility['map_sha256'],
+            'data_source_sha256':hashlib.sha256(visibility_source.read_bytes()).hexdigest(),
+            'required_ram_mib':8,'static_array_bytes':visibility['static_bytes'],
+            'scope':'Static Chiron world only; invalid/solid/uncertain leaves and unmapped batches fail open',
+        } if args.chiron_pvs_data else None),
         "service_ids": hashlib.sha256(
             (ROOT / "port/n64/interaction_services.def").read_bytes()
         ).hexdigest(),

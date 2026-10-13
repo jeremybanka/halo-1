@@ -1138,11 +1138,24 @@ int main(void) {
 #ifdef BG_PROFILE
         bg_scene_profile.submitted_vertices = 0;
 #endif
+#ifdef BG_GEOMETRY_CENSUS
+        unsigned camera_drain_us[4]={0},camera_total_triangles[4]={0};
+#endif
         for (unsigned p = 0; p < views; p++) {
+#ifdef BG_GEOMETRY_CENSUS
+            unsigned before_camera=triangles;
+#endif
             triangles = bg_scene_draw(p);
             /* Submit each completed view before mixing audio. This is a
              * nonblocking wakeup, not a fence or a new RDP command. */
             rspq_flush();
+#ifdef BG_GEOMETRY_CENSUS
+            camera_total_triangles[p]=triangles-before_camera;
+            uint64_t drain_begin=get_ticks_us();
+            rspq_syncpoint_t camera_fence=rspq_syncpoint_new();rspq_flush();
+            while(!rspq_syncpoint_check(camera_fence))pump_audio();
+            camera_drain_us[p]=get_ticks_us()-drain_begin;
+#endif
             pump_audio();
         }
 #ifdef BG_GPU_DIAGNOSTIC
@@ -1199,6 +1212,18 @@ int main(void) {
             fill(0, 119, 320, 2, RGBA32(0, 0, 0, 255));
         if (views >= 3)
             fill(159, 0, 2, 240, RGBA32(0, 0, 0, 255));
+#ifdef BG_GEOMETRY_CENSUS
+        rdpq_set_mode_standard();fill(0,0,320,240,RGBA32(0,0,0,255));
+        rdpq_set_mode_standard();
+        rdpq_text_printf(NULL,1,4,12,"FIXED TICK %u / SERIAL CAMERA DRAINS",(unsigned)BG_SNAPSHOT_TICK);
+        for(unsigned p=0;p<views;p++){
+            const bg_world_view_metrics*m=&bg_world_views[p];
+            int y=34+p*47;
+            rdpq_text_printf(NULL,1,4,y,"P%u V%u T%u B%u M%u",p,m->vertices,m->triangles,m->chunks,m->material_changes);
+            rdpq_text_printf(NULL,1,4,y+12,"CPU%u DRAIN%u ALLT%u",m->world_cpu_us,camera_drain_us[p],camera_total_triangles[p]);
+            rdpq_text_printf(NULL,1,4,y+24,"PVS%03X REJ%u FR%u",m->pvs_mask,m->pvs_rejected,m->frustum_rejected);
+        }
+#endif
 #if defined(BG_DEMO) && !defined(BG_VI_MEASURE) && !defined(BG_SNAPSHOT_TICK)
         rdpq_set_mode_standard();
         rdpq_text_printf(NULL, 1, 116, 118, "REPLAY %u FPS", fps);

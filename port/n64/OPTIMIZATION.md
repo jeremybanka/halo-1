@@ -781,3 +781,106 @@ build/n64-python/bin/python port/n64/build.py --preset release \
   --initial-map damnation --benchmark --benchmark-page 5 \
   --output-dir build/n64-expansion-research/damnation-cpu
 ```
+
+## Matched camera geometry and Chiron prototype (October 12)
+
+Base: research `f7d425ab`, including the native vehicle-origin correction.
+`investigate_camera_geometry.py` samples **17 fixed simulation ticks × four
+cameras × 13 maps**: 884 matched views, with baseline/prototype submission
+counts calculated from the same camera matrices and state. It retains the
+renderer camera construction, installed SDK float matrices, four-pixel cull
+bleed, scoped projection and production AABB predicate. Source map routes differ
+across maps; matching means identical tick/camera within each map, not identical
+physical routes between differently shaped maps. Dynamic meshes are outside the
+host world census. Homogeneous clipping columns are **float estimates**, not
+actual RSP clipping operations, cycle counts or timing.
+
+| Map | Mean world vertices / camera | Mean world triangles / camera | Mean batches / camera |
+| --- | ---: | ---: | ---: |
+| Blood Gulch | 1184 | 746 | 56 |
+| Wizard | 2991 | 1633 | 112 |
+| Derelict | 5207 | 2952 | 197 |
+| Chiron, baseline | 6760 | 4272 | 134 |
+| Chiron, conservative PVS | 4565 | 2878 | 90 |
+| Damnation | 9990 | 6513 | 234 |
+| Boarding Action | 11088 | 7181 | 236 |
+| Sidewinder, corrected origin | 9962 | 6912 | 217 |
+
+Native fixed-tick `--geometry-census --snapshot-tick 180` corroborates each
+camera's world vertex, triangle, batch and material-change count on Blood Gulch
+Chiron, Damnation and Boarding Action, including the Chiron prototype: **20
+exact native/host camera records**. Separate per-camera RSP fences give
+serialized diagnostics, not production pacing or isolated world-only GPU cost.
+The native total-triangle field also includes dynamic objects and first person.
+
+### Conservative Chiron sidecar
+
+`export_chiron_visibility.py` makes a separate provenance-instrumented copy of
+the accepted exporter. The shared exporter/batcher and accepted banks stay
+unchanged. Original source surface IDs follow UV subdivisions and ordered
+batches. The regenerated Chiron bank must match every accepted byte before
+export proceeds. Batch masks union all contributing source clusters; source
+surfaces without membership and placed scenery retain all clusters. Twenty
+batches fail open.
+
+The sidecar is bound to the accepted map SHA256 and contains source collision
+BSP nodes/planes, render-leaf cluster IDs, PVS rows and batch masks. This follows
+`structure_visibility_find_camera` and `structure_bsp_get_cluster_pvs` in the
+original source. Static arrays occupy **78,244 bytes** (76.4 KiB), plus the small
+descriptor and a bounded 512-byte traversal stack. This is larger than the raw
+row/membership estimate because it includes camera lookup.
+
+The prototype unions rows of leaves touched by a .25-unit ordinary camera
+sphere or 1.25-unit scoped sphere, plus plane/rounding margin. Solid, invalid,
+unmapped and exhausted traversals retain all geometry. It affects **static
+Chiron world batches only**; actors, pickups, effects and first person keep their
+existing culling. Retained commands keep their order and material handling.
+
+Actual sampled reductions are **32.5% of world vertex loads and 32.6% of world
+triangles**, substantially below the raw source-row opportunity. Forty of 68
+Chiron camera samples fail open. The uncertainty fallback is retained for this
+first experiment.
+
+The explicit `--chiron-pvs-data visibility.json` switch requires a diagnostic/QA
+mode, asserts 8 MiB and emits a separately named ROM. The default renderer and
+verified release artifact remain unchanged. Lookup compilation disables
+finite-only assumptions, as with the existing conservative render bounds,
+so invalid floating-point input cannot turn into permission to hide geometry.
+
+### Validation and native timing
+
+Both strict and target-math ASan/UBSan trials cover 30,000 source camera spheres,
+all nine source clusters and over 23,000 valid nearby points. Every sampled
+valid point's original PVS row is contained in the conservative union. Synthetic
+plane-boundary, outside/solid, unknown batch, NaN, negative radius and cyclic-tree
+cases fail open. The accepted renderer source-order checks inspect the default
+path with the two explicit research flags disabled. The CPU preparation check
+also follows the prototype lookup and verifies that it queues no graphics work.
+All **47 maintained validation groups** pass after the final contract recheck.
+
+Frozen ticks **180 and 1148** retain every RGB byte of the 750×567 scaled
+four-camera gameplay crop: **850,500 compared pixels, zero changed pixels**.
+Window chrome/status and its top shadow are excluded. These eight ordinary/death
+views are sample evidence, not exhaustive scope/portal or physical-console
+acceptance. Native four-view source-start inspection also reports **zero RDP
+errors/warnings**, using the maintained 8 KiB validation queues.
+
+| Quiet 75-second Chiron replay | FPS | Displayed poses | P95 / maximum | Result-page free heap |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline | 15.5 | 1165 | 100.2 / 100.3 ms | 3721 KiB |
+| Conservative PVS | 21.4 | 1612 | 66.8 / 100.3 ms | 3644 KiB |
+| Baseline repeat | 15.5 | 1165 | 100.2 / 100.3 ms | 3721 KiB |
+| Conservative PVS repeat | 21.4 | 1612 | 66.8 / 100.3 ms | 3644 KiB |
+
+Repeated ABAB controls: approximately **38% higher FPS** and a lower P95 interval
+for 77 KiB less endpoint free heap. Both baseline runs display exactly 1165 poses;
+both prototype runs display exactly 1612 poses. Quiet measurement contains no
+census/profile/serialized fences;
+8 MiB, four players, LTO, three surfaces and 32 KiB queues match the baseline.
+No host builds/tests run during those intervals.
+
+Local evidence: `build/n64-chiron-visibility/` includes `camera-census/cameras.csv`,
+`camera-census/results.json`, `native-census.json`, `pixel-comparisons.json`,
+`quiet-timing.json`, `validation-final.json`, sanitizer logs, screenshots and
+per-ROM manifests. All payloads and source-derived sidecars remain private. Temporary Ares
+Expansion Pak/defocus preferences were restored.

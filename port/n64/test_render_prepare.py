@@ -43,7 +43,7 @@ def check(main, sdk, tiny, before=None):
     # Follow the actual inline projection helpers too, rather than allowing an
     # unchecked external call across the CPU-only preparation boundary.
     helpers = '\n'.join((main.parent/name).read_text() for name in
-        ('render_micro_lod.h', 'render_lod.h', 'hud_layout.h', 'render_visibility.h', 'game.h', 'movement.h', 'camouflage.h', 'view_camera.h')) + '\n' + source
+        ('render_micro_lod.h', 'render_lod.h', 'hud_layout.h', 'render_visibility.h', 'render_pvs.c', 'map.h', 'map.c', 'game.h', 'movement.h', 'camouflage.h', 'view_camera.h')) + '\n' + source
     visited = set()
 
     def visit(name):

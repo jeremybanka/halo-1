@@ -30,11 +30,18 @@
 #include "render_pose_cache.h"
 #include "render_cull.h"
 #include "render_visibility.h"
+#ifdef BG_CHIRON_PVS
+#include "render_pvs.h"
+static uint16_t world_camera_masks[4];
+#endif
 #include "blam/runtime.h"
 #include "hud.h"
 #include "scene.h"
 #include "map.h"
 #include "runtime_qa.h"
+#ifdef BG_GEOMETRY_CENSUS
+bg_world_view_metrics bg_world_views[4];
+#endif
 #ifdef BG_PROFILE
 typedef struct {
     const bg_anim_asset *asset;
@@ -259,6 +266,11 @@ void bg_scene_release_world(void) {
     world_block_count = world_texture_count = 0;
 }
 void bg_scene_load_world(void) {
+#ifdef BG_CHIRON_PVS
+    assertf(get_memory_size()>=8*1024*1024,"Chiron PVS experiment requires Expansion Pak");
+    if(bg_map_id()==BG_MAP_CHIRON_TL34)
+        assertf(bg_chunk_count==bg_chiron_pvs.chunk_count,"PVS batch identity");
+#endif
 #ifdef BG_STREAM_MAPS
     /* The main menu needs shared models, not a temporary level allocation.
      * Bind the selected world's commands only when starting a match. */
@@ -1263,6 +1275,25 @@ static void prepare_view(unsigned p) {
     t3d_viewport_look_at(vp, &eye, &target, &(T3DVec3){{0, 1, 0}});
     bg_visibility_side_planes((float (*)[4])vp->viewFrustum.planes, vp->matCamProj.m, w, h);
     bg_frustum_prepare(cull_selected[p], (const float (*)[4])vp->viewFrustum.planes);
+#ifdef BG_GEOMETRY_CENSUS
+    memset(&bg_world_views[p],0,sizeof(bg_world_views[p]));
+    for(unsigned a=0;a<3;a++)bg_world_views[p].eye[a]=eye.v[a]/BG_SCALE;
+    bg_world_views[p].pvs_mask=UINT16_MAX;
+#endif
+#ifdef BG_CHIRON_PVS
+    world_camera_masks[p]=UINT16_MAX;
+    if(bg_map_id()==BG_MAP_CHIRON_TL34){
+        const float*o=bg_map_origin();
+        float source_eye[3]={eye.v[0]/BG_SCALE+o[0],-eye.v[2]/BG_SCALE+o[1],eye.v[1]/BG_SCALE+o[2]};
+        /* Enclose the near-plane rectangle plus exporter/rounding uncertainty.
+         * The scoped near plane is wider in world space despite the narrow FOV. */
+        float radius=scoped?1.25f:.25f;
+        world_camera_masks[p]=bg_pvs_camera_mask(&bg_chiron_pvs,source_eye,radius);
+    }
+#ifdef BG_GEOMETRY_CENSUS
+    bg_world_views[p].pvs_mask=world_camera_masks[p];
+#endif
+#endif
     /* Camera-space arms cross the world's near plane. Give the foreground
      * its own projection and depth range, while preserving FOV and aim offset.
      * Separate slot storage keeps queued RSP camera matrices immutable. */
@@ -1374,12 +1405,35 @@ static void draw_view(unsigned p) {
     unsigned bound = ~0u;
     bool palette_mode = false;
     unsigned overlay_mode = 0;
+#ifdef BG_GEOMETRY_CENSUS
+    uint64_t world_cpu_begin=get_ticks_us();
+#endif
     for (unsigned b = 0; b < bg_chunk_count; b++) {
         const bg_chunk *c = &bg_chunks[b];
+#ifdef BG_CHIRON_PVS
+        if(bg_map_id()==BG_MAP_CHIRON_TL34&&!bg_pvs_keep_chunk(&bg_chiron_pvs,world_camera_masks[p],b)){
+#ifdef BG_GEOMETRY_CENSUS
+            bg_world_views[p].pvs_rejected++;
+#endif
+            continue;
+        }
+#endif
         if (!bg_frustum_box_cached((const float (*)[4])vp->viewFrustum.planes, cull_selected[p],
                                    c->bounds))
+#ifdef BG_GEOMETRY_CENSUS
+            {bg_world_views[p].frustum_rejected++;continue;}
+#else
             continue;
+#endif
+#ifdef BG_GEOMETRY_CENSUS
+        bg_world_views[p].chunks++;
+        bg_world_views[p].vertices+=(c->count+1)&~1u;
+        bg_world_views[p].triangles+=c->index_count/3;
+#endif
         if (bound != c->material) {
+#ifdef BG_GEOMETRY_CENSUS
+            bg_world_views[p].material_changes++;
+#endif
             unsigned material_mode = bg_texture_overlay[c->material];
             bool overlay = material_mode & 1;
             if (material_mode != overlay_mode) {
@@ -1413,6 +1467,9 @@ static void draw_view(unsigned p) {
 #endif
     }
     t3d_matrix_pop(1);
+#ifdef BG_GEOMETRY_CENSUS
+    bg_world_views[p].world_cpu_us=get_ticks_us()-world_cpu_begin;
+#endif
     if (overlay_mode) {
         rdpq_mode_begin();
         rdpq_mode_zbuf(true, true);

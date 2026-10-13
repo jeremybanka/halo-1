@@ -2,7 +2,13 @@
  * all transfers are atomic with the authoritative active-slot state. */
 static void refill_pickup(bg_pickup*q){
     q->weapon=q->base_weapon;
-    if(q->alternate>=0&&blam_real_seed_random_range(&item_random,0,q->total_weight)>=q->first_weight)q->weapon=q->alternate;
+    if(q->alternate>=0){
+        float choice=blam_real_seed_random_range(&item_random,0,q->total_weight);
+        if(choice>=q->first_weight){
+            unsigned second_weight=(unsigned)q->alternate>>16;
+            q->weapon=second_weight?(choice<q->first_weight+second_weight?q->alternate&255:(q->alternate>>8)&255):q->alternate;
+        }
+    }
     q->active=true;q->age=q->unseen=q->heat=0;q->overheated=false;q->generation=++pickup_generation;
     q->quantity=1;
     if(q->weapon<BG_WEAPON_COUNT){q->ammo=bg_ammo_rules[q->weapon].loaded;q->reserve=bg_ammo_rules[q->weapon].reserve;}

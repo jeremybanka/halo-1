@@ -655,7 +655,7 @@ static void benchmark_vi_page(surface_t *screen) {
                      (unsigned)(bg_presentation_meter()->fresh.result[0].elapsed / 1000));
     const char *labels[] = {"ALL", "COMBAT", "VEHICLES"};
 #ifdef BG_STREAM_MAPS
-    if (bg_map_id() == BG_MAP_WIZARD) {
+    if (bg_map_id() != BG_MAP_BLOOD_GULCH) {
         labels[1] = "EARLY";
         labels[2] = "LATE";
     }
@@ -789,6 +789,7 @@ int main(void) {
     debug_init_isviewer();
     debug_init_usblog();
     bg_qa_bind(&views, &game_time);
+    bg_front_set_memory_size(get_memory_size());
 #ifdef BG_BLAM_BSP
     assertf(get_memory_size() >= 8 * 1024 * 1024,
             "Original Blam BSP requires an 8 MiB Expansion Pak");

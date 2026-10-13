@@ -1,11 +1,17 @@
 #include "frontend.h"
 #include <string.h>
+static unsigned memory_size=8*1024*1024;
+unsigned bg_front_map_memory_requirement(unsigned map){
+    return map==0||map==5||map==6||map==9||map==10?4*1024*1024:8*1024*1024;
+}
+void bg_front_set_memory_size(unsigned bytes){memory_size=bytes;}
+bool bg_front_map_needs_expansion(unsigned map){return memory_size<bg_front_map_memory_requirement(map);}
 const bg_front_entry bg_front_maps[13] = {
-    {"Battle Creek", true}, {"Sidewinder", false}, {"Damnation", false},
-    {"Rat Race", false},     {"Prisoner", false},   {"Hang 'Em High", true},
-    {"Chill Out", true},    {"Derelict", false},   {"Boarding Action", false},
-    {"Blood Gulch", true},   {"Wizard", true},      {"Chiron TL34", false},
-    {"Longest", false}};
+    {"Battle Creek", true}, {"Sidewinder", true}, {"Damnation", true},
+    {"Rat Race", true},     {"Prisoner", true},   {"Hang 'Em High", true},
+    {"Chill Out", true},    {"Derelict", true},   {"Boarding Action", true},
+    {"Blood Gulch", true},   {"Wizard", true},    {"Chiron TL34", true},
+    {"Longest", true}};
 const bg_front_entry bg_front_types[26] = {
     {"Slayer", true},       {"Slayer Pro", false}, {"Elimination", false}, {"Phantoms", false},
     {"Endurance", false},   {"Rockets", false},    {"Snipers", false},     {"Oddball", false},
@@ -21,7 +27,7 @@ bool bg_front_available(bg_front_page p, unsigned i) {
     case BG_FRONT_MULTIPLAYER:
         return i == 1;
     case BG_FRONT_MAP:
-        return i < 13 && bg_front_maps[i].available;
+        return i < 13 && bg_front_maps[i].available&&!bg_front_map_needs_expansion(i);
     case BG_FRONT_TYPE:
         return i < 26 && bg_front_types[i].available;
     case BG_FRONT_PROFILE:

@@ -270,7 +270,7 @@ def parse_args(argv=None):
         action="store_true",
         help="Script four-angle vehicle destruction, wreck settling, blinking and respawn",
     )
-    parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all five maps through the real menus")
+    parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
     args = parser.parse_args(argv)
     if args.maps_cycle:
         if args.frontend_qa not in (None,4):parser.error("--maps-cycle needs four-player frontend QA")

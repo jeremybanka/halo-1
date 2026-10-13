@@ -25,6 +25,7 @@ from pack_map_scenery import scenery
 
 ROOT = Path(__file__).resolve().parents[2]
 NAMES = tuple(map_ids())
+ACCEPTED_MAPS = ('bloodgulch', 'wizard', 'hangemhigh', 'chillout', 'beavercreek')
 STRIDES = (32,24,2,2048,1,1,1,2,12,6,1,4,2,16,20,1,24,16,28,20,3,16,60)
 HEADER_BYTES = 16 + len(STRIDES) * 12
 KINDS = {'weapons'+chr(92)+n+chr(92)+n: i for i,n in enumerate(
@@ -183,7 +184,8 @@ def arena(output, sky, name="wizard", bins=(8,8,4)):
         def bitmap(ref,name):
             m=h.get_meta(ref.id&65535);h.meta_to_tag_data(m,'bitm',es[ref.id&65535]);extract_bitmaps(m,name,out_dir=textures,bitmap_ext='png',halo_map=h)
         bitmap(bsp.lightmap_bitmaps,'lightmap')
-        new_materials=None if legacy else Materials(h,textures)
+        ci4_shader=r'levels\test\sidewinder\shaders\sidewinder ground' if name=='sidewinder' else None
+        new_materials=None if legacy else Materials(h,textures,ci4_shader)
         materials={} if legacy else new_materials.ids
         images=[] if legacy else new_materials.images
         overlays=[] if legacy else new_materials.flags
@@ -252,7 +254,7 @@ def arena(output, sky, name="wizard", bins=(8,8,4)):
                 period=new_materials.sizes[mi]*32
                 tri=[(round(x*256),round(z*256),round(-y*256),255,255,255,round(u*period),round((1-v)*period)) for x,y,z,u,v in points]
                 groups[(mi,*(math.floor(center[a]/bins[a]) for a in range(3)))].append(tri)
-            scenery_report=scenery(h,new_materials,data,collision_materials,add_scenery)
+            scenery_report=scenery(h,new_materials,data,collision_materials,add_scenery,include_lights=name not in ACCEPTED_MAPS)
         vertices=[];chunks=[];indices=[]
         for key,tris in sorted(groups.items(),key=lambda kv:((overlays[kv[0][0]] if legacy else overlays[kv[0][0]]&1),*kv[0])):
             if not legacy:tris=uv_safe_triangles(tris)
@@ -263,7 +265,7 @@ def arena(output, sky, name="wizard", bins=(8,8,4)):
                 while len(indices)%4:indices.append(0)
                 chunks.append((first,len(unique),key[0],*bounds,start,count))
                 if len(vertices)%2:vertices.append(vertices[-1])
-        assert len(chunks)<=512 and len(indices)<65536 and len(materials)<=32
+        assert len(chunks)<=512 and len(indices)<65536 and len(materials)<=32, f'{name}: {len(chunks)} chunks, {len(indices)} indices, {len(materials)} materials'
         vp=[]
         for a,b in zip(vertices[::2],vertices[1::2]):
             rgba=lambda v:(v[3]<<24)|(v[4]<<16)|(v[5]<<8)|255
@@ -295,30 +297,50 @@ def arena(output, sky, name="wizard", bins=(8,8,4)):
         correction_file=output/'spawn-clearance.json'
         if not legacy and correction_file.exists():
             corrections=json.loads(correction_file.read_text())
-            assert corrections['source_sha256'][name]==hashlib.sha256(cache.read_bytes()).hexdigest()
+            if name in corrections['source_sha256']:
+                assert corrections['source_sha256'][name]==hashlib.sha256(cache.read_bytes()).hexdigest()
             spawn_corrections=[row for row in corrections['corrections'] if row['id']==map_id]
             for row in spawn_corrections:
-                i=row['start'];assert spawnflags[i] and sum(v*v for v in row['delta'])<.075**2
+                limit=.075 if name in ACCEPTED_MAPS else .2
+                i=row['start'];assert spawnflags[i] and sum(v*v for v in row['delta'])<limit**2
                 spawns[i]=tuple(spawns[i][a]+row['delta'][a] for a in range(3))+spawns[i][3:]
 
         def collection(path):return tag_values(meta(path,'item_collection'))
-        start=next(s for s in sc['starting_equipments'] if eligible(s));weapons=[]
-        for i in range(1,7):
-            collection_path=start['item_collection_'+str(i)]
-            if collection_path:weapons.append(KINDS[collection(collection_path)['item_permutations'][0]['item']])
-        weapons=(weapons+[-1,-1])[:2];grenades=[0,0] if start['flags']['no_grenades'] else [4,0]
-        if start['flags']['plasma_grenades']:grenades=[0,sum(grenades)]
+        start=next((s for s in sc['starting_equipments'] if eligible(s)),None);weapons=[]
+        if start is not None:
+            for i in range(1,7):
+                collection_path=start['item_collection_'+str(i)]
+                if collection_path:weapons.append(KINDS[collection(collection_path)['item_permutations'][0]['item']])
+            grenades=[0,0] if start['flags']['no_grenades'] else [4,0]
+            if start['flags']['plasma_grenades']:grenades=[0,sum(grenades)]
+        else:
+            # unit_new adds the multiplayer biped's initial weapons before
+            # game_engine_postspawn_player_update applies a custom profile.
+            globals_meta=h.get_meta(next(i for i,e in enumerate(es) if e.class_1.enum_name=='globals'))
+            unit_path=globals_meta.multiplayer_informations.STEPTREE[0].unit.filepath
+            unit=tag_values(meta(unit_path,'biped'))
+            weapons=[KINDS[w['weapon']] for w in unit['unit_attrs']['weapons'] if w['weapon']]
+            grenades=[4,0]
+        weapons=(weapons+[-1,-1])[:2]
         items=[]
         for item in sc['netgame_equipments']:
             if not eligible(item):continue
-            col=collection(item['item_collection']);perms=col['item_permutations'];assert 0<len(perms)<=2
+            col=collection(item['item_collection']);perms=col['item_permutations'];assert 0<len(perms)<=3
             kinds=[KINDS[p['item']] for p in perms];weights=[round(p['weight']) for p in perms];pos=item['position']
-            items.append((pos['x'],pos['z'],-pos['y'],-item['facing'],item['spawn_time'] or col['spawn_time'] or 30,*(kinds+[-1])[:2],weights[0],sum(weights)))
+            assert 0<sum(weights)<=255 and all(w>0 for w in weights)
+            items.append((pos['x'],pos['z'],-pos['y'],-item['facing'],item['spawn_time'] or col['spawn_time'] or 30,*(kinds+[-1])[:2],weights[0],sum(weights),kinds[2] if len(kinds)==3 else 0,weights[1] if len(kinds)==3 else 0))
         teleport=[]
         for f in sc['netgame_flags']:
             if f['type']!='teleport_from':continue
             dest=next(d for d in sc['netgame_flags'] if d['type']=='teleport_to' and d['team_index']==f['team_index'])
             a=f['position'];b=dest['position'];teleport.append((a['x'],a['z'],-a['y'],b['x'],b['z'],-b['y'],dest['facing']))
+        vehicles=[]
+        vehicle_kinds={r'vehicles\warthog\warthog':0,r'vehicles\ghost\ghost_mp':1,r'vehicles\scorpion\scorpion_mp':2}
+        for v in sc['vehicles']:
+            if v['not_placed']['automatically'] or v['flags']['dead']:continue
+            path=sc['vehicles_palette'][v['type']]['name']
+            if path not in vehicle_kinds:raise ValueError('Unsupported placed vehicle '+path)
+            pos=v['position'];vehicles.append((pos['x'],pos['z'],-pos['y'],-v['rotation']['y'],vehicle_kinds[path]))
         pixels=[]
         if legacy:
             for i,image in enumerate(images):pixels.append(tuple(((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|int(not overlays[i] or max(r,g,b)>=24) for r,g,b in image.get_flattened_data()))
@@ -327,9 +349,23 @@ def arena(output, sky, name="wizard", bins=(8,8,4)):
     sections=[packed('3hH3hHII4h',vp),packed('IHH6hHH',chunks),packed('H',[(i,) for i in indices]),packed('1024H',pixels) if legacy else b''.join(new_materials.tiles),
               bytes([32]*len(images)) if legacy else bytes(new_materials.sizes),bytes(len(images)) if legacy else bytes(new_materials.ci4),bytes(overlays),bytes(32) if legacy else new_materials.palette,packed('3f',corners),packed('3H',faces),bytes(flags),
               packed('2H',grid),packed('H',[(i,) for i in grid_indices]),packed('4f',[(*lo,*size)]),packed('4fi',spawns),bytes(spawnflags),
-              packed('4fH2b2B2x',items),packed('4i',[(*weapons,*grenades)]),packed('7f',teleport),b'',sky,packed('4f',[(0,0,0,-12.5 if legacy else min(p[1] for p in corners)-5)]),layout]
+              packed('4fH2b4B',items),packed('4i',[(*weapons,*grenades)]),packed('7f',teleport),packed('4fI',vehicles),sky,packed('4f',[(0,0,0,-12.5 if legacy else min(p[1] for p in corners)-5)]),layout]
+    sky_note=None
+    if name not in ACCEPTED_MAPS:
+        # The N64 background is a compact color ramp. Preserve each new
+        # map's source fog color rather than borrowing Blood Gulch's sky.
+        color=(0,0,0)
+        if h.scnr_meta.skies.STEPTREE:
+            sky_meta=h.get_meta(h.scnr_meta.skies.STEPTREE[0].sky.id&65535)
+            color=tuple(round(v*255) for v in sky_meta.outdoor_fog_color)
+            if sky_meta.model.filepath==r'sky\mp clear afternoon\mp clear afternoon':
+                sections[20]=sky
+                sky_note='Shared source clear-afternoon elevation ramp; cloud layers omitted.'
+        if sky_note is None:
+            sections[20]=bytes(color)*33
+            sky_note='Source outdoor fog color, or black for a map with no sky; sky model/layers omitted.'
     info=bank(output/f'{name}.map64',map_id,sections)
-    info.update(render_triangles=len(raw_tris),collision_triangles=len(faces),materials=list(materials),chunks=len(chunks),spawns=len(spawns),eligible_slayer_spawns=sum(spawnflags),items=len(items),vehicles=0,teleporters=len(teleport),climbable_triangles=sum(bool(f&2) for f in flags),world_bytes=len(world),starting_weapons=weapons,starting_grenades=grenades,source_sha256=hashlib.sha256(cache.read_bytes()).hexdigest(),lighting='Original compressed lightmap UVs sampled into vertex RGB; base textures BOX-filtered to32px; geometry retained.')
+    info.update(render_triangles=len(raw_tris),collision_triangles=len(faces),materials=list(materials),chunks=len(chunks),spawns=len(spawns),eligible_slayer_spawns=sum(spawnflags),items=len(items),vehicles=len(vehicles),teleporters=len(teleport),climbable_triangles=sum(bool(f&2) for f in flags),world_bytes=len(world),starting_weapons=weapons,starting_grenades=grenades,source_sha256=hashlib.sha256(cache.read_bytes()).hexdigest(),lighting='Original compressed lightmap UVs sampled into vertex RGB; base textures BOX-filtered to32px; geometry retained.')
     if not legacy:
         info.update(authored_spawns=authored_spawns,spawn_clearance_offsets=spawn_corrections,scenery=scenery_report,scenery_triangles=sum(d['triangles'] for d in scenery_report),materials_detail=new_materials.records,bins=bins)
         if name=='chillout':
@@ -337,6 +373,7 @@ def arena(output, sky, name="wizard", bins=(8,8,4)):
             color=tuple(round(v*255) for v in sky_meta.outdoor_fog_color)
             sections[20]=bytes(color)*33
             rewritten=bank(output/f'{name}.map64',map_id,sections);info.update(rewritten)
+    if sky_note:info['sky_approximation']=sky_note
     return info
 
 def main(output):

@@ -39,7 +39,9 @@ static void frontend_cycle(void) {
                 game_time = 0;
                 menu.open = false;
                 matches++;
-            } else if (action == BG_FRONT_RESUME_MATCH) menu.open = false;
+            } else if (action == BG_FRONT_RESUME_MATCH) {
+                bg_front_qa_resumed();menu.open = false;
+            }
             continue;
         }
         bg_menu_input navigation[4];

@@ -318,6 +318,9 @@ static bool input(bg_input in[4]) {
             bg_sound_frontend(false);
 #endif
         } else if (action == BG_FRONT_RESUME_MATCH) {
+#ifdef BG_FRONTEND_QA
+            bg_front_qa_resumed();
+#endif
             bg_front_draw_release();
             bg_scene_load_bodies();
             bg_residency_prepare_match(front.count);

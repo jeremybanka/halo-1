@@ -6,4 +6,5 @@ void bg_front_qa_tick(bg_input in[4],float seconds);
 unsigned bg_front_qa_step(void);
 unsigned bg_front_qa_steps(void);
 bool bg_front_qa_done(void);
+void bg_front_qa_resumed(void);
 #endif

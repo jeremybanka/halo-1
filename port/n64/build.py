@@ -11,6 +11,7 @@ import subprocess
 import sys
 from setup_assets import connect_assets
 from asset_ids import map_ids
+from feature_cache_candidate import candidate_source
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOWCASES = [
@@ -42,6 +43,12 @@ def parse_args(argv=None):
         type=Path,
         help="Diagnostic comparison: compile an alternate game.c; exact input is recorded in the build manifest",
     )
+    parser.add_argument('--feature-cache-slots', type=int, choices=(128,512),
+                        help='8 MiB research: isolated prism/edge cache adapter; benchmark/QA modes only')
+    parser.add_argument('--world-pvs-data','--chiron-pvs-data',dest='world_pvs_data',type=Path,
+                        help='8 MiB research: hash-bound conservative selected-map static-world PVS sidecar')
+    parser.add_argument('--geometry-census',action='store_true',
+                        help='Fixed-tick per-camera submission counts and serialized graphics drains; snapshot QA only')
     parser.add_argument(
         "--sdk",
         type=Path,
@@ -272,6 +279,10 @@ def parse_args(argv=None):
     )
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
     args = parser.parse_args(argv)
+    if args.geometry_census and args.snapshot_tick is None:
+        parser.error('--geometry-census requires --snapshot-tick')
+    if args.world_pvs_data and not (args.benchmark or args.vi_benchmark or args.profile or args.validate or args.snapshot_tick is not None or args.frontend_qa or args.maps_cycle):
+        parser.error('--world-pvs-data requires an explicit benchmark or QA mode')
     if args.maps_cycle:
         if args.frontend_qa not in (None,4):parser.error("--maps-cycle needs four-player frontend QA")
         args.frontend_qa=4;args.initial_map="wizard"
@@ -281,6 +292,11 @@ def parse_args(argv=None):
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
     ):
         parser.error("--game-source requires an explicit profiling or telemetry mode")
+    if args.feature_cache_slots and not (
+        args.profile or args.benchmark or args.vi_benchmark or args.telemetry
+        or args.validate or args.snapshot_tick is not None or args.frontend_qa
+    ):
+        parser.error('--feature-cache-slots requires an explicit benchmark or QA mode')
     if args.preset == "release":
         args.paced30 = True
         args.paced30_buffers = args.paced30_buffers or 3
@@ -388,7 +404,7 @@ def compile_options(args, sdk, tiny, out, source):
         "-ftrapping-math",
         "-fno-associative-math",
         "-DN64",
-        *(["-fno-finite-math-only"] if source.name in ("scene.c", "weapon_effects_draw.c") else []),
+        *(["-fno-finite-math-only"] if source.name in ("scene.c", "weapon_effects_draw.c", "render_pvs.c") else []),
         "-Wall",
         "-Wextra",
         "-Werror",
@@ -396,6 +412,8 @@ def compile_options(args, sdk, tiny, out, source):
         "-I" + str(sdk / "mips64-elf/include"),
         "-I" + str(tiny / "src"),
         "-I" + str(ROOT / "port/n64"),
+        *(['-I' + str(ROOT / 'port/n64/blam')]
+          if args.feature_cache_slots and source.name == 'vehicle_physics.c' else []),
         "-I" + str(out / "blam-core"),
         "-I" + str(out / "blam-vehicle"),
         *(
@@ -411,6 +429,8 @@ def compile_options(args, sdk, tiny, out, source):
             else []
         ),
         *(["-DRDPQ_VALIDATE"] if args.validate else []),
+        *(['-DBG_WORLD_PVS'] if args.world_pvs_data else []),
+        *(['-DBG_GEOMETRY_CENSUS'] if args.geometry_census else []),
         *(["-DBG_COMBAT_QA=" + str(args.combat_qa)] if args.combat_qa is not None else []),
         *(["-DBG_MOVEMENT_QA=" + str(args.movement_qa)] if args.movement_qa is not None else []),
         *(["-DBG_DEMO"] if args.demo else []),
@@ -516,6 +536,10 @@ def rom_name(args):
         if args.showcase
         else "halo-64-replay" if args.demo else "halo-64"
     )
+    if args.feature_cache_slots:
+        name += '-features' + str(args.feature_cache_slots)
+    if args.world_pvs_data:name+='-world-pvs'
+    if args.geometry_census:name+='-geometry-census'
     if args.snapshot_tick is not None:
         name += "-snapshot-" + str(args.snapshot_tick)
     if args.map_qa is not None:
@@ -938,6 +962,18 @@ def main():
         )
         for name in sources
     ]
+    if args.world_pvs_data:
+        from export_chiron_visibility import emit_c
+        visibility=json.loads(args.world_pvs_data.resolve().read_text())
+        visibility_source=out/'visibility-data.c'
+        emit_c(visibility,visibility_source)
+        runtime_sources.extend([ROOT/'port/n64/render_pvs.c',visibility_source])
+    if args.feature_cache_slots:
+        original = ROOT / 'port/n64/blam/vehicle_physics.c'
+        candidate = out / 'feature-cache/vehicle_physics.c'
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text(candidate_source(original.read_text(), args.feature_cache_slots))
+        runtime_sources[runtime_sources.index(original)] = candidate
     for source in [
         *runtime_sources,
         *(
@@ -1083,6 +1119,26 @@ def main():
             for path in (out / directory).rglob("*")
             if path.is_file() and path.suffix in (".c", ".h")
         },
+        "feature_cache_experiment": (
+            {
+                "slots": args.feature_cache_slots,
+                "required_ram_mib": 8,
+                "baseline_adapter_sha256": hashlib.sha256(
+                    (ROOT / 'port/n64/blam/vehicle_physics.c').read_bytes()).hexdigest(),
+                "generator_sha256": hashlib.sha256(
+                    (ROOT / 'port/n64/feature_cache_candidate.py').read_bytes()).hexdigest(),
+                "candidate_adapter_sha256": hashlib.sha256(candidate.read_bytes()).hexdigest(),
+            }
+            if args.feature_cache_slots else None
+        ),
+        "world_pvs_experiment": ({
+            'sidecar_sha256':hashlib.sha256(args.world_pvs_data.resolve().read_bytes()).hexdigest(),
+            'map_sha256':visibility['map_sha256'],
+            'data_source_sha256':hashlib.sha256(visibility_source.read_bytes()).hexdigest(),
+            'required_ram_mib':8,'static_array_bytes':len(visibility['nodes'])*12+len(visibility['planes'])*16+len(visibility['leaf_clusters'])*2+len(visibility['chunk_masks'])*8+visibility['clusters']*8,
+            'map_id':visibility['map_id'],
+            'scope':'Static selected world only; invalid/solid/uncertain leaves and unmapped batches fail open',
+        } if args.world_pvs_data else None),
         "service_ids": hashlib.sha256(
             (ROOT / "port/n64/interaction_services.def").read_bytes()
         ).hexdigest(),

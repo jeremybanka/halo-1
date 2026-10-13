@@ -21,6 +21,15 @@ void bg_scene_profile_changed(unsigned player);
 void bg_scene_prepare(unsigned frame_slot, unsigned views, float seconds);
 unsigned bg_scene_draw(unsigned player);
 const T3DViewport *bg_scene_viewport(unsigned player);
+#ifdef BG_GEOMETRY_CENSUS
+typedef struct {
+    unsigned chunks,vertices,triangles,material_changes,pvs_rejected,frustum_rejected;
+    unsigned world_cpu_us;
+    float eye[3];
+    uint64_t pvs_mask;
+} bg_world_view_metrics;
+extern bg_world_view_metrics bg_world_views[4];
+#endif
 #ifdef BG_PROFILE
 typedef struct {
     unsigned camera_us, animation_us, matrix_us, world_us, object_us, fp_us;

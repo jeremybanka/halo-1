@@ -1,5 +1,5 @@
 """Check nonblocking batch wakeups against the installed libdragon implementation."""
-from runtime_source import read_runtime
+from runtime_source import read_runtime,without_experiments
 import argparse
 from pathlib import Path
 from test_render_matrix import compact, function
@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def check(main, sdk, before=None):
-    source=read_runtime(main);view=compact(function(source,'draw_view'))
+    source=without_experiments(read_runtime(main));view=compact(function(source,'draw_view'))
     assert view.count('rspq_flush();')==1
     assert view.index('rspq_block_run(world_blocks[b]);') < view.index('rspq_flush();') < view.index('t3d_matrix_push_pos(1);')
     loop=compact(function(source,'main'))

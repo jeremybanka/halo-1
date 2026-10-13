@@ -551,3 +551,163 @@ this is recorded as a validation-configuration constraint, not proof of OOM
 or a physics regression. Validation defaults now select 8 KiB unless explicitly
 overridden. Normal release/quiet queues remain 32 KiB. Hardware acceptance is
 still separate.
+
+## Expansion Pak investigation (October 12)
+
+Base: merged full-roster `d071efc5`. This is a research checkpoint, with an
+isolated host cache prototype; no production cache, renderer, asset or timing
+budget changes. The prior conclusions were retrieved from **Halo Combat
+Devolved - Memory Layout**, conversation `01a12227-ba61-7421-abb0-40443b0026d4`,
+including the first optimization, collision/camera, terrain and four-candidate
+investigation turns. The relevant requests/conclusions are saved locally in
+`build/n64-expansion-research/conversation-evidence.json`, alongside the original
+`n64-optimization`, `n64-collision-camera`, `n64-terrain-solver` and
+`n64-strategy-research` evidence.
+
+### What the extra memory can change
+
+Current 8 MiB, four-player quiet replays leave **3083 KiB on Sidewinder through
+4429 KiB on Longest** at the result page. Those are endpoint samples, not
+minimum-free or largest-contiguous-block guarantees. Reserve optional working
+sets before map loading, release map-owned tables on unload, and retain a
+fallback until lifecycle/peak-residency measurements pass. The earlier Wizard
+allocation failures demonstrated that total free bytes alone are insufficient.
+
+Use RAM to retain computations with immutable inputs, or to store offline
+visibility/topology certificates. Preserve simulation order/frequency, source
+collision arithmetic, animation poses and the RSP geometry fences. Larger
+display or command queues should wait for measured acquisition/backpressure:
+they do not by themselves shorten the CPU or geometry workload.
+
+The historical timings are attribution evidence, not current full-roster
+costs. Vehicle feature construction was around 3.2 ms; animation decode and
+scatter each around 1.4 ms in combat; ROM-pose DMA around 0.6 ms. The serialized
+geometry tail remained around 16–18 ms even when pixel coverage was suppressed.
+These buckets overlap. Removing DMA cannot remove interpolation/scatter, and
+a CPU saving need not improve presentation if geometry remains critical.
+
+### First CPU experiment: collision feature working set
+
+The world candidate cache's old 94% hit rate was a reason to avoid indiscriminate
+growth. The separate **32-prism / 64-edge feature caches** have a different
+working set. The new probe records their actual requests, then checks its
+simulation against the production hit/miss counters.
+
+Blood Gulch's 4500-tick host replay (150 simulation seconds, not the 75-second
+native timing interval) gives:
+
+| Entries per feature cache | Prism misses | Edge misses | Incremental RAM |
+| --- | ---: | ---: | ---: |
+| Accepted 32 prism / 64 edge | 17,351 | 8,102 | 0 |
+| 128 / 128 | 6,201 | 2,995 | 13.5 KiB |
+| 512 / 512 | 984 | 1,128 | 73.5 KiB |
+
+The 512-entry isolated C prototype realizes the modeled counts: **91.7% fewer
+combined factory misses** in that replay. It retains every byte of
+**403,679,160** recorded gameplay-state bytes across all 13 maps, Blood Gulch's
+replay and six showcases. SHA256:
+`60c73faaa2b119e1791c489b521fb5f5a3807a38af08f84dbc6c74dcd129dfe1`.
+ASan/UBSan pass, and **132,968** source surface/edge factories match the original
+factory outputs across the roster. An independent adapter built with the same
+sanitizer/compiler contracts supplies the state reference; its digest is not
+interchangeable with the older nonsanitized trace. Actual call counts remain
+identical. Rendering/camera-only calls are outside this probe.
+
+This establishes correctness and removable work, **not N64 speed**. Compare
+128/512 slots on target before choosing capacity. More RDRAM traffic can still
+erase the gain, as it did with smaller candidate cells. New-map probes use the
+existing 2250-tick on-foot routes; Sidewinder's vehicles are parked, so these
+counts do not represent a Sidewinder driving stress test.
+
+Full immutable tables cost much more: dense prism/edge payloads total about
+806 KiB on Blood Gulch and 1674 KiB on Sidewinder, before allocator padding.
+A compact header/point/edge-index design is about 505/1101 KiB, but requires new
+access/copy code. The 74 KiB working-set experiment comes first. Loading a dense
+table removes construction after load but does not remove per-query feature
+selection, contact tests or query-dependent width/height handling.
+
+### Largest map-specific opportunity: source visibility
+
+The source PVS was inspected across all 13 owned maps, using original render
+leaf-to-triangle references. Counts below are the median **unweighted source
+cluster row**, before frustum culling; they are not a camera replay, packed-chunk
+result, pixel proof or promised FPS gain. Triangles without membership stay
+visible, including Chiron's four unassigned triangles.
+
+| Map | Median source triangles permitted / total | Raw PVS | Assessment |
+| --- | ---: | ---: | --- |
+| Chiron TL34 | 1056 / 10494 (10.1%) | 36 B | Strongest first visibility prototype |
+| Rat Race | 1548 / 2692 (57.5%) | 64 B | Useful second indoor control |
+| Sidewinder | 6334 / 10036 (63.1%) | 280 B | Useful potential, varies by camera region |
+| Battle Creek | 2831 / 3317 (85.3%) | 116 B | Smaller typical opportunity |
+| Blood Gulch | 5309 / 5503 (96.5%) | 120 B | Usually little benefit |
+| Wizard, Boarding Action | 100% in every row | 72 / 328 B | Raw PVS cannot reject geometry |
+| Damnation, Chill Out, Derelict | 100% at median | 48 / 40 / 288 B | Limited raw-PVS opportunity |
+| Hang 'Em High, Prisoner, Longest | One cluster each | 4 B each | Raw PVS cannot reject geometry |
+
+This is a different experiment from the rejected terrain hierarchy: source PVS
+can remove occluded geometry submissions rather than merely reduce the number
+of frustum tests. For Chiron, nine 512-chunk visibility rows plus per-chunk
+cluster masks occupy **2624 bytes**; camera BSP/leaf lookup and provenance data
+are additional. A source-triangle bitset census occupies about 11.6 KiB. The
+first implementation should carry original surface memberships through UV
+splits/batching, union every contributing cluster in a chunk, and retain
+unclassified scenery. Coarse batches spanning rooms may diminish the benefit;
+measure packed-chunk rejection before changing batch sizes. Dynamic actor
+bounds, portal crossings, scopes and altered transparent occluders must fail
+open until conservativeness is demonstrated.
+
+Boarding Action's 435 ms presentation gap cannot be explained away by PVS:
+every source row permits its entire map. Damnation also permits its entire map
+in most rows. Refresh CPU and serialized SP/DP attribution there before choosing
+world submission, clipping/command specialization or conservative occlusion.
+The earlier unlit Tiny3D RSP specialization remains a source-supported candidate,
+with no demonstrated target gain yet. It needs little extra RAM, but may matter
+more than a memory-heavy CPU cache if geometry is the limiting stage.
+
+### Animation: residency has a bounded ceiling
+
+The current streamed interaction bank is **9,455,056 bytes**, so it cannot all
+fit in the spare RAM. Resident payloads for selected groups are about 1.15 MiB
+for locomotion endpoints, 2.43 MiB for seat poses, and 3.26 MiB for service poses.
+Four simultaneously used clips or a bounded 0.5–1 MiB endpoint arena are more
+plausible trials than preloading every weapon state. Selection must come from
+current operation/byte-weighted traffic, including mixed reloads and Needler
+ammo variants. A direct resident clip reference can remove pair search/DMA;
+the existing signed interpolation and scatter/writeback still execute.
+
+The **compressed motion arrays already reside in RDRAM**. Expanding their
+aligned track endpoints grows 251,814 bytes to 671,504, an incremental 410 KiB.
+That targets byte decode/origin work, not ROM transfer, and still leaves blend
+arithmetic and scattering. Precomputing all 257 exact fractions across the
+current clips needs over **137 MiB**, even without vertex scatter, so a complete
+blend table is outside this budget. Caching final blended poses remains low
+priority because the previous exact-key reuse measurements were poor.
+
+### Acceptance sequence
+
+1. Refresh 8 MiB CPU attribution on Blood Gulch and the slow geometry maps;
+   retain separate quiet VI and serialized pipeline controls. Track sampled
+   memory minima and allocation lifecycle independently of timing runs.
+2. Measure the 13.5/73.5 KiB feature-cache prototypes, baseline/candidate/baseline,
+   then test Chiron source-PVS mapping with the accepted assets and draw order.
+3. Measure operation-weighted animation traffic before allocating a clip arena;
+   compare expanded endpoints independently of residency.
+4. Promote only repeatable quiet-VI improvements with interval tails, source
+   state/pixel comparisons, audio behavior and the full menu lifecycle checked.
+   Larger caches, buffers or unlit RSP changes are experiments until then.
+
+Current offline research is complete. Fresh N64 execution is **pending**:
+the Mac was locked and automatic unlock failed. CPU-page ROMs for Damnation,
+Sidewinder and Boarding Action are prepared; build success is not execution.
+No new target CPU/FPS improvement is claimed, and the verified release remains
+the full-map baseline. Local evidence is `build/n64-expansion-research/`.
+
+```sh
+build/n64-python/bin/python port/n64/investigate_expansion_assets.py
+build/n64-python/bin/python port/n64/investigate_expansion_ram.py \
+  --prototype-cache-slots 512 --output-dir build/n64-expansion-research/cache512
+build/n64-python/bin/python port/n64/build.py --preset release \
+  --initial-map damnation --benchmark --benchmark-page 5 \
+  --output-dir build/n64-expansion-research/damnation-cpu
+```

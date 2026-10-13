@@ -155,3 +155,24 @@ The local `build/n64-all-map-audit/comparison.html` contains the sorted table,
 native timing screenshots, all eight new-map gameplay recordings and the
 source/ROM identity records. Recordings are silent and use real capture
 timestamps; their capture rate is not the gameplay FPS measurement.
+
+
+## Native acceptance
+
+The final 8 MiB RDP-validator ROM completes **224/224 steps and 14 live
+15-kill matches**, returns to the original main menu, and reports **zero RDP
+errors or warnings**. All 13 normal-budget four-player replays also complete
+their quiet VI measurement using 32 KiB queues. The lifecycle validator uses
+8 KiB diagnostic queues; its frame rate is not used for the performance table.
+
+The strict quit/cancel/resume player-state comparison runs at the exact resume
+event, before the first resumed simulation tick. A deferred next-input-poll
+check could follow a legitimate gameplay tick in a busy paced frame and
+misreport a preservation failure. The event-boundary check passes both the
+expanded host fixture and the complete native cycle, with no production
+clock/gameplay change.
+
+The committed production release reaches the original main menu with the
+Expansion Pak. `release/halo-64-paced30-rspq32k.build.json`, `boot-identity.json`
+and `verification.json` bind that acceptance to the source, private bank and
+ROM hashes. The comparison links its native acceptance image and release ROM.

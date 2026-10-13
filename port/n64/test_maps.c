@@ -22,14 +22,14 @@ static void frontend_cycle(void) {
     menu.shell_session = true;
     float game_time = 0;
     unsigned matches = 0;
-    for (unsigned frame = 1; frame < 15000 && !bg_front_qa_done(); frame++) {
+    for (unsigned frame = 1; frame < 50000 && !bg_front_qa_done(); frame++) {
         bg_control_state raw[4];
         bg_front_qa_input(&front, raw, (uint64_t)frame * 33333);
         if (front.page != BG_FRONT_PLAY) {
             bg_front_action action = bg_front_update(&front, raw, (uint64_t)frame * 33333);
             if (action == BG_FRONT_START_MATCH) {
 #ifdef BG_MAPS_CYCLE
-                const unsigned expected[]={10,9,10,5,6,0};assert(matches<6&&front.map==expected[matches]);
+                const unsigned expected[]={10,9,10,5,6,0,1,2,3,4,7,8,11,12};assert(matches<14&&front.map==expected[matches]);
 #endif
                 bg_map_unload();
                 bg_map_load(front.map);
@@ -39,7 +39,9 @@ static void frontend_cycle(void) {
                 game_time = 0;
                 menu.open = false;
                 matches++;
-            } else if (action == BG_FRONT_RESUME_MATCH) menu.open = false;
+            } else if (action == BG_FRONT_RESUME_MATCH) {
+                bg_front_qa_resumed();menu.open = false;
+            }
             continue;
         }
         bg_menu_input navigation[4];
@@ -63,7 +65,7 @@ static void frontend_cycle(void) {
     }
     assert(bg_front_qa_done() && matches ==
 #ifdef BG_MAPS_CYCLE
- 6
+ 14
 #else
  3
 #endif
@@ -157,11 +159,22 @@ static void wizard_rules(void) {
     printf("Wizard staged match: 15 live kills, results after %.2f seconds\n", ticks / 30.f);
 }
 static void new_maps(void) {
-    const unsigned ids[]={BG_MAP_HANG_EM_HIGH,BG_MAP_CHILL_OUT,BG_MAP_BATTLE_CREEK};
-    const unsigned starts[]={28,25,22},items[]={43,32,30},portals[]={0,3,2};
-    for(unsigned i=0;i<3;i++){
+    const unsigned ids[]={BG_MAP_HANG_EM_HIGH,BG_MAP_CHILL_OUT,BG_MAP_BATTLE_CREEK,
+        BG_MAP_SIDEWINDER,BG_MAP_DAMNATION,BG_MAP_RAT_RACE,BG_MAP_PRISONER,
+        BG_MAP_DERELICT,BG_MAP_BOARDING_ACTION,BG_MAP_CHIRON_TL34,BG_MAP_LONGEST};
+    const unsigned starts[]={28,25,22,16,30,48,24,27,16,27,28};
+    const unsigned items[]={43,32,30,47,40,26,29,30,50,40,26};
+    const unsigned portals[]={0,3,2,4,2,4,0,4,8,30,0};
+    const unsigned vehicles[]={0,0,0,8,0,0,0,0,0,0,0};
+    const int weapons[]={BG_W_PISTOL,BG_W_AR,BG_W_PLASMA_PISTOL,BG_W_PISTOL,
+        BG_W_PLASMA_PISTOL,BG_W_AR,BG_W_PLASMA_PISTOL,BG_W_PLASMA_PISTOL,
+        BG_W_PISTOL,BG_W_PISTOL,BG_W_PLASMA_PISTOL};
+    const unsigned frags[]={0,0,4,4,0,4,0,4,4,4,0};
+    for(unsigned i=0;i<sizeof(ids)/sizeof(*ids);i++){
         bg_map_load(ids[i]);bg_set_players(4);bg_reset();memset(input,0,sizeof(input));
-        assert(bg_vehicle_count==0&&bg_map_item_count==items[i]&&bg_teleporter_count==portals[i]);
+        assert(bg_vehicle_count==vehicles[i]&&bg_map_item_count==items[i]&&bg_teleporter_count==portals[i]);
+        assert(bg_start_weapons[0]==weapons[i]&&bg_start_grenades[0]==(int)frags[i]);
+        if(ids[i]==BG_MAP_RAT_RACE)assert(bg_start_weapons[1]==BG_W_PISTOL);
         unsigned count=0;
         for(unsigned j=0;j<bg_spawn_count;j++)if(bg_slayer_spawns[j]){
             bg_player probe=bg_players[0];memcpy(probe.pos,bg_spawns[j].pos,12);
@@ -184,8 +197,34 @@ static void new_maps(void) {
         for(unsigned t=0;t<bg_teleporter_count;t++){
             bg_reset();alone();bg_player*p=&bg_players[0];memcpy(p->pos,bg_teleporters[t].source,12);p->teleport_cooldown=0;
             tick(1);assert(p->teleport_cooldown>0);
+            bool authored_exit=false;
+            for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_TELEPORTER&&bg_events[e].player==0){
+                assert(fabsf(bg_events[e].pos[0]-bg_teleporters[t].destination[0])<1e-5f&&
+                       fabsf(bg_events[e].pos[2]-bg_teleporters[t].destination[2])<1e-5f);authored_exit=true;
+            }
+            assert(authored_exit);
             float dx=p->pos[0]-bg_teleporters[t].destination[0],dz=p->pos[2]-bg_teleporters[t].destination[2];
-            assert(dx*dx+dz*dz<.01f&&p->health==100&&bg_terrain_clearance(p));
+            float exit_radius=i<3?.1f:.2f;
+            if(!(dx*dx+dz*dz<exit_radius*exit_radius&&p->health==100&&bg_terrain_clearance(p)))
+                fprintf(stderr,"map%u portal%u health%.0f clear%d position %.5f %.5f %.5f destination %.5f %.5f %.5f\n",ids[i],t,p->health,bg_terrain_clearance(p),p->pos[0],p->pos[1],p->pos[2],bg_teleporters[t].destination[0],bg_teleporters[t].destination[1],bg_teleporters[t].destination[2]);
+            assert(dx*dx+dz*dz<exit_radius*exit_radius&&p->health==100&&bg_terrain_clearance(p));
+        }
+        if(ids[i]==BG_MAP_CHIRON_TL34){
+            bg_reset();alone();bg_players[0].health=0;bg_players[0].respawn=10000;
+            unsigned tested=0;
+            for(unsigned item=0;item<bg_map_item_count;item++)if(bg_map_item_second_weight(&bg_map_items[item])){
+                bg_pickup*q=&bg_pickups[item];unsigned observed[14]={0};
+                for(unsigned trial=0;trial<1024;trial++){
+                    q->active=false;q->respawn=0;tick(1);
+                    assert(q->active&&q->weapon>=0&&q->weapon<14);observed[q->weapon]++;
+                }
+                /* Source group-all-powerups weights: camo 70, shield 90,
+                 * health 15. All three outcomes must be reachable. */
+                assert(observed[BG_PICK_CAMO]>330&&observed[BG_PICK_CAMO]<490);
+                assert(observed[BG_PICK_OVERSHIELD]>430&&observed[BG_PICK_OVERSHIELD]<620);
+                assert(observed[BG_PICK_HEALTH]>35&&observed[BG_PICK_HEALTH]<150);tested++;
+            }
+            assert(tested);
         }
         bg_reset();bg_set_players(4);bg_set_score_limit(1000);
         unsigned shots=0;
@@ -193,26 +232,36 @@ static void new_maps(void) {
             bg_replay_input(input,t/30.f);bg_clear_events();bg_tick(input,1.f/30);
             for(unsigned e=0;e<bg_event_count;e++)shots+=bg_events[e].kind==BG_EVENT_FIRE;
             for(unsigned p=0;p<4;p++)for(unsigned a=0;a<3;a++)assert(isfinite(bg_players[p].pos[a]));
-            assert(bg_vehicle_count==0&&bg_event_count<=BG_MAX_EVENTS);
+            assert(bg_vehicle_count==vehicles[i]&&bg_event_count<=BG_MAX_EVENTS);
         }
         assert(shots>100);printf("PASS map%u: %u source spawn clearances, %u items, %u teleporters, original loadout, 2250 live replay ticks / %u shots\n",ids[i],count,items[i],portals[i],shots);
         bg_map_unload();assert(!bg_map_loaded()&&!bg_map_resident_bytes());
     }
 }
 static void export_spawn_clearance(void) {
-    const unsigned ids[]={BG_MAP_HANG_EM_HIGH,BG_MAP_CHILL_OUT,BG_MAP_BATTLE_CREEK};
+    const unsigned ids[]={BG_MAP_HANG_EM_HIGH,BG_MAP_CHILL_OUT,BG_MAP_BATTLE_CREEK,
+        BG_MAP_SIDEWINDER,BG_MAP_DAMNATION,BG_MAP_RAT_RACE,BG_MAP_PRISONER,
+        BG_MAP_DERELICT,BG_MAP_BOARDING_ACTION,BG_MAP_CHIRON_TL34,BG_MAP_LONGEST};
     bool first=true;printf("[");
-    for(unsigned i=0;i<3;i++){
+    for(unsigned i=0;i<sizeof(ids)/sizeof(*ids);i++){
         bg_map_load(ids[i]);bg_set_players(4);bg_reset();
         for(unsigned j=0;j<bg_spawn_count;j++)if(bg_slayer_spawns[j]){
             bg_player probe=bg_players[0];memcpy(probe.pos,bg_spawns[j].pos,12);
             probe.pos[1]=bg_floor(probe.pos[0],probe.pos[2],probe.pos[1]+.5f)+.015f;
             if(bg_terrain_clearance(&probe))continue;
             float original[3];memcpy(original,probe.pos,12);memset(probe.velocity,0,12);probe.support_triangle=0;
-            for(unsigned pass=0;pass<8&&!bg_terrain_clearance(&probe);pass++)bg_move_capsule(&probe,0);
+            for(unsigned pass=0;pass<(i<3?8:32);pass++){
+                /* New-map corrections must survive production spawn's floor
+                 * projection, including Prisoner's slanted wall corners. */
+                if(i>=3)probe.pos[1]=bg_floor(probe.pos[0],probe.pos[2],probe.pos[1]+.5f)+.015f;
+                if(bg_terrain_clearance(&probe))break;
+                bg_move_capsule(&probe,0);
+            }
             assert(bg_terrain_clearance(&probe));float d[3],distance=0;
             for(unsigned a=0;a<3;a++){d[a]=probe.pos[a]-original[a];distance+=d[a]*d[a];}
-            assert(distance<.075f*.075f);
+            float limit=i<3?.075f:.2f;
+            if(distance>=.075f*.075f)fprintf(stderr,"clearance map%u start%u displacement %.6f delta %.6f %.6f %.6f\n",ids[i],j,sqrtf(distance),d[0],d[1],d[2]);
+            assert(distance<limit*limit);
             printf("%s{\"id\":%u,\"start\":%u,\"delta\":[%.9g,%.9g,%.9g]}",first?"":",",ids[i],j,d[0],d[1],d[2]);first=false;
         }
         bg_map_unload();

@@ -1,7 +1,8 @@
 # Halo: Combat Evolved for Nintendo 64
 
 A four-player local Slayer demake built with libdragon and Tiny3D. It boots on
-an emulated **4 MiB N64**, using the supplied Xbox disc for map, model,
+an emulated **8 MiB N64 with Expansion Pak** for the complete multiplayer roster,
+using the supplied Xbox disc for map, model,
 animation, HUD and audio data. The Windows/desktop build is separate.
 
 This is a playable N64 implementation, **not a complete port of Blam**.
@@ -38,12 +39,16 @@ contracts are documented in [RUNTIME.md](RUNTIME.md).
 
 The three-map addition, source rules, material approximations and reproduction
 checks are documented in [MAP_EXPANSION.md](MAP_EXPANSION.md).
+The complete 13-map Xbox roster, Expansion Pak profile, source rules and
+performance comparison are documented in [ALL_MAPS.md](ALL_MAPS.md).
 
 ## Play
 
-Blood Gulch, Wizard, Hang 'Em High, Chill Out and Battle Creek are selectable
-in the original local multiplayer menu;
-other maps and modes remain greyed out. All five use the same one-to-four-player
+All thirteen original Xbox multiplayer maps are selectable in the original
+local multiplayer menu with an Expansion Pak. The accepted Blood Gulch, Wizard,
+Hang 'Em High, Chill Out and Battle Creek remain available on 4 MiB; the eight
+new maps show an Expansion Pak requirement on that profile. Other modes remain
+greyed out. All thirteen use the same one-to-four-player
 Slayer rules, weapons, animation, HUD, profiles, countdown and results flow.
 Wizard keeps the Xbox map's plasma-pistol/no-grenade starting loadout, 16
 Slayer-eligible starts, 30 item placements, four paired teleporter links and
@@ -109,8 +114,9 @@ player's Start transfers ownership; the current owner's Start resumes.
 **Setup** is enabled only for Player 1 and offers Restart Match or Quit Game.
 **Controls** changes only the menu owner's layout. Player count is set by joining
 controllers in the front end.
-Slayer uses the supplied map’s starting profile: **plasma pistol, no secondary
-weapon and no grenades**. Find additional weapons and equipment on the map.
+Slayer uses each map’s source starting profile. Blood Gulch and Wizard start
+with a plasma pistol and no grenades; the other loadouts are recorded in
+[ALL_MAPS.md](ALL_MAPS.md). Find additional weapons and equipment on the map.
 Every player starts with **N64** controls. Each player's choice survives match
 restarts and player-count changes, but is not saved across power cycles.
 The front-end Slayer preset ends at **15 kills**, followed by the original

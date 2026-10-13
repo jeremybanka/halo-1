@@ -493,6 +493,8 @@ static void load_scenario(void) {
         bg_pickup *q = &bg_pickups[index];
         q->yaw = m->yaw; q->period = m->period; q->respawn = m->period;
         q->alternate = m->kind[1]; q->first_weight = m->first_weight; q->total_weight = m->total_weight;
+        if(bg_map_item_second_weight(m))
+            q->alternate|=bg_map_item_third(m)<<8|bg_map_item_second_weight(m)<<16;
         refill_pickup(q);
     }
     if (bg_map_current()->id == BG_MAP_BLOOD_GULCH) {

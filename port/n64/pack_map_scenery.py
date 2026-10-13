@@ -23,20 +23,24 @@ def append_collision(data,source,rot,pos,material_ids):
         if plane<0:designator-=0x80000000
         data['surfaces'].append((designator,edge+edges,flags,breakable,material_ids[material] if material>=0 else -1))
 
-def scenery(halo,materials,data,collision_materials,add_triangle):
+def scenery(halo,materials,data,collision_materials,add_triangle,include_lights=False):
     entries=halo.tag_index.tag_index;cache={};report=[]
     reduced_path=materials.directory.parent/'scenery-reduced.json'
     reduced=json.loads(reduced_path.read_text())['models'] if reduced_path.exists() else {}
     def meta(path,kind):
-        i=next(i for i,e in enumerate(entries) if e.path==path and e.class_1.enum_name==kind)
+        i=next(i for i,e in enumerate(entries) if e.path==path and (kind is None or e.class_1.enum_name==kind))
         return halo.get_meta(i),i
-    for placement in halo.scnr_meta.sceneries.STEPTREE:
+    placements=[(p,halo.scnr_meta.sceneries_palette.STEPTREE[p.type].name.filepath,'scenery') for p in halo.scnr_meta.sceneries.STEPTREE]
+    if include_lights:
+        placements += [(p,halo.scnr_meta.light_fixtures_palette.STEPTREE[p.type].name.filepath,None) for p in halo.scnr_meta.light_fixtures.STEPTREE]
+    for placement,path,kind in placements:
         if placement.not_placed.automatically:continue
-        path=halo.scnr_meta.sceneries_palette.STEPTREE[placement.type].name.filepath
         if path not in cache:
-            obj,_=meta(path,'scenery');model,ix=meta(obj.obje_attrs.model.filepath,'model')
+            obj,_=meta(path,kind)
+            if not obj.obje_attrs.model.filepath:continue
+            model,ix=meta(obj.obje_attrs.model.filepath,'model')
             halo.meta_to_tag_data(model,'mode',entries[ix]);candidates=extract_model(model,write_jms=False)
-            candidates=[m for m in candidates if m.name.endswith(' superhigh')]
+            candidates=[m for m in candidates if m.name.endswith(' superhigh')] or [m for m in candidates if m.tris]
             selected=candidates[min(max(0,placement.desired_permutation),len(candidates)-1)]
             mids=[materials.add(s.shader.filepath) for s in model.shaders.STEPTREE]
             nodes=[{'name':n.name,'parent':n.parent_index,'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100],'q':[n.rot_i,n.rot_j,n.rot_k,n.rot_w]} for n in selected.nodes]
@@ -71,5 +75,5 @@ def scenery(halo,materials,data,collision_materials,add_triangle):
                     source={name:list(struct.iter_unpack('<'+fmt,bytes(getattr(bsp,name).STEPTREE))) for name,fmt in [('planes','4f'),('surfaces','2iBBh'),('edges','6i'),('vertices','3fi')]}
                     if source['surfaces']:
                         append_collision(data,source,world_rot,world_pos,material_ids);collision_count+=len(source['surfaces'])
-        report.append({'path':path,'model':model.name,'triangles':triangles,'source_triangles':len(model.tris),'method':proxy['method'] if proxy else 'Original source geometry','collision_surfaces':collision_count,'position':list(pos),'rotation':list(placement.rotation)})
+        report.append({'path':path,'model':model.name,'triangles':triangles,'source_triangles':len(model.tris),'method':proxy['method'] if proxy else 'Original source geometry','collision_surfaces':collision_count,'position':list(pos),'rotation':list(placement.rotation),'source_kind':kind or 'light_fixture'})
     return report

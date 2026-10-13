@@ -1,6 +1,7 @@
 #include "map.h"
 #include "map_format.h"
 #include "game.h"
+#include "frontend.h"
 #include "pickup_rules.h"
 #include "terrain.h"
 #include "sky.h"
@@ -131,6 +132,9 @@ void bg_map_unload(void) {
     resident = 0; loaded = false; bg_terrain_reset();
 }
 bool bg_map_load(unsigned id) {
+#ifdef N64
+    assertf((unsigned)get_memory_size()>=bg_front_map_memory_requirement(id),"This map requires an 8 MiB Expansion Pak");
+#endif
     if (loaded && current.id == id) return true;
     unsigned index = map_index(id);
     bg_map_unload();
@@ -171,7 +175,7 @@ bool bg_map_load(unsigned id) {
             sections[BG_MAP_SLAYER_SPAWNS].count == sections[BG_MAP_SPAWNS].count &&
             sections[BG_MAP_SPAWNS].count && sections[BG_MAP_SPAWNS].count <= 128 &&
             sections[BG_MAP_ITEMS].count <= BG_MAX_PICKUPS && sections[BG_MAP_VEHICLES].count <= BG_MAX_VEHICLES &&
-            sections[BG_MAP_TELEPORTERS].count <= 16 && sections[BG_MAP_GRID].count == BG_GRID * BG_GRID &&
+            sections[BG_MAP_TELEPORTERS].count <= 32 && sections[BG_MAP_GRID].count == BG_GRID * BG_GRID &&
             sections[BG_MAP_GRID_BOUNDS].count == 1 && sections[BG_MAP_START].count == 1 &&
             sections[BG_MAP_ORIGIN].count == 1 && sections[BG_MAP_WORLD_LAYOUT].count == 1 &&
             sections[BG_MAP_SKY].count == 33, "Map section capacities");
@@ -253,6 +257,14 @@ bool bg_map_load(unsigned id) {
     bg_start_weapons = blocks[BG_MAP_START]; bg_start_grenades = bg_start_weapons + 2;
     bg_teleporters = blocks[BG_MAP_TELEPORTERS]; bg_teleporter_count = sections[BG_MAP_TELEPORTERS].count;
     bg_map_vehicles = blocks[BG_MAP_VEHICLES]; bg_map_vehicle_count = sections[BG_MAP_VEHICLES].count;
+    for(unsigned i=0;i<bg_map_item_count;i++){
+        const bg_map_item*m=&bg_map_items[i];
+        unsigned second=bg_map_item_second_weight(m);
+        assertf(m->kind[0]>=0&&m->kind[0]<=BG_PICK_CAMO&&m->kind[1]>=-1&&m->kind[1]<=BG_PICK_CAMO&&
+                m->first_weight&&m->total_weight>=m->first_weight,"Map item weights");
+        if(second)assertf(m->kind[1]>=0&&bg_map_item_third(m)<=BG_PICK_CAMO&&
+                         m->first_weight+second<m->total_weight,"Map third item choice");
+    }
     bg_sky_rgb = blocks[BG_MAP_SKY];
     const float *origin = blocks[BG_MAP_ORIGIN];
     current.id = id; current.bytes = bytes; memcpy(current.origin, origin, 12); current.void_height = origin[3];

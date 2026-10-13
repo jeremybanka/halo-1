@@ -452,7 +452,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
             label(tag + 1, 0, 0, map ? bg_front_maps[item].name : bg_shell_type_names[item],
                   color(avail, focus));
             label(tag + 3, 0, 0,
-                  map ? bg_shell_map_descriptions[item] : bg_shell_type_descriptions[item],
+                  map ? (bg_front_map_needs_expansion(item)?"Expansion Pak required":bg_shell_map_descriptions[item]) : bg_shell_type_descriptions[item],
                   color(avail, false));
         }
         buttons(bg_front_available(f->page, selected));

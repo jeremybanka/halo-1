@@ -25,6 +25,10 @@ typedef struct {
 void bg_front_init(bg_frontend *f);
 bg_front_action bg_front_update(bg_frontend *f,const bg_control_state input[4],uint64_t now);
 bool bg_front_available(bg_front_page page,unsigned item);
+/* Keep the accepted five-map 4 MiB profile; the full roster uses 8 MiB. */
+unsigned bg_front_map_memory_requirement(unsigned map);
+void bg_front_set_memory_size(unsigned bytes);
+bool bg_front_map_needs_expansion(unsigned map);
 void bg_front_results(bg_frontend *f,const int scores[4],int winner);
 void bg_front_quit(bg_frontend *f);
 void bg_front_map_controls(const bg_frontend *f,const bg_control_state physical[4],bg_control_state logical[4]);

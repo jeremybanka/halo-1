@@ -39,8 +39,8 @@ static const step script[]={
  {BG_FRONT_MULTIPLAYER,4,1,BG_BUTTON_A},
  {BG_FRONT_JOIN,4,ALL,BG_BUTTON_START},{BG_FRONT_JOIN,3,ALL,BG_BUTTON_A},
  {BG_FRONT_JOIN,4,1,BG_BUTTON_A},
- {BG_FRONT_MAP,4,1,MAP_PROBE},{BG_FRONT_MAP,3,1,BG_BUTTON_A},
- {BG_FRONT_MAP,2,1,MAP_RETURN},{BG_FRONT_MAP,2,1,BG_BUTTON_A},
+ {BG_FRONT_MAP,4,1,MAP_PROBE},{BG_FRONT_MAP,2,1,MAP_RETURN},
+ {BG_FRONT_MAP,2,1,BG_BUTTON_A},
  {BG_FRONT_TYPE,4,1,BG_BUTTON_D_RIGHT},{BG_FRONT_TYPE,3,1,BG_BUTTON_A},
  {BG_FRONT_TYPE,2,1,BG_BUTTON_D_LEFT},{BG_FRONT_TYPE,2,1,BG_BUTTON_A},
  {BG_FRONT_PREGAME,2,1,BG_BUTTON_C_LEFT},{BG_FRONT_PREGAME,2,1,BG_BUTTON_B},
@@ -84,6 +84,7 @@ static const step script[]={
  {BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
  RESUME_CHECK
  {BG_FRONT_RESULTS,2,1,BG_BUTTON_A},
+#include "remaining_maps_cycle.h"
 #endif
  {BG_FRONT_MAP,3,1,BG_BUTTON_B},
  {BG_FRONT_JOIN,2,1,BG_BUTTON_B},{BG_FRONT_JOIN,2,1,BG_BUTTON_B},
@@ -104,6 +105,19 @@ static bg_player saved_players[4];
 unsigned bg_front_qa_step(void){return current;}
 unsigned bg_front_qa_steps(void){return sizeof(script)/sizeof(script[0]);}
 bool bg_front_qa_done(void){return complete;}
+void bg_front_qa_resumed(void){
+#ifdef WIZARD_CYCLE
+    if(!quit_pending)return;
+    /* Check at the resume boundary. A later input poll can legitimately
+     * follow the first resumed simulation tick in the paced presenter. */
+    for(unsigned p=0;p<4;p++){
+        const bg_player*a=&saved_players[p],*b=&bg_players[p];
+        assert(!memcmp(a->pos,b->pos,sizeof(a->pos))&&a->health==b->health&&
+               a->shield==b->shield&&a->ammo==b->ammo&&a->score==b->score);
+    }
+    quit_pending=false;resumed++;
+#endif
+}
 void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now){
     memset(raw,0,4*sizeof(*raw));if(complete)return;
 #ifdef WIZARD_CYCLE
@@ -111,13 +125,6 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
         assert(bg_map_loaded()&&bg_map_id()==f->map);
         if(f->page==BG_FRONT_QUIT&&!quit_pending){
             memcpy(saved_players,bg_players,sizeof(saved_players));quit_pending=true;
-        }else if(f->page==BG_FRONT_PLAY&&quit_pending){
-            for(unsigned p=0;p<4;p++){
-                const bg_player*a=&saved_players[p],*b=&bg_players[p];
-                assert(!memcmp(a->pos,b->pos,sizeof(a->pos))&&a->health==b->health&&
-                       a->shield==b->shield&&a->ammo==b->ammo&&a->score==b->score);
-            }
-            quit_pending=false;resumed++;
         }
     }
     if(f->page==BG_FRONT_RESULTS)assert(!bg_map_loaded()&&bg_map_resident_bytes()==0);
@@ -144,7 +151,7 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
 #ifdef WIZARD_CYCLE
         assert(resumed==
 #ifdef BG_MAPS_CYCLE
- 6
+ 14
 #else
  3
 #endif

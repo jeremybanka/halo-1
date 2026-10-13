@@ -3,14 +3,15 @@ import contextlib,io,math
 from pathlib import Path
 import numpy as np
 from PIL import Image
-from extract_ground import compose
+from extract_ground import compose,filtered_detail
 
 class Materials:
-    def __init__(self,halo,directory):
+    def __init__(self,halo,directory,ci4_shader=None):
         self.halo=halo;self.entries=halo.tag_index.tag_index;self.directory=directory
         directory.mkdir(parents=True,exist_ok=True)
         self.ids={};self.images=[];self.flags=[];self.records=[];self.palette=bytes(32)
         self.sizes=[];self.ci4=[];self.tiles=[];self.bitmaps={}
+        self.ci4_shader=ci4_shader
     def bitmap(self,ref):
         from reclaimer.bitmaps.bitmap_decompilation import extract_bitmaps
         if ref.id==0xffffffff:return None
@@ -33,11 +34,22 @@ class Materials:
             if attrs.environment_shader.flags.alpha_tested:flags|=2
             if attrs.environment_shader.type.enum_name=='blended' and diffuse.secondary_detail_map.id!=0xffffffff:
                 maps=[image,*[self.bitmap(ref) for ref in (diffuse.primary_detail_map,diffuse.secondary_detail_map,diffuse.micro_detail_map)]]
-                assert all(m is not None for m in maps)
+                assert maps[0] is not None
                 maps[0]=maps[0].resize((512,512),Image.Resampling.BOX)
                 scales=[diffuse.primary_detail_map_scale,diffuse.secondary_detail_map_scale,diffuse.micro_detail_map_scale]
-                image=compose(*maps,scales).convert('RGBA');ground=True;size=64
-                note='Source alpha grass/sand mask and double-multiply detail bake; 64px CI4'
+                if all(m is not None for m in maps):
+                    image=compose(*maps,scales).convert('RGBA')
+                else:
+                    # Missing source detail maps contribute the neutral 0.5
+                    # multiplier. Sidewinder has no micro-detail texture.
+                    base=np.asarray(maps[0],dtype=np.float64)/255
+                    layers=[filtered_detail(m,s,512) if m is not None else np.full((512,512,3),.5) for m,s in zip(maps[1:],scales)]
+                    detail=layers[0]*base[...,3:4]+layers[1]*(1-base[...,3:4])
+                    color=np.clip(2*base[...,:3]*detail,0,1)
+                    image=Image.fromarray(np.uint8(np.clip(2*color*layers[2],0,1)*255+.5)).convert('RGBA')
+                ground=self.ci4_shader is None or path==self.ci4_shader
+                size=64 if ground else 32
+                note='Source alpha mask and double-multiply detail bake; '+('64px CI4' if ground else '32px RGBA16')
         elif hasattr(shader,'soso_attrs'):
             attrs=shader.soso_attrs;image=self.bitmap(attrs.maps.diffuse_map)
             f=attrs.model_shader.flags;flags=(0 if f.not_alpha_tested else 2)|(4 if f.two_sided else 0)

@@ -18,4 +18,7 @@ typedef struct { uint32_t offset, count, stride; } bg_map_section;
 /* BG_MAP_TEXTURE_OVERLAY byte: legacy 0/1 retain identical draw commands.
  * New maps may add 2 = alpha-tested depth writer, 4 = two-sided geometry.
  * Transparent and depth-writing cutout flags are mutually exclusive. */
+/* BG_MAP_ITEMS retains its 24-byte stride. Its reserved tail bytes optionally
+ * encode a third weighted pickup choice; see pickup_rules.h. Zero tails are
+ * byte-compatible with all previously accepted banks. */
 #endif

@@ -7,6 +7,7 @@ import tempfile
 import shutil
 from pathlib import Path
 import subprocess
+from asset_ids import map_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -43,15 +44,16 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
             tmp=Path(tmp)
             for source in directory.iterdir():
                 if source.suffix in ('.map64','.bin'):shutil.copyfile(source,tmp/source.name)
-            for name in ('hangemhigh','chillout','beavercreek'):
+            names=[n for n in map_ids() if n not in ('bloodgulch','wizard')]
+            for name in names:
                 info=report['maps'][name];path=tmp/(name+'.map64');data=bytearray(path.read_bytes())
                 offset,count,stride=struct.unpack_from('>3I',data,16+14*12)
                 assert count==len(info['authored_spawns']) and stride==20
                 for i,row in enumerate(info['authored_spawns']):struct.pack_into('>4fi',data,offset+i*stride,*row)
                 path.write_bytes(data)
             result=subprocess.check_output([str(binary)],cwd=ROOT,env={**os.environ,'BG_MAP_DIRECTORY':str(tmp),'BG_EXPORT_SPAWN_CLEARANCE':'1'},text=True)
-        corrections={'corrections':json.loads(result),'source_sha256':{n:report['maps'][n]['source_sha256'] for n in ('hangemhigh','chillout','beavercreek')},
-            'description':'Minimum offsets resolved by the unchanged N64 capsule solver, bounded to 0.075 Halo world units, only for authored starts with initial penetration.'}
+        corrections={'corrections':json.loads(result),'source_sha256':{n:report['maps'][n]['source_sha256'] for n in names},
+            'description':'Minimum offsets resolved by the unchanged N64 capsule solver for authored starts with initial penetration. Accepted maps retain their 0.075-world-unit bound; newly imported maps use a 0.2-unit bound.'}
         (directory/'spawn-clearance.json').write_text(json.dumps(corrections,indent=2)+'\n')
         print(result)
     else:
@@ -63,6 +65,6 @@ if __name__=='__main__':
     parser.add_argument('--blam-bsp', action='store_true', help='Also exercise the optional Blood Gulch source BSP')
     parser.add_argument('--frontend-cycle', action='store_true', help='Run the real three-match menu/map/quit/resume fixture')
     parser.add_argument('--export-spawn-clearance',action='store_true',help='Bake only minimal map-specific offsets using the accepted capsule solver')
-    parser.add_argument("--maps-cycle",action="store_true",help="Complete the expanded six-match/all-five-map menu fixture")
+    parser.add_argument("--maps-cycle",action="store_true",help="Complete the fourteen-match/all-thirteen-map menu fixture")
     args = parser.parse_args()
     run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle)

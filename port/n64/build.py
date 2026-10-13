@@ -11,6 +11,7 @@ import subprocess
 import sys
 from setup_assets import connect_assets
 from asset_ids import map_ids
+from feature_cache_candidate import candidate_source
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOWCASES = [
@@ -42,6 +43,8 @@ def parse_args(argv=None):
         type=Path,
         help="Diagnostic comparison: compile an alternate game.c; exact input is recorded in the build manifest",
     )
+    parser.add_argument('--feature-cache-slots', type=int, choices=(128,512),
+                        help='8 MiB research: isolated prism/edge cache adapter; benchmark/QA modes only')
     parser.add_argument(
         "--sdk",
         type=Path,
@@ -281,6 +284,11 @@ def parse_args(argv=None):
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
     ):
         parser.error("--game-source requires an explicit profiling or telemetry mode")
+    if args.feature_cache_slots and not (
+        args.profile or args.benchmark or args.vi_benchmark or args.telemetry
+        or args.validate or args.snapshot_tick is not None or args.frontend_qa
+    ):
+        parser.error('--feature-cache-slots requires an explicit benchmark or QA mode')
     if args.preset == "release":
         args.paced30 = True
         args.paced30_buffers = args.paced30_buffers or 3
@@ -396,6 +404,8 @@ def compile_options(args, sdk, tiny, out, source):
         "-I" + str(sdk / "mips64-elf/include"),
         "-I" + str(tiny / "src"),
         "-I" + str(ROOT / "port/n64"),
+        *(['-I' + str(ROOT / 'port/n64/blam')]
+          if args.feature_cache_slots and source.name == 'vehicle_physics.c' else []),
         "-I" + str(out / "blam-core"),
         "-I" + str(out / "blam-vehicle"),
         *(
@@ -516,6 +526,8 @@ def rom_name(args):
         if args.showcase
         else "halo-64-replay" if args.demo else "halo-64"
     )
+    if args.feature_cache_slots:
+        name += '-features' + str(args.feature_cache_slots)
     if args.snapshot_tick is not None:
         name += "-snapshot-" + str(args.snapshot_tick)
     if args.map_qa is not None:
@@ -938,6 +950,12 @@ def main():
         )
         for name in sources
     ]
+    if args.feature_cache_slots:
+        original = ROOT / 'port/n64/blam/vehicle_physics.c'
+        candidate = out / 'feature-cache/vehicle_physics.c'
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text(candidate_source(original.read_text(), args.feature_cache_slots))
+        runtime_sources[runtime_sources.index(original)] = candidate
     for source in [
         *runtime_sources,
         *(
@@ -1083,6 +1101,18 @@ def main():
             for path in (out / directory).rglob("*")
             if path.is_file() and path.suffix in (".c", ".h")
         },
+        "feature_cache_experiment": (
+            {
+                "slots": args.feature_cache_slots,
+                "required_ram_mib": 8,
+                "baseline_adapter_sha256": hashlib.sha256(
+                    (ROOT / 'port/n64/blam/vehicle_physics.c').read_bytes()).hexdigest(),
+                "generator_sha256": hashlib.sha256(
+                    (ROOT / 'port/n64/feature_cache_candidate.py').read_bytes()).hexdigest(),
+                "candidate_adapter_sha256": hashlib.sha256(candidate.read_bytes()).hexdigest(),
+            }
+            if args.feature_cache_slots else None
+        ),
         "service_ids": hashlib.sha256(
             (ROOT / "port/n64/interaction_services.def").read_bytes()
         ).hexdigest(),

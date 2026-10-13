@@ -555,8 +555,9 @@ still separate.
 ## Expansion Pak investigation (October 12)
 
 Base: merged full-roster `d071efc5`. This is a research checkpoint, with an
-isolated host cache prototype; no production cache, renderer, asset or timing
-budget changes. The prior conclusions were retrieved from **Halo Combat
+isolated host/target cache prototypes; no default cache, renderer, asset or timing
+budget changes. The investigation also repairs a map-coordinate error in the
+native vehicle adapter; correctness results are recorded separately below. The prior conclusions were retrieved from **Halo Combat
 Devolved - Memory Layout**, conversation `01a12227-ba61-7421-abb0-40443b0026d4`,
 including the first optimization, collision/camera, terrain and four-candidate
 investigation turns. The relevant requests/conclusions are saved locally in
@@ -613,11 +614,21 @@ sanitizer/compiler contracts supplies the state reference; its digest is not
 interchangeable with the older nonsanitized trace. Actual call counts remain
 identical. Rendering/camera-only calls are outside this probe.
 
-This establishes correctness and removable work, **not N64 speed**. Compare
-128/512 slots on target before choosing capacity. More RDRAM traffic can still
-erase the gain, as it did with smaller candidate cells. New-map probes use the
-existing 2250-tick on-foot routes; Sidewinder's vehicles are parked, so these
-counts do not represent a Sidewinder driving stress test.
+Quiet target trials use a matched 75-second four-player Blood Gulch replay:
+
+| Adapter | Extra RAM | FPS | Vehicle segment FPS | P95 / maximum interval |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline | 0 | 24.1 | 22.0 | 66.8 / 133.7 ms |
+| 128 / 128 | 13.5 KiB | 24.2 | 22.1 | 66.8 / 167.1 ms |
+| 512 / 512 | 73.5 KiB | 24.0 | 21.9 | 66.8 / 167.1 ms |
+| Baseline repeat | 0 | 24.1 | 22.0 | 66.8 / 133.7 ms |
+
+Removing factory misses does **not establish a target speed gain**. Neither
+capacity justifies promotion; the default remains 32/64. An explicit
+`--feature-cache-slots 128|512` builds a separately named diagnostic adapter,
+requires a benchmark/QA mode, asserts 8 MiB on target and records all generator
+inputs in its manifest. Rendering/camera-only calls remain outside the host
+probe. New-map on-foot routes are not Sidewinder driving stress tests.
 
 Full immutable tables cost much more: dense prism/edge payloads total about
 806 KiB on Blood Gulch and 1674 KiB on Sidewinder, before allocator padding.
@@ -658,9 +669,24 @@ bounds, portal crossings, scopes and altered transparent occluders must fail
 open until conservativeness is demonstrated.
 
 Boarding Action's 435 ms presentation gap cannot be explained away by PVS:
-every source row permits its entire map. Damnation also permits its entire map
-in most rows. Refresh CPU and serialized SP/DP attribution there before choosing
-world submission, clipping/command specialization or conservative occlusion.
+every source row permits its entire map. Fresh inclusive CPU attribution reports
+20.1 ms/frame for players, rising to 38.6 ms in combat. The host terrain probe
+finds eight candidate-list overflows but **328 full-map queries**, with **4,957,398**
+near-triangle calls versus 201,735 on Damnation. A cached overflow sentinel
+continues scanning the full map on cache hits. Only Longest also overflows
+(81 queries); the other eleven maps have none in these routes. Retaining complete
+ordered candidate lists, or offline conservative membership, is the first RAM
+experiment for Boarding Action. Preserve the overflow path as fallback and check
+candidate order, all state bytes and quiet interval tails; larger lists alone
+can make duplicate detection more expensive.
+
+Damnation's inclusive CPU world submission is 16.4 ms/frame and animation 5.4 ms.
+Its serialized RSP drain is **68.853 ms**, with a following RDP drain of 0.031 ms.
+An empty-scissor control gives **68.784 / 0.033 ms**. Suppressing pixel coverage
+barely changes the tail, supporting geometry/command work as a major constraint.
+These drains alter scheduling; audio servicing overlaps them and SP/DP polling
+percentages are not utilization measurements. They cannot be added to CPU buckets
+or substituted for quiet release FPS.
 The earlier unlit Tiny3D RSP specialization remains a source-supported candidate,
 with no demonstrated target gain yet. It needs little extra RAM, but may matter
 more than a memory-heavy CPU cache if geometry is the limiting stage.
@@ -684,24 +710,68 @@ current clips needs over **137 MiB**, even without vertex scatter, so a complete
 blend table is outside this budget. Caching final blended poses remains low
 priority because the previous exact-key reuse measurements were poor.
 
-### Acceptance sequence
+### Ranked next experiments
 
-1. Refresh 8 MiB CPU attribution on Blood Gulch and the slow geometry maps;
-   retain separate quiet VI and serialized pipeline controls. Track sampled
-   memory minima and allocation lifecycle independently of timing runs.
-2. Measure the 13.5/73.5 KiB feature-cache prototypes, baseline/candidate/baseline,
-   then test Chiron source-PVS mapping with the accepted assets and draw order.
-3. Measure operation-weighted animation traffic before allocating a clip arena;
-   compare expanded endpoints independently of residency.
-4. Promote only repeatable quiet-VI improvements with interval tails, source
-   state/pixel comparisons, audio behavior and the full menu lifecycle checked.
-   Larger caches, buffers or unlit RSP changes are experiments until then.
+1. **Boarding Action ordered overflow lists:** measure the complete per-anchor
+   candidate count and allocate a bounded 8 MiB list pool. Target repeated
+   full-map scans; preserve fallback and source ordering. Do not infer capacity
+   from the eight overflow refills alone.
+2. **Chiron source PVS:** carry source membership through packed chunks and
+   measure rejection in the actual four-camera replay before allocating a large
+   table. Raw rows permit a median 10.1% of source triangles; conservative
+   chunk mapping and pixel equivalence are still unproven.
+3. **Expanded animation endpoints:** incremental 410 KiB targets resident byte
+   decoding. Profile operation-weighted clip traffic before a 0.5–1 MiB streaming
+   endpoint arena; DMA removal cannot eliminate blending and scatter.
+4. **Unlit RSP specialization:** little extra RAM, but refresh geometry costs
+   and prove transformed vertices/command behavior before adoption. Damnation's
+   empty-scissor result makes geometry reduction more promising than larger
+   display or command buffers.
 
-Current offline research is complete. Fresh N64 execution is **pending**:
-the Mac was locked and automatic unlock failed. CPU-page ROMs for Damnation,
-Sidewinder and Boarding Action are prepared; build success is not execution.
-No new target CPU/FPS improvement is claimed, and the verified release remains
-the full-map baseline. Local evidence is `build/n64-expansion-research/`.
+Feature-cache growth is not promoted. Every candidate needs separate quiet VI,
+CPU attribution, state/pixel checks, interval tails, audio and unload/reload/menu
+lifecycle evidence. Reserve working sets before loading maps and measure memory
+minima and allocation fragmentation; result-page free heap is not a peak budget.
+
+### Vehicle origin correctness
+
+The adapter still added Blood Gulch's `(68, -118, 0)` origin when registering
+native roots on other maps. Sidewinder uses `(0, 0, 0)`: its eight vehicles were
+solving contacts in the wrong world. Prepare/publish, flip approach and damage
+impulses now use `bg_map_origin()`. This is a correctness repair, not a RAM
+optimization, and changes Sidewinder's simulation workload.
+
+The new regression checks 29 native roots across all 13 maps, then 2400
+Sidewinder step poses. All eight vehicles encounter source ground and settle;
+strict and target-math ASan/UBSan passes agree. The old adapter fails the same
+coordinate check. Corrected Sidewinder quiet timing is 9.5 FPS (718 poses),
+P95 167.1 ms and maximum 200.5 ms; the prior 9.6 FPS is not a matched
+performance comparison because collision contacts changed. No FPS gain is claimed.
+Fresh inclusive physics cost is 6.694 ms/frame versus 20.524 ms before repair;
+simulation is 25.967 versus 39.009 ms. This is changed contact behavior and cannot
+be credited to extra RAM. Presentation remaining slow despite lower CPU cost
+supports investigating geometry/visibility alongside CPU caches.
+Blood Gulch's 15,300-tick replay/showcases retain all
+**144,170,084** state bytes versus `9f1a1e0c` (SHA256
+`822988418e44c34db718be9ad6b801e8d605cf38d696d77cf8d59621094575f2`).
+
+The corrected adapter and 512-entry prototype also agree across all maps:
+**403,553,812** state bytes, SHA256
+`651a4fe40a87442a703d40beeda1e02f419beed393d4d5086317f7f09b9166cb`.
+The instrumented terrain probe omits renderer/camera-only calls and checks the
+same instrumented source in both adapters. This digest is distinct from the
+historical pre-repair experiment above.
+
+The maintained host/contracts/assets suite passes **47/47 groups**. Native
+four-player frontend combat/results/menu return completes with **zero RDP errors
+and warnings**, using the maintained 8 KiB validation queues. Corrected
+Sidewinder's four-view source-start inspection also reports zero RDP errors and
+warnings. Temporary Expansion Pak/defocus preferences were restored.
+
+Local evidence is `build/n64-expansion-research/`: `native-costs.json`,
+`quiet-timing.json`, `terrain-pressure/results.json`, origin equivalence and
+regression logs, screenshots and per-ROM build manifests. The verified release
+artifact remains the full-map baseline; these experiments do not replace it.
 
 ```sh
 build/n64-python/bin/python port/n64/investigate_expansion_assets.py

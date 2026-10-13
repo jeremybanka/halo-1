@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "port/n64"))
 from asset_ids import map_ids
 from test_runtime_equivalence import TRACE
+from feature_cache_candidate import candidate_source
 
 
 def run(out, prototype_cache_slots=None):
@@ -33,14 +34,7 @@ def run(out, prototype_cache_slots=None):
     original_adapter = (ROOT / "port/n64/blam/vehicle_physics.c").read_text()
     adapter = original_adapter
     if prototype_cache_slots:
-        for old, new in (
-            ('prisms[32]', f'prisms[{prototype_cache_slots}]'),
-            ('cylinders[64]', f'cylinders[{prototype_cache_slots}]'),
-            ('unsigned slot=(unsigned)si%32;', f'unsigned slot=(unsigned)si%{prototype_cache_slots};'),
-            ('((uint32_t)edge*2654435761u)&63u', f'((uint32_t)edge*2654435761u)&{prototype_cache_slots-1}u'),
-        ):
-            assert adapter.count(old) == 1, old
-            adapter = adapter.replace(old, new, 1)
+        adapter = candidate_source(adapter, prototype_cache_slots)
     adapter = adapter.replace('#include "vehicle_profile.h"',
                               '#include "vehicle_profile.h"\n#include "ram_trace.h"', 1)
     for signature, kind, identifier in (
@@ -58,6 +52,8 @@ def run(out, prototype_cache_slots=None):
             adapter = adapter.replace(marker, ' ram_record(1,edge);\n' + marker, 1)
     (out / "ram_trace.h").write_text(r'''
 #include <stdio.h>
+#include "terrain_trace.h"
+ram_terrain_metrics ram_terrain;
 static FILE *ram_requests;
 static unsigned ram_scenario;
 uint32_t bg_counters[BG_COUNTER_COUNT];
@@ -67,6 +63,28 @@ static void ram_record(unsigned kind,unsigned id){
  assert(fwrite(row,sizeof(row),1,ram_requests)==1);
 }
 ''')
+    (out / 'terrain_trace.h').write_text('''
+#ifndef RAM_TERRAIN_TRACE_H
+#define RAM_TERRAIN_TRACE_H
+#include <stdint.h>
+typedef struct {uint64_t near_calls,capsule_calls,fallback_queries,move_calls,substeps,recovery_calls;unsigned max_steps;} ram_terrain_metrics;
+extern ram_terrain_metrics ram_terrain;
+#endif
+''')
+    terrain_original = (ROOT / 'port/n64/terrain.c').read_text()
+    terrain = terrain_original
+    for marker, addition in (
+        ('static bool near_triangle(const bg_triangle*t,const float*p,float h,float r){', 'ram_terrain.near_calls++;'),
+        ('float bg_capsule_triangle(const float base[3],float height,float radius,const bg_triangle*t,float pa[3],float pb[3]){', 'ram_terrain.capsule_calls++;'),
+        ('static bool recover_support(bg_player*p,unsigned previous,float normal[3]){', 'ram_terrain.recovery_calls++;'),
+        ('if(steps>64)steps=64;', 'ram_terrain.move_calls++;ram_terrain.substeps+=steps;if(steps>ram_terrain.max_steps)ram_terrain.max_steps=steps;'),
+    ):
+        assert terrain.count(marker) == 1, marker
+        terrain = terrain.replace(marker, marker + addition, 1)
+    marker = 'unsigned count=c->count==UINT16_MAX?bg_collision_count:c->count;'
+    assert terrain.count(marker) == 3
+    terrain = terrain.replace(marker, marker + 'if(c->count==UINT16_MAX)ram_terrain.fallback_queries++;')
+    (out / 'terrain.c').write_text('#include "terrain_trace.h"\n' + terrain)
     # Include the adapter to inspect its actual structs and factory outputs.
     driver = TRACE[TRACE.index('static void state('):TRACE.index('int main(')]
     driver += r'''
@@ -114,6 +132,7 @@ int main(int argc,char **argv){
   for(unsigned scenario=0;scenario<(map==9?7u:1u);scenario++){
    ram_scenario=scenario;
    memset(bg_counters,0,sizeof(bg_counters));
+   memset(&ram_terrain,0,sizeof(ram_terrain));
    bg_set_players(4);bg_set_score_limit(1000);bg_reset();
    if(scenario)bg_showcase_begin(scenario-1);
    float seconds=0;unsigned ticks=map==9?(scenario?1800:4500):2250;
@@ -124,9 +143,14 @@ int main(int argc,char **argv){
     if(scenario)bg_showcase_observe();
     state(states);
    }
-   fprintf(actual,"%u %u %u %u %u %u\n",map,scenario,
+   fprintf(actual,"%u %u %u %u %u %u %u %u %u %u %u %llu %llu %llu %llu %llu %llu %u\n",map,scenario,
     bg_counters[BG_COUNT_PRISM_HIT],bg_counters[BG_COUNT_PRISM_MISS],
-    bg_counters[BG_COUNT_EDGE_HIT],bg_counters[BG_COUNT_EDGE_MISS]);
+    bg_counters[BG_COUNT_EDGE_HIT],bg_counters[BG_COUNT_EDGE_MISS],
+    bg_counters[BG_COUNT_TERRAIN_HIT],bg_counters[BG_COUNT_TERRAIN_MISS],
+    bg_counters[BG_COUNT_TERRAIN_OVERFLOW],bg_counters[BG_COUNT_FLOOR_HIT],bg_counters[BG_COUNT_FLOOR_MISS],
+    (unsigned long long)ram_terrain.near_calls,(unsigned long long)ram_terrain.capsule_calls,
+    (unsigned long long)ram_terrain.fallback_queries,(unsigned long long)ram_terrain.move_calls,
+    (unsigned long long)ram_terrain.substeps,(unsigned long long)ram_terrain.recovery_calls,ram_terrain.max_steps);
   }
   assert(fclose(ram_requests)==0);ram_requests=NULL;bg_map_unload();
  }
@@ -141,7 +165,7 @@ int main(int argc,char **argv){
              '-DBG_STREAM_MAPS', '-DBG_BODY_CANDIDATES', '-DBG_TELEMETRY', '-Iport/n64', '-Iport/n64/blam',
              '-Ibuild/n64/blam-core', '-I' + str(solver), '-I' + str(out)]
     sources = ['port/n64/map.c', 'halo64-assets/generated/maps/common_data.c',
-               'port/n64/game.c', 'port/n64/combat_geometry.c', 'port/n64/terrain.c',
+               'port/n64/game.c', 'port/n64/combat_geometry.c', str(out / 'terrain.c'),
                'port/n64/movement.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
                'port/n64/replay.c', 'port/n64/showcase.c',
                'build/n64/generated/combat_data.c', 'build/n64/generated/movement_data.c',
@@ -203,11 +227,17 @@ int main(int argc,char **argv){
     groups = []
     baseline_counts = {}
     for line in (out / 'baseline-counts.txt').read_text().splitlines():
-        map_id, scenario, ph, pm, eh, em = map(int, line.split())
+        map_id, scenario, ph, pm, eh, em, *_ = map(int, line.split())
         baseline_counts[map_id, scenario, 0] = ph + pm
         baseline_counts[map_id, scenario, 1] = eh + em
+    pressure = []
     for line in (out / 'actual-counts.txt').read_text().splitlines():
-        map_id, scenario, prism_hits, prism_misses, edge_hits, edge_misses = map(int, line.split())
+        map_id, scenario, prism_hits, prism_misses, edge_hits, edge_misses, th, tm, to, fh, fm, near, capsule, fallback, moves, substeps, recovery, max_steps = map(int, line.split())
+        pressure.append(dict(map=names[map_id], scenario=scenario,
+                             terrain_hits=th, terrain_misses=tm, terrain_overflows=to,
+                             floor_hits=fh, floor_misses=fm, near_triangle_calls=near,
+                             capsule_calls=capsule, full_scan_queries=fallback,
+                             move_calls=moves, substeps=substeps,recovery_calls=recovery,max_substeps=max_steps))
         for kind, capacity, hits, misses in ((0, prototype_cache_slots or 32, prism_hits, prism_misses),
                                             (1, prototype_cache_slots or 64, edge_hits, edge_misses)):
             group = (map_id, scenario, kind)
@@ -228,9 +258,10 @@ int main(int argc,char **argv){
         prototype_cache_slots=prototype_cache_slots,
         adapter_sha256=hashlib.sha256(adapter.encode()).hexdigest(),
         baseline_adapter_sha256=hashlib.sha256(original_adapter.encode()).hexdigest(),
+        terrain_source_sha256=hashlib.sha256(terrain_original.encode()).hexdigest(),
         all_map_state_sha256=sha, all_map_state_bytes=(out / 'all-map-state.bin').stat().st_size,
         factory_checks=sum(m['checked_factories'] for m in census.values()),
-        maps=census, requests=len(requests)//4, groups=groups)
+        maps=census, requests=len(requests)//4, groups=groups, query_pressure=pressure)
     (out / 'results.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps({k: result[k] for k in ('source_commit', 'prototype_cache_slots', 'all_map_state_sha256', 'factory_checks', 'requests')}))
 

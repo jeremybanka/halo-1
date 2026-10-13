@@ -117,3 +117,41 @@ build/n64-python/bin/python port/n64/build.py --preset release --initial-map sid
 Enable the Expansion Pak in Ares for the full roster. Change `--initial-map`
 to another cache basename from `map_catalog.def` for its replay. Normal builds
 consume the baked private banks without reopening the source disc.
+
+
+## Four-player performance comparison
+
+| Map | Displayed FPS | Early / combat | Late / vehicles | P95 / max interval | End free heap |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Wizard | 24.9 | 24.4 | 25.3 | 66.8 / 66.8 ms | 4420 KiB |
+| Blood Gulch | 24.1 | 26.4 | 22.1 | 66.8 / 133.7 ms | 4113 KiB |
+| Longest | 22.8 | 23.0 | 22.6 | 66.8 / 133.7 ms | 4429 KiB |
+| Battle Creek | 21.5 | 22.4 | 20.6 | 66.8 / 66.8 ms | 4245 KiB |
+| Rat Race | 21.1 | 21.8 | 20.3 | 66.8 / 100.2 ms | 4328 KiB |
+| Chill Out | 20.9 | 20.8 | 20.9 | 66.8 / 66.8 ms | 4353 KiB |
+| Hang ’Em High | 19.3 | 18.7 | 20.0 | 66.8 / 66.8 ms | 4357 KiB |
+| Derelict | 16.2 | 15.5 | 16.8 | 66.8 / 100.3 ms | 4202 KiB |
+| Prisoner | 15.6 | 15.7 | 15.6 | 100.2 / 100.3 ms | 4143 KiB |
+| Chiron TL34 | 15.5 | 15.2 | 15.7 | 100.2 / 100.3 ms | 3721 KiB |
+| Damnation | 10.8 | 11.8 | 9.8 | 133.7 / 133.7 ms | 3623 KiB |
+| Boarding Action | 10.4 | 7.7 | 13.3 | 133.7 / 434.6 ms | 3430 KiB |
+| Sidewinder | 9.6 | 9.5 | 9.6 | 133.7 / 200.5 ms | 3083 KiB |
+
+Wizard, Blood Gulch and Longest perform best in these replays. Battle Creek,
+Rat Race and Chill Out sit around 21 FPS. Hang ’Em High, Derelict, Prisoner and
+Chiron are slower. Sidewinder, Boarding Action and Damnation are the weakest
+overall at approximately 10 FPS. Boarding Action also has the worst recorded
+presentation gap, about 435 ms, versus about 200 ms for Sidewinder.
+
+**None meets the >25 FPS development gate or final 30 FPS goal.** This pass
+adds the full roster while retaining source architecture and accepted shared
+workspaces. More RAM resolves residency limits, and leaves roughly 3–4.4 MiB
+free on the timing result pages. That room is available for a subsequent
+controlled cache/residency/visibility optimization pass; these measurements
+are its starting baseline, not a claim that extra RAM alone makes rendering
+faster. Individual camera paths, weapons and vehicles differ by map.
+
+The local `build/n64-all-map-audit/comparison.html` contains the sorted table,
+native timing screenshots, all eight new-map gameplay recordings and the
+source/ROM identity records. Recordings are silent and use real capture
+timestamps; their capture rate is not the gameplay FPS measurement.

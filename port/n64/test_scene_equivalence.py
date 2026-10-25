@@ -12,6 +12,11 @@ reference = subprocess.check_output(
     ["git", "show", "b3fba521:port/n64/main.c"], cwd=ROOT, text=True
 )
 scene = without_experiments((ROOT / "port/n64/scene.c").read_text())
+# The opt-in LOD bank raises capacity; the accepted configuration still has
+# exactly the checkpoint's 512 entries. Verify that branch before resolving
+# its symbolic constant in this source-contract comparison.
+assert "#ifdef BG_WORLD_CELLS\n#define BG_WORLD_CHUNK_CAPACITY 4096\n#elif defined(BG_WORLD_LOD)\n#define BG_WORLD_CHUNK_CAPACITY 1024\n#else\n#define BG_WORLD_CHUNK_CAPACITY 512\n#endif" in (ROOT / "port/n64/world.h").read_text()
+scene = scene.replace("BG_WORLD_CHUNK_CAPACITY", "512")
 functions = re.findall(r"^static[ \t]+(?:const[ \t]+)?\w+[ \t*]+(\w+)\([^;{}]*\)\s*\{", scene, re.M)
 checked = []
 for name in functions:

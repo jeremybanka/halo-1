@@ -164,7 +164,7 @@ bool bg_map_load(unsigned id) {
                 sections[s].offset <= bytes && size <= bytes - sections[s].offset, "Map section %u", s);
         end = sections[s].offset + size;
     }
-    assertf(sections[BG_MAP_CHUNKS].count <= 512 && sections[BG_MAP_TEXTURES].count <= 32 &&
+    assertf(sections[BG_MAP_CHUNKS].count <= BG_WORLD_CHUNK_CAPACITY && sections[BG_MAP_TEXTURES].count <= 32 &&
             sections[BG_MAP_VERTICES].count && sections[BG_MAP_CHUNKS].count &&
             sections[BG_MAP_TEXTURES].count && sections[BG_MAP_PALETTE].count == 16 &&
             sections[BG_MAP_TEXTURE_SIZES].count == sections[BG_MAP_TEXTURES].count &&

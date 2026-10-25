@@ -100,7 +100,8 @@ int main(int argc,char**argv){
 '''
 
 
-def run(out,sidecar,trace_chunks=False):
+def run(out,sidecar,trace_chunks=False,maps=None):
+    directory=maps.resolve() if maps else ROOT/'halo64-assets/generated/maps'
     out=out.resolve();out.mkdir(parents=True,exist_ok=True);solver=out/'solver'
     for name in ('prepare_vehicle.py','export_vehicle.py'):
         cmd=[sys.executable,str(ROOT/'port/n64/blam'/name),'--output',str(solver)]
@@ -123,7 +124,7 @@ def run(out,sidecar,trace_chunks=False):
 '''
     driver=out/'camera.c';driver.write_text(DRIVER.replace('CAMERA',camera).replace('MAP_IDS',','.join(map(str,map_ids().values()))))
     (out/'libdragon.h').write_text('#include <stdint.h>\n#include <stdbool.h>\n#include <math.h>\n#define fm_sinf sinf\n#define fm_cosf cosf\n')
-    data=json.loads(sidecar.read_text());emit_c(data,out/'visibility-data.c')
+    data=json.loads(sidecar.read_text());emit_c(data,out/'visibility-data.c',directory/'sidewinder.map64' if data['schema'] in (3,4) else None)
     sources=['map.c','game.c','combat_geometry.c','terrain.c','movement.c','blam/runtime.c','blam/core.c','blam/vehicle_physics.c','replay.c','render_pvs.c']
     generated=['combat_data.c','movement_data.c','interaction_defs.c','camera_data.c']
     flags=['-std=c17','-O2','-g','-fsanitize=address,undefined','-ffp-contract=off','-fno-fast-math','-fno-strict-aliasing','-fwrapv',
@@ -135,7 +136,7 @@ def run(out,sidecar,trace_chunks=False):
          str(ROOT/'halo64-assets/generated/maps/common_data.c'),str(solver/'vehicle_data.c'),'-lm','-o',str(out/'probe')]
     subprocess.run(cmd,cwd=ROOT,check=True)
     subprocess.run([str(out/'probe'),str(out/'cameras.csv')],cwd=ROOT,
-                   env={**os.environ,'BG_MAP_DIRECTORY':str(ROOT/'halo64-assets/generated/maps')},check=True)
+                   env={**os.environ,'BG_MAP_DIRECTORY':str(directory)},check=True)
     names={v:k for k,v in map_ids().items()};rows=list(csv.DictReader((out/'cameras.csv').open()))
     result={}
     for name in map_ids():
@@ -158,4 +159,5 @@ if __name__=='__main__':
     parser.add_argument('--output-dir',type=Path,default=ROOT/'build/n64-chiron-visibility/camera-census')
     parser.add_argument('--sidecar',type=Path,default=ROOT/'build/n64-chiron-visibility/data/visibility.json')
     parser.add_argument('--trace-culled-chunks',action='store_true')
-    args=parser.parse_args();run(args.output_dir,args.sidecar.resolve(),args.trace_culled_chunks)
+    parser.add_argument('--maps',type=Path)
+    args=parser.parse_args();run(args.output_dir,args.sidecar.resolve(),args.trace_culled_chunks,args.maps)

@@ -2,6 +2,13 @@
 #define HALO_N64_WORLD_H
 #include <stdint.h>
 
+#ifdef BG_WORLD_CELLS
+#define BG_WORLD_CHUNK_CAPACITY 4096
+#elif defined(BG_WORLD_LOD)
+#define BG_WORLD_CHUNK_CAPACITY 1024
+#else
+#define BG_WORLD_CHUNK_CAPACITY 512
+#endif
 #define BG_SCALE 32.0f
 #define BG_TERRAIN_SCALE 256.0f
 #define BG_GRID 24

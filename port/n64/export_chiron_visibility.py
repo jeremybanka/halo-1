@@ -150,18 +150,48 @@ def export(out, name="putput", pixel_guards=None):
     return result
 
 
-def emit_c(data, destination):
-    assert data['schema'] in (1,2) and 0<data['clusters']<=64
+def emit_c(data, destination, map_bank=None):
+    assert data['schema'] in (1,2,3,4,5,6,7,8,9,10,11,12) and 0<data['clusters']<=64
     name=data.get('map_name',next(name for name,id in map_ids().items() if id==data['map_id']))
-    bank=ROOT/'halo64-assets/generated/maps'/(name+'.map64')
+    bank=Path(map_bank) if map_bank else ROOT/'halo64-assets/generated/maps'/(name+'.map64')
     payload=bank.read_bytes()
+    if data['schema']==3:
+        from remap_sidewinder_visibility import validate
+        validate(data,payload)
+    if data['schema']==4:
+        from cluster_terrain_visibility import validate
+        validate(data,payload)
+    if data['schema']==5:
+        from sidewinder_tree_visibility import validate
+        validate(data,payload)
+    if data['schema']==6:
+        from sidewinder_world_lod import validate
+        validate(data,payload)
+    if data['schema']==7:
+        from sidewinder_canyon_rebuild import validate
+        validate(data,payload)
+    if data['schema']==8:
+        from sidewinder_budget import validate
+        validate(data,payload)
+    if data['schema']==9:
+        from sidewinder_budget_cells import validate
+        validate(data,payload)
+    if data['schema']==10:
+        from sidewinder_regions import validate
+        validate(data,payload)
+    if data['schema']==11:
+        from audit_sidewinder_visibility import validate_bank
+        validate_bank(data,payload)
+    if data['schema']==12:
+        from sidewinder_sections import validate
+        validate(data,payload)
     assert hashlib.sha256(payload).hexdigest()==data['map_sha256'],'PVS/accepted map identity mismatch'
     chunk_offset,chunk_count,chunk_stride=struct.unpack_from('>3I',payload,16+12)
     flag_offset,flag_count,flag_stride=struct.unpack_from('>3I',payload,16+12*6)
     flags=payload[flag_offset:flag_offset+flag_count*flag_stride]
     masks=list(data['chunk_masks']);assert len(masks)==chunk_count
     all_mask=(1<<data['clusters'])-1
-    if name=='sidewinder':
+    if name=='sidewinder' and data['schema'] not in (3,4,5,6,7,8,9,10,11,12):
         assert data['map_sha256']==SIDEWINDER_PIXEL_GUARDS['map_sha256'],'Sidewinder pixel guards need revalidation'
         for chunk in SIDEWINDER_PIXEL_GUARDS['chunks']:masks[chunk]=all_mask
     # Enforce the rendering fallback for legacy sidecars too, not just fresh
@@ -179,6 +209,18 @@ def emit_c(data, destination):
     text+=array('chunks','uint64_t',masks,lambda x:'UINT64_C('+str(x)+')')
     limit=data.get('normal_limit',max(math.sqrt(sum(v*v for v in p[:3])) for p in data['planes'])*1.0001)
     text+='const bg_pvs_data bg_world_pvs={nodes,planes,leaves,rows,chunks,'+','.join(map(str,[len(data['nodes']),len(data['planes']),len(data['leaf_clusters']),data['clusters'],len(data['chunk_masks'])]))+','+float(limit).hex()+'f,'+str(data['map_id'])+'};\n'
+    if data['schema'] in (6,7,8,9,10,11,12):
+        from sidewinder_world_lod import emit_lod
+        text+=emit_lod(data)
+    if data['schema'] in (8,9,10,11,12):
+        from sidewinder_budget import emit_rep
+        text+=emit_rep(data)
+    if data['schema'] in (9,10,12):
+        from sidewinder_budget_cells import emit_cells
+        text+=emit_cells(data)
+    if data['schema']==11:
+        from audit_sidewinder_visibility import emit_cells
+        text+=emit_cells(data)
     destination.write_text(text)
 
 

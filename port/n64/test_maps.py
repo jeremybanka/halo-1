@@ -11,7 +11,7 @@ from asset_ids import map_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
-def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False):
+def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False):
     output = output.resolve(); output.mkdir(parents=True, exist_ok=True)
     solver = output/'solver'; solver.mkdir(exist_ok=True)
     for script in ('prepare_vehicle.py','export_vehicle.py'):
@@ -23,6 +23,7 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
            '-Wno-incompatible-pointer-types','-fno-fast-math','-ffp-contract=off',
            '-fno-strict-aliasing','-fwrapv','-DBG_BODY_CANDIDATES','-DBG_STREAM_MAPS',
            '-fsanitize=address,undefined','-Iport/n64','-Ibuild/n64/blam-core','-I'+str(solver)]
+    if world_cells:flags.append('-DBG_WORLD_CELLS')
     sources=['port/n64/test_maps.c','port/n64/map.c','halo64-assets/generated/maps/common_data.c',
              'port/n64/game.c','port/n64/terrain.c','port/n64/movement.c','port/n64/combat_geometry.c',
              'build/n64/generated/combat_data.c','build/n64/generated/movement_data.c',
@@ -57,7 +58,8 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
         (directory/'spawn-clearance.json').write_text(json.dumps(corrections,indent=2)+'\n')
         print(result)
     else:
-        subprocess.run([str(binary)],cwd=ROOT,env={**os.environ,'BG_MAP_DIRECTORY':str(ROOT/'halo64-assets/generated/maps')},check=True)
+        directory=Path(map_directory).resolve() if map_directory else ROOT/'halo64-assets/generated/maps'
+        subprocess.run([str(binary)],cwd=ROOT,env={**os.environ,'BG_MAP_DIRECTORY':str(directory)},check=True)
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
@@ -66,5 +68,8 @@ if __name__=='__main__':
     parser.add_argument('--frontend-cycle', action='store_true', help='Run the real three-match menu/map/quit/resume fixture')
     parser.add_argument('--export-spawn-clearance',action='store_true',help='Bake only minimal map-specific offsets using the accepted capsule solver')
     parser.add_argument("--maps-cycle",action="store_true",help="Complete the fourteen-match/all-thirteen-map menu fixture")
+    parser.add_argument('--map-directory',type=Path,help='Test an isolated candidate ROM map directory')
+    parser.add_argument('--world-cells',action='store_true',help='Match the larger batch capacity of the world-cell/hierarchy renderer')
     args = parser.parse_args()
-    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle)
+    if args.export_spawn_clearance and args.map_directory:parser.error('Spawn export uses only the canonical banks')
+    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells)

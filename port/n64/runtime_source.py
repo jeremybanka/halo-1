@@ -21,26 +21,28 @@ def without_experiments(source):
     it only selects the two reviewed #ifdef experiment blocks and their else
     paths. Their active behavior needs separate renderer/PVS/target checks.
     """
-    disabled={'BG_CHIRON_PVS','BG_WORLD_PVS','BG_GEOMETRY_CENSUS'}
+    disabled={'BG_CHIRON_PVS','BG_WORLD_PVS','BG_WORLD_LOD','BG_WORLD_REP','BG_WORLD_CELLS','BG_WORLD_SUBMIT_CACHE','BG_WORLD_COMMAND_CACHE','BG_WORLD_BULK_SUBMIT','BG_WORLD_COARSE_CULL','BG_WORLD_HIERARCHY','BG_GEOMETRY_CENSUS'}
     stack=[];active=True;out=[]
     for line in source.splitlines(keepends=True):
         directive=line.strip()
         match=re.match(r'#\s*(if|ifdef|ifndef)\b',directive)
         if match:
-            selected=directive in {'#ifdef '+name for name in disabled}
-            stack.append((selected,active))
-            if selected:active=False
+            positive=directive in {'#ifdef '+name for name in disabled}
+            negative=directive in {'#ifndef '+name for name in disabled}
+            selected=positive or negative
+            stack.append((selected,active,negative))
+            if selected:active=active and negative
             elif active:out.append(line)
         elif re.match(r'#\s*(else|elif)\b',directive):
             assert stack,'Unmatched conditional'
-            selected,parent=stack[-1]
+            selected,parent,truth=stack[-1]
             if selected:
                 assert directive=='#else','Experimental elif needs explicit review'
-                active=parent
+                active=parent and not truth
             elif active:out.append(line)
         elif re.match(r'#\s*endif\b',directive):
             assert stack,'Unmatched endif'
-            selected,parent=stack.pop()
+            selected,parent,truth=stack.pop()
             if not selected and active:out.append(line)
             active=parent
         elif active:out.append(line)

@@ -84,7 +84,7 @@ int main(void){
 
 def run(out,sidecar):
     out=out.resolve();out.mkdir(parents=True,exist_ok=True)
-    data=json.loads(sidecar.read_text());emit_c(data,out/'data.c')
+    data=json.loads(sidecar.read_text());emit_c(data,out/'data.c',data.get('candidate_bank_path'))
     name=next(n for n,id in map_ids().items() if id==data['map_id'])
     report=json.loads((ROOT/'halo64-assets/generated/maps/maps-report.json').read_text())['maps'][name]
     off,count,stride=report['sections'][8];bank=(ROOT/'halo64-assets/generated/maps'/(name+'.map64')).read_bytes()

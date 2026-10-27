@@ -1,0 +1,366 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "fix": [
+    "Use 1/4096-unit shared 16-bit flag viewmodel motion tracks.",
+    "Draw the first-person hand/pole as opaque back-face-culled geometry, then draw the two-sided alpha-tested cloth separately."
+  ],
+  "previous_runtime_commit": "1ec501aa700ef59819012830b02104cecd43b819",
+  "private_asset_commit": "5ff7c9e6457918532379d8106961549900f094d8",
+  "geometry": {
+    "triangles_before": 795,
+    "triangles_after": 795,
+    "vertex_loads_before": 1380,
+    "vertex_loads_after": 1380,
+    "batches_before": 24,
+    "batches_after": 25,
+    "source_and_reduced_meshes_changed": false
+  },
+  "animation": {
+    "position_scale_before": 256,
+    "position_scale_after": 4096,
+    "bank_bytes_before": 68150,
+    "bank_bytes_after": 103106,
+    "collapsed_hand_faces_before_per_pose": [
+      26,
+      55
+    ],
+    "reversed_hand_faces_before_max": 6,
+    "baked_poses_checked": 22,
+    "collapsed_or_reversed_hand_faces_after": 0,
+    "sampled_blends_checked": 306,
+    "collapsed_or_reversed_hand_faces_in_sampled_blends": 0,
+    "unchanged_default_byte_clip_outputs": 44
+  },
+  "diagnostics": [
+    "Back-face culling of the old coarse-precision grip did not remove all speckles.",
+    "Finer coordinates alone repaired finger geometry but did not remove all native speckles.",
+    "Increasing the foreground near plane from 0.125 to 1 did not remove the native speckles; the experiment was discarded.",
+    "Finer coordinates plus an untextured opaque culled hand removed the native speckles. The final implementation separates the textured cloth pass."
+  ],
+  "grip_regression": {
+    "poses": [
+      {
+        "frame": 0,
+        "source_hand_pixels": 1097,
+        "wrongly_occluded_pixels": 0
+      },
+      {
+        "frame": 1,
+        "source_hand_pixels": 1112,
+        "wrongly_occluded_pixels": 0
+      },
+      {
+        "frame": 2,
+        "source_hand_pixels": 1105,
+        "wrongly_occluded_pixels": 0
+      },
+      {
+        "frame": 3,
+        "source_hand_pixels": 1097,
+        "wrongly_occluded_pixels": 0
+      }
+    ],
+    "compared_hand_pixels": 4411,
+    "surface_checks": [
+      {
+        "clip": "idle",
+        "poses": 4,
+        "collapsed_or_reversed_faces": 0
+      },
+      {
+        "clip": "fire",
+        "poses": 4,
+        "collapsed_or_reversed_faces": 0
+      },
+      {
+        "clip": "reload",
+        "poses": 8,
+        "collapsed_or_reversed_faces": 0
+      },
+      {
+        "clip": "melee",
+        "poses": 6,
+        "collapsed_or_reversed_faces": 0
+      }
+    ],
+    "position_scale": 4096,
+    "status": "pass"
+  },
+  "validation": {
+    "groups": [
+      "headers",
+      "contracts",
+      "assets"
+    ],
+    "results": [
+      {
+        "name": "render_bounds",
+        "status": "pass",
+        "seconds": 0.368
+      },
+      {
+        "name": "render_lod",
+        "status": "pass",
+        "seconds": 0.215
+      },
+      {
+        "name": "render_animation",
+        "status": "pass",
+        "seconds": 0.265
+      },
+      {
+        "name": "firstperson_service",
+        "status": "pass",
+        "seconds": 0.248
+      },
+      {
+        "name": "firstperson_ammo",
+        "status": "pass",
+        "seconds": 0.316
+      },
+      {
+        "name": "hud_layout",
+        "status": "pass",
+        "seconds": 0.267
+      },
+      {
+        "name": "benchmark",
+        "status": "pass",
+        "seconds": 0.246
+      },
+      {
+        "name": "cadence",
+        "status": "pass",
+        "seconds": 0.211
+      },
+      {
+        "name": "cadence_tail",
+        "status": "pass",
+        "seconds": 0.23
+      },
+      {
+        "name": "render_pacing",
+        "status": "pass",
+        "seconds": 0.373
+      },
+      {
+        "name": "pacing_fifo",
+        "status": "pass",
+        "seconds": 0.462
+      },
+      {
+        "name": "bounds with production math flags",
+        "status": "pass",
+        "seconds": 0.248
+      },
+      {
+        "name": "test_map_material_modes.py",
+        "status": "pass",
+        "seconds": 0.257
+      },
+      {
+        "name": "test_camera_batch.py",
+        "status": "pass",
+        "seconds": 15.839
+      },
+      {
+        "name": "test_camera_packet.py",
+        "status": "pass",
+        "seconds": 14.613
+      },
+      {
+        "name": "test_vehicle_camera_packet.py",
+        "status": "pass",
+        "seconds": 14.399
+      },
+      {
+        "name": "blam/test_vehicle_candidates.py",
+        "status": "pass",
+        "seconds": 30.094
+      },
+      {
+        "name": "blam/test_polygon_cache.py",
+        "status": "pass",
+        "seconds": 14.586
+      },
+      {
+        "name": "test_projection_cache.py",
+        "status": "pass",
+        "seconds": 0.886
+      },
+      {
+        "name": "test_texture_blocks.py",
+        "status": "pass",
+        "seconds": 0.262
+      },
+      {
+        "name": "test_render_cull.py",
+        "status": "pass",
+        "seconds": 0.872
+      },
+      {
+        "name": "test_bounds_quantize.py",
+        "status": "pass",
+        "seconds": 0.534
+      },
+      {
+        "name": "test_scene_equivalence.py",
+        "status": "pass",
+        "seconds": 0.072
+      },
+      {
+        "name": "test_render_matrix.py",
+        "status": "pass",
+        "seconds": 0.074
+      },
+      {
+        "name": "test_render_prepare.py",
+        "status": "pass",
+        "seconds": 0.061
+      },
+      {
+        "name": "test_render_flush.py",
+        "status": "pass",
+        "seconds": 0.041
+      },
+      {
+        "name": "test_vehicle_culling.py",
+        "status": "pass",
+        "seconds": 3.654
+      },
+      {
+        "name": "test_vehicle_pose_cache.py",
+        "status": "pass",
+        "seconds": 10.42
+      },
+      {
+        "name": "test_vehicle_map_origin.py",
+        "status": "pass",
+        "seconds": 17.086
+      },
+      {
+        "name": "test_deferred_animation.py",
+        "status": "pass",
+        "seconds": 0.556
+      },
+      {
+        "name": "test_vi_benchmark.py",
+        "status": "pass",
+        "seconds": 0.108
+      },
+      {
+        "name": "test_weapon_workspace.py",
+        "status": "pass",
+        "seconds": 0.241
+      },
+      {
+        "name": "test_model_index_aliases.py",
+        "status": "pass",
+        "seconds": 0.28
+      },
+      {
+        "name": "test_effect_bounds.py",
+        "status": "pass",
+        "seconds": 0.704
+      },
+      {
+        "name": "test_audio_schedule.py",
+        "status": "pass",
+        "seconds": 0.353
+      },
+      {
+        "name": "test_paced_acquire.py",
+        "status": "pass",
+        "seconds": 0.895
+      },
+      {
+        "name": "test_input_menu.py",
+        "status": "pass",
+        "seconds": 1.066
+      },
+      {
+        "name": "test_objective_grip.py",
+        "status": "pass",
+        "seconds": 0.808
+      },
+      {
+        "name": "test_objective_materials.py",
+        "status": "pass",
+        "seconds": 0.228
+      },
+      {
+        "name": "test_map_assets.py",
+        "status": "pass",
+        "seconds": 0.078
+      },
+      {
+        "name": "test_announcer.py",
+        "status": "pass",
+        "seconds": 0.982
+      },
+      {
+        "name": "test_hud_prompts.py",
+        "status": "pass",
+        "seconds": 1.292
+      },
+      {
+        "name": "test_interaction_assets.py",
+        "status": "pass",
+        "seconds": 1.335
+      },
+      {
+        "name": "test_pack_bounds.py",
+        "status": "pass",
+        "seconds": 0.072
+      },
+      {
+        "name": "test_scope_geometry.py",
+        "status": "pass",
+        "seconds": 0.414
+      },
+      {
+        "name": "test_scorpion_barrel.py",
+        "status": "pass",
+        "seconds": 0.085
+      },
+      {
+        "name": "test_menu_assets.py",
+        "status": "pass",
+        "seconds": 0.066
+      }
+    ]
+  },
+  "native_visual": {
+    "emulator": "Ares / paraLLEl-RDP",
+    "players": 4,
+    "map": "Wizard",
+    "mode": "CTF",
+    "poses": [
+      "idle 0",
+      "idle 2",
+      "melee 1"
+    ],
+    "rdp_errors": 0,
+    "rdp_warnings": 0,
+    "scope": "Frozen staged poses, gait bob zero; the previous screenshot has a different bob offset. Not a matched pixel diff or full-source silhouette equivalence."
+  },
+  "four_mib_slayer": {
+    "passed": true,
+    "postgame_free_bytes": 344144,
+    "rom": "halo-64-frontend-qa4-validation-paced30-rspq8k.z64",
+    "rom_sha256": "c5d8f9ac43368992badd8c1f93721efa72f2345c4f29db81ec73475958d63cf2",
+    "log_sha256": "840c12e56544e2fcd5f7b2fc3d70c8bbfdb7dbcfe413e7644e2e73bba71ca405",
+    "scope": "New validation build selected explicitly after the helper initially selected a stale build; stale run excluded."
+  },
+  "rom": {
+    "bytes": 41418752,
+    "sha256": "65f5a5de5bda9053e27edbd9010b6fee1a7c9fd074807b420ea43fa66da9a2d4"
+  },
+  "screenshots": {
+    "after-idle0.png": "e5b76817269d1c53a31d91f41c2116a673476ea4e140a8ada4878b994f178703",
+    "after-idle2.png": "78f0758a2d210e13659ad4c4dbc68870d2e06849aff0769f8beba716ac1d03f5",
+    "after-melee1.png": "a1fec2e3754dc681e51c69b9a46cca08d111c88fa6097a3e60e279203102f8dd"
+  },
+  "performance_scope": "No new FPS or physical hardware measurement."
+}

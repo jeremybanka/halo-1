@@ -30,6 +30,27 @@ int main(void) {
         bg_motion_scatter(actual,vertices,indices,tracks);
         assert(memcmp(expected,actual,sizeof(actual))==0);
     }
+    /* Wide close-up poses: exercise interpolation in both directions, shared
+     * tracks, signed origins and the same scatter layout at every fraction. */
+    uint16_t wide_a[TRACKS*3],wide_b[TRACKS*3];
+    const int16_t wide_origin[3]={-32000,-1234,-73};
+    for(unsigned i=0;i<TRACKS*3;i++) {
+        wide_a[i]=random_value()%32000;wide_b[i]=random_value()%32000;
+    }
+    for(unsigned vertices=VERTICES-1;vertices<=VERTICES;vertices++)for(int f=0;f<=256;f++) {
+        memcpy(expected,initial,sizeof(expected));memcpy(actual,initial,sizeof(actual));
+        for(unsigned i=0;i<vertices;i++) {
+            int16_t*position=i&1?expected[i/2].posB:expected[i/2].posA;
+            for(unsigned axis=0;axis<3;axis++) {
+                unsigned at=indices[i]*3+axis;
+                position[axis]=wide_origin[axis]+wide_a[at]+
+                    ((int)wide_b[at]-(int)wide_a[at])*f/256;
+            }
+        }
+        bg_motion_decode16(tracks,TRACKS,wide_a,wide_b,wide_origin,f);
+        bg_motion_scatter(actual,vertices,indices,tracks);
+        assert(memcmp(expected,actual,sizeof(actual))==0);
+    }
     puts("Aligned animation matches every byte of scalar output at257 blends, odd/even counts; normals/RGBA/UV/padding preserved");
     return 0;
 }

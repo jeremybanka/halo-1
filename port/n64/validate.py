@@ -44,6 +44,7 @@ CONTRACTS = (
 )
 ASSETS = (
     "test_objective_grip.py",
+    "test_objective_materials.py",
     "test_map_assets.py",
     "test_announcer.py",
     "test_hud_prompts.py",

@@ -2021,7 +2021,8 @@ static void draw_view(unsigned p) {
         ensure_firstperson_animation(p);
         float pos[3] = {eye.v[0] / BG_SCALE, eye.v[1] / BG_SCALE + sinf(player->gait) * .007f,
                         eye.v[2] / BG_SCALE};
-        matrix(&guns[slot][p], BG_SCALE / BG_FP_SCALE, player->yaw, player->pitch, pos);
+        float fp_scale=objective_kind(p)==BG_OBJECTIVE_FLAG?BG_FLAG_FP_SCALE:BG_FP_SCALE;
+        matrix(&guns[slot][p], BG_SCALE / fp_scale, player->yaw, player->pitch, pos);
         data_cache_hit_writeback(&guns[slot][p], sizeof(T3DMat4FP));
         /* Clear only this viewport's depth so the gun stays in front of the world,
          * while its own surfaces and hands still occlude each other. */

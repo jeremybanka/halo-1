@@ -7,6 +7,9 @@ The old generic hand makes the shaft win hundreds of source-hand pixels.
 import json
 from pathlib import Path
 import numpy as np
+from pack_objectives import FLAG_FP_SCALE
+from pack_animation import compact_clip
+from pack_assets import position
 
 ROOT=Path(__file__).resolve().parents[2]
 SOURCE=ROOT/'halo64-assets/assets/objectives'
@@ -39,7 +42,7 @@ def source_hand(raw,frame):
     return weighted[np.array(hands['faces']).reshape(-1),:3]
 
 def nearest(points,hand_triangles,rays):
-    triangles=np.round(np.asarray(points).reshape(-1,3,3)*256)/256
+    triangles=np.round(np.asarray(points).reshape(-1,3,3)*FLAG_FP_SCALE)/FLAG_FP_SCALE
     a=triangles[:,0];e1=triangles[:,1]-a;e2=triangles[:,2]-a
     answers=[]
     for first in range(0,len(rays),128):
@@ -56,6 +59,22 @@ def nearest(points,hand_triangles,rays):
 def main():
     raw=json.loads((SOURCE/'firstperson-raw.json').read_text())
     reduced=json.loads((SOURCE/'firstperson-reduced.json').read_text())['weapons']['flag']
+    surface_results=[]
+    for name,clip in reduced['clips'].items():
+        packed=compact_clip(clip,FLAG_FP_SCALE,16)
+        for f,frame in enumerate(clip['frames']):
+            triangles=np.asarray(frame).reshape(-1,3,3)[:reduced['hand_triangle_count']]
+            original=np.cross(triangles[:,1]-triangles[:,0],triangles[:,2]-triangles[:,0])
+            snapped=np.round(triangles*FLAG_FP_SCALE)
+            normal=np.cross(snapped[:,1]-snapped[:,0],snapped[:,2]-snapped[:,0])
+            assert np.all(np.sum(normal*original,axis=1)>0),(name,f,'collapsed or reversed hand face')
+            # Decode the actual stored stream independently, including duplicate
+            # corners, to catch a precision or trajectory-aliasing regression.
+            for v,point in enumerate(frame):
+                at=(f*packed['tracks']+packed['indices'][v])*3
+                decoded=[packed['values'][at+a]+packed['origin'][a] for a in range(3)]
+                assert decoded==[round(x*FLAG_FP_SCALE) for x in position(point,(0,0,0))]
+        surface_results.append({'clip':name,'poses':len(clip['frames']),'collapsed_or_reversed_faces':0})
     # Production four-player projection: fov=1.08, 160x120, safe-window aim
     # point=(91,68). The source-space +X axis points into the screen.
     x,y=np.meshgrid(np.arange(118,158)+.5,np.arange(65,112)+.5)
@@ -72,6 +91,7 @@ def main():
         assert hand_pixels>1000,(i,'invalid grip fixture')
         assert wrong<=2,(i,'source grip lost behind shaft/background',wrong)
         results.append({'frame':i,'source_hand_pixels':hand_pixels,'wrongly_occluded_pixels':wrong})
-    print(json.dumps({'poses':results,'compared_hand_pixels':total,'status':'pass'},indent=2))
+    print(json.dumps({'poses':results,'compared_hand_pixels':total,
+                     'surface_checks':surface_results,'position_scale':FLAG_FP_SCALE,'status':'pass'},indent=2))
 
 if __name__=='__main__':main()

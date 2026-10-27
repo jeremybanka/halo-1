@@ -8,6 +8,8 @@ from pack_firstperson import prepare_model
 from pack_animation import emit_clip,clip_initializer
 from model_colors import load_images,bake_triangle
 
+FLAG_FP_SCALE=4096
+
 def pack(source,out,frontend):
     from PIL import Image
     out.mkdir(parents=True,exist_ok=True);frontend.mkdir(parents=True,exist_ok=True)
@@ -50,7 +52,14 @@ def pack(source,out,frontend):
         mesh['uvs']=[uvs[i] for i in mesh['sources']]
         models['world_'+name]=(mesh,len(triangles),max(math.sqrt(sum(x*x for x in p)) for p in model['vertices']))
     for name,w in fp.items():
-        mesh,clips,preview=prepare_model(w,name)
+        segments=None
+        if name=='flag':
+            banner=[i for i,t in enumerate(w['triangles'])
+                    if w['material_names'][t['material']]=='objective flag banner']
+            assert banner==list(range(len(w['triangles'])-2,len(w['triangles'])))
+            segments=[(0,banner[0]*3),(banner[0]*3,6)]
+        mesh,clips,preview=prepare_model(w,name,FLAG_FP_SCALE if name=='flag' else 256,
+                                       16 if name=='flag' else 8,segments)
         models['fp_'+name]=(mesh,len(w['triangles']),1)
         animations[name]=clips
     packed={}
@@ -61,7 +70,9 @@ def pack(source,out,frontend):
         lines.append('};');emit_batches(lines,name,mesh)
         if name.startswith('fp_'):
             lines.append(f'static const uint8_t {name}_mask[]='+xyz([v[2] for v in verts])+';')
-            for cname,clip in animations[name[3:]].items():packed[name,cname]=emit_clip(lines,name+'_'+cname,clip,256)
+            for cname,clip in animations[name[3:]].items():
+                packed[name,cname]=emit_clip(lines,name+'_'+cname,clip,
+                    FLAG_FP_SCALE if name=='fp_flag' else 256,16 if name=='fp_flag' else 8)
         report[name]={'vertices':len(verts),'triangles':tris,'batches':len(mesh['batches'])}
     def initializer(name):
         mesh,tris,radius=models[name]
@@ -72,12 +83,21 @@ def pack(source,out,frontend):
     lines.append('const bg_anim_asset bg_objective_fp_animations[2][BG_FP_CLIPS]={')
     for name in ('flag','ball'):
         lines.append('{')
-        for cname,clip in animations[name].items():lines.append(clip_initializer('fp_'+name+'_'+cname,clip,packed['fp_'+name,cname]))
+        for cname,clip in animations[name].items():
+            lines.append(clip_initializer('fp_'+name+'_'+cname,clip,packed['fp_'+name,cname],
+                                          'NULL' if name=='flag' else None))
         lines.append('},')
     lines.append('};')
+    lines.append('const uint16_t *const bg_flag_fp_positions[BG_FP_CLIPS]={'+
+                 ','.join('fp_flag_'+name for name in animations['flag'])+'};')
+    body_batches=models['fp_flag'][0]['segments'][0][1]
+    lines.append(f'const unsigned bg_flag_fp_body_batches={body_batches};')
     (out/'objectives_data.c').write_text('\n'.join(lines)+'\n')
     for name,a in details['audio'].items():shutil.copyfile(a['file'],frontend/('mode_'+name+'.s8'))
     report['animation_bytes']=sum(p['bytes'] for p in packed.values())
+    report['flag_position_scale']=FLAG_FP_SCALE
+    report['flag_coordinate_bits']=16
+    report['flag_body_batches']=body_batches
     root=Path(__file__).resolve().parents[2]
     inputs=[Path(__file__).resolve(),source/'extended-raw.json',source/'firstperson-raw.json',source/'firstperson-reduced.json',source/'objective-details.json']
     inputs += [root/'port/n64'/n for n in ('pack_firstperson.py','pack_animation.py','pack_mesh.py','model_colors.py','reduce_objectives.py','reduce_firstperson.py')]

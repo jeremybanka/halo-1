@@ -294,7 +294,11 @@ def parse_args(argv=None):
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
     parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 26 presets through the real menus")
     parser.add_argument("--modes-preview",type=int,choices=range(26),help="QA: stage one preset and hold it open for objective visual review")
+    parser.add_argument("--objective-photo",type=int,choices=range(10),
+                        help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     args = parser.parse_args(argv)
+    if args.objective_photo is not None and args.modes_preview is None:
+        parser.error('--objective-photo requires --modes-preview')
     if args.modes_preview is not None:args.modes_cycle=True
     if args.modes_cycle:args.frontend_qa=4
     if args.playable_candidate:
@@ -503,6 +507,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_SHOWCASE=" + str(SHOWCASES.index(args.showcase))] if args.showcase else []),
         *(["-DBG_MENU_QA"] if args.menu_qa else []),
         *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),
+        *(["-DBG_OBJECTIVE_PHOTO="+str(args.objective_photo)] if args.objective_photo is not None else []),
         *(
             ["-DBG_FRONTEND_QA", "-DBG_FRONTEND_QA_PLAYERS=" + str(args.frontend_qa)]
             if args.frontend_qa
@@ -660,6 +665,8 @@ def rom_name(args):
         name += "-maps-cycle"
     if args.modes_preview is not None:
         name += "-modes-preview"+str(args.modes_preview)
+    if args.objective_photo is not None:
+        name += "-objective-photo"+str(args.objective_photo)
     if args.frontend_qa:
         name += "-frontend-qa" + str(args.frontend_qa)
     if args.blam_bsp:

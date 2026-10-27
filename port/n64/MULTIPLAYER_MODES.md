@@ -156,3 +156,36 @@ nearest-surface occlusion in the four-player grip region. Across four idle
 poses, only two of 4,483 source-hand samples differ at packed precision. The
 old mesh fails this regression check. The native repaired view has zero RDP
 errors/warnings; the fixture freezes idle poses for repeatable visual review.
+
+## Flag surface precision and material correction
+
+The geometry correction above was incomplete. Its hand-versus-pole regression
+did not detect collapsed finger faces or the native surface speckles. Rounding
+the preserved hand to 1/256 units collapses 26–55 hand triangles and reverses
+up to six per baked pose. The flag viewmodel now uses 1/4096-unit coordinates
+with shared 16-bit motion tracks. All 22 baked poses retain their face area
+and orientation; sampled interpolations also retain them. Existing gun/skull
+byte packing is unchanged (44 default clip outputs compared exactly).
+
+Higher coordinate precision alone did not remove all native speckles. The
+first-person hand/pole now draws as an opaque, back-face-culled surface, followed
+by the two-sided, alpha-tested cloth in its own batch. The hand no longer samples
+the cloth atlas. A separate near-plane experiment did not remove the artifacts
+and was discarded. The world flag retains its existing rendering path.
+
+The flag still uses **795 triangles and 1,380 vertex loads**. It uses 25 batches
+instead of 24, and the objective animation bank grows from 68,150 to 103,106
+bytes (+34,956 bytes). This change does not establish a new FPS result.
+
+The [surface validation report](validation/flag-surface-20261027.json) records
+the native idle/melee captures, 47 passing header/renderer/asset checks, and
+the playable ROM hash. The independent source-grip test now agrees on all
+4,411 sampled idle hand pixels. `test_objective_materials.py` executes the
+production drawing helpers to check opaque hand/pole state, two-sided cloth,
+both team textures, and state restoration before subsequent objectives.
+
+For repeatable native photos, use `--modes-preview 17 --objective-photo N
+--validate`, where N=0–3 selects an idle keyframe and N=4–9 a melee keyframe.
+The preview also freezes gait bob. These controls are absent from playable
+builds. Native screenshots show the reduced viewmodel; they are not a claim
+that all reduced arm/other-hand silhouettes match the full source mesh.

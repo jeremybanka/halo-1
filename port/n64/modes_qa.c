@@ -120,6 +120,7 @@ void bg_front_qa_tick(bg_input in[4],float seconds){
         float photo[3]={0,-3,4};place(0,photo);photo[0]+=1.6f;place(1,photo);
         bg_players[0].yaw=0;bg_players[1].yaw=3.14159265f;
         bg_players[0].pitch=bg_players[1].pitch=0;
+        bg_players[0].gait=bg_players[1].gait=0;
     }
 #else
     assertf(seconds<100,"Mode acceptance timed out: %u %s",mode,r->name);

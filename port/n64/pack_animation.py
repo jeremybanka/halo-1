@@ -2,7 +2,9 @@
 from pack_assets import position
 
 
-def compact_clip(clip, scale):
+def compact_clip(clip, scale, coordinate_bits=8):
+    if coordinate_bits not in (8, 16):
+        raise ValueError('Animation coordinates must use 8 or 16 bits')
     frames = [[tuple(round(v * scale) for v in position(p, (0, 0, 0)))
                for p in frame] for frame in clip['frames']]
     if not frames or any(len(f) != len(frames[0]) for f in frames):
@@ -21,8 +23,8 @@ def compact_clip(clip, scale):
         raise ValueError('Animation track index overflow')
     origin = [min(values[axis::3]) for axis in range(3)]
     offsets = [v - origin[i % 3] for i, v in enumerate(values)]
-    if max(offsets) > 255:
-        raise ValueError('Animation coordinate span exceeds lossless byte encoding')
+    if max(offsets) >= 1 << coordinate_bits:
+        raise ValueError('Animation coordinate span exceeds lossless encoding')
     # Check the complete reconstruction, including seam duplicates and every
     # pose. Sharing is exact at the runtime's existing fixed-point precision.
     for f, frame in enumerate(frames):
@@ -32,17 +34,17 @@ def compact_clip(clip, scale):
                 raise AssertionError('Animation track reconstruction differs')
     return {'values': offsets, 'origin': origin, 'indices': indices, 'tracks': len(tracks),
             'vertices': len(indices), 'frames': len(frames),
-            'bytes': len(values) + 2 * len(indices),
+            'bytes': len(values) * (coordinate_bits // 8) + 2 * len(indices),
             'uncompressed_bytes': len(frames) * len(indices) * 6}
 
 
-def emit_clip(lines, name, clip, scale):
-    packed = compact_clip(clip, scale)
-    lines.append(f'static const uint8_t {name}[]={{' + ','.join(map(str, packed['values'])) + '};')
+def emit_clip(lines, name, clip, scale, coordinate_bits=8):
+    packed = compact_clip(clip, scale, coordinate_bits)
+    lines.append(f'static const uint{coordinate_bits}_t {name}[]={{' + ','.join(map(str, packed['values'])) + '};')
     lines.append(f'static const uint16_t {name}_indices[]={{' + ','.join(map(str, packed['indices'])) + '};')
     return packed
 
 
-def clip_initializer(name, clip, packed):
-    return ('{' + f'{name},{name}_indices,{packed["frames"]},{packed["vertices"]},'
+def clip_initializer(name, clip, packed, position_pointer=None):
+    return ('{' + f'{position_pointer or name},{name}_indices,{packed["frames"]},{packed["vertices"]},'
             f'{packed["tracks"]},{clip["duration"]:.6f}f,' + '{' + ','.join(map(str,packed['origin'])) + '}},')

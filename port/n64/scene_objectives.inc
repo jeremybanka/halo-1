@@ -1,6 +1,7 @@
 /* Objective geometry uses the same frame-slot fences as ordinary weapons.
  * Map selection owns no renderer buffers; the bounded assets are shared. */
 static rspq_block_t *objective_blocks[2],*objective_fp_blocks[2];
+static rspq_block_t *flag_fp_cloth_block;
 static T3DMat4FP objective_matrices[BG_FRAME_SLOTS][BG_MAX_OBJECTIVES];
 static T3DVertPacked hill_vertices[BG_FRAME_SLOTS][24] __attribute__((aligned(16)));
 static unsigned hill_vertices_count;
@@ -12,7 +13,13 @@ static void objectives_init(void){
         prepare_model(&bg_objective_models[k]);
         objective_blocks[k]=record_model(&bg_objective_models[k],bg_objective_models[k].vertices);
         prepare_model(&bg_objective_fp_models[k]);
-        objective_fp_blocks[k]=record_model(&bg_objective_fp_models[k],t3d_segment_placeholder(T3D_SEGMENT_1));
+        const bg_model_asset *fp=&bg_objective_fp_models[k];
+        T3DVertPacked *vertices=t3d_segment_placeholder(T3D_SEGMENT_1);
+        if(k==BG_OBJECTIVE_FLAG){
+            objective_fp_blocks[k]=record_model_range(fp,vertices,0,fp->vertex_count,0,bg_flag_fp_body_batches);
+            flag_fp_cloth_block=record_model_range(fp,vertices,0,fp->vertex_count,
+                bg_flag_fp_body_batches,fp->batch_count-bg_flag_fp_body_batches);
+        }else objective_fp_blocks[k]=record_model(fp,vertices);
     }
     data_cache_hit_writeback((void*)bg_flag_textures,sizeof(bg_flag_textures));
 }
@@ -30,8 +37,18 @@ static void objective_texture_end(void){
 }
 static void objective_instance(unsigned kind,int team,T3DMat4FP *transform,bool fp){
     const bg_model_asset *a=fp?&bg_objective_fp_models[kind]:&bg_objective_models[kind];
-    if(kind==BG_OBJECTIVE_FLAG)objective_texture(team);
-    t3d_matrix_set(transform,true);rspq_block_run(fp?objective_fp_blocks[kind]:objective_blocks[kind]);
+    t3d_matrix_set(transform,true);
+    if(kind==BG_OBJECTIVE_FLAG&&fp){
+        /* The closed hand/pole must never sample the cloth atlas or its alpha.
+         * Only the two-sided banner uses the textured cutout pass. */
+        rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);rdpq_mode_alphacompare(0);
+        t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
+        rspq_block_run(objective_fp_blocks[kind]);
+        objective_texture(team);rspq_block_run(flag_fp_cloth_block);
+    }else{
+        if(kind==BG_OBJECTIVE_FLAG)objective_texture(team);
+        rspq_block_run(fp?objective_fp_blocks[kind]:objective_blocks[kind]);
+    }
     triangles+=a->triangle_count;
 #ifdef BG_PROFILE
     for(unsigned b=0;b<a->batch_count;b++)submitted_vertices+=a->batches[b].count;
@@ -85,12 +102,35 @@ static void animate_objective(unsigned p,unsigned kind){
         firstperson_weapon[slot][p]=key;
     }
     unsigned clip=player->melee_time>0?BG_FP_MELEE:BG_FP_IDLE;
+#ifdef BG_OBJECTIVE_PHOTO
+    clip=BG_OBJECTIVE_PHOTO<4?BG_FP_IDLE:BG_FP_MELEE;
+#endif
     const bg_anim_asset *a=&bg_objective_fp_animations[kind][clip];
     float phase=clip==BG_FP_IDLE?game_time/a->duration:player->anim_time/bg_player_melee_duration(p);
     phase=clip==BG_FP_IDLE?phase-floorf(phase):fminf(.9999f,phase);
 #ifdef BG_MODES_PREVIEW
     if(clip==BG_FP_IDLE)phase=0; /* Stable pose for repeatable visual appraisal. */
 #endif
-    float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;
-    animate_mesh(output,a,f0,f1,(frame-f0)*256);data_cache_hit_writeback(output,bytes);
+    float frame=phase*(a->frames-1);
+#ifdef BG_OBJECTIVE_PHOTO
+    frame=BG_OBJECTIVE_PHOTO<4?BG_OBJECTIVE_PHOTO:BG_OBJECTIVE_PHOTO-4;
+    assertf(frame<a->frames,"Objective photo pose");
+#endif
+    unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;
+    if(kind==BG_OBJECTIVE_FLAG){
+        assertf(!a->positions&&a->tracks<=motion_capacity,"Flag motion bank");
+        const uint16_t *poses=bg_flag_fp_positions[clip];
+        BG_ANIM_COUNT(meshes);
+        BG_ANIM_BEGIN(decode_begin);
+        bg_motion_decode16(motion_tracks,a->tracks,poses+f0*a->tracks*3,
+                           poses+f1*a->tracks*3,a->origin,(frame-f0)*256);
+        BG_ANIM_END(decode,decode_begin);
+        BG_ANIM_BEGIN(scatter_begin);
+        bg_motion_scatter(output,a->vertices,a->indices,motion_tracks);
+        BG_ANIM_END(scatter,scatter_begin);
+#ifdef BG_PROFILE
+        animated_tracks+=a->tracks;animated_vertices+=a->vertices;
+#endif
+    }else animate_mesh(output,a,f0,f1,(frame-f0)*256);
+    data_cache_hit_writeback(output,bytes);
 }

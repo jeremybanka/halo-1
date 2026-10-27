@@ -1,0 +1,48 @@
+{
+  "artifact_directory": "build/n64-sidewinder-west-base",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-west-base/measurements.json",
+      "bytes": 368,
+      "sha256": "31cfdbdcafbba63997a3e2e1d04eb76ce014b0790fa1e30ba1aa9c2935615aef"
+    },
+    {
+      "artifact": "build/n64-sidewinder-west-base/preservation.json",
+      "bytes": 545,
+      "sha256": "c034f3cb4904edbeb18408c3346df8b0da34ee99ffe9e76d68bce721ceaa5b73"
+    }
+  ],
+  "results": {
+    "measurements": {
+      "photos": {
+        "after_mean": 10117.5,
+        "after_worst": 18168,
+        "before_mean": 10128.833333333334,
+        "below_1500": 0,
+        "matching_poses": true,
+        "samples": 24
+      },
+      "replay": {
+        "after_mean": 9082.323529411764,
+        "after_worst": 19824,
+        "before_mean": 9141.558823529413,
+        "below_1500": 3,
+        "matching_poses": true,
+        "samples": 68
+      }
+    },
+    "preservation": {
+      "adopted": false,
+      "baseline_sha256": "8a0cb7c21c18223ea7b9aad9661335ec6fd69ddffe86bce61321a4a58a9809d6",
+      "candidate_sha256": "91e062a054c478c2c34d9c3aa511ac6527491b0a33a058186c0ed3ecf2cbd448",
+      "canonical_sha256": "200a3e01cd0c29a4f3f6f2ab71a1737c81342d2d3950bf763e3e9417606f7948",
+      "collision_gameplay_sections_identical": true,
+      "exact_position_color_winding_and_uv_continuity": true,
+      "original_texture_prefixes_identical": true,
+      "replaced_triangles": 76,
+      "replacement_triangles": 12,
+      "retained_triangles_verified": 14807
+    }
+  }
+}

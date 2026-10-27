@@ -1,0 +1,19 @@
+{
+  "artifact_directory": "build/n64-sidewinder-base-remodel",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-base-remodel/rejection.json",
+      "bytes": 280,
+      "sha256": "1f8048b6dfc3ae6caba1f0d012db34ac309e72b7688f723b6f5dee3429718206"
+    }
+  ],
+  "results": {
+    "rejection": {
+      "adopted": false,
+      "appraisal_candidate": "build/n64-sidewinder-west-base",
+      "reason": "Wall insert reconstruction increased triangles; exact planar retopology produced no reduction. Not the appraisal candidate.",
+      "status": "rejected exploration"
+    }
+  }
+}

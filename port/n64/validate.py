@@ -32,6 +32,7 @@ CONTRACTS = (
     "test_render_flush.py",
     "test_vehicle_culling.py",
     "test_vehicle_pose_cache.py",
+    "test_vehicle_map_origin.py",
     "test_deferred_animation.py",
     "test_vi_benchmark.py",
     "test_weapon_workspace.py",

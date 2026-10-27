@@ -1,0 +1,549 @@
+{
+  "artifact_directory": "build/n64-chiron-visibility",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-chiron-visibility/quiet-timing.json",
+      "bytes": 2272,
+      "sha256": "aa3e038024e0759bd582647bb383023e475564cc5cf37dfbd6891eded37d9d82"
+    },
+    {
+      "artifact": "build/n64-chiron-visibility/validation-final.json",
+      "bytes": 4897,
+      "sha256": "69245a0c94f4d1c48995b0de62ae153a6a8851e50e6608a7dff0091431a239aa"
+    },
+    {
+      "artifact": "build/n64-chiron-visibility/pixel-comparisons.json",
+      "bytes": 740,
+      "sha256": "722f9e93ea959327bc1a9e430535e40c8b72b7b5f052342e42639e521f3fd1a5"
+    },
+    {
+      "artifact": "build/n64-chiron-visibility/native-census.json",
+      "bytes": 4701,
+      "sha256": "e911ca1dd076a7bd696d43027b77e190853f4f68a9d002f29b1e4f4c0cd6c8ba"
+    }
+  ],
+  "results": {
+    "native-census": {
+      "measurements": {
+        "baseline_t180": {
+          "cameras": [
+            {
+              "camera": 0,
+              "chunks": 104,
+              "material_changes": 13,
+              "triangles": 3443,
+              "vertices": 5354
+            },
+            {
+              "camera": 1,
+              "chunks": 41,
+              "material_changes": 9,
+              "triangles": 1409,
+              "vertices": 2240
+            },
+            {
+              "camera": 2,
+              "chunks": 224,
+              "material_changes": 17,
+              "triangles": 7171,
+              "vertices": 11078
+            },
+            {
+              "camera": 3,
+              "chunks": 99,
+              "material_changes": 13,
+              "triangles": 3314,
+              "vertices": 5188
+            }
+          ],
+          "map": "putput",
+          "rom_sha256": "94e1d0c3d03863344bfcb22f5b9e78eece45c89a59cf9be2a9bc462023a332f8",
+          "screenshot": "baseline-t180-census-window.png",
+          "tick": 180
+        },
+        "bloodgulch_t180": {
+          "cameras": [
+            {
+              "camera": 0,
+              "chunks": 94,
+              "material_changes": 14,
+              "triangles": 1417,
+              "vertices": 2382
+            },
+            {
+              "camera": 1,
+              "chunks": 31,
+              "material_changes": 2,
+              "triangles": 283,
+              "vertices": 390
+            },
+            {
+              "camera": 2,
+              "chunks": 28,
+              "material_changes": 2,
+              "triangles": 265,
+              "vertices": 346
+            },
+            {
+              "camera": 3,
+              "chunks": 69,
+              "material_changes": 10,
+              "triangles": 1033,
+              "vertices": 1740
+            }
+          ],
+          "map": "bloodgulch",
+          "rom_sha256": "cd24a9d7f4f0e106af821c80deb22f378499318a72e8e1720a96f75cbb7ac191",
+          "screenshot": "bloodgulch-t180-census-window.png",
+          "tick": 180
+        },
+        "boardingaction_t180": {
+          "cameras": [
+            {
+              "camera": 0,
+              "chunks": 275,
+              "material_changes": 19,
+              "triangles": 8788,
+              "vertices": 13496
+            },
+            {
+              "camera": 1,
+              "chunks": 341,
+              "material_changes": 19,
+              "triangles": 10623,
+              "vertices": 16330
+            },
+            {
+              "camera": 2,
+              "chunks": 203,
+              "material_changes": 20,
+              "triangles": 6083,
+              "vertices": 9450
+            },
+            {
+              "camera": 3,
+              "chunks": 290,
+              "material_changes": 19,
+              "triangles": 8980,
+              "vertices": 13892
+            }
+          ],
+          "map": "boardingaction",
+          "rom_sha256": "24b37860294037aa3b49a1838d62a1c673270a26b80c48b3d889a788813684e9",
+          "screenshot": "boardingaction-t180-census-window.png",
+          "tick": 180
+        },
+        "damnation_t180": {
+          "cameras": [
+            {
+              "camera": 0,
+              "chunks": 139,
+              "material_changes": 17,
+              "triangles": 4199,
+              "vertices": 6716
+            },
+            {
+              "camera": 1,
+              "chunks": 242,
+              "material_changes": 27,
+              "triangles": 6959,
+              "vertices": 10864
+            },
+            {
+              "camera": 2,
+              "chunks": 158,
+              "material_changes": 16,
+              "triangles": 4807,
+              "vertices": 7734
+            },
+            {
+              "camera": 3,
+              "chunks": 132,
+              "material_changes": 17,
+              "triangles": 4292,
+              "vertices": 6228
+            }
+          ],
+          "map": "damnation",
+          "rom_sha256": "d441a623cc4f80ada5eb16e33f9d153b198dd9538ac5d16f3cb6a785dc546ebe",
+          "screenshot": "damnation-t180-census-window.png",
+          "tick": 180
+        },
+        "pvs_t180": {
+          "cameras": [
+            {
+              "camera": 0,
+              "chunks": 104,
+              "material_changes": 13,
+              "triangles": 3443,
+              "vertices": 5354
+            },
+            {
+              "camera": 1,
+              "chunks": 41,
+              "material_changes": 9,
+              "triangles": 1409,
+              "vertices": 2240
+            },
+            {
+              "camera": 2,
+              "chunks": 224,
+              "material_changes": 17,
+              "triangles": 7171,
+              "vertices": 11078
+            },
+            {
+              "camera": 3,
+              "chunks": 65,
+              "material_changes": 12,
+              "triangles": 2182,
+              "vertices": 3438
+            }
+          ],
+          "map": "putput",
+          "rom_sha256": "6cd0f4e86594c713639cf0b51683c0b4f9c0480555c9678368c63e8d05bd61b4",
+          "screenshot": "final-pvs-t180-census-window.png",
+          "tick": 180
+        }
+      },
+      "native_host_exact_camera_matches": 20,
+      "scope": "Native fixed-tick static-world submissions. Counts exact; accompanying per-camera RSP fences serialize scheduling and are not release FPS. All final prototype counts corroborated after the NaN compiler guard fix."
+    },
+    "pixel-comparisons": {
+      "comparisons": [
+        {
+          "baseline": "pixel-baseline-t180-window.png",
+          "candidate": "pixel-pvs-t180-window.png",
+          "changed_pixels": 0,
+          "crop": [
+            9,
+            33,
+            759,
+            600
+          ],
+          "pixels": 425250,
+          "tick": 180
+        },
+        {
+          "baseline": "pixel-baseline-t1148-window.png",
+          "candidate": "pixel-pvs-t1148-window.png",
+          "changed_pixels": 0,
+          "crop": [
+            9,
+            33,
+            759,
+            600
+          ],
+          "pixels": 425250,
+          "tick": 1148
+        }
+      ],
+      "scope": "Exact RGB equality in scaled four-camera gameplay crop; macOS chrome/status and top window shadow excluded. Eight ordinary/death cameras, not exhaustive scope/portal/hardware acceptance."
+    },
+    "quiet-timing": {
+      "method": "Ares NTSC 8 MiB, four players, release LTO, three surfaces, 32 KiB queues; identical Chiron 75-second replay after one-second warmup. No host builds/tests during measured intervals. Separate census drains and host clipping estimates are not these FPS results.",
+      "runs": [
+        {
+          "displayed_poses": 1165,
+          "early_fps": 15.2,
+          "fps": 15.5,
+          "free_kib": 3721,
+          "label": "baseline",
+          "late_fps": 15.7,
+          "manifest": "build/n64-chiron-visibility/quiet-baseline/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "max_ms": 100.3,
+          "p95_ms": 100.2,
+          "rom_sha256": "6d19a06b91c3037b7effa0bb5d2a76dd94b0cff5ae40953208560423d6afe23c",
+          "sample_ms": 75017,
+          "screenshot": "quiet-baseline-window.png"
+        },
+        {
+          "displayed_poses": 1612,
+          "early_fps": 20.1,
+          "fps": 21.4,
+          "free_kib": 3644,
+          "label": "pvs",
+          "late_fps": 22.7,
+          "manifest": "build/n64-chiron-visibility/quiet-pvs/halo-64-replay-chiron-pvs-vi-benchmark-paced30-rspq32k.build.json",
+          "max_ms": 100.3,
+          "p95_ms": 66.8,
+          "rom_sha256": "abd3aac8187f53925f0d329612d8caced899e622a4f2f7310d871a64dae52abd",
+          "sample_ms": 75050,
+          "screenshot": "quiet-pvs-window.png"
+        },
+        {
+          "displayed_poses": 1165,
+          "early_fps": 15.2,
+          "fps": 15.5,
+          "free_kib": 3721,
+          "label": "baseline_repeat",
+          "late_fps": 15.7,
+          "manifest": "build/n64-chiron-visibility/quiet-baseline/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "max_ms": 100.3,
+          "p95_ms": 100.2,
+          "rom_sha256": "6d19a06b91c3037b7effa0bb5d2a76dd94b0cff5ae40953208560423d6afe23c",
+          "sample_ms": 75017,
+          "screenshot": "quiet-baseline-repeat-window.png"
+        },
+        {
+          "displayed_poses": 1612,
+          "early_fps": 20.1,
+          "fps": 21.4,
+          "free_kib": 3644,
+          "label": "pvs_repeat",
+          "late_fps": 22.7,
+          "manifest": "build/n64-chiron-visibility/quiet-pvs/halo-64-replay-chiron-pvs-vi-benchmark-paced30-rspq32k.build.json",
+          "max_ms": 100.3,
+          "p95_ms": 66.8,
+          "rom_sha256": "abd3aac8187f53925f0d329612d8caced899e622a4f2f7310d871a64dae52abd",
+          "sample_ms": 75050,
+          "screenshot": "quiet-pvs-repeat-window.png"
+        }
+      ]
+    },
+    "validation-final": {
+      "method": "Initial full maintained suite plus rerun of every contract after opt-in source-path assertions were updated. Host/header/assets inputs unchanged.",
+      "passed": 47,
+      "pvs_contract": "pvs-contract.log",
+      "results": [
+        {
+          "name": "game/vehicle sanitizer suites",
+          "seconds": 133.584,
+          "status": "pass"
+        },
+        {
+          "name": "selected-map sanitizer suite",
+          "seconds": 10.405,
+          "status": "pass"
+        },
+        {
+          "name": "render_bounds",
+          "seconds": 0.595,
+          "status": "pass"
+        },
+        {
+          "name": "render_lod",
+          "seconds": 0.207,
+          "status": "pass"
+        },
+        {
+          "name": "render_animation",
+          "seconds": 0.231,
+          "status": "pass"
+        },
+        {
+          "name": "firstperson_service",
+          "seconds": 0.263,
+          "status": "pass"
+        },
+        {
+          "name": "firstperson_ammo",
+          "seconds": 0.314,
+          "status": "pass"
+        },
+        {
+          "name": "hud_layout",
+          "seconds": 0.261,
+          "status": "pass"
+        },
+        {
+          "name": "benchmark",
+          "seconds": 0.233,
+          "status": "pass"
+        },
+        {
+          "name": "cadence",
+          "seconds": 0.229,
+          "status": "pass"
+        },
+        {
+          "name": "cadence_tail",
+          "seconds": 0.24,
+          "status": "pass"
+        },
+        {
+          "name": "render_pacing",
+          "seconds": 0.399,
+          "status": "pass"
+        },
+        {
+          "name": "pacing_fifo",
+          "seconds": 0.506,
+          "status": "pass"
+        },
+        {
+          "name": "bounds with production math flags",
+          "seconds": 0.226,
+          "status": "pass"
+        },
+        {
+          "name": "test_map_material_modes.py",
+          "seconds": 0.258,
+          "status": "pass"
+        },
+        {
+          "name": "test_camera_batch.py",
+          "seconds": 15.47,
+          "status": "pass"
+        },
+        {
+          "name": "test_camera_packet.py",
+          "seconds": 14.269,
+          "status": "pass"
+        },
+        {
+          "name": "test_vehicle_camera_packet.py",
+          "seconds": 14.175,
+          "status": "pass"
+        },
+        {
+          "name": "blam/test_vehicle_candidates.py",
+          "seconds": 29.843,
+          "status": "pass"
+        },
+        {
+          "name": "blam/test_polygon_cache.py",
+          "seconds": 14.207,
+          "status": "pass"
+        },
+        {
+          "name": "test_projection_cache.py",
+          "seconds": 0.829,
+          "status": "pass"
+        },
+        {
+          "name": "test_texture_blocks.py",
+          "seconds": 0.242,
+          "status": "pass"
+        },
+        {
+          "name": "test_render_cull.py",
+          "seconds": 0.877,
+          "status": "pass"
+        },
+        {
+          "name": "test_bounds_quantize.py",
+          "seconds": 0.543,
+          "status": "pass"
+        },
+        {
+          "name": "test_scene_equivalence.py",
+          "seconds": 0.075,
+          "status": "pass"
+        },
+        {
+          "name": "test_render_matrix.py",
+          "seconds": 0.069,
+          "status": "pass"
+        },
+        {
+          "name": "test_render_prepare.py",
+          "seconds": 0.052,
+          "status": "pass"
+        },
+        {
+          "name": "test_render_flush.py",
+          "seconds": 0.036,
+          "status": "pass"
+        },
+        {
+          "name": "test_vehicle_culling.py",
+          "seconds": 3.638,
+          "status": "pass"
+        },
+        {
+          "name": "test_vehicle_pose_cache.py",
+          "seconds": 10.237,
+          "status": "pass"
+        },
+        {
+          "name": "test_vehicle_map_origin.py",
+          "seconds": 15.671,
+          "status": "pass"
+        },
+        {
+          "name": "test_deferred_animation.py",
+          "seconds": 0.542,
+          "status": "pass"
+        },
+        {
+          "name": "test_vi_benchmark.py",
+          "seconds": 0.076,
+          "status": "pass"
+        },
+        {
+          "name": "test_weapon_workspace.py",
+          "seconds": 0.236,
+          "status": "pass"
+        },
+        {
+          "name": "test_model_index_aliases.py",
+          "seconds": 0.267,
+          "status": "pass"
+        },
+        {
+          "name": "test_effect_bounds.py",
+          "seconds": 0.686,
+          "status": "pass"
+        },
+        {
+          "name": "test_audio_schedule.py",
+          "seconds": 0.352,
+          "status": "pass"
+        },
+        {
+          "name": "test_paced_acquire.py",
+          "seconds": 0.883,
+          "status": "pass"
+        },
+        {
+          "name": "test_input_menu.py",
+          "seconds": 1.081,
+          "status": "pass"
+        },
+        {
+          "name": "test_map_assets.py",
+          "seconds": 0.066,
+          "status": "pass"
+        },
+        {
+          "name": "test_announcer.py",
+          "seconds": 1.073,
+          "status": "pass"
+        },
+        {
+          "name": "test_hud_prompts.py",
+          "seconds": 1.369,
+          "status": "pass"
+        },
+        {
+          "name": "test_interaction_assets.py",
+          "seconds": 1.348,
+          "status": "pass"
+        },
+        {
+          "name": "test_pack_bounds.py",
+          "seconds": 0.073,
+          "status": "pass"
+        },
+        {
+          "name": "test_scope_geometry.py",
+          "seconds": 0.42,
+          "status": "pass"
+        },
+        {
+          "name": "test_scorpion_barrel.py",
+          "seconds": 0.083,
+          "status": "pass"
+        },
+        {
+          "name": "test_menu_assets.py",
+          "seconds": 0.069,
+          "status": "pass"
+        }
+      ],
+      "total": 47
+    }
+  }
+}

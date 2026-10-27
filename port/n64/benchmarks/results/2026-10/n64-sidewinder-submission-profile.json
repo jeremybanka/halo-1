@@ -1,0 +1,183 @@
+{
+  "artifact_directory": "build/n64-sidewinder-submission-profile",
+  "native_counter_logs": {
+    "detail-after.log": [
+      "HALO N64 world=13720 textures=31 RAM=8388608 free=2388744",
+      "BENCH display_buffers=3 held_peak=2 live_heap_free_bytes=2271560 (whole-run peak including warmup; before teardown)",
+      "SUBDETAIL ticks_per_second=46875000 ticks=1056927658,100779121,308378665,51388989,53456788,357615803,28623631,21700293,19483496,78813918 counts=5040,2918993,184959,41958,289,2251341,1528873,725578,97349,102389,725578",
+      "SUBMIT views=5040 rebuilds=520 lod_us=6562205 select_us=1081991 frustum_us=0 dispatch_us=0 plan_hits=0 plan_misses=0",
+      "BENCH attribution group=0 frames=1241 elapsed_us=75026300 phases=15157,4419,6359,266,17926,4963,1431,2759,4773,2867,0,0,25,726,55,1036,395,342,263,1340,2466,7758,3431,3388,344,256,35,222,0,141,0,0,0,646,183,282,43,1502,1433,1343,1410,1559,657,1140,879,1048,6,1,0,0,0,0,0",
+      "BENCH attribution group=1 frames=591 elapsed_us=36051281 phases=15979,4090,6626,308,18110,4449,1420,2530,4709,3380,0,0,2,842,29,982,365,340,209,1262,2270,8374,2933,4091,194,144,23,181,0,172,0,0,0,340,86,280,30,1180,1398,1334,1435,1611,676,1184,955,1098,6,1,0,0,0,0,0",
+      "BENCH attribution group=2 frames=650 elapsed_us=38975019 phases=14410,4718,6116,228,17758,5430,1441,2968,4831,2400,0,0,46,620,78,1084,422,344,312,1411,2643,7198,3884,2748,481,358,47,259,0,113,0,0,0,923,272,285,55,1794,1465,1352,1387,1512,639,1101,810,1002,6,1,0,0,0,0,0"
+    ],
+    "detail-before.log": [
+      "HALO N64 world=13720 textures=31 RAM=8388608 free=2424256",
+      "BENCH display_buffers=3 held_peak=2 live_heap_free_bytes=2307072 (whole-run peak including warmup; before teardown)",
+      "SUBDETAIL ticks_per_second=46875000 ticks=1042852351,100609948,329476701,49851641,49522271,336994981,28073700,20059429,18912334,78986327 counts=5004,2701938,171285,37798,278,2097534,1418134,682738,96554,101558,682738",
+      "SUBMIT views=5004 rebuilds=527 lod_us=7016097 select_us=1048831 frustum_us=0 dispatch_us=0 plan_hits=0 plan_misses=0",
+      "BENCH attribution group=0 frames=1232 elapsed_us=75017349 phases=15083,4489,6274,283,17815,5339,1429,2832,4729,2969,0,0,7,675,57,948,434,320,268,1466,2427,7528,3536,3419,339,252,36,211,0,137,0,0,0,631,176,307,44,1496,1494,1356,1370,1523,645,1139,878,1052,6,1,0,0,0,0,0",
+      "BENCH attribution group=1 frames=587 elapsed_us=36039986 phases=15890,4157,6545,327,18126,4746,1410,2607,4615,3394,0,0,0,773,31,880,414,318,209,1387,2235,8100,3042,4145,189,141,23,175,0,169,0,0,0,332,81,309,29,1189,1453,1359,1396,1577,662,1191,953,1107,6,1,0,0,0,0,0",
+      "BENCH attribution group=2 frames=645 elapsed_us=38977363 phases=14349,4790,6027,244,17533,5879,1446,3036,4833,2583,0,0,14,585,82,1011,452,322,321,1537,2602,7007,3985,2759,475,353,48,244,0,109,0,0,0,903,262,306,58,1774,1531,1353,1346,1474,629,1092,810,1001,6,1,0,0,0,0,0"
+    ]
+  },
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-submission-profile/summary.json",
+      "bytes": 5373,
+      "sha256": "d4ba476bbdec09aa0e443827e8692c0e4c880fb9fe31849e297b502477d40728"
+    },
+    {
+      "artifact": "build/n64-sidewinder-submission-profile/instrumentation.json",
+      "bytes": 485,
+      "sha256": "13e68cde9e564f2b2d5777e25794990c3468f126d4256895bf2bde59ba041af0"
+    },
+    {
+      "artifact": "build/n64-sidewinder-submission-profile/detail-after-run.json",
+      "bytes": 658,
+      "sha256": "99a167f23250ab8a5434fd3e121d24c4228249dc7ffb112673cec1e86fe5b88b"
+    },
+    {
+      "artifact": "build/n64-sidewinder-submission-profile/detail-after.log",
+      "bytes": 1753,
+      "sha256": "ad6e1a777ce903b2bf4c3bf082fac535ece33a60b92cdf82f9bf1fa6ddc094cc"
+    },
+    {
+      "artifact": "build/n64-sidewinder-submission-profile/detail-before-run.json",
+      "bytes": 661,
+      "sha256": "4cf4584423b6a8771b4add4d168d2a274fcc1d60c91952a7e16d74e89924fe87"
+    },
+    {
+      "artifact": "build/n64-sidewinder-submission-profile/detail-before.log",
+      "bytes": 1647,
+      "sha256": "4ac1f8267e4356797cec2eef7b1faf0847e96219f6133d367d15b3bf0f5d357d"
+    }
+  ],
+  "results": {
+    "instrumentation": {
+      "instrumented_main_sha256": "0ec8e374bee947e0caf1fd365bffaf955985a8f6f1d929d14a9f05f8197713a0",
+      "instrumented_scene_sha256": "530f299dc03bb8ce376fb031261fc64d3713c8ac892cc61f9f84bd5c1c9cd1d5",
+      "note": "All geometry, selection decisions, material order and queue commands unchanged. Added timing/counters perturb CPU code and cache. Totals include warmup; normalize with views/4.",
+      "original_scene_sha256": "709c72653f4642a004566b99d9a52bd1d73456bb6f7c34f41fa52a574e31d09a"
+    },
+    "summary": {
+      "after": {
+        "coarse_inside_fraction": 0.0015625084478181651,
+        "coarse_outside_fraction": 0.22685027492579438,
+        "counts_per_view": {
+          "bulk_invocations": 20.315277777777776,
+          "coarse_inside": 0.05734126984126984,
+          "coarse_outside": 8.325,
+          "coarse_tests": 36.698214285714286,
+          "eligible_batches": 579.1652777777778,
+          "fine_rejects": 303.34781746031746,
+          "fine_tests": 446.69464285714287,
+          "geometry_calls": 143.9638888888889,
+          "material_runs": 19.315277777777776,
+          "visible_batches": 143.9638888888889
+        },
+        "eligibility_cache_hit_fraction": 0.8968253968253969,
+        "frames_including_warmup": 1260.0,
+        "phase_ms_per_four_view_frame": {
+          "coarse_frustum": 0.9050884740740741,
+          "eligibility": 0.8700781206349206,
+          "final_setup": 0.3298792973544974,
+          "fine_frustum": 6.054870738624339,
+          "frustum_total": 6.959959212698413,
+          "geometry_calls": 0.3674123682539683,
+          "lod_room_cell": 5.221226074074075,
+          "loop_and_unseparated": 1.9555703195767222,
+          "material_state": 0.48463290582010576,
+          "other_setup_and_loop": 2.657347233862436,
+          "setup_including_sky": 1.7063131597883594,
+          "sky_nested": 1.334415542857143,
+          "world_total": 17.89507145820106
+        },
+        "profile_world_ms_excluding_warmup": 17.926,
+        "run": {
+          "child_closed": true,
+          "elapsed": 88.04078012518585,
+          "label": "detail-after",
+          "log": "build/n64-sidewinder-submission-profile/detail-after.log",
+          "profile": true,
+          "rom": "build/n64-sidewinder-submission-profile/after-cpu/halo-64-replay-coarse-cull-bulk-submit-submit-cache-world-pvs-render-candidate-benchmark-paced30-rspq32k.z64",
+          "settings_sha256": "1622108a837d52ae7c19ac347107568febe3ad2c576ee90c7beef4b5b4c2bbac",
+          "sha256": "467ea3b87405bfcc4859338a5391b4b3c89b443dd0a11a62ba3379c48b3e4a3b"
+        }
+      },
+      "before": {
+        "coarse_inside_fraction": 0.001623025950900546,
+        "coarse_outside_fraction": 0.22067314709402458,
+        "counts_per_view": {
+          "bulk_invocations": 20.295363709032774,
+          "coarse_inside": 0.05555555555555555,
+          "coarse_outside": 7.553557154276579,
+          "coarse_tests": 34.22961630695443,
+          "eligible_batches": 539.9556354916067,
+          "fine_rejects": 283.40007993605116,
+          "fine_tests": 419.1714628297362,
+          "geometry_calls": 136.43844924060753,
+          "material_runs": 19.295363709032774,
+          "visible_batches": 136.43844924060753
+        },
+        "eligibility_cache_hit_fraction": 0.8946842525979216,
+        "frames_including_warmup": 1251.0,
+        "phase_ms_per_four_view_frame": {
+          "coarse_frustum": 0.8445044881428191,
+          "eligibility": 0.8501212427391419,
+          "final_setup": 0.3225124902744471,
+          "fine_frustum": 5.746783582200906,
+          "frustum_total": 6.591288070343725,
+          "geometry_calls": 0.342073929123368,
+          "lod_room_cell": 5.618574171063149,
+          "loop_and_unseparated": 1.864771154809489,
+          "material_state": 0.4787414868105516,
+          "other_setup_and_loop": 2.5560317783106883,
+          "setup_including_sky": 1.7157038827604585,
+          "sky_nested": 1.3469557495337063,
+          "world_total": 17.78378642792433
+        },
+        "profile_world_ms_excluding_warmup": 17.815,
+        "run": {
+          "child_closed": true,
+          "elapsed": 89.06348091713153,
+          "label": "detail-before",
+          "log": "build/n64-sidewinder-submission-profile/detail-before.log",
+          "profile": true,
+          "rom": "build/n64-sidewinder-submission-profile/before-cpu/halo-64-replay-coarse-cull-bulk-submit-submit-cache-world-pvs-render-candidate-benchmark-paced30-rspq32k.z64",
+          "settings_sha256": "1622108a837d52ae7c19ac347107568febe3ad2c576ee90c7beef4b5b4c2bbac",
+          "sha256": "d02ce49e6bd823cbc6490dd2de89dc5b22de94cb2e64c7c943938eda0445528e"
+        }
+      },
+      "notes": [
+        "Native N64 ROMs in Ares, not physical-console measurements. Same 75-second replay, 8 MiB, NTSC, release LTO, private 32 KiB queues and unlit Tiny3D as preceding appraisal.",
+        "Raw CP0 interval counters add instrumentation and alter code layout/cache behavior. Instrumented world means are 17.815/17.926 ms versus the earlier 16.693/17.393 ms. Do not treat the new interval delta as an exact decomposition of the earlier 0.700 ms delta.",
+        "Detailed totals include warmup and are normalized by views/4. Group=0 excludes warmup; small differences are expected. Sky is nested in initial setup, and frustum_total is the sum of two buckets: do not double count.",
+        "Fine/coarse tests, material calls, and geometry writes have separately timed intervals; remaining loop bookkeeping and measurement overhead are not isolated. These are approximate attribution values, not a new quiet FPS result.",
+        "Map banks, visibility data and renderer decision/order logic are retained. Only build-directory scene/main copies were instrumented. No optimization adopted or production source edited.",
+        "Offline LOD opportunities count groups that could be skipped, not speedups. Skip counts do not account for added group tests or cache restructuring cost."
+      ]
+    }
+  },
+  "runs": [
+    {
+      "child_closed": true,
+      "elapsed": 88.04078012518585,
+      "label": "detail-after",
+      "log": "build/n64-sidewinder-submission-profile/detail-after.log",
+      "profile": true,
+      "rom": "build/n64-sidewinder-submission-profile/after-cpu/halo-64-replay-coarse-cull-bulk-submit-submit-cache-world-pvs-render-candidate-benchmark-paced30-rspq32k.z64",
+      "settings_sha256": "1622108a837d52ae7c19ac347107568febe3ad2c576ee90c7beef4b5b4c2bbac",
+      "sha256": "467ea3b87405bfcc4859338a5391b4b3c89b443dd0a11a62ba3379c48b3e4a3b"
+    },
+    {
+      "child_closed": true,
+      "elapsed": 89.06348091713153,
+      "label": "detail-before",
+      "log": "build/n64-sidewinder-submission-profile/detail-before.log",
+      "profile": true,
+      "rom": "build/n64-sidewinder-submission-profile/before-cpu/halo-64-replay-coarse-cull-bulk-submit-submit-cache-world-pvs-render-candidate-benchmark-paced30-rspq32k.z64",
+      "settings_sha256": "1622108a837d52ae7c19ac347107568febe3ad2c576ee90c7beef4b5b4c2bbac",
+      "sha256": "d02ce49e6bd823cbc6490dd2de89dc5b22de94cb2e64c7c943938eda0445528e"
+    }
+  ]
+}

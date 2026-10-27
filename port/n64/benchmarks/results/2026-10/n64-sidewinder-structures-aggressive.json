@@ -1,0 +1,100 @@
+{
+  "artifact_directory": "build/n64-sidewinder-structures-aggressive",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-structures-aggressive/measurements.json",
+      "bytes": 368,
+      "sha256": "d1f698a36d15c728d43dbe6fac2c26655da8434beac37a7c7fa58f09f4c5778c"
+    },
+    {
+      "artifact": "build/n64-sidewinder-structures-aggressive/appraisal.json",
+      "bytes": 2052,
+      "sha256": "140010b7e7719d71362ca68e5d2fbe5c3e122ea01bd413cde2bd262f4adc3695"
+    },
+    {
+      "artifact": "build/n64-sidewinder-structures-aggressive/rejection.json",
+      "bytes": 601,
+      "sha256": "19d80a9661ebeca15589f5f8c5820445ed1cf3076fda867f68a161442b9ff5b3"
+    }
+  ],
+  "results": {
+    "appraisal": {
+      "architecture_triangles_after": 3653,
+      "architecture_triangles_before": 5617,
+      "breakdown": {
+        "photos": {
+          "architecture_after": 2027.0833333333333,
+          "architecture_before": 2792.1666666666665,
+          "scenery_mean": 3884.4166666666665,
+          "terrain_mean": 3452.25
+        },
+        "replay": {
+          "architecture_after": 3109.6176470588234,
+          "architecture_before": 4067.9411764705883,
+          "scenery_mean": 2933.735294117647,
+          "terrain_mean": 2139.8823529411766
+        }
+      },
+      "candidate_bank_sha256": "987f3fce3655b5bc7fc61e8d2b6c00438962534b81146d44f89b1c59748dc399",
+      "measurements": {
+        "photos": {
+          "after_mean": 9363.75,
+          "after_worst": 16124,
+          "before_mean": 10128.833333333334,
+          "below_1500": 0,
+          "matching_poses": true,
+          "samples": 24
+        },
+        "replay": {
+          "after_mean": 8183.235294117647,
+          "after_worst": 17196,
+          "before_mean": 9141.558823529413,
+          "below_1500": 3,
+          "matching_poses": true,
+          "samples": 68
+        }
+      },
+      "offline_pvs_control_changed_pixels": 0,
+      "rejection": {
+        "adopted": false,
+        "baseline": "Original architecture; original canonical assets and pre-structure-reduction map remain unchanged.",
+        "date": "2026-10-14",
+        "next_method": "Deliberate edits to specific details, starting with one structure and inspecting shape and texture quality from exterior and interior cameras.",
+        "reason": "Whole-structure collapse visibly distorts architectural forms, bevel transitions, UVs and baked lighting. Silhouette overlap and load savings were insufficient acceptance criteria.",
+        "status": "rejected"
+      },
+      "scope": "Rejected visual experiment; never adopted. SDK host submission counts and offline image checks; no new native FPS/RSP/RDP validation.",
+      "source_bank_sha256": "8a0cb7c21c18223ea7b9aad9661335ec6fd69ddffe86bce61321a4a58a9809d6",
+      "status": "rejected",
+      "triangle_reduction_percent": 34.965283959408936,
+      "worst_silhouette_iou": 0.942424960675731
+    },
+    "measurements": {
+      "photos": {
+        "after_mean": 9363.75,
+        "after_worst": 16124,
+        "before_mean": 10128.833333333334,
+        "below_1500": 0,
+        "matching_poses": true,
+        "samples": 24
+      },
+      "replay": {
+        "after_mean": 8183.235294117647,
+        "after_worst": 17196,
+        "before_mean": 9141.558823529413,
+        "below_1500": 3,
+        "matching_poses": true,
+        "samples": 68
+      }
+    },
+    "rejection": {
+      "adopted": false,
+      "baseline": "Original architecture; original canonical assets and pre-structure-reduction map remain unchanged.",
+      "date": "2026-10-14",
+      "next_method": "Deliberate edits to specific details, starting with one structure and inspecting shape and texture quality from exterior and interior cameras.",
+      "reason": "Whole-structure collapse visibly distorts architectural forms, bevel transitions, UVs and baked lighting. Silhouette overlap and load savings were insufficient acceptance criteria.",
+      "status": "rejected"
+    }
+  }
+}

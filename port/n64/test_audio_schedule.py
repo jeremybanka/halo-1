@@ -1,5 +1,5 @@
 """Check deferred first-view pumping without changing PCM or voice progression."""
-from runtime_source import read_runtime, validation_output
+from runtime_source import read_runtime, validation_output,without_experiments
 import argparse
 from pathlib import Path
 import re
@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def check_source(before=None):
-    source = read_runtime(ROOT/'port/n64/main.c')
+    source = without_experiments(read_runtime(ROOT/'port/n64/main.c'))
     main = compact(function(source, 'main'))
     assert 'pump_audio();#ifdefBG_PROFILEsim_us=' not in main
     assert 'if(pending[slot])while(!rspq_syncpoint_check(fences[slot]))pump_audio();' in main

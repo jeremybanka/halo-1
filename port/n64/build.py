@@ -11,6 +11,7 @@ import subprocess
 import sys
 from setup_assets import connect_assets
 from asset_ids import map_ids
+from feature_cache_candidate import candidate_source
 
 ROOT = Path(__file__).resolve().parents[2]
 SHOWCASES = [
@@ -42,6 +43,26 @@ def parse_args(argv=None):
         type=Path,
         help="Diagnostic comparison: compile an alternate game.c; exact input is recorded in the build manifest",
     )
+    parser.add_argument('--feature-cache-slots', type=int, choices=(128,512),
+                        help='8 MiB research: isolated prism/edge cache adapter; benchmark/QA modes only')
+    parser.add_argument('--world-pvs-data','--chiron-pvs-data',dest='world_pvs_data',type=Path,
+                        help='8 MiB research: hash-bound conservative selected-map static-world PVS sidecar')
+    parser.add_argument('--world-coarse-cull',action='store_true',help='Private exact union-box accept/reject over ordered candidates')
+    parser.add_argument('--world-hierarchy',action='store_true',help='Private intact-batch spatial hierarchy with lazy visible-group LOD')
+    parser.add_argument('--playable-candidate',action='store_true',
+                        help='Build an isolated, interactive candidate with the normal multiplayer menus')
+    parser.add_argument('--world-bulk-submit',action='store_true',help='Private exact geometry CALL batching with one RDP tracking invalidation per run')
+    parser.add_argument('--world-command-cache', action='store_true', help='Private fenced per-view command-plan reuse')
+    parser.add_argument('--world-submit-cache', action='store_true',
+                        help='Private experiment: reuse exact ordered world candidates until visibility/LOD changes')
+    parser.add_argument('--geometry-census',action='store_true',
+                        help='Fixed-tick per-camera submission counts and serialized graphics drains; snapshot QA only')
+    parser.add_argument('--photo-tour',action='store_true',
+                        help='Frozen single-player Sidewinder walks; Start advances, B toggles pose metadata')
+    parser.add_argument('--photo-walk-benchmark',action='store_true',
+                        help='Quiet single-player Sidewinder photography route; requires --vi-benchmark')
+    parser.add_argument('--map-bank-override',type=Path,
+                        help='Diagnostic render-only bank; collision and all non-render sections must match')
     parser.add_argument(
         "--sdk",
         type=Path,
@@ -272,6 +293,50 @@ def parse_args(argv=None):
     )
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
     args = parser.parse_args(argv)
+    if args.playable_candidate:
+        if not (args.output_dir and args.map_bank_override and args.world_pvs_data and args.world_hierarchy):
+            parser.error('--playable-candidate requires isolated output, a hash-bound bank/sidecar and --world-hierarchy')
+        if (args.demo or args.photo_tour or args.photo_walk_benchmark or args.benchmark
+                or args.vi_benchmark or args.profile or args.validate or args.snapshot_tick is not None
+                or args.frontend_qa or args.maps_cycle):
+            parser.error('--playable-candidate uses live controller input; diagnostic modes must be built separately')
+    if args.photo_walk_benchmark:
+        if not args.vi_benchmark or args.photo_tour:
+            parser.error('--photo-walk-benchmark requires a separate --vi-benchmark run')
+        args.initial_map='sidewinder'
+    if args.photo_tour:
+        if args.snapshot_tick is not None or args.benchmark or args.vi_benchmark or args.profile or args.validate:
+            parser.error('--photo-tour is a separate frozen visual inspection')
+        args.initial_map='sidewinder';args.snapshot_tick=0
+    if args.map_bank_override:
+        if not args.output_dir or not (args.playable_candidate or args.photo_tour or args.vi_benchmark or args.benchmark or args.snapshot_tick is not None or args.validate or args.frontend_qa or args.maps_cycle):
+            parser.error('--map-bank-override requires isolated output and an explicit diagnostic or playable-candidate mode')
+        if args.world_pvs_data:
+            data=json.loads(args.world_pvs_data.read_text())
+            if data.get('schema') not in (3,4,5,6,7,8,9,10,11,12):
+                parser.error('Changed geometry requires a newly remapped, hash-bound visibility sidecar')
+    if args.geometry_census and args.snapshot_tick is None:
+        parser.error('--geometry-census requires --snapshot-tick')
+    if args.world_coarse_cull:
+        args.world_submit_cache=True
+        if args.world_command_cache:parser.error('Coarse culling is an independent command-cache control')
+    if args.world_bulk_submit:
+        args.world_submit_cache=True
+        if args.world_command_cache:parser.error('Bulk submission and command caching are independent controls')
+        if not args.rspq_buffer_kib:parser.error('Bulk submission requires private queue override')
+    if args.world_command_cache:args.world_submit_cache=True
+    if args.world_hierarchy:
+        if not args.world_pvs_data or not args.map_bank_override or not args.output_dir:
+            parser.error('--world-hierarchy requires an isolated hash-bound map bank and visibility sidecar')
+        if args.world_command_cache or args.world_coarse_cull:
+            parser.error('--world-hierarchy replaces the command-cache/coarse visibility selector')
+        if map_ids()[args.initial_map]!=json.loads(args.world_pvs_data.read_text())['map_id']:
+            parser.error('--world-hierarchy requires its baked map as the initial selection')
+        args.world_submit_cache=True
+    if args.world_submit_cache and (not args.output_dir or not args.world_pvs_data or json.loads(args.world_pvs_data.read_text()).get('schema') not in (9,10,11,12)):
+        parser.error('--world-submit-cache requires isolated output and schema-9/10/11/12 private world data')
+    if args.world_pvs_data and not (args.playable_candidate or args.benchmark or args.vi_benchmark or args.profile or args.validate or args.snapshot_tick is not None or args.frontend_qa or args.maps_cycle):
+        parser.error('--world-pvs-data requires an explicit benchmark, QA or playable-candidate mode')
     if args.maps_cycle:
         if args.frontend_qa not in (None,4):parser.error("--maps-cycle needs four-player frontend QA")
         args.frontend_qa=4;args.initial_map="wizard"
@@ -281,6 +346,11 @@ def parse_args(argv=None):
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
     ):
         parser.error("--game-source requires an explicit profiling or telemetry mode")
+    if args.feature_cache_slots and not (
+        args.profile or args.benchmark or args.vi_benchmark or args.telemetry
+        or args.validate or args.snapshot_tick is not None or args.frontend_qa
+    ):
+        parser.error('--feature-cache-slots requires an explicit benchmark or QA mode')
     if args.preset == "release":
         args.paced30 = True
         args.paced30_buffers = args.paced30_buffers or 3
@@ -388,7 +458,7 @@ def compile_options(args, sdk, tiny, out, source):
         "-ftrapping-math",
         "-fno-associative-math",
         "-DN64",
-        *(["-fno-finite-math-only"] if source.name in ("scene.c", "weapon_effects_draw.c") else []),
+        *(["-fno-finite-math-only"] if source.name in ("scene.c", "weapon_effects_draw.c", "render_pvs.c") else []),
         "-Wall",
         "-Wextra",
         "-Werror",
@@ -396,6 +466,8 @@ def compile_options(args, sdk, tiny, out, source):
         "-I" + str(sdk / "mips64-elf/include"),
         "-I" + str(tiny / "src"),
         "-I" + str(ROOT / "port/n64"),
+        *(['-I' + str(ROOT / 'port/n64/blam')]
+          if args.feature_cache_slots and source.name == 'vehicle_physics.c' else []),
         "-I" + str(out / "blam-core"),
         "-I" + str(out / "blam-vehicle"),
         *(
@@ -411,6 +483,16 @@ def compile_options(args, sdk, tiny, out, source):
             else []
         ),
         *(["-DRDPQ_VALIDATE"] if args.validate else []),
+        *(['-DBG_WORLD_COARSE_CULL'] if args.world_coarse_cull else []),
+        *(['-DBG_WORLD_HIERARCHY'] if args.world_hierarchy else []),
+        *(['-DBG_WORLD_BULK_SUBMIT'] if args.world_bulk_submit else []),
+        *(['-DBG_WORLD_COMMAND_CACHE'] if args.world_command_cache else []),
+        *(['-DBG_WORLD_SUBMIT_CACHE'] if args.world_submit_cache else []),
+        *(['-DBG_WORLD_PVS'] if args.world_pvs_data else []),
+        *(['-DBG_WORLD_CELLS'] if args.world_pvs_data and json.loads(args.world_pvs_data.read_text()).get('schema') in (9,10,11,12) else []),
+        *(['-DBG_WORLD_REP'] if args.world_pvs_data and json.loads(args.world_pvs_data.read_text()).get('schema') in (8,9,10,11,12) else []),
+        *(['-DBG_WORLD_LOD'] if args.world_pvs_data and json.loads(args.world_pvs_data.read_text()).get('schema') in (6,7,8,9,10,11,12) else []),
+        *(['-DBG_GEOMETRY_CENSUS'] if args.geometry_census else []),
         *(["-DBG_COMBAT_QA=" + str(args.combat_qa)] if args.combat_qa is not None else []),
         *(["-DBG_MOVEMENT_QA=" + str(args.movement_qa)] if args.movement_qa is not None else []),
         *(["-DBG_DEMO"] if args.demo else []),
@@ -516,6 +598,19 @@ def rom_name(args):
         if args.showcase
         else "halo-64-replay" if args.demo else "halo-64"
     )
+    if args.feature_cache_slots:
+        name += '-features' + str(args.feature_cache_slots)
+    if args.world_coarse_cull:name+='-coarse-cull'
+    if args.world_hierarchy:name+='-hierarchy'
+    if args.playable_candidate:name+='-playable'
+    if args.world_bulk_submit:name+='-bulk-submit'
+    if args.world_command_cache:name+='-command-cache'
+    if args.world_submit_cache:name+='-submit-cache'
+    if args.world_pvs_data:name+='-world-pvs'
+    if args.geometry_census:name+='-geometry-census'
+    if args.photo_tour:name+='-photo-tour'
+    if args.photo_walk_benchmark:name+='-photo-walk'
+    if args.map_bank_override:name+='-render-candidate'
     if args.snapshot_tick is not None:
         name += "-snapshot-" + str(args.snapshot_tick)
     if args.map_qa is not None:
@@ -817,6 +912,8 @@ def main():
         if not (ROOT / name).is_file() or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
             build_error("Stale prompt silhouette bank; rerun port/n64/pack_prompt_icons.py: " + name)
     out = args.output_dir.resolve() if args.output_dir else asset_root
+    if args.map_bank_override and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
+        build_error('--map-bank-override requires a separate output tree')
     out.mkdir(parents=True, exist_ok=True)
     objects = []
     run([sys.executable, ROOT / "port/n64/blam/prepare_core.py", "--output", out / "blam-core"])
@@ -889,6 +986,9 @@ def main():
                 args.rspq_buffer_kib,
             ]
         )
+        if args.world_bulk_submit:
+            source=out/'rspq-override/rspq_override.c'
+            source.write_text(source.read_text()+'\n'+(ROOT/'port/n64/world_bulk_submit.inc').read_text())
         sdk_extra_sources.append(out / "rspq-override/rspq_override.c")
     if args.showcase:
         sources.append("showcase.c")
@@ -938,6 +1038,33 @@ def main():
         )
         for name in sources
     ]
+    if args.photo_tour:
+        from photo_tour_source import photo_source
+        original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
+        photo_main.write_text(photo_source(original.read_text()))
+        runtime_sources[runtime_sources.index(original)]=photo_main
+    if args.photo_walk_benchmark:
+        from photo_tour_source import walking_benchmark_source
+        original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
+        photo_main.write_text(walking_benchmark_source(original.read_text()))
+        runtime_sources[runtime_sources.index(original)]=photo_main
+    if args.world_pvs_data:
+        from export_chiron_visibility import emit_c
+        visibility=json.loads(args.world_pvs_data.resolve().read_text())
+        visibility_source=out/'visibility-data.c'
+        emit_c(visibility,visibility_source,args.map_bank_override)
+        runtime_sources.extend([ROOT/'port/n64/render_pvs.c',visibility_source])
+        if args.world_hierarchy:
+            from world_hierarchy import bake
+            hierarchy_source=out/'hierarchy-data.c'
+            hierarchy_manifest=bake(args.world_pvs_data,args.map_bank_override,hierarchy_source)
+            runtime_sources.append(hierarchy_source)
+    if args.feature_cache_slots:
+        original = ROOT / 'port/n64/blam/vehicle_physics.c'
+        candidate = out / 'feature-cache/vehicle_physics.c'
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        candidate.write_text(candidate_source(original.read_text(), args.feature_cache_slots))
+        runtime_sources[runtime_sources.index(original)] = candidate
     for source in [
         *runtime_sources,
         *(
@@ -1008,11 +1135,42 @@ def main():
             if not target.exists():
                 target.symlink_to(source.resolve())
     maps_directory = out / "frontend-files/maps"
+    assert not maps_directory.is_symlink(),'Refuse shared map-bank output directory'
     maps_directory.mkdir(parents=True, exist_ok=True)
     for source in (asset_root / "generated/maps").iterdir():
         if source.suffix in (".map64", ".bin"):
             target = maps_directory / source.name
+            # Reusing an isolated candidate output without the override must
+            # restore accepted banks, rather than retain its previous copy.
+            if target.exists() and (not target.is_symlink() or target.resolve()!=source.resolve()):
+                target.unlink()
             if not target.exists(): target.symlink_to(source.resolve())
+    override_info=None
+    if args.map_bank_override:
+        import struct
+        candidate_bank=args.map_bank_override.resolve().read_bytes()
+        candidate_id=struct.unpack_from('>3I',candidate_bank)[2]
+        selected=next(name for name,id in map_ids().items() if id==candidate_id)+'.map64'
+        original=(asset_root/'generated/maps'/selected).read_bytes()
+        assert struct.unpack_from('>3I',original)==struct.unpack_from('>3I',candidate_bank),'Map identity changed'
+        assert struct.unpack_from('>I',candidate_bank,12)[0]==len(candidate_bank),'Truncated candidate bank'
+        sections=[]
+        for index in range(23):
+            def section(data):
+                offset,count,stride=struct.unpack_from('>3I',data,16+index*12)
+                assert offset+count*stride<=len(data),'Invalid section range'
+                return stride,data[offset:offset+count*stride]
+            before,after=section(original),section(candidate_bank)
+            if 3<=index<=6 and args.world_pvs_data and visibility.get('schema') in (6,7,8,9,10,11,12):
+                assert before[0]==after[0] and after[1].startswith(before[1]),('Original texture data changed',index)
+            elif index>=3:assert before==after,('Non-render section changed',index)
+            sections.append({'index':index,'unchanged':before==after})
+        target=maps_directory/selected
+        assert not maps_directory.is_symlink(),'Refuse shared output override'
+        if target.is_symlink():target.unlink()
+        target.write_bytes(candidate_bank)
+        override_info={'path':str(args.map_bank_override.resolve()),'sha256':hashlib.sha256(candidate_bank).hexdigest(),
+                       'baseline_sha256':hashlib.sha256(original).hexdigest(),'sections':sections}
     run([sdk / "bin/mkdfs", out / "frontend.dfs", out / "frontend-files"])
     run(
         [
@@ -1059,6 +1217,7 @@ def main():
 
     manifest = {
         "preset": args.preset,
+        "render_bank_experiment":override_info,
         "runtime_commit": revision(ROOT),
         "asset_commit": revision(ROOT / "halo64-assets"),
         "toolchain": {
@@ -1083,6 +1242,27 @@ def main():
             for path in (out / directory).rglob("*")
             if path.is_file() and path.suffix in (".c", ".h")
         },
+        "feature_cache_experiment": (
+            {
+                "slots": args.feature_cache_slots,
+                "required_ram_mib": 8,
+                "baseline_adapter_sha256": hashlib.sha256(
+                    (ROOT / 'port/n64/blam/vehicle_physics.c').read_bytes()).hexdigest(),
+                "generator_sha256": hashlib.sha256(
+                    (ROOT / 'port/n64/feature_cache_candidate.py').read_bytes()).hexdigest(),
+                "candidate_adapter_sha256": hashlib.sha256(candidate.read_bytes()).hexdigest(),
+            }
+            if args.feature_cache_slots else None
+        ),
+        "world_pvs_experiment": ({
+            'sidecar_sha256':hashlib.sha256(args.world_pvs_data.resolve().read_bytes()).hexdigest(),
+            'map_sha256':visibility['map_sha256'],
+            'data_source_sha256':hashlib.sha256(visibility_source.read_bytes()).hexdigest(),
+            'required_ram_mib':8,'static_array_bytes':len(visibility['nodes'])*12+len(visibility['planes'])*16+len(visibility['leaf_clusters'])*2+len(visibility['chunk_masks'])*8+visibility['clusters']*8,
+            'map_id':visibility['map_id'],
+            'scope':'Static selected world only; invalid/solid/uncertain leaves and unmapped batches fail open',
+        } if args.world_pvs_data else None),
+        "world_hierarchy_experiment": hierarchy_manifest if args.world_hierarchy else None,
         "service_ids": hashlib.sha256(
             (ROOT / "port/n64/interaction_services.def").read_bytes()
         ).hexdigest(),

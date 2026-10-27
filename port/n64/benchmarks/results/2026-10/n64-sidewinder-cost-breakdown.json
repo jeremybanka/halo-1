@@ -1,0 +1,434 @@
+{
+  "artifact_directory": "build/n64-sidewinder-cost-breakdown",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-cost-breakdown/results.json",
+      "bytes": 10329,
+      "sha256": "926fed22e6e05a9d8e8fc33e1d15f2a6e29bbd8aee5a1b7b3014abce0fe6dc36"
+    }
+  ],
+  "results": {
+    "results": {
+      "bank_sha256": "8a0cb7c21c18223ea7b9aad9661335ec6fd69ddffe86bce61321a4a58a9809d6",
+      "photos": {
+        "alive": {
+          "below_target": 0,
+          "means": {
+            "scenery": 3884.4166666666665,
+            "structures": 2792.1666666666665,
+            "terrain": 3452.25,
+            "vertices": 10128.833333333334
+          },
+          "samples": 24,
+          "worst": {
+            "alive": "1",
+            "camera": "0",
+            "candidate": "1",
+            "chunks": "401",
+            "float_clip_crossing_estimate": "213",
+            "float_clip_rejected_estimate": "1701",
+            "map": "1",
+            "material_changes": "28",
+            "scenery": 6770,
+            "structures": 7358,
+            "terrain": 4168,
+            "tick": "14",
+            "triangles": "12571",
+            "vertices": "18296",
+            "zoom": "0"
+          }
+        },
+        "all": {
+          "below_target": 0,
+          "means": {
+            "scenery": 3884.4166666666665,
+            "structures": 2792.1666666666665,
+            "terrain": 3452.25,
+            "vertices": 10128.833333333334
+          },
+          "samples": 24,
+          "worst": {
+            "alive": "1",
+            "camera": "0",
+            "candidate": "1",
+            "chunks": "401",
+            "float_clip_crossing_estimate": "213",
+            "float_clip_rejected_estimate": "1701",
+            "map": "1",
+            "material_changes": "28",
+            "scenery": 6770,
+            "structures": 7358,
+            "terrain": 4168,
+            "tick": "14",
+            "triangles": "12571",
+            "vertices": "18296",
+            "zoom": "0"
+          }
+        },
+        "material_means": [
+          {
+            "category": "scenery",
+            "material": 19,
+            "vertices": 2576.25
+          },
+          {
+            "category": "terrain",
+            "material": 7,
+            "vertices": 1681.6666666666667
+          },
+          {
+            "category": "structures",
+            "material": 1,
+            "vertices": 1645.9166666666667
+          },
+          {
+            "category": "terrain",
+            "material": 8,
+            "vertices": 1557.25
+          },
+          {
+            "category": "scenery",
+            "material": 17,
+            "vertices": 567.0833333333334
+          },
+          {
+            "category": "structures",
+            "material": 0,
+            "vertices": 400.5833333333333
+          },
+          {
+            "category": "scenery",
+            "material": 18,
+            "vertices": 264.75
+          },
+          {
+            "category": "terrain",
+            "material": 9,
+            "vertices": 213.33333333333334
+          },
+          {
+            "category": "structures",
+            "material": 6,
+            "vertices": 197.0
+          },
+          {
+            "category": "scenery",
+            "material": 1,
+            "vertices": 150.33333333333334
+          },
+          {
+            "category": "structures",
+            "material": 2,
+            "vertices": 147.58333333333334
+          },
+          {
+            "category": "structures",
+            "material": 5,
+            "vertices": 120.25
+          },
+          {
+            "category": "scenery",
+            "material": 21,
+            "vertices": 107.5
+          },
+          {
+            "category": "scenery",
+            "material": 24,
+            "vertices": 90.0
+          },
+          {
+            "category": "structures",
+            "material": 4,
+            "vertices": 72.25
+          },
+          {
+            "category": "scenery",
+            "material": 25,
+            "vertices": 56.0
+          },
+          {
+            "category": "structures",
+            "material": 11,
+            "vertices": 47.5
+          },
+          {
+            "category": "structures",
+            "material": 3,
+            "vertices": 42.0
+          },
+          {
+            "category": "structures",
+            "material": 14,
+            "vertices": 38.666666666666664
+          },
+          {
+            "category": "structures",
+            "material": 16,
+            "vertices": 37.0
+          },
+          {
+            "category": "scenery",
+            "material": 20,
+            "vertices": 27.166666666666668
+          },
+          {
+            "category": "structures",
+            "material": 12,
+            "vertices": 25.583333333333332
+          },
+          {
+            "category": "scenery",
+            "material": 23,
+            "vertices": 20.666666666666668
+          },
+          {
+            "category": "structures",
+            "material": 13,
+            "vertices": 12.5
+          },
+          {
+            "category": "scenery",
+            "material": 26,
+            "vertices": 11.666666666666666
+          },
+          {
+            "category": "scenery",
+            "material": 22,
+            "vertices": 10.333333333333334
+          },
+          {
+            "category": "structures",
+            "material": 10,
+            "vertices": 4.0
+          },
+          {
+            "category": "scenery",
+            "material": 27,
+            "vertices": 2.0
+          },
+          {
+            "category": "structures",
+            "material": 15,
+            "vertices": 1.3333333333333333
+          },
+          {
+            "category": "scenery",
+            "material": 28,
+            "vertices": 0.6666666666666666
+          }
+        ]
+      },
+      "replay": {
+        "alive": {
+          "below_target": 2,
+          "means": {
+            "scenery": 3112.126984126984,
+            "structures": 4241.460317460317,
+            "terrain": 2211.1428571428573,
+            "vertices": 9564.730158730159
+          },
+          "samples": 63,
+          "worst": {
+            "alive": "1",
+            "camera": "2",
+            "candidate": "1",
+            "chunks": "432",
+            "float_clip_crossing_estimate": "181",
+            "float_clip_rejected_estimate": "1244",
+            "map": "1",
+            "material_changes": "29",
+            "scenery": 6762,
+            "structures": 9040,
+            "terrain": 4150,
+            "tick": "600",
+            "triangles": "13559",
+            "vertices": "19952",
+            "zoom": "0"
+          }
+        },
+        "all": {
+          "below_target": 3,
+          "means": {
+            "scenery": 2933.735294117647,
+            "structures": 4067.9411764705883,
+            "terrain": 2139.8823529411766,
+            "vertices": 9141.558823529413
+          },
+          "samples": 68,
+          "worst": {
+            "alive": "1",
+            "camera": "2",
+            "candidate": "1",
+            "chunks": "432",
+            "float_clip_crossing_estimate": "181",
+            "float_clip_rejected_estimate": "1244",
+            "map": "1",
+            "material_changes": "29",
+            "scenery": 6762,
+            "structures": 9040,
+            "terrain": 4150,
+            "tick": "600",
+            "triangles": "13559",
+            "vertices": "19952",
+            "zoom": "0"
+          }
+        },
+        "material_means": [
+          {
+            "category": "structures",
+            "material": 1,
+            "vertices": 2605.264705882353
+          },
+          {
+            "category": "scenery",
+            "material": 19,
+            "vertices": 1707.8235294117646
+          },
+          {
+            "category": "terrain",
+            "material": 7,
+            "vertices": 1062.6470588235295
+          },
+          {
+            "category": "terrain",
+            "material": 8,
+            "vertices": 954.1470588235294
+          },
+          {
+            "category": "structures",
+            "material": 0,
+            "vertices": 606.8529411764706
+          },
+          {
+            "category": "scenery",
+            "material": 17,
+            "vertices": 314.61764705882354
+          },
+          {
+            "category": "structures",
+            "material": 6,
+            "vertices": 313.2352941176471
+          },
+          {
+            "category": "scenery",
+            "material": 21,
+            "vertices": 304.29411764705884
+          },
+          {
+            "category": "scenery",
+            "material": 18,
+            "vertices": 195.85294117647058
+          },
+          {
+            "category": "scenery",
+            "material": 1,
+            "vertices": 130.85294117647058
+          },
+          {
+            "category": "terrain",
+            "material": 9,
+            "vertices": 123.08823529411765
+          },
+          {
+            "category": "scenery",
+            "material": 25,
+            "vertices": 106.08823529411765
+          },
+          {
+            "category": "structures",
+            "material": 2,
+            "vertices": 96.20588235294117
+          },
+          {
+            "category": "structures",
+            "material": 5,
+            "vertices": 79.32352941176471
+          },
+          {
+            "category": "structures",
+            "material": 3,
+            "vertices": 77.08823529411765
+          },
+          {
+            "category": "structures",
+            "material": 4,
+            "vertices": 75.5
+          },
+          {
+            "category": "structures",
+            "material": 14,
+            "vertices": 53.8235294117647
+          },
+          {
+            "category": "scenery",
+            "material": 24,
+            "vertices": 53.14705882352941
+          },
+          {
+            "category": "structures",
+            "material": 11,
+            "vertices": 51.0
+          },
+          {
+            "category": "scenery",
+            "material": 22,
+            "vertices": 43.76470588235294
+          },
+          {
+            "category": "scenery",
+            "material": 23,
+            "vertices": 43.76470588235294
+          },
+          {
+            "category": "structures",
+            "material": 13,
+            "vertices": 35.411764705882355
+          },
+          {
+            "category": "structures",
+            "material": 12,
+            "vertices": 32.0
+          },
+          {
+            "category": "structures",
+            "material": 16,
+            "vertices": 25.058823529411764
+          },
+          {
+            "category": "scenery",
+            "material": 20,
+            "vertices": 19.205882352941178
+          },
+          {
+            "category": "structures",
+            "material": 10,
+            "vertices": 13.411764705882353
+          },
+          {
+            "category": "scenery",
+            "material": 26,
+            "vertices": 6.794117647058823
+          },
+          {
+            "category": "scenery",
+            "material": 27,
+            "vertices": 5.882352941176471
+          },
+          {
+            "category": "structures",
+            "material": 15,
+            "vertices": 3.764705882352941
+          },
+          {
+            "category": "scenery",
+            "material": 28,
+            "vertices": 1.6470588235294117
+          }
+        ]
+      },
+      "scope": "Exact static-world paired vertex loads, with repeated batch vertices and padding. Dynamic objects excluded. Same camera/PVS code; every aggregate row and pose must equal the completed study. Terrain=cliffs/snow/ice; structures=other source BSP; scenery=appended source models, identified by source IDs.",
+      "source_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15"
+    }
+  }
+}

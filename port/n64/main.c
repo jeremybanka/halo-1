@@ -264,6 +264,13 @@ static bool input(bg_input in[4]) {
     }
 #ifdef BG_FRONTEND_QA
     bg_front_qa_input(&front, raw, get_ticks_us());
+    static unsigned reported_qa_step=~0u;
+    static bool reported_qa_done;
+    if(reported_qa_step!=bg_front_qa_step()||reported_qa_done!=bg_front_qa_done()) {
+        reported_qa_step=bg_front_qa_step();reported_qa_done=bg_front_qa_done();
+        debugf("FRONTEND_QA step=%u/%u map=%u done=%u\n",reported_qa_step+1,
+               bg_front_qa_steps(),front.map,(unsigned)reported_qa_done);
+    }
 #endif
 #ifdef BG_MENU_QA
     bg_menu_qa_input(raw, get_ticks_us());
@@ -548,6 +555,30 @@ static void benchmark_page(surface_t *screen, bool completed) {
            cats[0], cats[1], cats[2], cats[3], cats[4], cats[5]);
 }
 static void benchmark_cost_page(surface_t *screen, unsigned detail) {
+    /* Dump the completed sample bank once, after measurement. This keeps
+     * CPU and serialized pipeline attribution machine-readable without
+     * adding logging to measured frames. Inclusive phases can overlap. */
+    static bool dumped_phases;
+    if(!dumped_phases) {
+        dumped_phases=true;
+#if defined(BG_WORLD_SUBMIT_CACHE) && defined(BG_PROFILE)
+#ifdef BG_WORLD_HIERARCHY
+        extern uint64_t bg_hierarchy_totals[4];
+        debugf("HIERARCHY nodes=%llu planes=%llu leaves=%llu lod_groups=%llu\n",
+            bg_hierarchy_totals[0],bg_hierarchy_totals[1],bg_hierarchy_totals[2],bg_hierarchy_totals[3]);
+#endif
+        extern uint64_t bg_submit_stats[8];
+        debugf("SUBMIT views=%llu rebuilds=%llu lod_us=%llu select_us=%llu frustum_us=%llu dispatch_us=%llu plan_hits=%llu plan_misses=%llu\n",
+               bg_submit_stats[0],bg_submit_stats[1],bg_submit_stats[2],bg_submit_stats[3],bg_submit_stats[4],bg_submit_stats[5],bg_submit_stats[6],bg_submit_stats[7]);
+#endif
+        for(unsigned g=0;g<3;g++) {
+            const bg_benchmark_result *r=&benchmark.result[g];
+            debugf("BENCH attribution group=%u frames=%u elapsed_us=%llu phases=",g,r->frames,r->elapsed);
+            for(unsigned p=0;p<BG_BENCHMARK_PHASES;p++)
+                debugf("%s%llu",p?",":"",r->frames?r->phase_us[p]/r->frames:0);
+            debugf("\n");
+        }
+    }
     rdpq_attach(screen, NULL);
     rdpq_set_mode_standard();
     rdpq_set_scissor(0, 0, 320, 240);
@@ -1138,11 +1169,24 @@ int main(void) {
 #ifdef BG_PROFILE
         bg_scene_profile.submitted_vertices = 0;
 #endif
+#ifdef BG_GEOMETRY_CENSUS
+        unsigned camera_drain_us[4]={0},camera_total_triangles[4]={0};
+#endif
         for (unsigned p = 0; p < views; p++) {
+#ifdef BG_GEOMETRY_CENSUS
+            unsigned before_camera=triangles;
+#endif
             triangles = bg_scene_draw(p);
             /* Submit each completed view before mixing audio. This is a
              * nonblocking wakeup, not a fence or a new RDP command. */
             rspq_flush();
+#ifdef BG_GEOMETRY_CENSUS
+            camera_total_triangles[p]=triangles-before_camera;
+            uint64_t drain_begin=get_ticks_us();
+            rspq_syncpoint_t camera_fence=rspq_syncpoint_new();rspq_flush();
+            while(!rspq_syncpoint_check(camera_fence))pump_audio();
+            camera_drain_us[p]=get_ticks_us()-drain_begin;
+#endif
             pump_audio();
         }
 #ifdef BG_GPU_DIAGNOSTIC
@@ -1199,6 +1243,21 @@ int main(void) {
             fill(0, 119, 320, 2, RGBA32(0, 0, 0, 255));
         if (views >= 3)
             fill(159, 0, 2, 240, RGBA32(0, 0, 0, 255));
+#ifdef BG_GEOMETRY_CENSUS
+        rdpq_set_mode_standard();fill(0,0,320,240,RGBA32(0,0,0,255));
+        rdpq_set_mode_standard();
+        static bool census_logged;
+        rdpq_text_printf(NULL,1,4,12,"FIXED TICK %u / SERIAL CAMERA DRAINS",(unsigned)BG_SNAPSHOT_TICK);
+        for(unsigned p=0;p<views;p++){
+            const bg_world_view_metrics*m=&bg_world_views[p];
+            int y=34+p*47;
+            rdpq_text_printf(NULL,1,4,y,"P%u V%u T%u B%u M%u",p,m->vertices,m->triangles,m->chunks,m->material_changes);
+            rdpq_text_printf(NULL,1,4,y+12,"CPU%u DRAIN%u ALLT%u",m->world_cpu_us,camera_drain_us[p],camera_total_triangles[p]);
+            rdpq_text_printf(NULL,1,4,y+24,"PVS%llX REJ%u FR%u",(unsigned long long)m->pvs_mask,m->pvs_rejected,m->frustum_rejected);
+            if(!census_logged)debugf("CENSUS tick=%u camera=%u vertices=%u triangles=%u chunks=%u materials=%u world_cpu_us=%u rsp_drain_us=%u total_triangles=%u\n",(unsigned)BG_SNAPSHOT_TICK,p,m->vertices,m->triangles,m->chunks,m->material_changes,m->world_cpu_us,camera_drain_us[p],camera_total_triangles[p]);
+            if(p+1==views)census_logged=true;
+        }
+#endif
 #if defined(BG_DEMO) && !defined(BG_VI_MEASURE) && !defined(BG_SNAPSHOT_TICK)
         rdpq_set_mode_standard();
         rdpq_text_printf(NULL, 1, 116, 118, "REPLAY %u FPS", fps);

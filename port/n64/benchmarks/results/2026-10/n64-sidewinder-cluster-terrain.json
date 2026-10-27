@@ -1,0 +1,241 @@
+{
+  "artifact_directory": "build/n64-sidewinder-cluster-terrain",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-cluster-terrain/timing.json",
+      "bytes": 2727,
+      "sha256": "161e20b31c453f7ea4f6812b6f7979106850e124182d94e47bec04dc7e52250b"
+    },
+    {
+      "artifact": "build/n64-sidewinder-cluster-terrain/timing-summary.json",
+      "bytes": 1050,
+      "sha256": "c0bdb7a5fcb8ca4846c5f8b61a911fac025bd480a0ecd35dbb9c08ed06247523"
+    },
+    {
+      "artifact": "build/n64-sidewinder-cluster-terrain/validation.json",
+      "bytes": 2609,
+      "sha256": "21d0f164a6a7b6d84154ce835b678af3ece4f1e638ef6d3697c27f527547c30a"
+    }
+  ],
+  "results": {
+    "timing": [
+      {
+        "duplicates": 937,
+        "early_fps": 29,
+        "flips": 3049,
+        "fps": 28.1,
+        "free_kib": 2967,
+        "label": "baseline",
+        "late_fps": 27.3,
+        "max_ms": 100.2,
+        "p95_ms": 50.1,
+        "poses": 2112,
+        "route": "one",
+        "sample_ms": 75034,
+        "screenshot": "one-baseline-native.png"
+      },
+      {
+        "duplicates": 913,
+        "early_fps": 29,
+        "flips": 3023,
+        "fps": 28.1,
+        "free_kib": 2961,
+        "label": "candidate",
+        "late_fps": 27.2,
+        "max_ms": 100.2,
+        "p95_ms": 50.1,
+        "poses": 2110,
+        "route": "one",
+        "sample_ms": 75000,
+        "screenshot": "one-candidate-native.png"
+      },
+      {
+        "duplicates": 937,
+        "early_fps": 29,
+        "flips": 3049,
+        "fps": 28.1,
+        "free_kib": 2967,
+        "label": "baseline_repeat",
+        "late_fps": 27.3,
+        "max_ms": 100.2,
+        "p95_ms": 50.1,
+        "poses": 2112,
+        "route": "one",
+        "sample_ms": 75034,
+        "screenshot": "one-baseline-repeat-native.png"
+      },
+      {
+        "duplicates": 913,
+        "early_fps": 29,
+        "flips": 3023,
+        "fps": 28.1,
+        "free_kib": 2961,
+        "label": "candidate_repeat",
+        "late_fps": 27.2,
+        "max_ms": 100.2,
+        "p95_ms": 50.1,
+        "poses": 2110,
+        "route": "one",
+        "sample_ms": 75000,
+        "screenshot": "one-candidate-repeat-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.9,
+        "early_p95_ms": 133.7,
+        "flips": 778,
+        "fps": 10.3,
+        "free_kib": 2887,
+        "label": "baseline",
+        "late_fps": 10.7,
+        "late_p95_ms": 133.7,
+        "max_ms": 200.5,
+        "p95_ms": 133.7,
+        "poses": 778,
+        "route": "four",
+        "sample_ms": 75084,
+        "screenshot": "four-baseline-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.8,
+        "early_p95_ms": 167.1,
+        "flips": 773,
+        "fps": 10.2,
+        "free_kib": 2880,
+        "label": "candidate",
+        "late_fps": 10.6,
+        "late_p95_ms": 133.7,
+        "max_ms": 200.5,
+        "p95_ms": 133.7,
+        "poses": 773,
+        "route": "four",
+        "sample_ms": 75050,
+        "screenshot": "four-candidate-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.9,
+        "early_p95_ms": 133.7,
+        "flips": 778,
+        "fps": 10.3,
+        "free_kib": 2887,
+        "label": "baseline_repeat",
+        "late_fps": 10.7,
+        "late_p95_ms": 133.7,
+        "max_ms": 200.5,
+        "p95_ms": 133.7,
+        "poses": 778,
+        "route": "four",
+        "sample_ms": 75084,
+        "screenshot": "four-baseline-repeat-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.8,
+        "early_p95_ms": 167.1,
+        "flips": 773,
+        "fps": 10.2,
+        "free_kib": 2880,
+        "label": "candidate_repeat",
+        "late_fps": 10.6,
+        "late_p95_ms": 133.7,
+        "max_ms": 200.5,
+        "p95_ms": 133.7,
+        "poses": 773,
+        "route": "four",
+        "sample_ms": 75050,
+        "screenshot": "four-candidate-repeat-native.png"
+      }
+    ],
+    "timing-summary": {
+      "four": {
+        "baseline_early_p95_ms": 133.7,
+        "baseline_fps": 10.361728197751852,
+        "baseline_max_ms": 200.5,
+        "baseline_p95_ms": 133.7,
+        "candidate_early_p95_ms": 167.1,
+        "candidate_fps": 10.299800133244503,
+        "candidate_max_ms": 200.5,
+        "candidate_p95_ms": 133.7,
+        "exact_repeat": true,
+        "gain_percent": -0.5976615418341602,
+        "scope": "Fresh previous/candidate/previous/candidate repeats; 75-second Ares NTSC samples, 8 MiB, LTO, three surfaces, 32 KiB queues. Only the corrected walking-preserving candidate is included."
+      },
+      "one": {
+        "baseline_fps": 28.147239917903885,
+        "baseline_max_ms": 100.2,
+        "baseline_p95_ms": 50.1,
+        "candidate_fps": 28.133333333333333,
+        "candidate_max_ms": 100.2,
+        "candidate_p95_ms": 50.1,
+        "exact_repeat": true,
+        "gain_percent": -0.04940656565656232,
+        "scope": "Fresh previous/candidate/previous/candidate repeats; 75-second Ares NTSC samples, 8 MiB, LTO, three surfaces, 32 KiB queues. Only the corrected walking-preserving candidate is included."
+      }
+    },
+    "validation": {
+      "all_nonrender_sections_identical": true,
+      "canonical_bank_unchanged": true,
+      "cluster_partitions": 21,
+      "diff_filter_pairs": 24,
+      "diff_filter_thresholds": [
+        0,
+        8
+      ],
+      "final_candidate_build_identities_verified": true,
+      "method_limit": "Ground deviation uses vertices, edge midpoints and centroids; no continuous bound or physical-console acceptance. Previous prototype pinned 239 flatter cliff faces; final candidate adds exact protection for 59 further walk-slope faces. Superseded weaker-guard results are excluded.",
+      "mixed_membership_batches": 31,
+      "native_full_four_camera_pvs_pairs_identical": 2,
+      "native_full_photo_pvs_pairs_identical": 24,
+      "native_host_camera_count_matches": 8,
+      "native_pose_strips_identical": 24,
+      "native_rdp_errors": 0,
+      "native_rdp_queue_kib": 8,
+      "native_rdp_warnings": 0,
+      "negative_checks": [
+        "Wrong bank rejected",
+        "Incorrect nonzero terrain membership rejected"
+      ],
+      "photo_rom_hashes_verified": 72,
+      "photo_states_identical": 24,
+      "pinned_cluster_seams_preserved": true,
+      "pvs_sphere_tests": "Strict and target-math ASan/UBSan: 30000 camera spheres each, all 35 clusters covered.",
+      "settings_restored": true,
+      "snow_deviation_limit": 0.06,
+      "snow_sampled_max_surface_deviation": 0.04978693649172783,
+      "terrain_batches_with_membership": 95,
+      "timing": {
+        "four": {
+          "baseline_early_p95_ms": 133.7,
+          "baseline_fps": 10.361728197751852,
+          "baseline_max_ms": 200.5,
+          "baseline_p95_ms": 133.7,
+          "candidate_early_p95_ms": 167.1,
+          "candidate_fps": 10.299800133244503,
+          "candidate_max_ms": 200.5,
+          "candidate_p95_ms": 133.7,
+          "exact_repeat": true,
+          "gain_percent": -0.5976615418341602,
+          "scope": "Fresh previous/candidate/previous/candidate repeats; 75-second Ares NTSC samples, 8 MiB, LTO, three surfaces, 32 KiB queues. Only the corrected walking-preserving candidate is included."
+        },
+        "one": {
+          "baseline_fps": 28.147239917903885,
+          "baseline_max_ms": 100.2,
+          "baseline_p95_ms": 50.1,
+          "candidate_fps": 28.133333333333333,
+          "candidate_max_ms": 100.2,
+          "candidate_p95_ms": 50.1,
+          "exact_repeat": true,
+          "gain_percent": -0.04940656565656232,
+          "scope": "Fresh previous/candidate/previous/candidate repeats; 75-second Ares NTSC samples, 8 MiB, LTO, three surfaces, 32 KiB queues. Only the corrected walking-preserving candidate is included."
+        }
+      },
+      "unassigned_terrain_batches": 0,
+      "unchanged_nonterrain_batches": 383,
+      "walkable_cliff_faces_verified_exact": 298,
+      "walkable_cliff_normal_squared_cutoff": 0.38
+    }
+  }
+}

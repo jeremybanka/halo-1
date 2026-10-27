@@ -1,0 +1,331 @@
+{
+  "artifact_directory": "build/n64-sidewinder-trees",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-trees/timing.json",
+      "bytes": 6678,
+      "sha256": "dd3eff0894aac33ebfbb5e27ec4d4537d893bcb5753d052d5dc76e1c2369f165"
+    },
+    {
+      "artifact": "build/n64-sidewinder-trees/timing-summary.json",
+      "bytes": 1190,
+      "sha256": "66d38e83786f37b3ea590e75592f3434722115b4358ae461fd17444b670e8fc1"
+    },
+    {
+      "artifact": "build/n64-sidewinder-trees/validation.json",
+      "bytes": 635,
+      "sha256": "b544e4170dc1a6f0e3cc7f4d2ca0b70094295567fb15297bf57571e5f3c715e3"
+    }
+  ],
+  "results": {
+    "timing": [
+      {
+        "fps": 28.133096265108804,
+        "groups": {
+          "ALL": {
+            "deadlines": 0,
+            "duplicate_poses": 913,
+            "elapsed_us": 75000632,
+            "flips": 3023,
+            "frames": 2110,
+            "gap1": 396,
+            "gap2": 1069,
+            "gap_long": 645,
+            "max_gap": 6,
+            "max_us": 100271,
+            "missed": 0,
+            "p95_us": 50154,
+            "ready_wait_avg": 9041,
+            "ready_wait_max": 16839,
+            "sample_latency_avg": 53169,
+            "sample_latency_max": 109132,
+            "skipped_poses": 140
+          },
+          "EARLY": {
+            "deadlines": 0,
+            "duplicate_poses": 349,
+            "elapsed_us": 35987631,
+            "flips": 1395,
+            "frames": 1046,
+            "gap1": 258,
+            "gap2": 477,
+            "gap_long": 311,
+            "max_gap": 5,
+            "max_us": 83588,
+            "missed": 0,
+            "p95_us": 50154,
+            "ready_wait_avg": 8281,
+            "ready_wait_max": 16691,
+            "sample_latency_avg": 52997,
+            "sample_latency_max": 102194,
+            "skipped_poses": 34
+          },
+          "LATE": {
+            "deadlines": 0,
+            "duplicate_poses": 564,
+            "elapsed_us": 39013001,
+            "flips": 1628,
+            "frames": 1064,
+            "gap1": 138,
+            "gap2": 592,
+            "gap_long": 334,
+            "max_gap": 6,
+            "max_us": 100271,
+            "missed": 0,
+            "p95_us": 50154,
+            "ready_wait_avg": 9787,
+            "ready_wait_max": 16839,
+            "sample_latency_avg": 53339,
+            "sample_latency_max": 109132,
+            "skipped_poses": 106
+          }
+        },
+        "label": "baseline",
+        "screenshot": "one-baseline-native.png",
+        "source_log": "one-baseline.log",
+        "workload": "one"
+      },
+      {
+        "fps": 28.886654738757734,
+        "groups": {
+          "ALL": {
+            "deadlines": 0,
+            "duplicate_poses": 1191,
+            "elapsed_us": 75017340,
+            "flips": 3358,
+            "frames": 2167,
+            "gap1": 395,
+            "gap2": 1238,
+            "gap_long": 534,
+            "max_gap": 5,
+            "max_us": 83583,
+            "missed": 0,
+            "p95_us": 50156,
+            "ready_wait_avg": 9120,
+            "ready_wait_max": 17893,
+            "sample_latency_avg": 48206,
+            "sample_latency_max": 102125,
+            "skipped_poses": 84
+          },
+          "EARLY": {
+            "deadlines": 0,
+            "duplicate_poses": 537,
+            "elapsed_us": 36021037,
+            "flips": 1604,
+            "frames": 1067,
+            "gap1": 274,
+            "gap2": 506,
+            "gap_long": 287,
+            "max_gap": 5,
+            "max_us": 83583,
+            "missed": 0,
+            "p95_us": 50157,
+            "ready_wait_avg": 8058,
+            "ready_wait_max": 16690,
+            "sample_latency_avg": 46496,
+            "sample_latency_max": 85596,
+            "skipped_poses": 14
+          },
+          "LATE": {
+            "deadlines": 0,
+            "duplicate_poses": 654,
+            "elapsed_us": 38996303,
+            "flips": 1754,
+            "frames": 1100,
+            "gap1": 121,
+            "gap2": 732,
+            "gap_long": 247,
+            "max_gap": 5,
+            "max_us": 83568,
+            "missed": 0,
+            "p95_us": 50154,
+            "ready_wait_avg": 10150,
+            "ready_wait_max": 17893,
+            "sample_latency_avg": 49864,
+            "sample_latency_max": 102125,
+            "skipped_poses": 70
+          }
+        },
+        "label": "candidate",
+        "screenshot": "one-candidate-native.png",
+        "source_log": "one-candidate.log",
+        "workload": "one"
+      },
+      {
+        "fps": 10.299695832527211,
+        "groups": {
+          "ALL": {
+            "deadlines": 2245,
+            "duplicate_poses": 0,
+            "elapsed_us": 75050760,
+            "flips": 773,
+            "frames": 773,
+            "gap1": 0,
+            "gap2": 26,
+            "gap_long": 747,
+            "max_gap": 12,
+            "max_us": 200580,
+            "missed": 1472,
+            "p95_us": 133737,
+            "ready_wait_avg": 17433,
+            "ready_wait_max": 33427,
+            "sample_latency_avg": 194090,
+            "sample_latency_max": 368851,
+            "skipped_poses": 1479
+          },
+          "EARLY": {
+            "deadlines": 1079,
+            "duplicate_poses": 0,
+            "elapsed_us": 36037742,
+            "flips": 356,
+            "frames": 356,
+            "gap1": 0,
+            "gap2": 21,
+            "gap_long": 335,
+            "max_gap": 12,
+            "max_us": 200580,
+            "missed": 723,
+            "p95_us": 167137,
+            "ready_wait_avg": 17514,
+            "ready_wait_max": 33350,
+            "sample_latency_avg": 201916,
+            "sample_latency_max": 368851,
+            "skipped_poses": 726
+          },
+          "LATE": {
+            "deadlines": 1166,
+            "duplicate_poses": 0,
+            "elapsed_us": 39013018,
+            "flips": 417,
+            "frames": 417,
+            "gap1": 0,
+            "gap2": 5,
+            "gap_long": 412,
+            "max_gap": 10,
+            "max_us": 167164,
+            "missed": 749,
+            "p95_us": 133729,
+            "ready_wait_avg": 17364,
+            "ready_wait_max": 33427,
+            "sample_latency_avg": 187409,
+            "sample_latency_max": 302847,
+            "skipped_poses": 753
+          }
+        },
+        "label": "baseline",
+        "screenshot": "four-baseline-native.png",
+        "source_log": "four-baseline-repeat.log",
+        "workload": "four"
+      },
+      {
+        "fps": 11.224073905594475,
+        "groups": {
+          "ALL": {
+            "deadlines": 2244,
+            "duplicate_poses": 0,
+            "elapsed_us": 75017325,
+            "flips": 842,
+            "frames": 842,
+            "gap1": 0,
+            "gap2": 30,
+            "gap_long": 812,
+            "max_gap": 10,
+            "max_us": 167154,
+            "missed": 1402,
+            "p95_us": 133723,
+            "ready_wait_avg": 16787,
+            "ready_wait_max": 33409,
+            "sample_latency_avg": 178219,
+            "sample_latency_max": 336268,
+            "skipped_poses": 1409
+          },
+          "EARLY": {
+            "deadlines": 1077,
+            "duplicate_poses": 0,
+            "elapsed_us": 36037703,
+            "flips": 384,
+            "frames": 384,
+            "gap1": 0,
+            "gap2": 22,
+            "gap_long": 362,
+            "max_gap": 10,
+            "max_us": 167154,
+            "missed": 693,
+            "p95_us": 133727,
+            "ready_wait_avg": 17442,
+            "ready_wait_max": 33352,
+            "sample_latency_avg": 187319,
+            "sample_latency_max": 336268,
+            "skipped_poses": 697
+          },
+          "LATE": {
+            "deadlines": 1167,
+            "duplicate_poses": 0,
+            "elapsed_us": 38979622,
+            "flips": 458,
+            "frames": 458,
+            "gap1": 0,
+            "gap2": 8,
+            "gap_long": 450,
+            "max_gap": 8,
+            "max_us": 133743,
+            "missed": 709,
+            "p95_us": 133718,
+            "ready_wait_avg": 16237,
+            "ready_wait_max": 33409,
+            "sample_latency_avg": 170590,
+            "sample_latency_max": 269406,
+            "skipped_poses": 712
+          }
+        },
+        "label": "candidate",
+        "screenshot": "four-candidate-native.png",
+        "source_log": "four-candidate.log",
+        "workload": "four"
+      }
+    ],
+    "timing-summary": {
+      "four": {
+        "after_fps": 11.224073905594475,
+        "after_max_ms": 167.154,
+        "after_p95_ms": 133.723,
+        "baseline_repeat_scope": "First fresh baseline screenshot: 773 frames / 75050 ms; repeated baseline log: 773 frames / 75050760 us.",
+        "before_fps": 10.299695832527211,
+        "before_max_ms": 200.58,
+        "before_p95_ms": 133.737,
+        "candidate_repeat_exact": true,
+        "gain_percent": 8.974809432216514,
+        "scope": "75-second NTSC fresh-pose sample after 1-second warmup; 8 MiB, LTO, three surfaces, 32 KiB queues; quiet Ares. Single-player has one fresh baseline/candidate pair; four-player has repeated baseline/candidate controls. No physical-console claim."
+      },
+      "one": {
+        "after_fps": 28.886654738757734,
+        "after_max_ms": 83.583,
+        "after_p95_ms": 50.156,
+        "before_fps": 28.133096265108804,
+        "before_max_ms": 100.271,
+        "before_p95_ms": 50.154,
+        "gain_percent": 2.6785479513092403,
+        "scope": "75-second NTSC fresh-pose sample after 1-second warmup; 8 MiB, LTO, three surfaces, 32 KiB queues; quiet Ares. Single-player has one fresh baseline/candidate pair; four-player has repeated baseline/candidate controls. No physical-console claim."
+      }
+    },
+    "validation": {
+      "lean": {
+        "map_sha256": "73aa32e4055dd1aa90b46bd316a8bb714a49e719d8c9893225ca35efea16c86d",
+        "matching_player_bytes": true,
+        "original_material_pass_order_verified": true,
+        "original_nonrender_sections_identical": true,
+        "pvs_control_changed_pixels": 0,
+        "unchanged_non_tree_batches": 381
+      },
+      "medium": {
+        "map_sha256": "96458f659db89d159f4b33397ed757df5a80240729175f64aabe41b0c310b63e",
+        "matching_player_bytes": true,
+        "original_material_pass_order_verified": true,
+        "original_nonrender_sections_identical": true,
+        "pvs_control_changed_pixels": 0,
+        "unchanged_non_tree_batches": 381
+      }
+    }
+  }
+}

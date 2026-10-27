@@ -25,16 +25,32 @@
 #include "render_animation.h"
 #include "animation_profile.h"
 #include "render_lod.h"
+#ifdef BG_WORLD_LOD
+#include "render_world_lod.h"
+#ifdef BG_WORLD_REP
+#include "render_world_rep.h"
+#endif
+#ifdef BG_WORLD_CELLS
+#include "render_world_cells.h"
+#endif
+#endif
 #include "asset_micro.h"
 #include "render_micro_lod.h"
 #include "render_pose_cache.h"
 #include "render_cull.h"
 #include "render_visibility.h"
+#ifdef BG_WORLD_PVS
+#include "render_pvs.h"
+static uint64_t world_camera_masks[4];
+#endif
 #include "blam/runtime.h"
 #include "hud.h"
 #include "scene.h"
 #include "map.h"
 #include "runtime_qa.h"
+#ifdef BG_GEOMETRY_CENSUS
+bg_world_view_metrics bg_world_views[4];
+#endif
 #ifdef BG_PROFILE
 typedef struct {
     const bg_anim_asset *asset;
@@ -57,6 +73,44 @@ static const color_t colors[4] = {
 static surface_t textures[32];
 static rspq_block_t *texture_blocks[32];
 static unsigned world_block_count, world_texture_count;
+#ifdef BG_WORLD_SUBMIT_CACHE
+#include "render_world_submit.h"
+#ifdef BG_WORLD_HIERARCHY
+#ifdef BG_PROFILE
+#define BG_HIERARCHY_CLOCK() ((unsigned)get_ticks_us())
+#define BG_HIERARCHY_COUNT(s,member) ((s)->member++)
+#endif
+#include "render_world_hierarchy.h"
+static bg_world_submit_key world_hierarchy_keys[4];
+static bool world_hierarchy_valid[4];
+static uint8_t *world_hierarchy_eligible;
+static uint8_t world_hierarchy_chunks[BG_WORLD_CHUNK_CAPACITY];
+static uint32_t world_hierarchy_visible[(BG_WORLD_CHUNK_CAPACITY+31)/32];
+#ifdef BG_PROFILE
+uint64_t bg_hierarchy_totals[4]; /* nodes, active plane tests, visible leaves, evaluated LOD groups */
+#endif
+#else
+static bg_world_submit_cache world_submit[4];
+static bool world_lod_used[BG_WORLD_LOD_MAX_GROUPS];
+#endif
+#ifdef BG_WORLD_BULK_SUBMIT
+extern void bg_rspq_geometry_run(rspq_block_t *const *blocks,unsigned count);
+static rspq_block_t *world_pending_blocks[BG_WORLD_CHUNK_CAPACITY];
+#endif
+#ifdef BG_WORLD_COMMAND_CACHE
+static uint16_t world_visible_ids[BG_WORLD_CHUNK_CAPACITY];
+typedef struct {
+    rspq_block_t *block;
+    unsigned count, triangles, vertices, overlay, materials;
+    bool palette;
+    uint16_t ids[BG_WORLD_CHUNK_CAPACITY];
+} bg_world_command_plan;
+static bg_world_command_plan world_plans[BG_FRAME_SLOTS][4];
+#endif
+#ifdef BG_PROFILE
+uint64_t bg_submit_stats[8]; /* views, rebuilds, LOD us, selection us, frustum us, dispatch us */
+#endif
+#endif
 static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[7][12] __attribute__((aligned(16)));
 static T3DVertPacked *firstperson[BG_FRAME_SLOTS][4];
 static unsigned firstperson_bytes[BG_FRAME_SLOTS][4];
@@ -67,7 +121,7 @@ static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
  * fenced player/slot buffers. Segment 1 is reserved for these draw calls. */
 static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static float fired_at[4] = {-100, -100, -100, -100};
-static rspq_block_t *world_blocks[512], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
+static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
     *particle_blocks[7];
 static rspq_block_t *vehicle_lods[4];
 static rspq_block_t *covenant_wreck_blocks[2];
@@ -250,6 +304,20 @@ static rspq_block_t *record_texture(unsigned material) {
 }
 void bg_scene_release_world(void) {
     rspq_wait();
+#ifdef BG_WORLD_SUBMIT_CACHE
+#ifdef BG_WORLD_HIERARCHY
+    free(world_hierarchy_eligible);world_hierarchy_eligible=NULL;
+    memset(world_hierarchy_valid,0,sizeof(world_hierarchy_valid));
+#else
+    memset(world_submit,0,sizeof(world_submit));
+#endif
+#ifdef BG_WORLD_COMMAND_CACHE
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned p=0;p<4;p++) {
+        if(world_plans[s][p].block)rspq_block_free(world_plans[s][p].block);
+    }
+    memset(world_plans,0,sizeof(world_plans));
+#endif
+#endif
     for (unsigned i = 0; i < world_block_count; i++) {
         rspq_block_free(world_blocks[i]); world_blocks[i] = NULL;
     }
@@ -259,13 +327,36 @@ void bg_scene_release_world(void) {
     world_block_count = world_texture_count = 0;
 }
 void bg_scene_load_world(void) {
+#ifdef BG_WORLD_PVS
+    assertf(get_memory_size()>=8*1024*1024,"World PVS experiment requires Expansion Pak");
+    if(bg_map_id()==bg_world_pvs.map_id)
+        assertf(bg_chunk_count==bg_world_pvs.chunk_count,"PVS batch identity");
+#endif
 #ifdef BG_STREAM_MAPS
     /* The main menu needs shared models, not a temporary level allocation.
      * Bind the selected world's commands only when starting a match. */
     if (!bg_map_loaded()) return;
 #endif
     if (world_block_count) return;
-    assertf(bg_chunk_count <= 512 && bg_material_count <= 32, "World asset capacity");
+#ifdef BG_WORLD_SUBMIT_CACHE
+#ifdef BG_WORLD_HIERARCHY
+    if(bg_map_id()==bg_world_hierarchy.map_id) {
+        assertf(bg_chunk_count==bg_world_hierarchy.chunks,"Hierarchy map/batch identity");
+        assertf(bg_world_hierarchy.depth<BG_HIERARCHY_STACK,"Hierarchy traversal stack");
+        world_hierarchy_eligible=calloc(4,bg_world_hierarchy.count);
+        assertf(world_hierarchy_eligible,"Hierarchy eligibility allocation");
+    }
+    memset(world_hierarchy_valid,0,sizeof(world_hierarchy_valid));
+#else
+    memset(world_lod_used,0,sizeof(world_lod_used));
+    if(bg_map_id()==bg_world_lod.map_id)
+        for(unsigned b=0;b<bg_world_lod.chunk_count;b++) {
+            unsigned code=bg_world_lod.chunks[b];
+            if(code)world_lod_used[(code-1)/2]=true;
+        }
+#endif
+#endif
+    assertf(bg_chunk_count <= BG_WORLD_CHUNK_CAPACITY && bg_material_count <= 32, "World asset capacity");
     data_cache_hit_writeback(bg_vertices, bg_vertex_count * 16);
     data_cache_hit_writeback((void *)bg_ground_palette, 32);
     for (unsigned i = 0; i < bg_material_count; i++) {
@@ -284,7 +375,7 @@ static void init_scene(void) {
                               (float[]){terrain_scale, terrain_scale, terrain_scale},
                               (float[]){0, 0, 0}, (float[]){0, 0, 0});
     data_cache_hit_writeback(&terrain_matrix, sizeof(terrain_matrix));
-    assertf(bg_chunk_count <= 512 && bg_material_count <= 32, "Asset capacity exceeded");
+    assertf(bg_chunk_count <= BG_WORLD_CHUNK_CAPACITY && bg_material_count <= 32, "Asset capacity exceeded");
     for (unsigned list = 0; list < 20; list++) {
         unsigned count = (list + 1) * 3;
         for (unsigned i = 0; i < count; i++)
@@ -1263,6 +1354,25 @@ static void prepare_view(unsigned p) {
     t3d_viewport_look_at(vp, &eye, &target, &(T3DVec3){{0, 1, 0}});
     bg_visibility_side_planes((float (*)[4])vp->viewFrustum.planes, vp->matCamProj.m, w, h);
     bg_frustum_prepare(cull_selected[p], (const float (*)[4])vp->viewFrustum.planes);
+#ifdef BG_GEOMETRY_CENSUS
+    memset(&bg_world_views[p],0,sizeof(bg_world_views[p]));
+    for(unsigned a=0;a<3;a++)bg_world_views[p].eye[a]=eye.v[a]/BG_SCALE;
+    bg_world_views[p].pvs_mask=UINT64_MAX;
+#endif
+#ifdef BG_WORLD_PVS
+    world_camera_masks[p]=UINT64_MAX;
+    if(bg_map_id()==bg_world_pvs.map_id){
+        const float*o=bg_map_origin();
+        float source_eye[3]={eye.v[0]/BG_SCALE+o[0],-eye.v[2]/BG_SCALE+o[1],eye.v[1]/BG_SCALE+o[2]};
+        /* Enclose the near-plane rectangle plus exporter/rounding uncertainty.
+         * The scoped near plane is wider in world space despite the narrow FOV. */
+        float radius=scoped?1.25f:.25f;
+        world_camera_masks[p]=bg_pvs_camera_mask(&bg_world_pvs,source_eye,radius);
+    }
+#ifdef BG_GEOMETRY_CENSUS
+    bg_world_views[p].pvs_mask=world_camera_masks[p];
+#endif
+#endif
     /* Camera-space arms cross the world's near plane. Give the foreground
      * its own projection and depth range, while preserving FOV and aim offset.
      * Separate slot storage keeps queued RSP camera matrices immutable. */
@@ -1340,6 +1450,59 @@ static void prepare_view(unsigned p) {
             bg_pickup_mark_visible(i);
     }
 }
+#ifdef BG_WORLD_HIERARCHY
+static void world_hierarchy_select(unsigned p,T3DViewport *vp,const T3DVec3 *eye) {
+    /* Only the baked map owns hierarchy/PVS/LOD data. Other menu maps retain
+     * the original per-batch frustum test and ascending submission order. */
+    if(bg_map_id()!=bg_world_hierarchy.map_id) {
+        memset(world_hierarchy_visible,0,sizeof(world_hierarchy_visible));
+        for(unsigned b=0;b<bg_chunk_count;b++)
+            if(bg_frustum_box_cached((const float(*)[4])vp->viewFrustum.planes,
+                                    cull_selected[p],bg_chunks[b].bounds))
+                world_hierarchy_visible[b/32]|=1u<<(b%32);
+        return;
+    }
+    assertf(world_hierarchy_eligible,"Hierarchy world must be loaded");
+#ifdef BG_PROFILE
+    uint64_t begin=get_ticks_us();
+    bg_submit_stats[0]++;
+#endif
+    bg_player *player=&bg_players[p];
+    bool room=bg_world_rep_active(&bg_world_rep,bg_map_id(),eye->v);
+    const uint32_t *cell=room?NULL:bg_world_cells_row_view(&bg_world_cells,
+        bg_map_id(),eye->v,player->health>0&&player->zoom);
+    bg_world_submit_key key={.cell=cell,.pvs=world_camera_masks[p],.map=bg_map_id(),.room=room};
+    bg_world_submit_key *old=&world_hierarchy_keys[p];
+    uint8_t *eligible=world_hierarchy_eligible+p*bg_world_hierarchy.count;
+    if(!world_hierarchy_valid[p]||old->cell!=key.cell||old->pvs!=key.pvs||
+            old->map!=key.map||old->room!=key.room) {
+        *old=key;world_hierarchy_valid[p]=true;
+        for(unsigned b=0;b<bg_chunk_count;b++)
+            world_hierarchy_chunks[b]=bg_world_cells_keep(&bg_world_cells,cell,b)&&
+                bg_world_rep_keep(&bg_world_rep,room,b)&&
+                bg_pvs_keep_chunk(&bg_world_pvs,world_camera_masks[p],b);
+        bg_hierarchy_eligibility(&bg_world_hierarchy,world_hierarchy_chunks,eligible);
+#ifdef BG_PROFILE
+        bg_submit_stats[1]++;
+#endif
+    }
+#ifdef BG_PROFILE
+    bg_submit_stats[3]+=get_ticks_us()-begin;begin=get_ticks_us();
+#endif
+    float near,far;bg_camera_depth(player->health>0&&player->zoom,&near,&far);
+    bg_hierarchy_view view={.planes=(const float(*)[4])vp->viewFrustum.planes,
+        .selected=cull_selected[p],.camera=vp->matCamera.m,.projection=vp->matProj.m,
+        .eye=eye->v,.width=vp->size[0],.height=vp->size[1],.near_plane=near,.lod=&bg_world_lod};
+    bg_hierarchy_stats stats={0};uint8_t levels[BG_WORLD_LOD_MAX_GROUPS];
+    bg_hierarchy_visible(&bg_world_hierarchy,eligible,&view,world_hierarchy_visible,levels,&stats);
+#ifdef BG_PROFILE
+    bg_submit_stats[2]+=stats.lod_us;
+    bg_submit_stats[4]+=get_ticks_us()-begin-stats.lod_us;
+    bg_hierarchy_totals[0]+=stats.nodes;bg_hierarchy_totals[1]+=stats.planes;
+    bg_hierarchy_totals[2]+=stats.leaves;bg_hierarchy_totals[3]+=stats.lod_groups;
+#endif
+}
+#endif
 static void draw_view(unsigned p) {
     T3DViewport *vp = &viewports[slot][p];
     T3DVec3 eye = view_eyes[p];
@@ -1374,12 +1537,196 @@ static void draw_view(unsigned p) {
     unsigned bound = ~0u;
     bool palette_mode = false;
     unsigned overlay_mode = 0;
+#ifdef BG_WORLD_BULK_SUBMIT
+    unsigned pending_geometry=0;
+#endif
+#ifdef BG_GEOMETRY_CENSUS
+    uint64_t world_cpu_begin=get_ticks_us();
+#endif
+#ifdef BG_WORLD_HIERARCHY
+    world_hierarchy_select(p,vp,&eye);
+#ifdef BG_PROFILE
+    uint64_t hierarchy_dispatch_begin=get_ticks_us();
+#endif
+    unsigned hierarchy_word=0,hierarchy_words=(bg_chunk_count+31)/32;
+    uint32_t hierarchy_bits=world_hierarchy_visible[0];
+    while(hierarchy_word<hierarchy_words) {
+        if(!hierarchy_bits) {
+            if(++hierarchy_word<hierarchy_words)hierarchy_bits=world_hierarchy_visible[hierarchy_word];
+            continue;
+        }
+        unsigned b=hierarchy_word*32+__builtin_ctz(hierarchy_bits);
+        hierarchy_bits&=hierarchy_bits-1;
+        const bg_chunk *c=&bg_chunks[b];
+#else
+#ifdef BG_WORLD_LOD
+#if defined(BG_WORLD_SUBMIT_CACHE) && defined(BG_PROFILE)
+    uint64_t submit_clock=get_ticks_us();
+#endif
+    uint8_t world_levels[BG_WORLD_LOD_MAX_GROUPS];
+    bool use_world_lod=bg_map_id()==bg_world_lod.map_id;
+    if(use_world_lod) {
+        assertf(bg_world_lod.group_count<=BG_WORLD_LOD_MAX_GROUPS,"World LOD group capacity");
+        float world_near,world_far;
+        bg_camera_depth(player->health>0&&player->zoom,&world_near,&world_far);
+        for(unsigned g=0;g<bg_world_lod.group_count;g++)
+            world_levels[g]=
+#ifdef BG_WORLD_SUBMIT_CACHE
+                world_lod_used[g]&&
+#endif
+                bg_world_lod_far(&bg_world_lod.groups[g],vp->matCamera.m,
+                vp->matProj.m,vp->size[0],vp->size[1],world_near,eye.v);
+    }
+#endif
+#ifdef BG_WORLD_REP
+    bool use_world_rep=bg_world_rep_active(&bg_world_rep,bg_map_id(),eye.v);
+#endif
+#ifdef BG_WORLD_CELLS
+    const uint32_t *world_cell=use_world_rep?NULL:
+        bg_world_cells_row_view(&bg_world_cells,bg_map_id(),eye.v,player->health>0&&player->zoom);
+#endif
+#ifdef BG_WORLD_SUBMIT_CACHE
+#if !defined(BG_WORLD_CELLS) || !defined(BG_WORLD_REP) || !defined(BG_WORLD_PVS)
+#error World submission experiment requires the complete private visibility bank
+#endif
+#ifdef BG_PROFILE
+    bg_submit_stats[0]++;
+    bg_submit_stats[2]+=get_ticks_us()-submit_clock;submit_clock=get_ticks_us();
+#endif
+    bg_world_submit_cache *submit=&world_submit[p];
+    bg_world_submit_key key={.cell=world_cell,.pvs=world_camera_masks[p],.map=bg_map_id(),
+        .groups=use_world_lod?bg_world_lod.group_count:0,.chunks=bg_chunk_count,
+        .room=use_world_rep,.lod=use_world_lod};
+    if(use_world_lod)memcpy(key.levels,world_levels,key.groups);
+    if(!bg_world_submit_same(submit,&key)) {
+#ifdef BG_PROFILE
+        bg_submit_stats[1]++;
+#endif
+        submit->key=key;submit->count=0;submit->valid=true;
+        for(unsigned b=0;b<bg_chunk_count;b++) {
+            if(!bg_world_cells_keep(&bg_world_cells,world_cell,b))continue;
+            if(bg_map_id()==bg_world_rep.map_id&&!bg_world_rep_keep(&bg_world_rep,use_world_rep,b))continue;
+            if(use_world_lod&&!bg_world_lod_keep(&bg_world_lod,world_levels,b))continue;
+            if(bg_map_id()==bg_world_pvs.map_id&&!bg_pvs_keep_chunk(&bg_world_pvs,world_camera_masks[p],b))continue;
+#ifdef BG_WORLD_COARSE_CULL
+            int16_t *box=submit->bounds[submit->count/16];
+            if(submit->count%16==0)memcpy(box,bg_chunks[b].bounds,sizeof(bg_chunks[b].bounds));
+            else for(unsigned a=0;a<3;a++) {
+                if(bg_chunks[b].bounds[a]<box[a])box[a]=bg_chunks[b].bounds[a];
+                if(bg_chunks[b].bounds[a+3]>box[a+3])box[a+3]=bg_chunks[b].bounds[a+3];
+            }
+#endif
+            submit->ids[submit->count++]=b;
+        }
+    }
+#ifdef BG_PROFILE
+    bg_submit_stats[3]+=get_ticks_us()-submit_clock;submit_clock=get_ticks_us();
+#endif
+#ifdef BG_WORLD_COMMAND_CACHE
+    unsigned visible_count=0;
+    for(unsigned i=0;i<submit->count;i++) {
+        unsigned b=submit->ids[i];
+        if(bg_frustum_box_cached((const float (*)[4])vp->viewFrustum.planes,cull_selected[p],bg_chunks[b].bounds))
+            world_visible_ids[visible_count++]=b;
+#ifdef BG_GEOMETRY_CENSUS
+        else bg_world_views[p].frustum_rejected++;
+#endif
+    }
+#ifdef BG_PROFILE
+    bg_submit_stats[4]+=get_ticks_us()-submit_clock;submit_clock=get_ticks_us();
+#endif
+    bg_world_command_plan *plan=&world_plans[slot][p];
+    bool record_plan=!plan->block||plan->count!=visible_count||
+        memcmp(plan->ids,world_visible_ids,visible_count*sizeof(uint16_t));
+    if(!record_plan) {
+        overlay_mode=plan->overlay;palette_mode=plan->palette;triangles+=plan->triangles;
+#ifdef BG_PROFILE
+        submitted_vertices+=plan->vertices;bg_submit_stats[6]++;
+#endif
+#ifdef BG_GEOMETRY_CENSUS
+        bg_world_views[p].chunks=plan->count;bg_world_views[p].vertices=plan->vertices;
+        bg_world_views[p].triangles=plan->triangles;bg_world_views[p].material_changes=plan->materials;
+#endif
+        rspq_block_run(plan->block);
+    } else {
+#ifdef BG_PROFILE
+        bg_submit_stats[7]++;
+#endif
+        /* This geometry slot has been fenced by main before prepare/draw. */
+        if(plan->block)rspq_block_free(plan->block);
+        plan->count=visible_count;plan->triangles=plan->vertices=plan->materials=0;
+        memcpy(plan->ids,world_visible_ids,visible_count*sizeof(uint16_t));
+        rspq_block_begin();
+    for(unsigned selected=0;selected<visible_count;selected++) {
+        unsigned b=world_visible_ids[selected];
+        const bg_chunk *c=&bg_chunks[b];
+        plan->triangles+=c->index_count/3;plan->vertices+=(c->count+1)&~1u;
+        if(bound!=c->material)plan->materials++;
+#else
+#ifdef BG_WORLD_COARSE_CULL
+    int coarse_class=0;
+#endif
+    for(unsigned selected=0;selected<submit->count;selected++) {
+#ifdef BG_WORLD_COARSE_CULL
+        if(selected%16==0)coarse_class=bg_frustum_classify((const float (*)[4])vp->viewFrustum.planes,
+            cull_selected[p],submit->bounds[selected/16]);
+        if(coarse_class<0) {
+#ifdef BG_GEOMETRY_CENSUS
+            bg_world_views[p].frustum_rejected+=(submit->count-selected<16?submit->count-selected:16);
+#endif
+            selected=(selected/16+1)*16-1;continue;
+        }
+#endif
+        unsigned b=submit->ids[selected];
+        const bg_chunk *c=&bg_chunks[b];
+#endif
+#else
     for (unsigned b = 0; b < bg_chunk_count; b++) {
         const bg_chunk *c = &bg_chunks[b];
-        if (!bg_frustum_box_cached((const float (*)[4])vp->viewFrustum.planes, cull_selected[p],
-                                   c->bounds))
+#ifdef BG_WORLD_CELLS
+        if(!bg_world_cells_keep(&bg_world_cells,world_cell,b))continue;
+#endif
+#ifdef BG_WORLD_REP
+        if(bg_map_id()==bg_world_rep.map_id&&!bg_world_rep_keep(&bg_world_rep,use_world_rep,b))continue;
+#endif
+#ifdef BG_WORLD_LOD
+        if(use_world_lod&&!bg_world_lod_keep(&bg_world_lod,world_levels,b))continue;
+#endif
+#ifdef BG_WORLD_PVS
+        if(bg_map_id()==bg_world_pvs.map_id&&!bg_pvs_keep_chunk(&bg_world_pvs,world_camera_masks[p],b)){
+#ifdef BG_GEOMETRY_CENSUS
+            bg_world_views[p].pvs_rejected++;
+#endif
             continue;
+        }
+#endif
+#endif
+#ifndef BG_WORLD_COMMAND_CACHE
+        if (
+#ifdef BG_WORLD_COARSE_CULL
+            coarse_class!=1&&
+#endif
+            !bg_frustum_box_cached((const float (*)[4])vp->viewFrustum.planes, cull_selected[p],
+                                   c->bounds))
+#ifdef BG_GEOMETRY_CENSUS
+            {bg_world_views[p].frustum_rejected++;continue;}
+#else
+            continue;
+#endif
+#endif
+#endif /* BG_WORLD_HIERARCHY selector */
+#ifdef BG_GEOMETRY_CENSUS
+        bg_world_views[p].chunks++;
+        bg_world_views[p].vertices+=(c->count+1)&~1u;
+        bg_world_views[p].triangles+=c->index_count/3;
+#endif
         if (bound != c->material) {
+#ifdef BG_WORLD_BULK_SUBMIT
+            bg_rspq_geometry_run(world_pending_blocks,pending_geometry);pending_geometry=0;
+#endif
+#ifdef BG_GEOMETRY_CENSUS
+            bg_world_views[p].material_changes++;
+#endif
             unsigned material_mode = bg_texture_overlay[c->material];
             bool overlay = material_mode & 1;
             if (material_mode != overlay_mode) {
@@ -1406,13 +1753,36 @@ static void draw_view(unsigned p) {
             rspq_block_run(texture_blocks[c->material]);
             bound = c->material;
         }
+#ifdef BG_WORLD_BULK_SUBMIT
+        world_pending_blocks[pending_geometry++]=world_blocks[b];
+#else
         rspq_block_run(world_blocks[b]);
+#endif
         triangles += c->index_count / 3;
 #ifdef BG_PROFILE
         submitted_vertices += (c->count + 1) & ~1u;
 #endif
     }
+#ifdef BG_WORLD_COMMAND_CACHE
+        plan->overlay=overlay_mode;plan->palette=palette_mode;
+        plan->block=rspq_block_end();rspq_block_run(plan->block);
+    }
+#ifdef BG_PROFILE
+    bg_submit_stats[5]+=get_ticks_us()-submit_clock;
+#endif
+#endif
+#ifdef BG_WORLD_BULK_SUBMIT
+    bg_rspq_geometry_run(world_pending_blocks,pending_geometry);
+#endif
+#ifdef BG_WORLD_HIERARCHY
+#ifdef BG_PROFILE
+    bg_submit_stats[5]+=get_ticks_us()-hierarchy_dispatch_begin;
+#endif
+#endif
     t3d_matrix_pop(1);
+#ifdef BG_GEOMETRY_CENSUS
+    bg_world_views[p].world_cpu_us=get_ticks_us()-world_cpu_begin;
+#endif
     if (overlay_mode) {
         rdpq_mode_begin();
         rdpq_mode_zbuf(true, true);

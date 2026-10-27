@@ -1,0 +1,44 @@
+{
+  "artifact_directory": "build/n64-sidewinder-structures-extreme",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-structures-extreme/measurements.json",
+      "bytes": 378,
+      "sha256": "6d171a218918e51ecdef3b7b3fe439783e9ce0e9624452b0475a9fc469eb0488"
+    },
+    {
+      "artifact": "build/n64-sidewinder-structures-extreme/rejection.json",
+      "bytes": 601,
+      "sha256": "19d80a9661ebeca15589f5f8c5820445ed1cf3076fda867f68a161442b9ff5b3"
+    }
+  ],
+  "results": {
+    "measurements": {
+      "photos": {
+        "after_mean": 8519.916666666666,
+        "after_worst": 13834,
+        "before_mean": 10128.833333333334,
+        "below_1500": 0,
+        "matching_poses": true,
+        "samples": 24
+      },
+      "replay": {
+        "after_mean": 6706.235294117647,
+        "after_worst": 14350,
+        "before_mean": 9141.558823529413,
+        "below_1500": 7,
+        "matching_poses": true,
+        "samples": 68
+      }
+    },
+    "rejection": {
+      "adopted": false,
+      "baseline": "Original architecture; original canonical assets and pre-structure-reduction map remain unchanged.",
+      "date": "2026-10-14",
+      "next_method": "Deliberate edits to specific details, starting with one structure and inspecting shape and texture quality from exterior and interior cameras.",
+      "reason": "Whole-structure collapse visibly distorts architectural forms, bevel transitions, UVs and baked lighting. Silhouette overlap and load savings were insufficient acceptance criteria.",
+      "status": "rejected"
+    }
+  }
+}

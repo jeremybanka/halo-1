@@ -1,0 +1,376 @@
+{
+  "artifact_directory": "build/n64-sidewinder-world-lod",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-world-lod/timing.json",
+      "bytes": 1126,
+      "sha256": "79a91f2db7703b70a5e9cae3255081a3e8d069e5485a35a2a07ef80699ff9f58"
+    },
+    {
+      "artifact": "build/n64-sidewinder-world-lod/timing-records.json",
+      "bytes": 6621,
+      "sha256": "be0173358ff552e34b3710156818ad8b34aacb07e7b8d7dc47ccd85be2627f75"
+    },
+    {
+      "artifact": "build/n64-sidewinder-world-lod/measurements.json",
+      "bytes": 443,
+      "sha256": "c401fd5bc1f1a7cef38f118740a77cc4df4140498c8803e264ddfa5a7d542a87"
+    },
+    {
+      "artifact": "build/n64-sidewinder-world-lod/validation.json",
+      "bytes": 2139,
+      "sha256": "5923f0ad1758e7d362761555a2e4f3a08d0f169c0590256e8539c62ec9cdb284"
+    }
+  ],
+  "results": {
+    "measurements": {
+      "photos": {
+        "after_mean": 7767.5,
+        "after_worst": 13718,
+        "before_mean": 8515.083333333334,
+        "below_1500": 0,
+        "control_near_mean": 8195.5,
+        "matching_poses": true,
+        "samples": 24
+      },
+      "replay": {
+        "after_mean": 7465.411764705882,
+        "after_worst": 14826,
+        "before_mean": 8077.411764705882,
+        "below_1500": 3,
+        "control_near_mean": 8258.764705882353,
+        "matching_poses": true,
+        "samples": 68
+      }
+    },
+    "timing": {
+      "four": {
+        "baseline_fps": 11.224073905594475,
+        "baseline_max_ms": 167.154,
+        "baseline_p95_ms": 133.723,
+        "candidate_fps": 11.640266590872638,
+        "candidate_max_ms": 167.137,
+        "candidate_p95_ms": 133.713,
+        "gain_percent": 3.7080358591608853,
+        "initial_additional_ram_bytes": 229408,
+        "scope": "One fresh matched baseline/candidate pair per workload; baseline ALL counters reproduce previous appraised fixed-lean run. NTSC Ares, 8 MiB, release LTO, three surfaces, 32 KiB queues, 1 s warmup, 75 s sample. No physical-console claim."
+      },
+      "one": {
+        "baseline_fps": 28.886654738757734,
+        "baseline_max_ms": 83.583,
+        "baseline_p95_ms": 50.156,
+        "candidate_fps": 29.066427934405233,
+        "candidate_max_ms": 83.577,
+        "candidate_p95_ms": 50.156,
+        "gain_percent": 0.6223399603495494,
+        "initial_additional_ram_bytes": 229392,
+        "scope": "One fresh matched baseline/candidate pair per workload; baseline ALL counters reproduce previous appraised fixed-lean run. NTSC Ares, 8 MiB, release LTO, three surfaces, 32 KiB queues, 1 s warmup, 75 s sample. No physical-console claim."
+      }
+    },
+    "timing-records": [
+      {
+        "fps": 28.886654738757734,
+        "groups": {
+          "ALL": {
+            "deadlines": 0,
+            "duplicate_poses": 1191,
+            "elapsed_us": 75017340,
+            "flips": 3358,
+            "frames": 2167,
+            "gap1": 395,
+            "gap2": 1238,
+            "gap_long": 534,
+            "max_gap": 5,
+            "max_us": 83583,
+            "missed": 0,
+            "p95_us": 50156,
+            "ready_wait_avg": 9120,
+            "ready_wait_max": 17893,
+            "sample_latency_avg": 48206,
+            "sample_latency_max": 102125,
+            "skipped_poses": 84
+          },
+          "EARLY": {
+            "deadlines": 0,
+            "duplicate_poses": 537,
+            "elapsed_us": 36021037,
+            "flips": 1604,
+            "frames": 1067,
+            "gap1": 274,
+            "gap2": 506,
+            "gap_long": 287,
+            "max_gap": 5,
+            "max_us": 83583,
+            "missed": 0,
+            "p95_us": 50157,
+            "ready_wait_avg": 8058,
+            "ready_wait_max": 16690,
+            "sample_latency_avg": 46496,
+            "sample_latency_max": 85596,
+            "skipped_poses": 14
+          },
+          "LATE": {
+            "deadlines": 0,
+            "duplicate_poses": 654,
+            "elapsed_us": 38996303,
+            "flips": 1754,
+            "frames": 1100,
+            "gap1": 121,
+            "gap2": 732,
+            "gap_long": 247,
+            "max_gap": 5,
+            "max_us": 83568,
+            "missed": 0,
+            "p95_us": 50154,
+            "ready_wait_avg": 10150,
+            "ready_wait_max": 17893,
+            "sample_latency_avg": 49864,
+            "sample_latency_max": 102125,
+            "skipped_poses": 70
+          }
+        },
+        "initial_free_bytes": 3213472,
+        "label": "baseline",
+        "source_log": "one-baseline.log",
+        "workload": "one"
+      },
+      {
+        "fps": 29.066427934405233,
+        "groups": {
+          "ALL": {
+            "deadlines": 0,
+            "duplicate_poses": 1290,
+            "elapsed_us": 75000616,
+            "flips": 3470,
+            "frames": 2180,
+            "gap1": 352,
+            "gap2": 1360,
+            "gap_long": 468,
+            "max_gap": 5,
+            "max_us": 83577,
+            "missed": 0,
+            "p95_us": 50156,
+            "ready_wait_avg": 8854,
+            "ready_wait_max": 16689,
+            "sample_latency_avg": 47157,
+            "sample_latency_max": 100508,
+            "skipped_poses": 70
+          },
+          "EARLY": {
+            "deadlines": 0,
+            "duplicate_poses": 597,
+            "elapsed_us": 36004328,
+            "flips": 1654,
+            "frames": 1057,
+            "gap1": 261,
+            "gap2": 500,
+            "gap_long": 296,
+            "max_gap": 5,
+            "max_us": 83577,
+            "missed": 0,
+            "p95_us": 50157,
+            "ready_wait_avg": 7832,
+            "ready_wait_max": 16689,
+            "sample_latency_avg": 45865,
+            "sample_latency_max": 89250,
+            "skipped_poses": 23
+          },
+          "LATE": {
+            "deadlines": 0,
+            "duplicate_poses": 693,
+            "elapsed_us": 38996288,
+            "flips": 1816,
+            "frames": 1123,
+            "gap1": 91,
+            "gap2": 860,
+            "gap_long": 172,
+            "max_gap": 5,
+            "max_us": 83552,
+            "missed": 0,
+            "p95_us": 50152,
+            "ready_wait_avg": 9816,
+            "ready_wait_max": 16684,
+            "sample_latency_avg": 48373,
+            "sample_latency_max": 100508,
+            "skipped_poses": 47
+          }
+        },
+        "initial_free_bytes": 2984080,
+        "label": "candidate",
+        "source_log": "one-candidate.log",
+        "workload": "one"
+      },
+      {
+        "fps": 11.224073905594475,
+        "groups": {
+          "ALL": {
+            "deadlines": 2244,
+            "duplicate_poses": 0,
+            "elapsed_us": 75017325,
+            "flips": 842,
+            "frames": 842,
+            "gap1": 0,
+            "gap2": 30,
+            "gap_long": 812,
+            "max_gap": 10,
+            "max_us": 167154,
+            "missed": 1402,
+            "p95_us": 133723,
+            "ready_wait_avg": 16787,
+            "ready_wait_max": 33409,
+            "sample_latency_avg": 178219,
+            "sample_latency_max": 336268,
+            "skipped_poses": 1409
+          },
+          "EARLY": {
+            "deadlines": 1077,
+            "duplicate_poses": 0,
+            "elapsed_us": 36037703,
+            "flips": 384,
+            "frames": 384,
+            "gap1": 0,
+            "gap2": 22,
+            "gap_long": 362,
+            "max_gap": 10,
+            "max_us": 167154,
+            "missed": 693,
+            "p95_us": 133727,
+            "ready_wait_avg": 17442,
+            "ready_wait_max": 33352,
+            "sample_latency_avg": 187319,
+            "sample_latency_max": 336268,
+            "skipped_poses": 697
+          },
+          "LATE": {
+            "deadlines": 1167,
+            "duplicate_poses": 0,
+            "elapsed_us": 38979622,
+            "flips": 458,
+            "frames": 458,
+            "gap1": 0,
+            "gap2": 8,
+            "gap_long": 450,
+            "max_gap": 8,
+            "max_us": 133743,
+            "missed": 709,
+            "p95_us": 133718,
+            "ready_wait_avg": 16237,
+            "ready_wait_max": 33409,
+            "sample_latency_avg": 170590,
+            "sample_latency_max": 269406,
+            "skipped_poses": 712
+          }
+        },
+        "initial_free_bytes": 3134552,
+        "label": "baseline",
+        "source_log": "four-baseline.log",
+        "workload": "four"
+      },
+      {
+        "fps": 11.640266590872638,
+        "groups": {
+          "ALL": {
+            "deadlines": 2246,
+            "duplicate_poses": 0,
+            "elapsed_us": 75084191,
+            "flips": 874,
+            "frames": 874,
+            "gap1": 0,
+            "gap2": 28,
+            "gap_long": 846,
+            "max_gap": 10,
+            "max_us": 167137,
+            "missed": 1372,
+            "p95_us": 133713,
+            "ready_wait_avg": 16803,
+            "ready_wait_max": 33418,
+            "sample_latency_avg": 171470,
+            "sample_latency_max": 301377,
+            "skipped_poses": 1379
+          },
+          "EARLY": {
+            "deadlines": 1080,
+            "duplicate_poses": 0,
+            "elapsed_us": 36104577,
+            "flips": 419,
+            "frames": 419,
+            "gap1": 0,
+            "gap2": 21,
+            "gap_long": 398,
+            "max_gap": 10,
+            "max_us": 167137,
+            "missed": 661,
+            "p95_us": 133714,
+            "ready_wait_avg": 16802,
+            "ready_wait_max": 33380,
+            "sample_latency_avg": 171566,
+            "sample_latency_max": 301377,
+            "skipped_poses": 663
+          },
+          "LATE": {
+            "deadlines": 1166,
+            "duplicate_poses": 0,
+            "elapsed_us": 38979614,
+            "flips": 455,
+            "frames": 455,
+            "gap1": 0,
+            "gap2": 7,
+            "gap_long": 448,
+            "max_gap": 8,
+            "max_us": 133739,
+            "missed": 711,
+            "p95_us": 133713,
+            "ready_wait_avg": 16804,
+            "ready_wait_max": 33418,
+            "sample_latency_avg": 171382,
+            "sample_latency_max": 269425,
+            "skipped_poses": 716
+          }
+        },
+        "initial_free_bytes": 2905144,
+        "label": "candidate",
+        "source_log": "four-candidate.log",
+        "workload": "four"
+      }
+    ],
+    "validation": {
+      "all_photo_player_bytes_match": true,
+      "appended_tree_atlases_bytes": 4096,
+      "ares_original_preferences_unchanged": true,
+      "baseline_bank_sha256": "73aa32e4055dd1aa90b46bd316a8bb714a49e719d8c9893225ca35efea16c86d",
+      "candidate_bank_sha256": "229b009a1e06a5670f3bf160f6c7908e524b7f7308253dfe6cb9ba7b2daebdd5",
+      "canonical_bank_unchanged": true,
+      "collision_gameplay_palette_sections_exact": true,
+      "limits": [
+        "Private prototype; not adopted into the canonical bank.",
+        "Stateless transitions; no hysteresis or moving-camera popping guarantee.",
+        "Base proxies still collapse complete structure regions; authored shells and separate portal/interior LOD remain.",
+        "Offline pixel checks do not emulate RDP rounding/filtering/fog; native photo 14 is a separate check.",
+        "No physical-console claim; one fresh timing pair per workload."
+      ],
+      "native_counter_matches": 5,
+      "native_photo_pose_log_note": "The preexisting photo helper uses unsupported %a in native debugf; those log coordinates are unusable. The native on-screen decimal pose overlay matches between builds with zero differing pixels. Full repeatable poses and player-byte states are saved in photos.json and photos/poses.json.",
+      "native_rdp_errors": 0,
+      "native_rdp_warnings": 0,
+      "near_only_pixel_control_changed": 0,
+      "near_triangles_exact": true,
+      "original_textures_preserved": true,
+      "photo_count": 24,
+      "pvs_control_changed": 0,
+      "rdp_scope": "Sampled four-camera source-start validation with 8 KiB queues. Zero on-screen RDP errors/warnings; not an exhaustive all-camera validation.",
+      "terrain_patch_seam_edges_exact": 29,
+      "tests": [
+        "ASan/UBSan SDK replay and photo fixtures",
+        "test_render_world_lod.py",
+        "test_render_pvs.py",
+        "test_scene_equivalence.py",
+        "test_map_material_modes.py",
+        "test_render_cull.py"
+      ],
+      "transition_pairs": 48,
+      "viewer_layout_note": "Local-file browser automation was blocked by the browser URL policy. HTML syntax, static links, viewer handlers and referenced images were checked locally without browser navigation.",
+      "viewer_static_handlers_and_images_checked": true
+    }
+  }
+}

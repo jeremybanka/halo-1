@@ -1,0 +1,51 @@
+{
+  "artifact_directory": "build/n64-sidewinder-structures",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-structures/measurements.json",
+      "bytes": 366,
+      "sha256": "e2f94085ffe9944adcf9f226e5598c8d64225b4aa753b9bf3ee08db6150c424f"
+    },
+    {
+      "artifact": "build/n64-sidewinder-structures/validation.json",
+      "bytes": 654,
+      "sha256": "1ca55d8d8488d87f15cc310a83493207e77926a5848d8f44e92040c6fe9da3e9"
+    }
+  ],
+  "results": {
+    "measurements": {
+      "photos": {
+        "after_mean": 10130,
+        "after_worst": 18312,
+        "before_mean": 10128.833333333334,
+        "below_1500": 0,
+        "matching_poses": true,
+        "samples": 24
+      },
+      "replay": {
+        "after_mean": 9130.911764705883,
+        "after_worst": 19960,
+        "before_mean": 9141.558823529413,
+        "below_1500": 3,
+        "matching_poses": true,
+        "samples": 68
+      }
+    },
+    "validation": {
+      "additional_lower_room_and_roof_views": 16,
+      "canonical_assets_unchanged": true,
+      "exact_player_camera_views": 24,
+      "exterior_views": 72,
+      "host_probes": "ASan/UBSan passed, exact replay camera poses and full photo player-state equality",
+      "identical_player_photos": 22,
+      "map_sha256": "bf82d7eb9919b9bcc07049e1e7f2cd760beebe030536fb07cefce8ffc1d6723e",
+      "native_fps_or_rsp_rdp_pixel_validation": "Not run for this prototype",
+      "nonrender_sections_byte_identical": true,
+      "offline_pvs_controls_identical": 24,
+      "silhouette_changed_pixels_total": 4,
+      "unchanged_render_batches": 428,
+      "worst_exterior_silhouette_iou": 0.9998986828774062
+    }
+  }
+}

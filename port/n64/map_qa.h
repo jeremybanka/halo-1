@@ -7,7 +7,32 @@
 static unsigned model_qa_page=BG_MAP_QA;
 static const char *const model_qa_labels[]={"MAP: SOURCE STARTS","MAP: ROUTE VIEWS","MAP: LOWER ROUTES","MAP: ONE PLAYER"};
 static bool model_qa_firstperson(void){return true;}
-static void model_qa_camera(unsigned p,T3DVec3*eye,T3DVec3*target){(void)p;(void)eye;(void)target;}
+#if defined(BG_WORLD_REP) && defined(RDPQ_VALIDATE)
+#include "render_world_rep.h"
+#endif
+static void model_qa_camera(unsigned p,T3DVec3*eye,T3DVec3*target){
+    (void)p;(void)eye;(void)target;
+#if defined(BG_WORLD_CELLS) && defined(RDPQ_VALIDATE)
+    if(bg_map_id()==bg_world_rep.map_id){
+        static const float positions[4][3]={
+            {-43.8438759f,.792942643f,-40.4629784f},
+            {-38.7644768f,-3.11913776f,29.3298626f},
+            {9.05856323f,1.31221938f,7.11929178f},
+            {-4.54840994f,.862279117f,11.1106997f}};
+        float yaw=p*1.5707963268f;
+        *eye=(T3DVec3){{positions[p][0]*BG_SCALE,positions[p][1]*BG_SCALE,positions[p][2]*BG_SCALE}};
+        *target=(T3DVec3){{eye->x+cosf(yaw),eye->y,eye->z-sinf(yaw)}};
+    }
+#elif defined(BG_WORLD_REP) && defined(RDPQ_VALIDATE)
+    /* Exercise the alternate room bank in four directions. Source-start QA
+     * elsewhere and all performance/photo fixtures retain their own cameras. */
+    if(bg_map_id()==bg_world_rep.map_id){
+        const float yaw=-2.49415775f+p*1.5707963268f,pitch=-.04079857f;
+        *eye=(T3DVec3){{52.2788773f*BG_SCALE,.792942643f*BG_SCALE,-24.1915627f*BG_SCALE}};
+        *target=(T3DVec3){{eye->x+cosf(yaw)*cosf(pitch),eye->y+sinf(pitch),eye->z-sinf(yaw)*cosf(pitch)}};
+    }
+#endif
+}
 static void model_qa_stage(uint64_t now){
     (void)now;static bool ready;if(ready)return;ready=true;
     bg_set_players(BG_MAP_QA==3?1:4);bg_reset();(*qa.views)=bg_player_count();bg_scene_reset();

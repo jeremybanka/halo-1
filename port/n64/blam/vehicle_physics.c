@@ -459,7 +459,8 @@ static void publish(unsigned i){
  BG_VP_BEGIN;
  bg_vehicle*v=&bg_vehicles[i];struct vehicle_datum*n=&native[i];struct physics_instance instance;
  physics_instance_new(&instance,i);
- v->pos[0]=instance.world_matrix.position.x-68;v->pos[1]=instance.world_matrix.position.z;v->pos[2]=-instance.world_matrix.position.y-118;
+ const float*origin=bg_map_origin();
+ v->pos[0]=instance.world_matrix.position.x-origin[0];v->pos[1]=instance.world_matrix.position.z-origin[2];v->pos[2]=-instance.world_matrix.position.y+origin[1];
  game_vector(&n->object.forward,v->forward);game_vector(&n->object.up,v->up);
  game_vector(&n->object.translational_velocity,v->velocity);game_vector(&n->object.angular_velocity,v->angular_velocity);
  for(int a=0;a<3;a++){v->velocity[a]*=30;v->angular_velocity[a]*=30;}
@@ -480,7 +481,8 @@ void bg_vehicle_physics_prepare(void){
   struct vehicle_datum*n=&native[i];memset(n,0,sizeof(*n));n->definition_index=v->kind;
   n->object.forward=(real_vector3d){.n={cosf(v->yaw)*cosf(v->pitch),sinf(v->yaw)*cosf(v->pitch),sinf(v->pitch)}};
   n->object.up=(real_vector3d){.n={-cosf(v->yaw)*sinf(v->pitch),-sinf(v->yaw)*sinf(v->pitch),cosf(v->pitch)}};
-  n->object.position=(real_point3d){.n={v->pos[0]+68,-v->pos[2]-118,v->pos[1]}};
+  const float*origin=bg_map_origin();
+  n->object.position=(real_point3d){.n={v->pos[0]+origin[0],-v->pos[2]+origin[1],v->pos[1]+origin[2]}};
   real_matrix4x3 frame;matrix4x3_from_point_and_vectors(&frame,&n->object.position,&n->object.forward,&n->object.up);
   matrix4x3_transform_point(&frame,&bg_vehicle_physics_defs[v->kind].center_of_mass,&n->object.position);
   n->object.translational_velocity=halo_vector(v->velocity);scale_vector3d(&n->object.translational_velocity,1.f/30,&n->object.translational_velocity);
@@ -591,7 +593,8 @@ void bg_vehicle_physics_flip(unsigned i,const float player_position[3]){
  n->vehicle.flags|=FLAG(4);/* players.c flip action selects the roll/pitch direction from approach. */
  if(fabsf(n->object.forward.k)>.70710677f)n->vehicle.upending_type=(n->object.forward.k<0)+3;
  else{
-  real_vector3d delta={.n={n->object.position.x-(player_position[0]+68),n->object.position.y-(-player_position[2]-118),n->object.position.z-player_position[1]}};
+  const float*origin=bg_map_origin();
+  real_vector3d delta={.n={n->object.position.x-(player_position[0]+origin[0]),n->object.position.y-(-player_position[2]+origin[1]),n->object.position.z-(player_position[1]+origin[2])}};
   cross_product3d(global_up3d,&delta,&delta);
   n->vehicle.upending_type=(dot_product3d(&delta,&n->object.forward)>0)+1;
  }n->vehicle.upending_ticks=0;n->object.flags&=~FLAG(_object_at_rest_bit);
@@ -604,7 +607,8 @@ void bg_vehicle_physics_damage(unsigned i,const float origin[3],float strength,b
  float scale=bg_vehicle_acceleration_scale[bg_vehicles[i].kind];
  if(strength<=_real_epsilon||scale<=_real_epsilon)return;
  bg_vehicle_physics_prepare();
- real_vector3d direction={.n={native[i].object.position.x-(origin[0]+68),native[i].object.position.y-(-origin[2]-118),native[i].object.position.z-origin[1]}},acceleration;
+ const float*map_origin=bg_map_origin();
+ real_vector3d direction={.n={native[i].object.position.x-(origin[0]+map_origin[0]),native[i].object.position.y-(-origin[2]+map_origin[1]),native[i].object.position.z-(origin[1]+map_origin[2])}},acceleration;
  normalize3d(&direction);vehicle_damage_acceleration(&direction,strength,scale,&acceleration);
  if(explosive)scale_vector3d(&acceleration,2,&acceleration);
  vehicle_accelerate(i,&acceleration);publish(i);

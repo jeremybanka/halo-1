@@ -10,7 +10,11 @@ RUNTIME_UNITS = ("runtime_config.h", "scene.c", "presentation.c", "runtime_qa.c"
 def read_runtime(path):
     path = Path(path)
     if path.name == "main.c" and (path.parent / "scene.c").exists():
-        return "\n".join((path.parent / name).read_text() for name in RUNTIME_UNITS)
+        source="\n".join((path.parent / name).read_text() for name in RUNTIME_UNITS)
+        source=source.replace('#include "scene_objectives.inc"', (path.parent / "scene_objectives.inc").read_text())
+        # The general contracts cover the ordinary renderer. Dedicated PVS /
+        # hierarchy tests inspect their explicitly enabled branches separately.
+        return without_experiments(source)
     return path.read_text()
 
 

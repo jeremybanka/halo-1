@@ -33,6 +33,10 @@ static int8_t announcer_buffer[1024] __attribute__((aligned(16)));
 static bg_sound_stream announcer_stream;
 static uint32_t announcer_rom;
 static bool announcer_streaming;
+static bg_audio_asset mode_voice;
+static const bg_audio_asset *announcer_source;
+static void announce_mode(void);
+static void announce_file(const char *name);
 static const int8_t *read_announcer(unsigned at,unsigned bytes) {
     uint32_t address=announcer_rom+at;
     unsigned prefix=address&15,span=(prefix+bytes+15)&~15u;
@@ -72,7 +76,7 @@ void bg_sound_frontend(bool active) {
             free((void *)menu_effects[i].samples);
             menu_effects[i] = (bg_audio_asset){0};
         }
-        bg_sound_announce(BG_S_SLAYER);
+        announce_mode();
         /* The regular update starts vehicle effects after the new match. */
         voices[13] = (voice){.asset = &bg_audio_assets[BG_S_AMBIENCE],
                              .step = ((uint32_t)bg_audio_assets[BG_S_AMBIENCE].rate << 16) / rate,
@@ -126,7 +130,8 @@ static void play(unsigned channel, unsigned sound, int volume, int pan, bool loo
     if(channel==12){
         announcer_streaming=sound==BG_S_KILLTACULAR;
         announcer_stream=(bg_sound_stream){0};
-        if(announcer_streaming&&!announcer_rom){
+        if(announcer_streaming){
+            announcer_source=v->asset;
             announcer_rom=dfs_rom_addr("killtacular.s8");
             assertf(announcer_rom&&(unsigned)dfs_rom_size("killtacular.s8")==v->asset->count,
                 "Missing Killtacular voice");
@@ -135,6 +140,22 @@ static void play(unsigned channel, unsigned sound, int volume, int pan, bool loo
 }
 void bg_sound_announce(unsigned sound) {
     play(12, sound, 160, 128, false);
+}
+static void announce_file(const char *name){
+    announcer_rom=dfs_rom_addr(name);
+    unsigned count=dfs_rom_size(name);
+    assertf(announcer_rom&&count,"Missing mode voice: %s",name);
+    mode_voice=(bg_audio_asset){.count=count,.rate=11025};
+    announcer_source=&mode_voice;
+    voices[12]=(voice){.asset=&mode_voice,.step=(11025u<<16)/rate,.left=80,.right=80};
+    announcer_stream=(bg_sound_stream){0};announcer_streaming=true;
+}
+static void announce_mode(void){
+    const bg_mode_rules *r=bg_current_rules();
+    static const char *const solo[]={NULL,"mode_capture_the_flag.s8","mode_oddball.s8","mode_king_of_the_hill.s8","mode_race.s8"};
+    static const char *const team[]={"mode_team_slayer.s8","mode_capture_the_flag.s8","mode_team_oddball.s8","mode_team_king_of_the_hill.s8","mode_team_race.s8"};
+    const char *name=(r->teams?team:solo)[r->engine];
+    if(name)announce_file(name);else bg_sound_announce(BG_S_SLAYER);
 }
 void bg_sound_init(void) {
     audio_init(22050, 6);
@@ -157,6 +178,14 @@ void bg_sound_update(void) {
     shield_loops();
     for (unsigned i = 0; i < bg_event_count; i++) {
         const bg_event *e = &bg_events[i];
+        if(e->kind==BG_EVENT_OBJECTIVE&&e->weapon==BG_OBJECTIVE_FLAG&&e->player>=0){
+            static const char *const names[2][3]={
+                {"mode_red_team_has_the_flag.s8","mode_red_team_flag_returned.s8","mode_red_team_score.s8"},
+                {"mode_blue_team_has_the_flag.s8","mode_blue_team_flag_returned.s8","mode_blue_team_score.s8"}};
+            int action=e->amount==BG_OBJECTIVE_TAKEN?0:e->amount==BG_OBJECTIVE_RETURNED?1:e->amount==BG_OBJECTIVE_SCORED?2:-1;
+            if(action>=0)announce_file(names[bg_player_team(e->player)][action]);
+            continue;
+        }
         unsigned sound = BG_S_COUNT;
         int volume = 112;
         int p = e->player >= 0 && e->player < 4 ? e->player : 0,
@@ -302,7 +331,7 @@ void bg_sound_pump(void) {
         int count = audio_get_buffer_length();
         if(announcer_streaming)
             announcer_streaming=bg_sound_stream_refill(&announcer_stream,&voices[12],
-                &bg_audio_assets[BG_S_KILLTACULAR],(unsigned)count,read_announcer);
+                announcer_source,(unsigned)count,read_announcer);
         bg_sound_mix(voices, 17, out, (unsigned)count);
         mix_title(out, (unsigned)count);
         audio_write_end();

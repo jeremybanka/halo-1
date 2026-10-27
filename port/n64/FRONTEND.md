@@ -22,9 +22,9 @@ Main Menu
 │  ├─ Cooperative Play (dim)
 │  ├─ Split Screen
 │  │  ├─ Select Profile — join/ready 1–4 controllers, choose unique profiles
-│  │  ├─ Select Map — Blood Gulch; the other 12 Xbox maps are dim
-│  │  ├─ Select Game Type — Slayer; the other 25 Xbox presets are dim
-│  │  ├─ Pregame — roster, map/type, 15-kill limit, countdown
+│  │  ├─ Select Map — all 13 Xbox maps (8 MiB for the full roster)
+│  │  ├─ Select Game Type — all 26 Xbox presets (8 MiB for new modes)
+│  │  ├─ Pregame — roster/teams, map/type, preset goal, countdown
 │  │  ├─ Match — one, two, three, or four local views
 │  │  │  └─ Start → Resume / Setup / Controls
 │  │  │     ├─ Setup (P1 only) → Restart Match / Quit Game
@@ -61,6 +61,9 @@ Start advances it by five seconds, with a 0.999-second minimum; C-left takes
 the original Xbox X function and adds five seconds. B cancels. Menu actions
 are consumed before gameplay input, including match launch and quit/resume.
 
+Team modes let each joined controller change teams with left/right in pregame.
+The selected preset supplies the scoring units, limit and winning team. See
+[MULTIPLAYER_MODES.md](MULTIPLAYER_MODES.md) for all modes and objective controls.
 The retail Slayer preset ends at 15 kills. The announcer finishes before the
 Postgame Carnage Report appears, with score, kills, assists and deaths. A
 continues to map selection; B opens quit confirmation. Quit defaults to No.
@@ -92,13 +95,14 @@ Source references:
 
 Only the current page's cropped texture rectangles live in RAM. GPU completion
 is fenced before those surfaces are replaced. Front-end fonts, geometry and
-textures are released before gameplay. The target remains a 4 MiB N64.
+textures are released before gameplay. The complete map/mode roster uses an
+8 MiB Expansion Pak; the five-map Slayer profile remains selectable on 4 MiB.
 
 ## Verification
 
 `test_frontend.c` covers all 15 nonempty controller subsets and every possible
 host, physical-to-logical remapping (including in-place remapping), unavailable
-presets, launch validation, countdown adjustment/cancel, results, quit/resume,
+presets on 4 MiB, all 26 launches on 8 MiB, team assignment, launch validation, countdown adjustment/cancel, results, quit/resume,
 and control settings. `test_menu.c` includes the shell's restart/quit actions
 and P1-only setup. `test_game.c` verifies the 15-kill limit, actual statistics,
 assists and respawn/reset behavior. `test_hud_layout.c` checks all ten viewports
@@ -121,7 +125,7 @@ in Ares with **zero RDP errors and zero warnings**. The recordings are under
 tone; waveform matching locates the audible one-second sequence. These checks
 verify the emulator runs, not a physical N64 flash cartridge.
 
-The quiet four-player replay retained 2,244 fresh poses, zero missed deadlines,
+The earlier Slayer-only quiet four-player replay retained 2,244 fresh poses, zero missed deadlines,
 33.4 ms maximum frame spacing (two retraces), and 617 KiB free heap. The
 benchmark displayed 29.9 FPS; Ares wall-clock emulation speed is a separate
 measurement. Its input-sample-to-display mean/maximum remained 130/135 ms.
@@ -143,5 +147,5 @@ implemented. The original ring/sky meshes and camera paths are retained, but
 32×32 texture tiles and a reduced material model approximate the Xbox shaders.
 Text and previews are downsampled for 320×240. N64 button help and the existing
 control-layout panel necessarily differ from the Xbox controller screen.
-Campaign, co-op, System Link, other maps/types, profile editing and demos remain
+Campaign, co-op, System Link, custom gametype editing, profile editing and demos remain
 inaccessible. This change does not complete the remaining Blam engine port.

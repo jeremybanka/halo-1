@@ -9,6 +9,7 @@
 #include "movement.h"
 #include "terrain.h"
 #include "map.h"
+#include "mode_map.h"
 #include "blam/runtime.h"
 #include "blam/core.h"
 #include <math.h>
@@ -74,11 +75,15 @@ static int match_winner = -1;
 static bg_match_statistics statistics;
 unsigned bg_player_profiles[BG_PLAYERS] = {0, 1, 2, 3};
 static float damage_history[4][4];
+static bool mode_spawn_eligible(unsigned player,unsigned index);
+static const float *mode_spawn_position(unsigned index);
+static float mode_spawn_height(unsigned index,float height);
+static void mode_loadout(int weapons[2],int grenades[2]);
 const bg_match_statistics *bg_match_stats(void) {
     return &statistics;
 }
 bool bg_match_finished(void) {
-    return match_winner >= 0;
+    return match_winner != -1;
 }
 int bg_match_winner(void) {
     return match_winner;
@@ -363,15 +368,21 @@ bool bg_give_weapon(unsigned player, bg_weapon weapon) {
     return true;
 }
 float bg_spawn_rating(unsigned player, unsigned index) {
-    if (player >= active_players || index >= bg_spawn_count || !bg_slayer_spawns[index])
+    if (player >= active_players || index >= bg_spawn_count || !mode_spawn_eligible(player,index))
         return 0;
-    const float *pos = bg_spawns[index].pos;
+    const float *pos = mode_spawn_position(index);
     float rating = 1;
     /* Free-for-all: no red/blue partition or friendly bonus. Recovered source
      * rejects enemies within 2 units and ramps the rating to 1 over 2..5. */
     for (unsigned i = 0; i < active_players; i++)
         if (i != player && bg_players[i].health > 0) {
             float d2 = distance2(pos, bg_players[i].pos);
+            if(bg_players_allied(player,i)) {
+                if(d2<.25f)return 0;
+                /* Prefer a living teammate's area without overlapping them. */
+                if(d2<25)rating*=1.5f;
+                continue;
+            }
             if (d2 < 4)
                 return 0;
             if (d2 <= 25)
@@ -432,13 +443,14 @@ static void spawn(unsigned player) {
     p->score = score;
     p->health = 100;
     p->shield = 100;
+    int weapons[2],grenades[2];mode_loadout(weapons,grenades);
     for (int j = 0; j < 2; j++) {
-        int w = p->inventory[j] = bg_start_weapons[j];
+        int w = p->inventory[j] = weapons[j];
         if (w >= 0) {
             p->magazines[j] = bg_ammo_rules[w].loaded;
             p->reserves[j] = bg_ammo_rules[w].reserve;
         }
-        p->grenades[j] = bg_start_grenades[j];
+        p->grenades[j] = grenades[j];
     }
     p->weapon = p->inventory[0];
     p->ammo = p->magazines[0];
@@ -446,10 +458,10 @@ static void spawn(unsigned player) {
     p->vehicle = -1;
     p->seat = -1;
     p->needle_owner = -1;
-    memcpy(p->pos, bg_spawns[index].pos, sizeof(p->pos));
+    memcpy(p->pos, mode_spawn_position(index), sizeof(p->pos));
     float floor = bg_floor(p->pos[0], p->pos[2], p->pos[1] + .5f);
     if (floor > -999)
-        p->pos[1] = floor + .015f;
+        p->pos[1] = mode_spawn_height(index,floor + .015f);
     memcpy(p->last_pos, p->pos, sizeof(p->pos));
     p->yaw = bg_spawns[index].yaw;
     p->grounded = true;
@@ -506,6 +518,7 @@ static void load_scenario(void) {
     }
 }
 #endif
+#include "game_modes.inc"
 void bg_reset(void) {
     bg_terrain_reset();
     memset(&statistics, 0, sizeof(statistics));
@@ -527,7 +540,9 @@ void bg_reset(void) {
     memset(kill_spree, 0, sizeof(kill_spree));
     for (int i = 0; i < BG_PLAYERS; i++)
         last_kill_time[i] = -10;
+    mode_reset();
     load_scenario();
+    mode_prepare_scenario();
     for (unsigned i = 0; i < active_players; i++)
         spawn(i);
 }
@@ -739,6 +754,7 @@ static void kill(unsigned victim, int owner) {
         return;
     if (p->vehicle >= 0)
         eject(victim, true);
+    bg_drop_objective(victim);
     drop_inventory(victim);
     p->weapon_ready = p->use_time = 0;
     p->use_latched = false;
@@ -761,17 +777,18 @@ static void kill(unsigned victim, int owner) {
     event(BG_EVENT_KILL, owner, victim, p->pos, 1);
     if (owner >= 0 && owner < (int)active_players) {
         bg_player *k = &bg_players[owner];
-        if (owner == (int)victim)
-            k->score--;
+        if (bg_players_allied(owner,victim)) {
+            if(!mode_enabled)k->score--;
+        }
         else {
-            k->score++;
+            if(!mode_enabled)k->score++;
             kill_spree[owner]++;
             statistics.kills[owner]++;
             /* Original FFA assist threshold: other attackers contributing
              * more than 40 percent of the credited killer's damage. */
             float threshold = damage_history[victim][owner] * .4f;
             for (unsigned q = 0; q < active_players; q++)
-                if (q != victim && q != (unsigned)owner && threshold > 0 &&
+                if (!bg_players_allied(q,victim) && q != (unsigned)owner && threshold > 0 &&
                     damage_history[victim][q] > threshold)
                     statistics.assists[q]++;
             kill_chain[owner] = match_time - last_kill_time[owner] <= 4 ? kill_chain[owner] + 1 : 1;
@@ -784,12 +801,13 @@ static void kill(unsigned victim, int owner) {
              * otherwise the single announcer voice would replace Killtacular. */
             if (kill_spree[owner] == 5 && kill_chain[owner] == 1)
                 event(BG_EVENT_KILLING_SPREE, owner, k->weapon, k->pos, 5);
-            if (k->score >= (int)bg_score_limit() && match_winner < 0) {
+            if (!mode_enabled && k->score >= (int)bg_score_limit() && match_winner < 0) {
                 match_winner = owner;
                 event(BG_EVENT_GAME_OVER, owner, k->weapon, k->pos, k->score);
             }
         }
     }
+    mode_killed(victim,owner);
 }
 static void damage_player_profile(unsigned victim, int owner, float damage, bool plasma,
                                   bool headshot, unsigned profile, bool legs, bool behind,
@@ -797,6 +815,7 @@ static void damage_player_profile(unsigned victim, int owner, float damage, bool
     bg_player *p = &bg_players[victim];
     if (bg_match_finished() || p->health <= 0 || damage <= 0)
         return;
+    damage*=mode_damage(victim,owner);
     bg_camo_reveal(p); /* Source damage also depowers camouflage. */
     if (p->shield_overcharging &&
         !(profile && (bg_damage_profiles[profile].flags & BG_DAMAGE_BACKSTAB) &&
@@ -1135,7 +1154,7 @@ bg_aim_target bg_aim_query(unsigned owner) {
     float cp = cosf(p->pitch), dir[3] = {cosf(p->yaw) * cp, sinf(p->pitch), -sinf(p->yaw) * cp};
     for (unsigned j = 0; j < active_players; j++) {
         const bg_player *q = &bg_players[j];
-        if (j == owner || q->health <= 0 || bg_player_visibility(q) <= 0)
+        if (bg_players_allied(j, owner) || q->health <= 0 || bg_player_visibility(q) <= 0)
             continue;
         float height = bg_movement.height[0] +
                        (bg_movement.height[1] - bg_movement.height[0]) * q->crouch_amount;
@@ -1674,9 +1693,10 @@ bg_use_target bg_interaction_target(unsigned player) {
         return result;
     if (p->vehicle >= 0)
         return (bg_use_target){BG_USE_EXIT, p->vehicle, p->seat};
+    bool carrying=bg_player_objective(player)>=0;
     float nearest = .85f * .85f;
     for (unsigned i = 0; i < bg_pickup_count; i++)
-        if (bg_pickups[i].active && bg_pickups[i].weapon < BG_WEAPON_COUNT) {
+        if (!carrying && bg_pickups[i].active && bg_pickups[i].weapon < BG_WEAPON_COUNT) {
             const bg_pickup *q = &bg_pickups[i];
             if (q->ignore_time > 0 && q->ignore_player == (int)player)
                 continue;
@@ -1723,6 +1743,7 @@ bg_use_target bg_interaction_target(unsigned player) {
         for (unsigned seat = 0; seat < bg_seat_counts[v->kind]; seat++)
             if (v->occupants[seat] < 0) {
                 const bg_seat_definition *s = &bg_seat_definitions[v->kind][seat];
+                if(carrying&&(s->flags&12))continue; /* Objective carriers can ride passengers. */
                 if ((s->flags & 512) && v->occupants[0] < 0)
                     continue;
                 float entry[3], anchor[3];
@@ -1876,7 +1897,7 @@ static void melee_impact(unsigned index) {
     if (p->airborne_time > .5f)
         scale = 1.5f;
     float amount =
-        bg_combat_amount(&bg_damage_profiles[BG_D_MELEE], scale, .5f + .5f * random_signed());
+        bg_player_objective(index)>=0?80.f:bg_combat_amount(&bg_damage_profiles[BG_D_MELEE], scale, .5f + .5f * random_signed());
     if (victim >= 0) {
         bg_player *v = &bg_players[victim];
         float cp = cosf(v->pitch),
@@ -1894,8 +1915,8 @@ static void melee(unsigned index) {
         return;
     stop_reload(p);
     p->charge = 0;
-    p->melee_tick = bg_trigger_profiles[p->weapon].melee_key + 1;
-    p->melee_time = bg_melee_duration(p->weapon);
+    p->melee_tick = bg_player_objective(index)>=0?7:bg_trigger_profiles[p->weapon].melee_key + 1;
+    p->melee_time = bg_player_melee_duration(index);
     p->animation = BG_ANIM_MELEE;
     p->anim_time = 0;
     p->cooldown = p->melee_time;
@@ -2285,12 +2306,14 @@ static void tick_player_resources(unsigned player_index, const bg_input *input, 
 }
 static void tick_player_controls(unsigned player_index, const bg_input *input, float dt) {
     bg_player *player = &bg_players[player_index];
-    if (input->switch_weapon && player->inventory[1 - player->slot] >= 0 &&
+    bool carrying=bg_player_objective(player_index)>=0;
+    if(carrying&&input->switch_weapon)bg_drop_objective(player_index);
+    if (!carrying && input->switch_weapon && player->inventory[1 - player->slot] >= 0 &&
         player->weapon_ready <= 0 && bg_player_personal_weapon(player))
         select_slot(player, 1 - player->slot);
     if (input->switch_grenade)
         player->grenade_kind = 1 - player->grenade_kind;
-    if (input->zoom) {
+    if (input->zoom && !carrying) {
         if (bg_weapon_defs[player->weapon].zoom > 1)
             player->zoom = (player->zoom + 1) % (player->weapon == BG_W_SNIPER ? 3 : 2);
         else
@@ -2315,7 +2338,7 @@ static bool tick_player_movement(unsigned player_index, const bg_input *input, f
             player->pos[1] += (bg_movement.height[0] - bg_movement.height[1]) *
                               (player->crouch_amount - old_crouch);
         bool was_grounded = player->grounded;
-        bg_walk_velocity(player, input->forward, input->strafe, dt);
+        bg_walk_velocity_scaled(player, input->forward, input->strafe, dt,bg_mode_speed(player_index));
         bool jump =
             input->jump && player->grounded && !(player->hard_landing && player->landing_time > 0);
         if (jump) {
@@ -2406,6 +2429,10 @@ static bool tick_player_movement(unsigned player_index, const bg_input *input, f
 static void tick_player_weapons(unsigned player_index, const bg_input *input, float dt) {
     bg_player *player = &bg_players[player_index];
     bool personal = bg_player_personal_weapon(player) && player->weapon_ready <= 0;
+    if(bg_player_objective(player_index)>=0) {
+        if(personal&&input->melee)melee(player_index);
+        return;
+    }
     if (personal) {
         if (input->reload && bg_interaction_target(player_index).kind <= BG_USE_PICKUP)
             start_reload(player_index);
@@ -2526,7 +2553,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
         tick_player_timers(i, dt);
         if (p->health <= 0) {
             p->respawn -= dt;
-            if (p->respawn <= 0) {
+            if (p->respawn <= 0 && !bg_player_eliminated(i) && !bg_player_waiting(i)) {
                 spawn(i);
             }
             continue;
@@ -2554,6 +2581,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
         tick_begin = get_ticks_us();
 #endif
         update_projectiles(dt);
+        mode_tick(dt);
 #if defined(N64) && defined(BG_PROFILE)
         bg_tick_profile[2] += get_ticks_us() - tick_begin;
 #endif

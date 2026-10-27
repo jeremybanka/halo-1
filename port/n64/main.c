@@ -287,6 +287,9 @@ static bool input(bg_input in[4]) {
         memset(in, 0, sizeof(bg_input) * 4);
         memset(scores, 0, sizeof(scores));
         if (action == BG_FRONT_START_MATCH) {
+            uint8_t teams[4];
+            for(unsigned p=0;p<4;p++)teams[p]=front.teams[front.ports[p]];
+            bg_configure_mode(front.type,teams);
             bg_front_draw_release();
 #ifdef BG_STREAM_MAPS
             /* Menu PCM is no longer needed after the countdown. Reclaim it
@@ -306,7 +309,6 @@ static bool input(bg_input in[4]) {
 #endif
             views = front.count;
             bg_set_players(views);
-            bg_set_score_limit(15);
             bg_reset();
             bg_hud_messages_reset();
             game_time = 0;
@@ -451,9 +453,11 @@ static void draw_result(void) {
     fill(66, 45, 188, 2, RGBA32(114, 176, 233, 255));
     rdpq_set_mode_standard();
     rdpq_text_print(NULL, 1, 124, 64, "GAME OVER");
-    rdpq_text_printf(NULL, 1, 112, 80, "PLAYER %d WINS", bg_match_winner() + 1);
+    if(bg_match_winner()<0)rdpq_text_print(NULL,1,112,80,"DRAW");
+    else if(bg_mode_has_teams())rdpq_text_printf(NULL,1,96,80,"%s TEAM WINS",bg_player_team(bg_match_winner())?"BLUE":"RED");
+    else rdpq_text_printf(NULL, 1, 112, 80, "PLAYER %d WINS", bg_match_winner() + 1);
     for (unsigned p = 0; p < views; p++) {
-        fill(83, 90 + p * 17, 5, 9, bg_scene_team_color(bg_player_profiles[p]));
+        fill(83, 90 + p * 17, 5, 9, bg_scene_team_color(bg_player_color(p)));
         rdpq_set_mode_standard();
         rdpq_text_printf(NULL, 1, 96, 98 + p * 17, "PLAYER %u       %2d", p + 1,
                          bg_players[p].score);
@@ -1102,7 +1106,7 @@ int main(void) {
             if (now - match_ended >= 2500000) {
                 int final_scores[4];
                 for (unsigned p = 0; p < 4; p++)
-                    final_scores[p] = bg_players[p].score;
+                    final_scores[p] = bg_display_score(p);
                 bg_front_results(&front, final_scores, bg_match_winner());
                 front.statistics = *bg_match_stats();
                 menu.open = false;

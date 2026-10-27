@@ -19,8 +19,17 @@ assert "#ifdef BG_WORLD_CELLS\n#define BG_WORLD_CHUNK_CAPACITY 4096\n#elif defin
 scene = scene.replace("BG_WORLD_CHUNK_CAPACITY", "512")
 functions = re.findall(r"^static[ \t]+(?:const[ \t]+)?\w+[ \t*]+(\w+)\([^;{}]*\)\s*\{", scene, re.M)
 checked = []
+# These now implement multiplayer features, rather than a structural move of
+# the old Slayer renderer. Their contracts live in the mode/asset/native route,
+# matrix-stack, CPU-preparation and fenced-workspace tests. Keep the historical
+# byte/command oracle for the helpers whose behavior is still unchanged.
+multiplayer_helpers = {
+    "tint_team", "init_scene", "prepare_frame", "prepare_view", "draw_view",
+    "animate_firstperson", "firstperson_buffer_resize",
+}
+assert multiplayer_helpers <= set(functions)
 for name in functions:
-    if name == "record_texture":
+    if name == "record_texture" or name in multiplayer_helpers:
         continue  # checked by test_texture_blocks and target RDP validation
     old_body, new_body = function(reference, name), function(scene, name)
     if name == "prepare_view":
@@ -120,7 +129,7 @@ for name in functions:
             new = new.replace(right, "BOX_CULL")
     assert old == new, "Renderer arithmetic/commands changed during extraction: " + name
     checked.append(name)
-assert len(checked) >= 35, checked
+assert len(checked) >= 28, checked
 print(
     f"PASS: {len(checked)} renderer helpers checked against checkpoint; projection region tested separately, remaining arithmetic/GPU command order unchanged"
 )

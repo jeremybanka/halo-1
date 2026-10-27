@@ -72,6 +72,12 @@ void bg_hud_messages_update(void) {
         const bg_event *e = &bg_events[i];
         bg_notice m = {.item = (uint8_t)e->weapon, .quantity = 1};
         switch (e->kind) {
+        case BG_EVENT_OBJECTIVE:
+            m.kind = BG_NOTICE_OBJECTIVE;
+            m.actor = e->player < 0 ? UINT8_MAX : (uint8_t)e->player;
+            m.quantity = (uint16_t)e->amount;
+            for(unsigned p=0;p<bg_player_count();p++)add(p,m);
+            continue;
         case BG_EVENT_PICKUP:
             m.kind = e->weapon < BG_WEAPON_COUNT ? BG_NOTICE_WEAPON : BG_NOTICE_ITEM;
             m.quantity = (uint16_t)e->amount;
@@ -119,6 +125,16 @@ unsigned bg_hud_messages_get(unsigned player, bg_notice out[BG_NOTICE_SLOTS]) {
 void bg_hud_message_text(unsigned viewer, const bg_notice *m, char *out, size_t size) {
     const char *name = bg_hud_weapon_name(m->item);
     switch (m->kind) {
+    case BG_NOTICE_OBJECTIVE: {
+        const char *object=m->item==BG_OBJECTIVE_FLAG?"Flag":m->item==BG_OBJECTIVE_BALL?"Ball":
+                           m->item==BG_OBJECTIVE_HILL?"Hill":"Checkpoint";
+        const char *action=m->quantity==BG_OBJECTIVE_TAKEN?"taken":m->quantity==BG_OBJECTIVE_DROPPED?"dropped":
+                           m->quantity==BG_OBJECTIVE_RETURNED?"returned":m->quantity==BG_OBJECTIVE_SCORED?"scored":
+                           m->quantity==BG_OBJECTIVE_MOVED?"moved":"reached";
+        if(m->actor<bg_player_count())snprintf(out,size,"P%u: %s %s",bg_player_profiles[m->actor]+1,object,action);
+        else snprintf(out,size,"%s %s",object,action);
+        break;
+    }
     case BG_NOTICE_WEAPON: snprintf(out, size, "+ %s", name); break;
     case BG_NOTICE_AMMO: snprintf(out, size, "+%u %s", m->quantity, name); break;
     case BG_NOTICE_ITEM:

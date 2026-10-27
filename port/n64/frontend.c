@@ -13,13 +13,10 @@ const bg_front_entry bg_front_maps[13] = {
     {"Blood Gulch", true},   {"Wizard", true},    {"Chiron TL34", true},
     {"Longest", true}};
 const bg_front_entry bg_front_types[26] = {
-    {"Slayer", true},       {"Slayer Pro", false}, {"Elimination", false}, {"Phantoms", false},
-    {"Endurance", false},   {"Rockets", false},    {"Snipers", false},     {"Oddball", false},
-    {"Reverse Tag", false}, {"Accumulate", false}, {"Juggernaut", false},  {"Stalker", false},
-    {"King", false},        {"King Pro", false},   {"Crazy King", false},  {"Race", false},
-    {"Rally", false},       {"CTF", false},        {"Invasion", false},    {"Iron CTF", false},
-    {"CTF Pro", false},     {"Team Race", false},  {"Team Rally", false},  {"Team Ball", false},
-    {"Team King", false},   {"Team Slayer", false}};
+#define BG_MODE(id,key,name,...) [id]={name,true},
+#include "game_modes.def"
+#undef BG_MODE
+};
 bool bg_front_available(bg_front_page p, unsigned i) {
     switch (p) {
     case BG_FRONT_MAIN:
@@ -29,7 +26,7 @@ bool bg_front_available(bg_front_page p, unsigned i) {
     case BG_FRONT_MAP:
         return i < 13 && bg_front_maps[i].available&&!bg_front_map_needs_expansion(i);
     case BG_FRONT_TYPE:
-        return i < 26 && bg_front_types[i].available;
+        return i < 26 && bg_front_types[i].available&&(i==BG_MODE_SLAYER||memory_size>=8*1024*1024);
     case BG_FRONT_PROFILE:
         return i == 1 || i == 4;
     default:
@@ -59,6 +56,7 @@ void bg_front_init(bg_frontend *f) {
     for (unsigned p = 0; p < 4; p++) {
         f->profile[p] = p;
         f->ports[p] = p;
+        f->teams[p] = p&1;
     }
     page(f, BG_FRONT_MAIN);
     f->winner = -1;
@@ -180,6 +178,11 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
         bool changed = false;
         for (unsigned p = 0; p < 4; p++)
             if (f->joined[p]) {
+                if(bg_mode_preset(f->type)->teams&&direction(&in[p],true)) {
+                    f->teams[p]^=1;
+                    if(f->deadline<now+10000000)f->deadline=now+10000000;
+                    f->sound=BG_FRONT_CURSOR;
+                }
                 if (in[p].pressed & BG_BUTTON_B) {
                     page(f, BG_FRONT_TYPE);
                     f->sound = BG_FRONT_BACK;

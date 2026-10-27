@@ -1,5 +1,6 @@
 #include "map.h"
 #include "map_format.h"
+#include "mode_map.h"
 #include "game.h"
 #include "frontend.h"
 #include "pickup_rules.h"
@@ -117,7 +118,9 @@ void bg_map_host_world_order(unsigned block, void *memory, unsigned bytes) {
     }
 }
 #endif
+#include "mode_map.inc"
 void bg_map_unload(void) {
+    unload_mode_map();
     bg_vehicle_world_release();
     free(triangles); triangles = NULL;
     for (unsigned s = 0; s < BG_MAP_SECTIONS; s++) { free(blocks[s]); blocks[s] = NULL; }
@@ -268,6 +271,7 @@ bool bg_map_load(unsigned id) {
     bg_sky_rgb = blocks[BG_MAP_SKY];
     const float *origin = blocks[BG_MAP_ORIGIN];
     current.id = id; current.bytes = bytes; memcpy(current.origin, origin, 12); current.void_height = origin[3];
+    load_mode_map(index);
     const uint32_t *world = blocks[BG_MAP_WORLD_LAYOUT];
     current.world_bytes = world[0]; memcpy(current.world_layout, world + 1, sizeof(current.world_layout));
     validate_world_layout();

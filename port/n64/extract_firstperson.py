@@ -4,13 +4,14 @@ import argparse,contextlib,json
 from pathlib import Path
 from extract_extended import MODEL_PATHS
 
-def extract(output,reference_output=None):
+def extract(output,reference_output=None,model_paths=None):
  from reclaimer.meta.wrappers.halo1_map import Halo1Map
  from reclaimer.model.model_decompilation import extract_model
  from reclaimer.animation.animation_decompilation import extract_animation
  from reclaimer.bitmaps.bitmap_decompilation import extract_bitmaps
  output=Path(output);output.mkdir(parents=True,exist_ok=True)
- names=list(MODEL_PATHS)[:8]+['flamethrower'];result={'weapons':{},'reference_note':'Highest source LOD and full-resolution diffuse bitmaps. Multipass glass/meters use separately identified native-color approximations, not recreated Xbox shaders.'}
+ paths=model_paths or {name:MODEL_PATHS[name] for name in list(MODEL_PATHS)[:8]+['flamethrower']}
+ names=list(paths);result={'weapons':{},'reference_note':'Highest source LOD and full-resolution diffuse bitmaps. Multipass glass/meters use separately identified native-color approximations, not recreated Xbox shaders.'}
  with (output/'firstperson-extraction.log').open('w') as log,contextlib.redirect_stdout(log):
   h=Halo1Map();h.load_map(output/'bloodgulch-decompressed.map');entries=h.tag_index.tag_index
   textures=output/'firstperson-textures-reference';textures.mkdir(exist_ok=True)
@@ -68,7 +69,7 @@ def extract(output,reference_output=None):
     'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100]} for n in a.nodes]}
   result['hands']=model(r'characters\cyborg\fp\fp','hands')
   for name in names:
-   path=MODEL_PATHS[name].rsplit('\\',1)[0]+r'\fp\fp';gun=model(path,name)
+   path=paths[name].rsplit('\\',1)[0]+r'\fp\fp';gun=model(path,name)
    ix=next(i for i,t in enumerate(entries) if t.class_1.enum_name=='model_animations' and t.path==path)
    m=h.get_meta(ix);h.meta_to_tag_data(m,'antr',entries[ix]);clips={}
    patterns={'idle':['first-person idle'],'fire':['first-person firing','first-person fire-1'],

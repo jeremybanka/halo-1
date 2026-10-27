@@ -16,6 +16,10 @@
 #include "blam/vehicle_profile.h"
 #include "asset_models.h"
 #include "asset_firstperson.h"
+#include "asset_objectives.h"
+static void objectives_init(void),objectives_prepare(void);
+static int objective_kind(unsigned player);
+static void animate_objective(unsigned player,unsigned kind);
 #include "asset_interaction.h"
 #include "firstperson_service.h"
 #include "firstperson_ammo.h"
@@ -201,7 +205,7 @@ static unsigned pickup_model(unsigned w) {
 }
 static void tint_team(T3DVertPacked *vertices, unsigned count, const uint8_t *masks,
                       unsigned player) {
-    player = bg_player_profiles[player];
+    player = bg_player_color(player);
     for (unsigned i = 0; i < count; i++) {
         uint32_t *rgba = t3d_vertbuffer_get_color(vertices, i);
         unsigned r = *rgba >> 24, g = (*rgba >> 16) & 255, b = (*rgba >> 8) & 255, mask = masks[i];
@@ -393,6 +397,8 @@ static void init_scene(void) {
         for (unsigned clip = 0; clip < BG_FP_CLIPS; clip++)
             if (bg_fp_animations[weapon][clip].tracks > motion_capacity)
                 motion_capacity = bg_fp_animations[weapon][clip].tracks;
+    for(unsigned k=0;k<2;k++)for(unsigned clip=0;clip<BG_FP_CLIPS;clip++)
+        if(bg_objective_fp_animations[k][clip].tracks>motion_capacity)motion_capacity=bg_objective_fp_animations[k][clip].tracks;
     motion_tracks = malloc(motion_capacity * sizeof(*motion_tracks));
     assertf(motion_tracks, "Animation interpolation scratch allocation");
     bg_scene_load_world();
@@ -497,6 +503,7 @@ static void init_scene(void) {
                                         1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 2};
     const uint32_t hues[7] = {0x54d9ffff, 0xf15cffff, 0xffd38aff, 0x818977ff,
                               0x76abffff, 0xffbc50ff, 0xff9836ff};
+    objectives_init();
     for (unsigned k = 0; k < 7; k++) {
         for (unsigned i = 0; i < 24; i++) {
             memcpy(t3d_vertbuffer_get_pos(particles[k], i), points[indices[i]], 6);
@@ -1028,6 +1035,10 @@ static void firstperson_buffer_resize(unsigned p, unsigned bytes) {
             if (required > capacity)
                 capacity = required;
         }
+        for(unsigned k=0;k<2;k++){
+            unsigned required=((bg_objective_fp_models[k].vertex_count+1)&~1u)*16;
+            if(required>capacity)capacity=required;
+        }
         firstperson[slot][p] = malloc_uncached(capacity);
         assertf(firstperson[slot][p], "First-person mesh allocation");
         firstperson_bytes[slot][p] = capacity;
@@ -1042,6 +1053,8 @@ static void animate_firstperson(unsigned p) {
     unsigned w = player->weapon;
     if (player->vehicle >= 0 || player->health <= 0 || player->zoom || p >= views)
         return;
+    int carried=objective_kind(p);
+    if(carried>=0){animate_objective(p,carried);return;}
     const bg_model_asset *m = &bg_fp_models[w];
     unsigned bytes = ((m->vertex_count + 1) & ~1u) * 16;
     firstperson_buffer_resize(p, bytes);
@@ -1169,7 +1182,9 @@ static void ensure_firstperson_animation(unsigned p) {
     animation_us += get_ticks_us() - begin;
 #endif
 }
+#include "scene_objectives.inc"
 static void prepare_frame(void) {
+    objectives_prepare();
 #ifdef BG_PROFILE
     decode_key_count = 0;
     uint64_t begin = get_ticks_us();
@@ -1410,13 +1425,16 @@ static void prepare_view(unsigned p) {
             distance += d * d;
         }
         bool personal = bg_player_personal_weapon(q);
-        bool held = (distance <= 16 || player->zoom) && q->health > 0 && personal;
+        int carried=objective_kind(j);
+        bool held = (carried>=0 || distance <= 16 || player->zoom) && q->health > 0 && personal;
         if (visible_bounds(vp, &body_bounds[j], cull_selected[p])) {
             unsigned lod = distance > (views >= 3 ? 4.f : 16.f) && player->zoom == 0;
             body_lods[p][j] = lod + 1;
             wanted_lods[j] |= 1u << lod;
         }
-        if (held && visible_bounds(vp, &held_bounds[j], cull_selected[p])) {
+        bg_cull_bounds objective_bound;
+        if(carried>=0)prepare_effect_bounds(&objective_bound,q->pos,1.5f);
+        if (held && visible_bounds(vp, carried>=0?&objective_bound:&held_bounds[j], cull_selected[p])) {
             held_masks[p] |= 1u << j;
             wanted_held |= 1u << j;
         }
@@ -1914,9 +1932,13 @@ static void draw_view(unsigned p) {
             submitted_vertices += lod ? spartan_lod_vertex_loads : model_vertex_loads[BG_M_SPARTAN];
 #endif
         }
-        if (held_masks[p] & (1u << j))
+        if ((held_masks[p] & (1u << j)) && objective_kind(j)<0)
             small_model_instance(weapon_model(bg_players[j].weapon), &held_matrices[slot][j], vp,
                                  &eye, player->zoom != 0, NULL);
+        if((held_masks[p] & (1u<<j)) && objective_kind(j)>=0){
+            int carried=bg_player_objective(j);
+            objective_instance(bg_objectives[carried].kind,bg_objectives[carried].team,&held_matrices[slot][j],false);
+        }
         if (fading) {
             rdpq_sync_pipe();
             rdpq_mode_begin();
@@ -1930,6 +1952,7 @@ static void draw_view(unsigned p) {
     category_triangles[2] += triangles - before;
     before = triangles;
 #endif
+    objectives_draw(p,vp);
     for (unsigned i = 0; i < bg_pickup_count; i++) {
         bg_pickup *q = &bg_pickups[i];
         if (!pickup_visible[p][i])
@@ -1962,7 +1985,7 @@ static void draw_view(unsigned p) {
     unsigned fx_triangles = bg_fx_draw_blasts();
     fx_triangles += bg_fx_draw_trails(game_time);
     for (unsigned j = 0; j < views; j++)
-        if (held_masks[p] & (1u << j))
+        if ((held_masks[p] & (1u << j)) && objective_kind(j)<0)
             fx_triangles +=
                 bg_fx_draw_weapon(j, &held_matrices[slot][j], BG_OBJECT_SCALE, false, game_time);
     fx_triangles += bg_fx_draw_vehicle_destruction();
@@ -2008,6 +2031,10 @@ static void draw_view(unsigned p) {
         t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH | T3D_FLAG_CULL_BACK);
         rdpq_mode_zbuf(true, true);
         t3d_segment_set(T3D_SEGMENT_1, firstperson[slot][p]);
+        int carried=bg_player_objective(p);
+        if(carried>=0){
+            objective_instance(bg_objectives[carried].kind,bg_objectives[carried].team,&guns[slot][p],true);
+        } else {
         if (player->weapon == BG_W_PISTOL || player->weapon == BG_W_ROCKET) {
             surface_t atlas =
                 surface_make_linear((void *)(player->weapon == BG_W_ROCKET ? bg_fp_rocket_texture
@@ -2066,6 +2093,7 @@ static void draw_view(unsigned p) {
 #ifdef BG_PROFILE
         submitted_vertices += flash_triangles * 2;
 #endif
+        }
     }
 #ifdef BG_PROFILE
     fp_us += get_ticks_us() - begin - (animation_us - animation_before);

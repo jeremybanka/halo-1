@@ -31,7 +31,7 @@ def run(output):
     assert all(i in retired or not b or a==b for i,(b,a) in enumerate(zip(before,after))), 'Existing HUD ink was overwritten'
     assert all(after[i]==0 for i in retired), 'Retired digit outlines are still in the atlas'
     cells=set()
-    for g in range(37,66):
+    for g in range(37,67):
         x=40+(g-37)%5*4 if g<52 else 60
         y=52+(g-37)//5*6 if g<52 else (g-52)*6
         indices={yy*64+xx for yy in range(y,y+6) for xx in range(x,x+4)}
@@ -42,11 +42,11 @@ def run(output):
     assert all(i in cells or i in retired for i,(b,a) in enumerate(zip(before,after)) if a!=b)
     assert set(after)<={0,15}
     image=Image.new('RGB',(320,96),'#091923');draw=ImageDraw.Draw(image)
-    samples=['Hold  Pick up', '+50 Assault Rifle', '+1 Frag Grenade', '+3 Plasma Grenades',
+    samples=['Hold  Pick up', '2:05  Assault Rifle', '+1 Frag Grenade', '+3 Plasma Grenades',
              'Double Kill!', 'Rejoin in 3', 'Drive Warthog', 'Ride Scorpion']
     for row,text in enumerate(samples):
         for column,ch in enumerate(text):
-            g=ord(ch)-48 if '0'<=ch<='9' else ord(ch)-65+10 if 'A'<=ch<='Z' else ord(ch)-97+37 if 'a'<=ch<='z' else {'+':63,'!':64,'.':65}.get(ch,-1)
+            g=ord(ch)-48 if '0'<=ch<='9' else ord(ch)-65+10 if 'A'<=ch<='Z' else ord(ch)-97+37 if 'a'<=ch<='z' else {'+':63,'!':64,'.':65,':':66}.get(ch,-1)
             if g<0:continue
             x=(g%10)*6 if g<37 else 40+(g-37)%5*4 if g<52 else 60
             y=(g//10)*8 if g<37 else 52+(g-37)//5*6 if g<52 else (g-52)*6

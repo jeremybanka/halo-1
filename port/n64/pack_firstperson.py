@@ -10,19 +10,22 @@ from pack_mesh import indexed_mesh, emit_batches, trajectory_keys, remap_clip, M
 def prepare_model(w,name):
  """Share only corners with identical complete quantized animation paths."""
  images=load_images(w['textures']);positions=[];colors=[];team_mask=[];uvs=[]
- textured=name=='rocket' or (name=='pistol' and any(t.get('magnum_textured') for t in w['triangles']))
+ textured=name in ('rocket','flag') or (name=='pistol' and any(t.get('magnum_textured') for t in w['triangles']))
  masks=load_images(w.get('material_multipurpose',[]))
  channels=[2 if source==3 else None for source in w.get('material_change_source',[])]
  for tri in w['triangles']:
   positions.extend([[round(v*256) for v in position(p,(0,0,0))] for p in tri['p']])
   colors.extend(bake_triangle(tri,images,w,firstperson=True))
   team_mask.extend(bake_team_mask(tri,masks,channels))
-  if name=='rocket' and w['material_names'][tri['material']].endswith(' decal'):
+  if name=='flag' and w['material_names'][tri['material']]=='objective flag banner':
+   colors[-3:]=[[255,255,255]]*3
+   uvs.extend([[round(u*63*32),round(v*30*32)] for u,v in tri['uv']])
+  elif name=='rocket' and w['material_names'][tri['material']].endswith(' decal'):
    colors[-3:]=[[210,210,210]]*3
    uvs.extend([[round(u*63*32),round(v*30*32)] for u,v in tri['uv']])
   else:uvs.extend([[round(u*64*32),round(v*32*32)] for u,v in tri['uv']] if textured and tri.get('magnum_textured') else [[16,1008]]*3)
  mesh=indexed_mesh(positions,colors,team_mask,trajectory_keys(w['clips'],256),
-                   color_tolerance=model_color_tolerance('firstperson',name),
+                   color_tolerance=8 if name in ('flag','ball') else model_color_tolerance('firstperson',name),
                    material_keys=[(t['material'],tuple(uvs[i*3+j]) if textured else ()) for i,t in enumerate(w['triangles']) for j in range(3)])
  mesh['uvs']=[uvs[i] if textured else [0,0] for i in mesh['sources']]
  clips={name:remap_clip(clip,mesh['sources']) for name,clip in w['clips'].items()}

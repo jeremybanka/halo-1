@@ -109,6 +109,13 @@ def main():
         check("selected-map sanitizer suite", lambda: command(
             [sys.executable, "port/n64/test_maps.py", "--frontend-cycle", "--output-dir", out / "maps"]
         ))
+    if "host" in groups:
+        check("multiplayer presets and objectives", lambda: command(
+            [sys.executable, "port/n64/test_maps.py", "--modes", "--output-dir", out / "modes"]
+        ))
+        check("source preset catalog", lambda: command(
+            [sys.executable, "port/n64/export_game_modes.py", "--check"]
+        ))
     if "host" in groups or "headers" in groups:
         (out / "host").mkdir(parents=True, exist_ok=True)
         for name in HEADERS:

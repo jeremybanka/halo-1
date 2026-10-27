@@ -54,6 +54,7 @@ def meter_geometry(name, gun):
 def repair_meters(data, raw):
     report={}
     for name in ('plasma_pistol','plasma_rifle'):
+        if name not in data['weapons']:continue
         w=data['weapons'][name];original=raw['weapons'][name];gun=original['gun']
         material,points,faces,bone=meter_geometry(name,gun)
         material+=len(raw['hands']['textures'])
@@ -85,6 +86,7 @@ def blender_review(data, scene):
     """Inspect the final, posed models beside their isolated meter geometry."""
     import bpy
     for row,name in enumerate(('plasma_pistol','plasma_rifle')):
+        if name not in data['weapons']:continue
         w=data['weapons'][name]
         mesh=bpy.data.meshes.new(name+' repaired meter')
         mesh.from_pydata([p for t in w['triangles'] for p in t['p']],[],

@@ -292,7 +292,11 @@ def parse_args(argv=None):
         help="Script four-angle vehicle destruction, wreck settling, blinking and respawn",
     )
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
+    parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 26 presets through the real menus")
+    parser.add_argument("--modes-preview",type=int,choices=range(26),help="QA: stage one preset and hold it open for objective visual review")
     args = parser.parse_args(argv)
+    if args.modes_preview is not None:args.modes_cycle=True
+    if args.modes_cycle:args.frontend_qa=4
     if args.playable_candidate:
         if not (args.output_dir and args.map_bank_override and args.world_pvs_data and args.world_hierarchy):
             parser.error('--playable-candidate requires isolated output, a hash-bound bank/sidecar and --world-hierarchy')
@@ -498,6 +502,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_DEMO"] if args.demo else []),
         *(["-DBG_SHOWCASE=" + str(SHOWCASES.index(args.showcase))] if args.showcase else []),
         *(["-DBG_MENU_QA"] if args.menu_qa else []),
+        *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),
         *(
             ["-DBG_FRONTEND_QA", "-DBG_FRONTEND_QA_PLAYERS=" + str(args.frontend_qa)]
             if args.frontend_qa
@@ -653,6 +658,8 @@ def rom_name(args):
         name += "-menu-qa"
     if args.maps_cycle:
         name += "-maps-cycle"
+    if args.modes_preview is not None:
+        name += "-modes-preview"+str(args.modes_preview)
     if args.frontend_qa:
         name += "-frontend-qa" + str(args.frontend_qa)
     if args.blam_bsp:
@@ -902,6 +909,26 @@ def main():
         path = asset_root / "generated/maps" / name
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             build_error("Map bank differs from its source report: " + name)
+    # Objective metadata is mandatory: a missing bank must fail the build,
+    # never expose a match that has no flag, hill or race checkpoints.
+    modes_path = asset_root / "generated/maps/modes-report.json"
+    objectives_path = asset_root / "generated/objectives-report.json"
+    for report_path in (modes_path, objectives_path):
+        if not report_path.is_file():
+            build_error("Missing multiplayer asset report: " + str(report_path))
+        multiplayer_report = json.loads(report_path.read_text())
+        for name, expected in {**multiplayer_report["inputs"], **multiplayer_report.get("files", {})}.items():
+            path = ROOT / name
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+                build_error("Stale multiplayer bank: " + name)
+    modes_report = json.loads(modes_path.read_text())
+    from asset_ids import map_ids
+    if modes_report["schema"] != 2 or set(modes_report["maps"]) != set(map_ids()):
+        build_error("Multiplayer metadata must cover all thirteen maps")
+    for name, entry in modes_report["maps"].items():
+        path = asset_root / "generated/maps" / (name + ".modes64")
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+            build_error("Missing or stale multiplayer map: " + name)
     prompt_report = asset_root / "generated/prompt-icons/icons-report.json"
     if not prompt_report.exists():
         build_error("Bake local Xbox prompt icons first: port/n64/pack_prompt_icons.py")
@@ -995,7 +1022,7 @@ def main():
     if args.menu_qa:
         sources.append("menu_qa.c")
     if args.frontend_qa:
-        sources.append("frontend_qa.c")
+        sources.append("modes_qa.c" if args.modes_cycle else "frontend_qa.c")
     generated = [
         "maps/common_data.c",
         "combat_data.c",
@@ -1008,6 +1035,7 @@ def main():
         "weapon_effects_data.c",
         "vehicle_data.c",
         "models_data.c",
+        "objectives_data.c",
         "audio_data.c",
         "hud_data.c",
         "prompt-icons/prompt_icons_data.c",
@@ -1138,7 +1166,7 @@ def main():
     assert not maps_directory.is_symlink(),'Refuse shared map-bank output directory'
     maps_directory.mkdir(parents=True, exist_ok=True)
     for source in (asset_root / "generated/maps").iterdir():
-        if source.suffix in (".map64", ".bin"):
+        if source.suffix in (".map64", ".bin", ".modes64"):
             target = maps_directory / source.name
             # Reusing an isolated candidate output without the override must
             # restore accepted banks, rather than retain its previous copy.
@@ -1267,6 +1295,8 @@ def main():
             (ROOT / "port/n64/interaction_services.def").read_bytes()
         ).hexdigest(),
         "maps": maps_report,
+        "multiplayer_maps": modes_report,
+        "multiplayer_objectives": json.loads(objectives_path.read_text()),
         "options": {
             name: str(value) if isinstance(value, Path) else value
             for name, value in vars(args).items()

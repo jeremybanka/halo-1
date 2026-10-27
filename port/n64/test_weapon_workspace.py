@@ -25,6 +25,7 @@ static int firstperson_weapon[2][4];
 static unsigned slot,allocated,fences;
 #define BG_FP_WEAPONS 8
 static struct {unsigned vertex_count;} bg_fp_models[8]={{504},{536},{512},{576},{626},{466},{576},{566}};
+static struct {unsigned vertex_count;} bg_objective_fp_models[2]={{818},{958}};
 static bool busy[2];
 static void *malloc_uncached(unsigned n){assert(!busy[slot]);allocated++;return malloc(n);}
 static void free_uncached(void*p){assert(!busy[slot]);assert(allocated);allocated--;free(p);}
@@ -34,15 +35,15 @@ for name,args in [('firstperson_buffers_load','void'),('firstperson_buffers_rele
     code += '\nstatic void '+name+'('+args+'){'+function(source,name)+'}\n'
 code += r'''
 int main(void){
- unsigned sizes[]={504,536,512,576,626,466,576,566};
+ unsigned sizes[]={504,536,512,576,626,466,576,566,818,958};
  for(unsigned lifecycle=0;lifecycle<20;lifecycle++){
   firstperson_buffers_load();assert(allocated==0);
   for(unsigned frame=0;frame<64;frame++){
    slot=frame%2;busy[slot]=false; /* The renderer's completed frame-slot fence. */
    for(unsigned p=0;p<4;p++){
-    unsigned bytes=sizes[(frame/2+p)%8]*16;
+    unsigned bytes=sizes[(frame/2+p)%10]*16;
     firstperson_buffer_resize(p,bytes);
-    assert(firstperson_bytes[slot][p]==626*16&&firstperson_weapon[slot][p]==-1);
+    assert(firstperson_bytes[slot][p]==958*16&&firstperson_weapon[slot][p]==-1);
     firstperson[slot][p][bytes-1]=42;
     void*old=firstperson[slot][p];firstperson_weapon[slot][p]=3;
     firstperson_buffer_resize(p,bytes);assert(firstperson[slot][p]==old&&firstperson_weapon[slot][p]==3);

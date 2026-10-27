@@ -26,7 +26,7 @@ static surface_t atlases[BG_MENU_FONT_COUNT][MAX_FONT_PAGES], panel[9];
 static letter letters[TEXT_CAPACITY];
 static unsigned letter_count;
 static bool initialized;
-enum { SCORE_LAYOUTS = 10, SCORE_HEADER_LETTERS = 24, SCORE_GLYPHS = 104 };
+enum { SCORE_LAYOUTS = 10, SCORE_HEADER_LETTERS = 40, SCORE_GLYPHS = 128 };
 typedef struct {
     rspq_block_t *panel;
     float x, y, w, h, scale;
@@ -368,7 +368,7 @@ void bg_menu_draw_profile(const bg_menu *m, unsigned profile) {
 static void score_header(score_layout *layout, unsigned owner) {
     float bx = layout->x, by = layout->y, bw = layout->w, scale = layout->scale;
     letter_count = 0;
-    text(BG_MENU_FONT_SMALL, bx + 8 * scale, by + 18 * scale, .9f * scale, white, "SCORES");
+    text(BG_MENU_FONT_SMALL, bx + 8 * scale, by + 18 * scale, .9f * scale, white, bg_current_rules()->name);
     char value[24];
     snprintf(value, sizeof(value), "YOU: P%u", owner + 1);
     text(BG_MENU_FONT_SMALL,
@@ -388,18 +388,19 @@ static void update_score_text(score_layout *layout, unsigned count, unsigned own
     bool changed = !layout->text_valid || score_glyph_count_key[owner] != count;
     unsigned profile_key = 0;
     for (unsigned p = 0; p < count; p++)
-        profile_key |= bg_player_profiles[p] << (2 * p);
+        profile_key |= (bg_player_profiles[p] | (bg_player_color(p)<<2)) << (4 * p);
+    profile_key |= bg_current_mode()<<16;
     if (layout->profile_key != profile_key) {
         changed = true;
         layout->profile_key = profile_key;
     }
     for (unsigned p = 0; p < count; p++)
-        if (layout->scores[p] != bg_players[p].score)
+        if (layout->scores[p] != bg_display_score(p))
             changed = true;
     if (!changed)
         return;
     for (unsigned p = 0; p < count; p++) {
-        layout->scores[p] = bg_players[p].score;
+        layout->scores[p] = bg_display_score(p);
         unsigned at = p;
         while (at && layout->scores[layout->order[at - 1]] < layout->scores[p]) {
             layout->order[at] = layout->order[at - 1];
@@ -420,9 +421,11 @@ static void update_score_text(score_layout *layout, unsigned count, unsigned own
             rank = row + 1;
         snprintf(value, sizeof(value), "%u", rank);
         text(BG_MENU_FONT_SMALL, bx + 8 * scale, line, .7f * scale, mine ? white : soft, value);
-        snprintf(value, sizeof(value), "PLAYER %u", bg_player_profiles[p] + 1);
+        if(bg_mode_has_teams())snprintf(value,sizeof(value),"P%u %s",bg_player_profiles[p]+1,bg_player_team(p)?"BLUE":"RED");
+        else snprintf(value, sizeof(value), "PLAYER %u", bg_player_profiles[p] + 1);
         text(BG_MENU_FONT_SMALL, bx + 27 * scale, line, .7f * scale, mine ? white : soft, value);
-        snprintf(value, sizeof(value), "%d", layout->scores[p]);
+        if(bg_mode_timed(bg_current_rules()))snprintf(value,sizeof(value),"%d:%02d",layout->scores[p]/60,layout->scores[p]%60);
+        else snprintf(value, sizeof(value), "%d", layout->scores[p]);
         text(BG_MENU_FONT_SMALL,
              bx + bw - 8 * scale - text_width(BG_MENU_FONT_SMALL, value, .7f * scale), line,
              .7f * scale, mine ? white : soft, value);
@@ -476,7 +479,7 @@ void bg_scores_draw(unsigned owner, int x, int y, int width, int height) {
             rectangle(bx + 5 * scale, line - 10 * scale, bw - 10 * scale, 13 * scale,
                       RGBA32(40, 150, 255, 48));
         rectangle(bx + 21 * scale, line - 7 * scale, 3 * scale, 7 * scale,
-                  player_colors[bg_player_profiles[p]]);
+                  player_colors[bg_player_color(p)]);
     }
     flush_text_from(layout->glyphs, layout->glyph_count);
     rdpq_mode_pop();

@@ -12,6 +12,7 @@ from test_render_matrix import compact, function
 
 ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL = set('''CachedAddr assertf bg_projectile_at bg_raycast bg_qa_camera bg_qa_interaction_camera bg_player_personal_weapon bg_pickup_mark_visible bg_camera_clearance bg_body_height bg_eye_height bg_interaction_points bg_player_seat bg_player_third_person bg_camera_track_offset bg_vehicle_transform bg_vehicle_camera_position hypotf fmodf tanf atanf
+    bg_player_objective bg_mode_hill_point lroundf t3d_vertbuffer_get_pos
     BG_VP_END
     bg_bounds_expand bg_bounds_quantize bg_bounds_transform bg_bounds_union bg_frustum_box bg_frustum_prepare bg_frustum_box_cached
     bg_motion_decode bg_motion_scatter blam_quaternions_interpolate_and_normalize

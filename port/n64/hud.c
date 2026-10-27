@@ -2,6 +2,8 @@
 #include "asset_hud.h"
 #include "asset_prompt_icons.h"
 #include "game.h"
+#include "scene.h"
+#include "map.h"
 #include "camouflage.h"
 #include <libdragon.h>
 #include <math.h>
@@ -322,7 +324,7 @@ static void radar(unsigned p, int x, int y, float scale) {
             continue;
         int bx = (int)roundf(cx + (dx * sn + dz * cs) * radius / range);
         int by = (int)roundf(cy - (dx * cs - dz * sn) * radius / range);
-        picture(BG_H_BLIP, bx - 2, by - 2, .125f, red);
+        picture(BG_H_BLIP, bx - 2, by - 2, .125f, bg_players_allied(p,j)?blue:red);
     }
     pixel((int)cx, (int)cy - 1, 1, 3, bright);
     pixel((int)cx - 1, (int)cy + 1, 3, 1, bright);
@@ -514,7 +516,8 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     const bg_vehicle *vehicle = p->vehicle >= 0 && (unsigned)p->vehicle < bg_vehicle_count
                                     ? &bg_vehicles[p->vehicle]
                                     : NULL;
-    bool personal = bg_player_personal_weapon(p);
+    bool carrying=bg_player_objective(index)>=0;
+    bool personal = bg_player_personal_weapon(p)&&!carrying;
     float aim_x, aim_y;
     unsigned views = height >= 240 ? 1 : width < 200 ? 4 : 2;
     bg_hud_aim_point(views, index, x, y, width, height, &aim_x, &aim_y);
@@ -533,7 +536,7 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if (p->health > 0) {
         if (scoped(p))
             scope_marks(p, aim_x, aim_y, height);
-        if (!p->zoom)
+        if (!p->zoom && bg_mode_radar())
             radar(index, x + margin, y + height - margin - bg_hud_images[BG_H_MOTION_BG].h * scale,
                   scale);
     }
@@ -542,6 +545,29 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     set_filter(true);
     set_combiner(1);
     rdpq_tex_upload(TILE0, &pixel_atlas, NULL);
+    if(p->health>0){
+        const T3DViewport *vp=bg_scene_viewport(index);
+        for(unsigned i=0;i<BG_MAX_OBJECTIVES;i++){
+            float pos[3];unsigned kind,team;
+            if(!bg_mode_navpoint(index,i,pos,&kind,&team))continue;
+            T3DVec3 world={{pos[0]*BG_SCALE,(pos[1]+.65f)*BG_SCALE,pos[2]*BG_SCALE}},screen={{0}};
+            float depth=-(world.v[0]*vp->matCamera.m[0][2]+world.v[1]*vp->matCamera.m[1][2]+world.v[2]*vp->matCamera.m[2][2]+vp->matCamera.m[3][2]);
+            if(depth<=0)continue;
+            t3d_viewport_calc_viewspace_pos((T3DViewport*)vp,&screen,&world);
+            int px=(int)fmaxf(x+8,fminf(x+width-8,screen.v[0]));
+            int py=(int)fmaxf(y+22,fminf(y+height-25,screen.v[1]));
+            const char *label=kind==BG_OBJECTIVE_FLAG?"F":kind==BG_OBJECTIVE_BALL?"B":kind==BG_OBJECTIVE_HILL?"H":"+";
+            hud_text(label,px-2,py-3,team==0?red:team==1?blue:hud_cyan);
+        }
+        if(bg_current_rules()->engine==BG_ENGINE_BALL&&bg_current_rules()->ball_type&&bg_player_ball_count(index)){
+            char label[24];
+            if(bg_current_rules()->balls>1)snprintf(label,sizeof(label),"Balls: %u",bg_player_ball_count(index));
+            else snprintf(label,sizeof(label),"You are it!");
+            hud_text(label,x+margin,y+20,hud_cyan);
+        }
+        int target=bg_player_target(index);
+        if(target>=0){char label[24];snprintf(label,sizeof(label),"Target: P%u",bg_player_profiles[target]+1);hud_text(label,x+margin,y+20,hud_cyan);}
+    }
     if (p->health > 0) {
         const bg_seat_definition *seat = bg_player_seat(p);
         int id = personal                    ? (int)reticles[weapon]
@@ -559,7 +585,10 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     hud_vitals(p, right - 46, top);
     if (personal)
         hud_ammunition(p, weapon, left, top);
-    hud_number(p->score, right - (p->score < 0 ? 15 : 10), y + height - margin - 6, 2, hud_cyan);
+    char score[24];int points=bg_display_score(index);
+    if(bg_mode_timed(bg_current_rules()))snprintf(score,sizeof(score),"%d:%02d",points/60,points%60);
+    else snprintf(score,sizeof(score),"%d",points);
+    hud_text(score,right-hud_text_width(score),y+height-margin-6,hud_cyan);
     if (scoped(p)) {
         int ox = p->weapon == BG_W_PISTOL ? (height < 200 ? 34 : 53) : (height < 200 ? 24 : 75);
         int oy = p->weapon == BG_W_PISTOL ? (height < 200 ? 34 : 53) : (height < 200 ? 15 : 52);
@@ -571,14 +600,19 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if (p->health <= 0) {
         int seconds = (int)ceilf(p->respawn);
         char label[32];
-        snprintf(label, sizeof(label), "Rejoin in %d", seconds < 0 ? 0 : seconds);
+        if(bg_player_eliminated(index))snprintf(label,sizeof(label),"Eliminated");
+        else if(bg_player_waiting(index))snprintf(label,sizeof(label),"Waiting for respawn");
+        else snprintf(label, sizeof(label), "Rejoin in %d", seconds < 0 ? 0 : seconds);
         hud_text(label, x + (width - hud_text_width(label)) / 2, y + height / 2 + 8, hud_cyan);
     } else {
         notice_bottom = interaction_prompt(p, style, x, status_y, width) - 9;
         bg_notice pending[BG_NOTICE_SLOTS];
         bg_use_target target = bg_interaction_target(index);
         int swap = personal ? bg_hud_switch_target(p) : -1;
-        if (swap >= 0 && (target.kind == BG_USE_NONE || target.kind == BG_USE_EXIT)) {
+        if(carrying){
+            const char *label=style==BG_CONTROLS_XBOX?"C-UP: Drop objective":"R: Drop objective";
+            hud_text(label,x+(width-hud_text_width(label))/2,status_y,hud_cyan);
+        } else if (swap >= 0 && (target.kind == BG_USE_NONE || target.kind == BG_USE_EXIT)) {
             const bg_prompt_icon *wi = &bg_prompt_icons[swap];
             unsigned icon = style == BG_CONTROLS_XBOX ? HUD_BUTTON_C_UP : HUD_BUTTON_R;
             int total = hud_button_width[icon] + 3 + hud_text_width("Switch") + 4 + wi->w;
@@ -607,7 +641,7 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     /* Radar keeps its approved appearance. Receipts occupy the available
      * lower HUD strip beside it; long text wraps on the same native grid. */
     int notice_left = left;
-    if (p->health > 0 && !p->zoom)
+    if (p->health > 0 && !p->zoom && bg_mode_radar())
         notice_left += (int)ceilf(bg_hud_images[BG_H_MOTION_BG].w * scale) + 3;
     pickup_notices(index, notice_left, notice_bottom, right - notice_left, height < 200 ? 2 : 3);
 #ifdef BG_INTERACTION_QA

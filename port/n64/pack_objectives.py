@@ -79,8 +79,8 @@ def pack(source,out,frontend):
     for name,a in details['audio'].items():shutil.copyfile(a['file'],frontend/('mode_'+name+'.s8'))
     report['animation_bytes']=sum(p['bytes'] for p in packed.values())
     root=Path(__file__).resolve().parents[2]
-    inputs=[Path(__file__).resolve(),source/'extended-raw.json',source/'firstperson-reduced.json',source/'objective-details.json']
-    inputs += [root/'port/n64'/n for n in ('pack_firstperson.py','pack_animation.py','pack_mesh.py','model_colors.py')]
+    inputs=[Path(__file__).resolve(),source/'extended-raw.json',source/'firstperson-raw.json',source/'firstperson-reduced.json',source/'objective-details.json']
+    inputs += [root/'port/n64'/n for n in ('pack_firstperson.py','pack_animation.py','pack_mesh.py','model_colors.py','reduce_objectives.py','reduce_firstperson.py')]
     inputs += sorted(referenced)
     outputs=[out/'objectives_data.c']+[frontend/('mode_'+name+'.s8') for name in details['audio']]
     report['schema']=1

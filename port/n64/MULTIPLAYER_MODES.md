@@ -136,3 +136,23 @@ The [checked-in report](validation/multiplayer-modes-20261027.json) records:
 Use `--modes-preview 17`, `7` or `12` to hold a staged CTF, Oddball or King
 match open for visual review; add `--validate` for RDP diagnostics. Preview
 fixtures raise the goal and reposition players; they are absent from release.
+
+## Flag-grip correction
+
+The original generic 198-triangle hand reduction moved the upper gripping
+hand's fingers and palm inside the flag shaft. The depth buffer then correctly
+drew the shaft in front, giving the fingers a broken, transparent appearance.
+Opaque-material and back-face-culling diagnostics did not repair the geometry.
+
+The objective reducer now preserves the source left-hand wrist/palm and five
+finger surfaces, while reducing the forearms and other hand. Flag hands use
+555 triangles (795 with the unchanged pole/banner), versus 1,612 in the source
+hands. The packed flag viewmodel rises from 818 to 1,380 vertices; the skull,
+world objectives and gameplay geometry are unchanged. Four-MiB Slayer retains
+its gun-only workspace capacity. New objective modes already require 8 MiB.
+
+`test_objective_grip.py` independently skins the original hand and compares
+nearest-surface occlusion in the four-player grip region. Across four idle
+poses, only two of 4,483 source-hand samples differ at packed precision. The
+old mesh fails this regression check. The native repaired view has zero RDP
+errors/warnings; the fixture freezes idle poses for repeatable visual review.

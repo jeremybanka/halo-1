@@ -35,7 +35,7 @@ PERFORMANCE_GUNS = {
 def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
                        gun_budgets=None, hand_topology='anatomy', needle_min=8,
                        cosmetic_min=None, feature_minima=None, refine_approved=False,
-                       performance_profile=False):
+                       performance_profile=False, preserve_hand_parts=()):
     import bpy
     from mathutils import Quaternion, Vector
 
@@ -82,6 +82,8 @@ def reduce_firstperson(source, output, hand_budget=220, boundary_strength=0,
         def importance(material, bone, component):
             name = model.get('material_names', [''] * len(model['textures']))[material]
             if hands:
+                if bone in preserve_hand_parts:
+                    return {'weight':1, 'min':component['face_count']}
                 return 1.65 if any(x in bone for x in ('index','thumb','middle','ring','pinky')) else 1.2
             for rule in ({} if approved_baseline or performance_profile else (feature_minima or {})).get(weapon_name,[]):
                 if (rule.get('bone',bone)==bone and rule.get('material',material)==material

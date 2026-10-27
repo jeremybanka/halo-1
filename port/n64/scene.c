@@ -1035,7 +1035,9 @@ static void firstperson_buffer_resize(unsigned p, unsigned bytes) {
             if (required > capacity)
                 capacity = required;
         }
-        for(unsigned k=0;k<2;k++){
+        /* Objective modes require the Expansion Pak. Their larger grip
+         * must not enlarge the legacy 4 MiB Slayer workspaces. */
+        if(get_memory_size()>=8*1024*1024)for(unsigned k=0;k<2;k++){
             unsigned required=((bg_objective_fp_models[k].vertex_count+1)&~1u)*16;
             if(required>capacity)capacity=required;
         }

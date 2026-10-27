@@ -88,6 +88,9 @@ static void animate_objective(unsigned p,unsigned kind){
     const bg_anim_asset *a=&bg_objective_fp_animations[kind][clip];
     float phase=clip==BG_FP_IDLE?game_time/a->duration:player->anim_time/bg_player_melee_duration(p);
     phase=clip==BG_FP_IDLE?phase-floorf(phase):fminf(.9999f,phase);
+#ifdef BG_MODES_PREVIEW
+    if(clip==BG_FP_IDLE)phase=0; /* Stable pose for repeatable visual appraisal. */
+#endif
     float frame=phase*(a->frames-1);unsigned f0=frame,f1=f0+1<a->frames?f0+1:f0;
     animate_mesh(output,a,f0,f1,(frame-f0)*256);data_cache_hit_writeback(output,bytes);
 }

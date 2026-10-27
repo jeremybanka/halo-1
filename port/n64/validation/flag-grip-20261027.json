@@ -1,0 +1,259 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "fix": "Preserve source left wrist/palm and finger surfaces in the flag viewmodel; reduce the forearms and other hand.",
+  "cause": "Generic hand reduction moved grip surfaces inside the flag shaft, making the shaft occlude fingers.",
+  "diagnostics": [
+    "Opaque first-person shading did not repair the grip.",
+    "Back-face culling did not repair the grip.",
+    "Original source hands produced a closed grip at the same native camera."
+  ],
+  "old_public_commit": "29699de27cddd9db0b38ccbbbb66b5d752f52303",
+  "private_asset_commit": "9c8107795c7e070899442bbc5774a65b447fee89",
+  "hand_triangles": {
+    "before": 198,
+    "after": 555,
+    "source": 1612
+  },
+  "flag_viewmodel": {
+    "vertices_before": 818,
+    "vertices_after": 1380,
+    "triangles_before": 438,
+    "triangles_after": 795
+  },
+  "unchanged": [
+    "Skull JSON model/animations",
+    "Every flag shaft/banner position in all baked animation frames",
+    "World objective models",
+    "Gameplay/map geometry",
+    "Release material and depth state"
+  ],
+  "grip_regression": {
+    "poses": [
+      {
+        "frame": 0,
+        "source_hand_pixels": 1125,
+        "wrongly_occluded_pixels": 0
+      },
+      {
+        "frame": 1,
+        "source_hand_pixels": 1099,
+        "wrongly_occluded_pixels": 0
+      },
+      {
+        "frame": 2,
+        "source_hand_pixels": 1134,
+        "wrongly_occluded_pixels": 2
+      },
+      {
+        "frame": 3,
+        "source_hand_pixels": 1125,
+        "wrongly_occluded_pixels": 0
+      }
+    ],
+    "compared_hand_pixels": 4483,
+    "status": "pass"
+  },
+  "old_hand_regression_result": "Expected failure: 550 source-hand samples occluded by shaft/background at first idle pose.",
+  "native_visual": {
+    "emulator": "Ares / paraLLEl-RDP",
+    "players": 4,
+    "map": "Wizard",
+    "mode": "CTF",
+    "rdp_errors": 0,
+    "rdp_warnings": 0,
+    "scope": "Staged preview camera; after image freezes the first idle pose. Before image is an earlier idle capture, not a pixel-exact time match."
+  },
+  "four_mib_slayer": {
+    "passed": true,
+    "postgame_free_bytes": 381096,
+    "objective_workspace_allocated": false
+  },
+  "validation": {
+    "groups": [
+      "contracts",
+      "assets"
+    ],
+    "results": [
+      {
+        "name": "test_map_material_modes.py",
+        "status": "pass",
+        "seconds": 0.454
+      },
+      {
+        "name": "test_camera_batch.py",
+        "status": "pass",
+        "seconds": 21.255
+      },
+      {
+        "name": "test_camera_packet.py",
+        "status": "pass",
+        "seconds": 23.841
+      },
+      {
+        "name": "test_vehicle_camera_packet.py",
+        "status": "pass",
+        "seconds": 17.563
+      },
+      {
+        "name": "blam/test_vehicle_candidates.py",
+        "status": "pass",
+        "seconds": 35.449
+      },
+      {
+        "name": "blam/test_polygon_cache.py",
+        "status": "pass",
+        "seconds": 16.237
+      },
+      {
+        "name": "test_projection_cache.py",
+        "status": "pass",
+        "seconds": 0.88
+      },
+      {
+        "name": "test_texture_blocks.py",
+        "status": "pass",
+        "seconds": 0.263
+      },
+      {
+        "name": "test_render_cull.py",
+        "status": "pass",
+        "seconds": 0.928
+      },
+      {
+        "name": "test_bounds_quantize.py",
+        "status": "pass",
+        "seconds": 0.562
+      },
+      {
+        "name": "test_scene_equivalence.py",
+        "status": "pass",
+        "seconds": 0.077
+      },
+      {
+        "name": "test_render_matrix.py",
+        "status": "pass",
+        "seconds": 0.08
+      },
+      {
+        "name": "test_render_prepare.py",
+        "status": "pass",
+        "seconds": 0.064
+      },
+      {
+        "name": "test_render_flush.py",
+        "status": "pass",
+        "seconds": 0.051
+      },
+      {
+        "name": "test_vehicle_culling.py",
+        "status": "pass",
+        "seconds": 3.745
+      },
+      {
+        "name": "test_vehicle_pose_cache.py",
+        "status": "pass",
+        "seconds": 11.116
+      },
+      {
+        "name": "test_vehicle_map_origin.py",
+        "status": "pass",
+        "seconds": 17.727
+      },
+      {
+        "name": "test_deferred_animation.py",
+        "status": "pass",
+        "seconds": 0.535
+      },
+      {
+        "name": "test_vi_benchmark.py",
+        "status": "pass",
+        "seconds": 0.108
+      },
+      {
+        "name": "test_weapon_workspace.py",
+        "status": "pass",
+        "seconds": 0.235
+      },
+      {
+        "name": "test_model_index_aliases.py",
+        "status": "pass",
+        "seconds": 0.276
+      },
+      {
+        "name": "test_effect_bounds.py",
+        "status": "pass",
+        "seconds": 0.701
+      },
+      {
+        "name": "test_audio_schedule.py",
+        "status": "pass",
+        "seconds": 0.357
+      },
+      {
+        "name": "test_paced_acquire.py",
+        "status": "pass",
+        "seconds": 0.914
+      },
+      {
+        "name": "test_input_menu.py",
+        "status": "pass",
+        "seconds": 1.101
+      },
+      {
+        "name": "test_objective_grip.py",
+        "status": "pass",
+        "seconds": 0.695
+      },
+      {
+        "name": "test_map_assets.py",
+        "status": "pass",
+        "seconds": 0.076
+      },
+      {
+        "name": "test_announcer.py",
+        "status": "pass",
+        "seconds": 0.987
+      },
+      {
+        "name": "test_hud_prompts.py",
+        "status": "pass",
+        "seconds": 1.34
+      },
+      {
+        "name": "test_interaction_assets.py",
+        "status": "pass",
+        "seconds": 1.354
+      },
+      {
+        "name": "test_pack_bounds.py",
+        "status": "pass",
+        "seconds": 0.075
+      },
+      {
+        "name": "test_scope_geometry.py",
+        "status": "pass",
+        "seconds": 0.416
+      },
+      {
+        "name": "test_scorpion_barrel.py",
+        "status": "pass",
+        "seconds": 0.087
+      },
+      {
+        "name": "test_menu_assets.py",
+        "status": "pass",
+        "seconds": 0.068
+      }
+    ]
+  },
+  "rom": {
+    "bytes": 41385984,
+    "sha256": "03f9b2beb4735ee81f69de9cb18dfd87555fc395d316e823f4929d2bf6b62726"
+  },
+  "screenshots": {
+    "before.png": "5d2c36c381676bc875d6d281740499f4e8fb4a7ed423980a1b46995fa6a5a28e",
+    "after.png": "dce35c6d81192f9dcc425c93ad53e8e003298a5595c35ad4d791a5d92b8a2a81"
+  },
+  "performance_scope": "Geometry cost recorded; no new FPS benchmark."
+}

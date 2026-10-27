@@ -268,4 +268,3 @@ def beam_trial(step=math.pi/12,cell=.5):
     print('beam rows',len(rows),'->',len(kept),'frustum',clipped,'occlusion',hidden,'backface',backface,'cell',lo,hi,'yaw/pitch',yb,pb,'angle',math.degrees(angle),collections.Counter(r['label'][0] for r in kept),flush=True)
     record=dict(lo=lo.tolist(),hi=hi.tolist(),yaw_bin=yb,pitch_bin=pb,step=step,cone_angle=angle,rows=kept,clip=clipped,hidden=hidden,backface=backface)
     (OUT/'beam-trial.json').write_text(json.dumps(record,separators=(',',':'))+'\n')
-

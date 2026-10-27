@@ -121,4 +121,3 @@ def reduce_terrain(aggressive=False):
     (OUT/'terrain-candidate.json').write_text(json.dumps(result,separators=(',',':'))+'\n')
     bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'sidewinder-appraisal.blend'))
     print(json.dumps(report))
-

@@ -1,0 +1,338 @@
+{
+  "artifact_directory": "build/n64-all-map-audit",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-all-map-audit/timing.json",
+      "bytes": 8627,
+      "sha256": "488086c684988746b50f3864742f3e6c235a5f1a5f79747fbaf39f0829bdd96c"
+    },
+    {
+      "artifact": "build/n64-all-map-audit/verification.json",
+      "bytes": 3418,
+      "sha256": "e5cff827b699847c8b84b01b66d191b423c30544d944b49603a24610bb6e7c70"
+    },
+    {
+      "artifact": "build/n64-all-map-audit/compiler-input-verification.json",
+      "bytes": 633,
+      "sha256": "809cb73574bfc3b9287d2ef3284d9b1ce12ed1ca600a664616ec842d522f04c2"
+    }
+  ],
+  "results": {
+    "compiler-input-verification": {
+      "all_thirteen_timing_roms_match_2749ba28_compiler_inputs": true,
+      "note": "Candidates were built before commits. Exact source/header/data hashes establish their identity with the committed inputs.",
+      "private_asset_commit": "6349c1d",
+      "source_commit": "2749ba28",
+      "status": "pass",
+      "subsequent_diagnostic_change": {
+        "frontend_qa_source_not_linked_in_any_timing_rom": true,
+        "normal_main_source_identical_after_removing_BG_FRONTEND_QA_only_callback": true,
+        "scope": "The quit/resume assertion moves to its exact event; production gameplay and all measured render/physics/replay sources remain unchanged."
+      }
+    },
+    "timing": {
+      "maps": {
+        "beavercreek": {
+          "build_manifest": "beavercreek-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1614,
+          "early_or_combat_fps": 22.4,
+          "end_live_free_kib": 4245,
+          "fps": 21.5,
+          "late_or_vehicle_fps": 20.6,
+          "maximum_ms": 66.8,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "e14b60cda72f8f324e5889102135ff6b3c7eab1886fe60456358f9ab97ab8338",
+          "sample_ms": 75017,
+          "screenshot": "beavercreek-timing-window.png",
+          "selected_bank_sha256": "5206dc1576aa555bafc67bc48174d525ebfa8b01d2d62454e87c3b1b971fc78f"
+        },
+        "bloodgulch": {
+          "build_manifest": "bloodgulch-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1815,
+          "early_or_combat_fps": 26.4,
+          "end_live_free_kib": 4113,
+          "fps": 24.1,
+          "late_or_vehicle_fps": 22.1,
+          "maximum_ms": 133.7,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "5630034ffb185aed495bf9f735f415b9556d026419bc26b97186dc4de48c5054",
+          "sample_ms": 75017,
+          "screenshot": "bloodgulch-timing-window.png",
+          "selected_bank_sha256": "bccea69da8fe65ccf863360ae5c4fcb4f0e50fce58f2d635f3eb381fa9d1cb2c"
+        },
+        "boardingaction": {
+          "build_manifest": "boardingaction-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 788,
+          "early_or_combat_fps": 7.7,
+          "end_live_free_kib": 3430,
+          "fps": 10.4,
+          "late_or_vehicle_fps": 13.3,
+          "maximum_ms": 434.6,
+          "p95_ms": 133.7,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "eca76fb625b43d9a0fe392977ded2a7ee60b5becb5faccac06e9be6c138d2a22",
+          "sample_ms": 75050,
+          "screenshot": "boardingaction-timing-window.png",
+          "selected_bank_sha256": "3ac3d49263b37974d935344cb8fe61ce99865c307207a6ecb3d05085be660393"
+        },
+        "carousel": {
+          "build_manifest": "carousel-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1218,
+          "early_or_combat_fps": 15.5,
+          "end_live_free_kib": 4202,
+          "fps": 16.2,
+          "late_or_vehicle_fps": 16.8,
+          "maximum_ms": 100.3,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "cef293f65602a7c842196f19f659e1eae0f183456818495cec0e42763eac15bf",
+          "sample_ms": 75017,
+          "screenshot": "carousel-timing-window.png",
+          "selected_bank_sha256": "e3f3d4ce9cbc3e0d515d87c8a10ac1a2c1602fd4cfd429ed446aec157e2630c0"
+        },
+        "chillout": {
+          "build_manifest": "chillout-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1568,
+          "early_or_combat_fps": 20.8,
+          "end_live_free_kib": 4353,
+          "fps": 20.9,
+          "late_or_vehicle_fps": 20.9,
+          "maximum_ms": 66.8,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "681a8e38791133a51215a277ea8b16ee4615840da6fda125befd08719b09cde2",
+          "sample_ms": 75017,
+          "screenshot": "chillout-timing-window.png",
+          "selected_bank_sha256": "87edbda83ac92452bddc71dbb77f717db9709cd26a6fe372a6e393dbed6c58bd"
+        },
+        "damnation": {
+          "build_manifest": "damnation-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 812,
+          "early_or_combat_fps": 11.8,
+          "end_live_free_kib": 3623,
+          "fps": 10.8,
+          "late_or_vehicle_fps": 9.8,
+          "maximum_ms": 133.7,
+          "p95_ms": 133.7,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "4455b4b4704f460b25bf0374a45025db96a4b5642e3ef01a73fc0f1eaf15a62b",
+          "sample_ms": 75017,
+          "screenshot": "damnation-timing-window.png",
+          "selected_bank_sha256": "622a6ecb0dd843c9b94ca34d687131ebf1d60a18ac0ce3547bdeea6ed43da9f1"
+        },
+        "hangemhigh": {
+          "build_manifest": "hangemhigh-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1454,
+          "early_or_combat_fps": 18.7,
+          "end_live_free_kib": 4357,
+          "fps": 19.3,
+          "late_or_vehicle_fps": 20.0,
+          "maximum_ms": 66.8,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "2f97ae8e5fbc368b787069194fa4cfb5030f62fa9d17228a479a41bfc1e9884c",
+          "sample_ms": 75017,
+          "screenshot": "hangemhigh-timing-window.png",
+          "selected_bank_sha256": "fd6195119198ea32161a8be3191b9b6e7d394f5d0c5a26337015bbd83a8ffbb2"
+        },
+        "longest": {
+          "build_manifest": "longest-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1712,
+          "early_or_combat_fps": 23.0,
+          "end_live_free_kib": 4429,
+          "fps": 22.8,
+          "late_or_vehicle_fps": 22.6,
+          "maximum_ms": 133.7,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "079a1321def9be746136ddab45c97afd120b47618d8541c48fe10abf2686f96a",
+          "sample_ms": 75017,
+          "screenshot": "longest-timing-window.png",
+          "selected_bank_sha256": "078d588844a58e18ba81a7b96273c84cc0ea8353ef160fce3a231cd7c0a0740f"
+        },
+        "prisoner": {
+          "build_manifest": "prisoner-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1176,
+          "early_or_combat_fps": 15.7,
+          "end_live_free_kib": 4143,
+          "fps": 15.6,
+          "late_or_vehicle_fps": 15.6,
+          "maximum_ms": 100.3,
+          "p95_ms": 100.2,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "177ec24c7933ba6df4cf6cce72115ff4c4422bbc5e7e5f6fd27ea9eec236e9ef",
+          "sample_ms": 75017,
+          "screenshot": "prisoner-timing-window.png",
+          "selected_bank_sha256": "362bc26c0f11d50b0fc42e631935acc6713a9396f8f4e15a1cef306b11e99e91"
+        },
+        "putput": {
+          "build_manifest": "putput-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1166,
+          "early_or_combat_fps": 15.2,
+          "end_live_free_kib": 3721,
+          "fps": 15.5,
+          "late_or_vehicle_fps": 15.7,
+          "maximum_ms": 100.3,
+          "p95_ms": 100.2,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "70bb1ad5f39f8878f8af47b5b7d4d29308a39a9a08fc65546b0684f130b8e642",
+          "sample_ms": 75050,
+          "screenshot": "putput-timing-window.png",
+          "selected_bank_sha256": "9249bc41ff8e01f60ded58dd84c9b49eb8def49d01d1a600eea9e6be17dfeb53"
+        },
+        "ratrace": {
+          "build_manifest": "ratrace-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1583,
+          "early_or_combat_fps": 21.8,
+          "end_live_free_kib": 4328,
+          "fps": 21.1,
+          "late_or_vehicle_fps": 20.3,
+          "maximum_ms": 100.2,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "349d9c65f1a9812135688901b308e27d8ecd77efeccc297e9ff9b9fd263186f4",
+          "sample_ms": 75017,
+          "screenshot": "ratrace-timing-window.png",
+          "selected_bank_sha256": "e9d95a7dc8ce5b94057e338d686e8d9b29a6475f87d3bdff57e6d376a145880a"
+        },
+        "sidewinder": {
+          "build_manifest": "sidewinder-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 722,
+          "early_or_combat_fps": 9.5,
+          "end_live_free_kib": 3083,
+          "fps": 9.6,
+          "late_or_vehicle_fps": 9.6,
+          "maximum_ms": 200.5,
+          "p95_ms": 133.7,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "594dd1825313bb1705b927c8b7ef12c548c65fa00e2d389fb101b758b0ccdd44",
+          "sample_ms": 75084,
+          "screenshot": "sidewinder-timing-window.png",
+          "selected_bank_sha256": "200a3e01cd0c29a4f3f6f2ab71a1737c81342d2d3950bf763e3e9417606f7948"
+        },
+        "wizard": {
+          "build_manifest": "wizard-timing/halo-64-replay-vi-benchmark-paced30-rspq32k.build.json",
+          "displayed_poses": 1871,
+          "early_or_combat_fps": 24.4,
+          "end_live_free_kib": 4420,
+          "fps": 24.9,
+          "late_or_vehicle_fps": 25.3,
+          "maximum_ms": 66.8,
+          "p95_ms": 66.8,
+          "players": 4,
+          "ram_mib": 8,
+          "rom_sha256": "07dbd7d0e735c0bec65aec88a8367492e66a2ee55151b4fc6991e4ae549d1bd1",
+          "sample_ms": 75050,
+          "screenshot": "wizard-timing-window.png",
+          "selected_bank_sha256": "0a1bb6c19e469198d363133d2ca618d09ff4e5a743a75cc9123c5e5e57e50114"
+        }
+      },
+      "method": "Distinct simulation poses displayed by the native VI callback, approximately 75 seconds after a one-second warmup. Ares NTSC, 8 MiB, four players, release LTO, three display surfaces, 32 KiB queues. Blood Gulch uses its combat/driving replay; other maps use staged on-foot routes and combat, including parked Sidewinder vehicles. Result-page free heap is not a minimum watermark. Emulator evidence, not physical-console acceptance."
+    },
+    "verification": {
+      "asset_commit": "6349c1d2e30f80d0c91f42b29a50a9212efcf964",
+      "ci": {
+        "android": "pass",
+        "latest_commit_scope": "Documentation-only native acceptance record.",
+        "linux": "pass",
+        "source_commit": "80b77aa2",
+        "windows": "pass"
+      },
+      "compiler_inputs": "compiler-input-verification.json",
+      "diagnostic_resume_check": {
+        "correction": "Same strict state comparison runs at the resume event before any simulation tick; it previously ran at a later input poll.",
+        "host_recheck": "maps-tests.log",
+        "initial_failure": "validator-resume-delayed-check-assertion.png",
+        "native_recheck": "pass:224steps/14matches,strictcomparisonbeforefirstresumedtick",
+        "scope": "BG_FRONTEND_QA diagnostic only; production gameplay/rendering unchanged.",
+        "source_commit": "80b77aa2"
+      },
+      "emulator_settings": {
+        "ares_closed": true,
+        "drivers_record": "ares-drivers-restored.txt",
+        "expansion_pak_checkbox": 0,
+        "options_record": "ares-options-restored.txt",
+        "original_preferences_restored": true,
+        "pause_on_defocus": true
+      },
+      "host": {
+        "full_menu_cycle": "224 steps,14live matches,all13maps",
+        "groups": 46,
+        "source_equivalence": "blood-runtime-equivalence.log",
+        "source_maps": "maps-tests.log",
+        "state_bytes": 144170084,
+        "state_sha256": "822988418e44c34db718be9ad6b801e8d605cf38d696d77cf8d59621094575f2",
+        "status": "pass",
+        "validation": "validation-final/results.json"
+      },
+      "native": {
+        "full_validator_cycle": {
+          "build_manifest": "frontend-cycle-validator-final/halo-64-maps-cycle-frontend-qa4-validation-paced30-rspq8k.build.json",
+          "live_matches": 14,
+          "maps": 13,
+          "queue_kib": 8,
+          "ram_mib": 8,
+          "rdp_errors": 0,
+          "rdp_warnings": 0,
+          "rom": {
+            "bytes": 40632320,
+            "path": "build/n64-all-map-audit/frontend-cycle-validator-final/halo-64-maps-cycle-frontend-qa4-validation-paced30-rspq8k.z64",
+            "sha256": "ee5f2828e26684cf45de41dbf2d1aadb990af96e8f9b631e93ab8803303d5fa6"
+          },
+          "screenshot": "native-validator-all-maps-pass-window.png",
+          "status": "pass",
+          "steps": 224,
+          "surfaces": 3
+        },
+        "measured_maps": 13,
+        "ram_mib": 8,
+        "release_boot": {
+          "identity": "boot-identity.json",
+          "screenshot": "release-boot-window.png",
+          "status": "pass"
+        },
+        "timing": "timing.json",
+        "timing_complete": true,
+        "videos": [
+          "boardingaction-gameplay.mp4",
+          "carousel-gameplay.mp4",
+          "damnation-gameplay.mp4",
+          "longest-gameplay.mp4",
+          "prisoner-gameplay.mp4",
+          "putput-gameplay.mp4",
+          "ratrace-gameplay.mp4",
+          "sidewinder-gameplay.mp4"
+        ]
+      },
+      "pull_request": "https://github.com/jeremybanka/halo-1/pull/8",
+      "release": {
+        "boot": "release-boot-window.png",
+        "build_manifest": "release/halo-64-paced30-rspq32k.build.json",
+        "compiler_inputs_verified": true,
+        "final_rebuild_identical_to_booted_rom": true,
+        "rom": {
+          "bytes": 40599552,
+          "path": "build/n64-all-map-audit/release/halo-64-paced30-rspq32k.z64",
+          "sha256": "78e0e8d6c0a556ae5ab36d4a56431140965ed3741a4c98eef881d3efe6068edd"
+        }
+      },
+      "scope": "Complete original Xbox map roster;shared cache/geometry/display/queue budgets unchanged. Optimization experiments deferred.",
+      "source_commit": "c4977f6b2c913b769931c4f5d4fca854076c288a"
+    }
+  }
+}

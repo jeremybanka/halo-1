@@ -1,0 +1,202 @@
+{
+  "artifact_directory": "build/n64-sidewinder-aggressive",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-sidewinder-aggressive/timing.json",
+      "bytes": 2509,
+      "sha256": "ea44c2f8c3d7448a9b2081195107a59dac0becd1928a284c66b5a1894dd475e9"
+    },
+    {
+      "artifact": "build/n64-sidewinder-aggressive/validation.json",
+      "bytes": 1191,
+      "sha256": "74025cf87ebd1a45a17ea229fa422002d5e1a293cead08037b8b2e75301ac031"
+    }
+  ],
+  "results": {
+    "timing": [
+      {
+        "duplicates": 806,
+        "early_fps": 28.3,
+        "flips": 2884,
+        "fps": 27.7,
+        "free_kib": 3163,
+        "label": "baseline",
+        "late_fps": 27,
+        "max_ms": 100.2,
+        "p95_ms": 50.1,
+        "poses": 2078,
+        "route": "one",
+        "sample_ms": 75000,
+        "screenshot": "one-baseline-native.png"
+      },
+      {
+        "duplicates": 933,
+        "early_fps": 28.5,
+        "flips": 3027,
+        "fps": 27.9,
+        "free_kib": 3189,
+        "label": "candidate",
+        "late_fps": 27.3,
+        "max_ms": 83.5,
+        "p95_ms": 50.1,
+        "poses": 2094,
+        "route": "one",
+        "sample_ms": 75017,
+        "screenshot": "one-candidate-native.png"
+      },
+      {
+        "duplicates": 806,
+        "early_fps": 28.3,
+        "flips": 2884,
+        "fps": 27.7,
+        "free_kib": 3163,
+        "label": "baseline_repeat",
+        "late_fps": 27,
+        "max_ms": 100.2,
+        "p95_ms": 50.1,
+        "poses": 2078,
+        "route": "one",
+        "sample_ms": 75000,
+        "screenshot": "one-baseline-repeat-native.png"
+      },
+      {
+        "duplicates": 933,
+        "early_fps": 28.5,
+        "flips": 3027,
+        "fps": 27.9,
+        "free_kib": 3189,
+        "label": "candidate_repeat",
+        "late_fps": 27.3,
+        "max_ms": 83.5,
+        "p95_ms": 50.1,
+        "poses": 2094,
+        "route": "one",
+        "sample_ms": 75017,
+        "screenshot": "one-candidate-repeat-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.5,
+        "flips": 718,
+        "fps": 9.5,
+        "free_kib": 3083,
+        "label": "baseline",
+        "late_fps": 9.5,
+        "max_ms": 200.5,
+        "p95_ms": 167.1,
+        "poses": 718,
+        "route": "four",
+        "sample_ms": 75050,
+        "screenshot": "four-baseline-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.8,
+        "flips": 740,
+        "fps": 9.8,
+        "free_kib": 3109,
+        "label": "candidate",
+        "late_fps": 9.8,
+        "max_ms": 200.5,
+        "p95_ms": 133.7,
+        "poses": 740,
+        "route": "four",
+        "sample_ms": 75084,
+        "screenshot": "four-candidate-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.5,
+        "flips": 718,
+        "fps": 9.5,
+        "free_kib": 3083,
+        "label": "baseline_repeat",
+        "late_fps": 9.5,
+        "max_ms": 200.5,
+        "p95_ms": 167.1,
+        "poses": 718,
+        "route": "four",
+        "sample_ms": 75050,
+        "screenshot": "four-baseline-repeat-native.png"
+      },
+      {
+        "duplicates": 0,
+        "early_fps": 9.8,
+        "flips": 740,
+        "fps": 9.8,
+        "free_kib": 3109,
+        "label": "candidate_repeat",
+        "late_fps": 9.8,
+        "max_ms": 200.5,
+        "p95_ms": 133.7,
+        "poses": 740,
+        "route": "four",
+        "sample_ms": 75084,
+        "screenshot": "four-candidate-repeat-native.png"
+      }
+    ],
+    "validation": {
+      "baseline_photos": "Reused immutable original-terrain captures from the identical photo_tour.h route; new candidate captures made for this run.",
+      "changed_pose_samples": 0,
+      "diff_filter_thresholds": [
+        0,
+        8
+      ],
+      "diff_filter_verified_pairs": 24,
+      "embedded_photos": 48,
+      "exact_native_host_matches": 4,
+      "native_four_camera_counts": [
+        [
+          18366,
+          12420,
+          398,
+          27
+        ],
+        [
+          6178,
+          4337,
+          130,
+          19
+        ],
+        [
+          4252,
+          2608,
+          83,
+          13
+        ],
+        [
+          11114,
+          7136,
+          226,
+          26
+        ]
+      ],
+      "photo_rom_hashes_verified": 48,
+      "pose_comparisons": 24,
+      "pose_strip_rows": [
+        195,
+        240
+      ],
+      "rdp_errors": 0,
+      "rdp_queue_kib": 8,
+      "rdp_warnings": 0,
+      "settings_restored": true,
+      "source_bank_unchanged": true,
+      "timing_repeats": {
+        "four": {
+          "baseline_fps": 9.566955363091273,
+          "candidate_fps": 9.855628362900218,
+          "exact_repeat": true,
+          "gain_percent": 3.017396745913836
+        },
+        "one": {
+          "baseline_fps": 27.706666666666667,
+          "candidate_fps": 27.91367290080915,
+          "exact_repeat": true,
+          "gain_percent": 0.7471351087914524
+        }
+      }
+    }
+  }
+}

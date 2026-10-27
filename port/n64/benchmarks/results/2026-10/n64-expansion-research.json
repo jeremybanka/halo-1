@@ -1,0 +1,240 @@
+{
+  "artifact_directory": "build/n64-expansion-research",
+  "native_counter_logs": {},
+  "provenance": [
+    {
+      "artifact": "build/n64-expansion-research/quiet-timing.json",
+      "bytes": 2890,
+      "sha256": "22b4234bb5152898e16b91d523dfd45677180e08d9ff32f7d74f1405dda8a16c"
+    },
+    {
+      "artifact": "build/n64-expansion-research/native-costs.json",
+      "bytes": 4264,
+      "sha256": "ee0bf218b95475311ca14b554d66adbf7d1e4905fbce4c9c7fe1c55d0674b064"
+    },
+    {
+      "artifact": "build/n64-expansion-research/native-validation.json",
+      "bytes": 820,
+      "sha256": "adea4898d3321c30b8decb4275593bbd7f5869bdd422c5d38320e388b86617ef"
+    }
+  ],
+  "results": {
+    "native-costs": {
+      "cpu": {
+        "boardingaction": {
+          "animation": 4910,
+          "audio": 11450,
+          "camera": 3916,
+          "early_players": 38611,
+          "early_sim": 46153,
+          "objects": 4199,
+          "physics": 39,
+          "players": 20117,
+          "queue": 5831,
+          "shots": 6574,
+          "sim": 27451,
+          "world": 13519
+        },
+        "damnation": {
+          "animation": 5428,
+          "audio": 13227,
+          "camera": 3237,
+          "objects": 4911,
+          "physics": 38,
+          "players": 8252,
+          "queue": 11640,
+          "shots": 1657,
+          "sim": 10663,
+          "world": 16417
+        },
+        "sidewinder_corrected_origin": {
+          "animation": 6320,
+          "audio": 15111,
+          "bodies": 306,
+          "camera": 3977,
+          "objects": 5316,
+          "physics": 6694,
+          "pickups": 1172,
+          "players": 12734,
+          "queue": 5595,
+          "shots": 5609,
+          "sim": 25967,
+          "vehicle_prepare": 282,
+          "views": 2210,
+          "world": 13278
+        },
+        "sidewinder_origin_bug_baseline": {
+          "animation": 6461,
+          "audio": 11919,
+          "camera": 4849,
+          "objects": 5384,
+          "physics": 20524,
+          "players": 12329,
+          "queue": 3883,
+          "shots": 5180,
+          "sim": 39009,
+          "world": 13578
+        }
+      },
+      "evidence": [
+        "damnation-cpu-window.png",
+        "sidewinder-cpu-window.png",
+        "boardingaction-cpu-window.png",
+        "damnation-pipeline-window.png",
+        "damnation-empty-pipeline-window.png",
+        "sidewinder-origin-cpu-window.png"
+      ],
+      "method": "Current four-player Ares NTSC 8 MiB release/LTO, three surfaces, 32 KiB queues. Inclusive diagnostic means per rendered frame; multiple simulation ticks may occur. Audio overlaps queue/drain servicing. Serialized controls alter scheduling and are not release FPS.",
+      "pipeline": {
+        "damnation_empty_scissor": {
+          "audio": 42288,
+          "dp_busy_poll_percent": 93,
+          "rdp_drain": 33,
+          "rsp_drain": 68784,
+          "sp_halted_poll_percent": 0
+        },
+        "damnation_normal": {
+          "audio": 46294,
+          "dp_busy_poll_percent": 94,
+          "rdp_drain": 31,
+          "rsp_drain": 68853,
+          "sp_halted_poll_percent": 0
+        }
+      },
+      "roms": {
+        "boardingaction-cpu": {
+          "manifest": "build/n64-expansion-research/boardingaction-cpu/halo-64-replay-benchmark-paced30-rspq32k.build.json",
+          "path": "build/n64-expansion-research/boardingaction-cpu/halo-64-replay-benchmark-paced30-rspq32k.z64",
+          "sha256": "ab5b08c5278710129360530f1b8996901513bd9a86fa4ad520c5cd10c7e8df3d"
+        },
+        "damnation-cpu": {
+          "manifest": "build/n64-expansion-research/damnation-cpu/halo-64-replay-benchmark-paced30-rspq32k.build.json",
+          "path": "build/n64-expansion-research/damnation-cpu/halo-64-replay-benchmark-paced30-rspq32k.z64",
+          "sha256": "604d6a5874434ec0e6986398e0d7445328915494069f412519e01a7e118f051e"
+        },
+        "damnation-empty-pipeline": {
+          "manifest": "build/n64-expansion-research/damnation-empty-pipeline/halo-64-replay-benchmark-gpu-diagnostic-paced30-rspq32k.build.json",
+          "path": "build/n64-expansion-research/damnation-empty-pipeline/halo-64-replay-benchmark-gpu-diagnostic-paced30-rspq32k.z64",
+          "sha256": "17d341671d9d3cdad5f8c9d5f2090882a1fc1f7c0b32f62af538cecad88e5bf2"
+        },
+        "damnation-pipeline": {
+          "manifest": "build/n64-expansion-research/damnation-pipeline/halo-64-replay-benchmark-gpu-diagnostic-paced30-rspq32k.build.json",
+          "path": "build/n64-expansion-research/damnation-pipeline/halo-64-replay-benchmark-gpu-diagnostic-paced30-rspq32k.z64",
+          "sha256": "fc5dfe6695e78908d153f51f4751f3ecac72deb2ff575f26697812e1bc7e2bb0"
+        },
+        "sidewinder-cpu": {
+          "manifest": "build/n64-expansion-research/sidewinder-cpu/halo-64-replay-benchmark-paced30-rspq32k.build.json",
+          "path": "build/n64-expansion-research/sidewinder-cpu/halo-64-replay-benchmark-paced30-rspq32k.z64",
+          "sha256": "f5c65fda90f00d2b681ca43e4211b6c91ae2e612bedc50622e10132f3b37e7fc"
+        },
+        "sidewinder-origin-cpu": {
+          "manifest": "build/n64-expansion-research/sidewinder-origin-cpu/halo-64-replay-benchmark-paced30-rspq32k.build.json",
+          "path": "build/n64-expansion-research/sidewinder-origin-cpu/halo-64-replay-benchmark-paced30-rspq32k.z64",
+          "sha256": "25af07fdb49496d018eadcf9b06ca2f2cbf300151e9bef7b29456e7e28192b8b"
+        }
+      }
+    },
+    "native-validation": {
+      "frontend": {
+        "manifest": "build/n64-expansion-research/origin-frontend-qa/halo-64-frontend-qa4-validation-paced30-rspq8k.build.json",
+        "rdp_errors": 0,
+        "rdp_warnings": 0,
+        "rom_sha256": "853f296c9ef3c93a3683f534aa972522db2d3af9a4b99002d9a89e126bf1a6f4",
+        "screenshot": "origin-frontend-qa-window.png",
+        "scripted_status": "36 / 36 PASS"
+      },
+      "settings_restored": [
+        "Expansion Pak disabled as before",
+        "Pause emulation on defocus as before"
+      ],
+      "sidewinder_four_view": {
+        "manifest": "build/n64-expansion-research/sidewinder-origin-rdp/halo-64-map-qa0-validation-paced30-rspq8k.build.json",
+        "rdp_errors": 0,
+        "rdp_warnings": 0,
+        "rom_sha256": "49b090731fe4a5ebe877dec3b83e4955120b2838da4601215fef8d9ec32e8243",
+        "screenshot": "sidewinder-origin-rdp-window.png"
+      }
+    },
+    "quiet-timing": {
+      "method": "Ares NTSC, Expansion Pak, four players, release LTO, three surfaces, 32 KiB queues; quiet 75 seconds after warmup; no host builds/tests during interval.",
+      "runs": [
+        {
+          "combat_fps": 26.4,
+          "elapsed_ms": 75017,
+          "fps": 24.1,
+          "free_kib": 4113,
+          "label": "baseline",
+          "map": "bloodgulch",
+          "max_ms": 133.7,
+          "p95_ms": 66.8,
+          "poses": 1812,
+          "rom": "build/n64-expansion-research/blood-baseline-quiet/halo-64-replay-vi-benchmark-paced30-rspq32k.z64",
+          "rom_sha256": "c4c5ba1cda200a08d955d275214eb5cbcc91650621e6af5b644c9a60bea64b01",
+          "screenshot": "blood-baseline-quiet-window.png",
+          "vehicle_fps": 22.0
+        },
+        {
+          "combat_fps": 26.4,
+          "elapsed_ms": 75017,
+          "fps": 24.2,
+          "free_kib": 4099,
+          "label": "cache128",
+          "map": "bloodgulch",
+          "max_ms": 167.1,
+          "p95_ms": 66.8,
+          "poses": 1818,
+          "rom": "build/n64-expansion-research/blood-cache128-quiet/halo-64-replay-features128-vi-benchmark-paced30-rspq32k.z64",
+          "rom_sha256": "2d4c6589d23c25668668f7e274af818564264cc535d0f1d54543c8763ef2b811",
+          "screenshot": "blood-cache128-quiet-window.png",
+          "vehicle_fps": 22.1
+        },
+        {
+          "combat_fps": 26.4,
+          "elapsed_ms": 75017,
+          "fps": 24.0,
+          "free_kib": 4039,
+          "label": "cache512",
+          "map": "bloodgulch",
+          "max_ms": 167.1,
+          "p95_ms": 66.8,
+          "poses": 1806,
+          "rom": "build/n64-expansion-research/blood-cache512-quiet/halo-64-replay-features512-vi-benchmark-paced30-rspq32k.z64",
+          "rom_sha256": "01ac229e18ed1a5c65fed829e8f7acdcca0bc5b815df9c190cb3950c237cfe73",
+          "screenshot": "blood-cache512-quiet-window.png",
+          "vehicle_fps": 21.9
+        },
+        {
+          "combat_fps": 26.4,
+          "elapsed_ms": 75017,
+          "fps": 24.1,
+          "free_kib": 4113,
+          "label": "baseline_repeat",
+          "map": "bloodgulch",
+          "max_ms": 133.7,
+          "p95_ms": 66.8,
+          "poses": 1812,
+          "rom": "build/n64-expansion-research/blood-baseline-quiet/halo-64-replay-vi-benchmark-paced30-rspq32k.z64",
+          "rom_sha256": "c4c5ba1cda200a08d955d275214eb5cbcc91650621e6af5b644c9a60bea64b01",
+          "screenshot": "blood-baseline-repeat-window.png",
+          "vehicle_fps": 22.0
+        },
+        {
+          "early_fps": 9.5,
+          "elapsed_ms": 75050,
+          "fps": 9.5,
+          "free_kib": 3083,
+          "label": "corrected_origin",
+          "late_fps": 9.5,
+          "map": "sidewinder",
+          "max_ms": 200.5,
+          "p95_ms": 167.1,
+          "poses": 718,
+          "rom": "build/n64-expansion-research/sidewinder-origin-quiet/halo-64-replay-vi-benchmark-paced30-rspq32k.z64",
+          "rom_sha256": "44fde481d99482d05d39b5c523e678ba1b5d13c936ca637dfe2d4441024bc106",
+          "scope": "Correctness repair; changed vehicle contacts/workload. Not a memory optimization A/B.",
+          "screenshot": "sidewinder-origin-quiet-window.png"
+        }
+      ]
+    }
+  }
+}

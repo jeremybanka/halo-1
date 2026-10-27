@@ -1,5 +1,10 @@
 # Sidewinder cartridge candidate
 
+See [SIDEWINDER_BENCHMARKS.md](SIDEWINDER_BENCHMARKS.md) for measured performance,
+pixel checks, the deployed ROM checksum and the native QA settings-integrity
+caveat. The [benchmark archive](benchmarks/README.md) preserves the counters
+and validation records behind that report.
+
 The 2026-10-24 cartridge candidate carries the reviewed Sidewinder terrain,
 tree and distance LODs, conservative visibility, intact room/wall batching,
 bulk submission, private unlit Tiny3D, and shared spatial hierarchy into the

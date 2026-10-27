@@ -121,6 +121,13 @@ consume the baked private banks without reopening the source disc.
 
 ## Four-player performance comparison
 
+This is the original roster survey, before the subsequent Sidewinder and
+shared submission work. It is not a fresh timing of the cartridge candidate.
+The [current benchmark report](SIDEWINDER_BENCHMARKS.md) distinguishes later
+paired measurements from qualitative console feedback. The original survey's
+[counters and ROM identities](benchmarks/results/2026-10/n64-all-map-audit.json)
+are retained in the checked-in archive.
+
 | Map | Displayed FPS | Early / combat | Late / vehicles | P95 / max interval | End free heap |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Wizard | 24.9 | 24.4 | 25.3 | 66.8 / 66.8 ms | 4420 KiB |

@@ -41,6 +41,11 @@ The three-map addition, source rules, material approximations and reproduction
 checks are documented in [MAP_EXPANSION.md](MAP_EXPANSION.md).
 The complete 13-map Xbox roster, Expansion Pak profile, source rules and
 performance comparison are documented in [ALL_MAPS.md](ALL_MAPS.md).
+The current opt-in cartridge build is documented in
+[SIDEWINDER_CARTRIDGE.md](SIDEWINDER_CARTRIDGE.md). Its latest benchmarks,
+optimization history and validation caveats are in
+[SIDEWINDER_BENCHMARKS.md](SIDEWINDER_BENCHMARKS.md), with
+[checked-in measurement records](benchmarks/README.md).
 
 ## Play
 

@@ -1,5 +1,12 @@
 # Blood Gulch optimization sprint
 
+This journal records earlier optimization passes. The later Sidewinder
+geometry, LOD, submission and hierarchy work, including the October 24
+cartridge checkpoint, is documented in
+[SIDEWINDER_BENCHMARKS.md](SIDEWINDER_BENCHMARKS.md). Its
+[benchmark archive](benchmarks/README.md) also preserves the Expansion Pak
+and visibility measurements described below.
+
 Base: merged cleanup `ffc5e53d`, branch `codex/n64-optimize`. Priorities are
 algorithm improvements, then useful caching. This pass retains the private
 asset bank, models, textures, original vehicle equations, 30 Hz simulation,

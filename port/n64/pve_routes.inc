@@ -15,7 +15,7 @@ static uint16_t pve_route_id[PVE_NODES],pve_route_grid[PVE_ROUTE_NODES];
 static uint16_t pve_route_component[PVE_ROUTE_NODES];
 static uint8_t pve_route_x[PVE_ROUTE_NODES],pve_route_z[PVE_ROUTE_NODES];
 static unsigned pve_route_count,pve_route_clock;
-/* One node's eight landmark distances occupy one 16-byte cache line. */
+/* Keep one node's eight landmark distances in 16 contiguous bytes. */
 static uint16_t pve_route_landmarks[PVE_ROUTE_NODES][PVE_ROUTE_LANDMARKS];
 typedef struct {
     uint16_t distance[PVE_ROUTE_NODES],goal;

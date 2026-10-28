@@ -1,0 +1,40 @@
+Retained 96 functions/blocks
+[
+  {
+    "path": "vehicles\\warthog\\warthog",
+    "cache": "bloodgulch",
+    "mass_points": 15,
+    "powered": 2,
+    "mass": 5000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\ghost\\ghost_mp",
+    "cache": "bloodgulch",
+    "mass_points": 5,
+    "powered": 2,
+    "mass": 2000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\scorpion\\scorpion_mp",
+    "cache": "bloodgulch",
+    "mass_points": 18,
+    "powered": 2,
+    "mass": 20000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\banshee\\banshee",
+    "cache": "a30",
+    "mass_points": 22,
+    "powered": 2,
+    "mass": 4000.0,
+    "radius": -1.0
+  }
+]
+PASS 240 pursuit/retreat/cower choices, 17567 exact cached distances; max completion 15 ticks
+PASS 12 actors/4 targets share one goal; max wait 6 ticks
+PASS 12 simultaneous distinct long routes; max wait 19 ticks, work limit 256
+PASS reciprocal graph, admissible landmarks and search-generation wrap
+PASS goal sharing/isolation, moving-memory refresh, generation/target/death cancellation and restart; bounded work per tick

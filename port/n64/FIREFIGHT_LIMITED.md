@@ -128,8 +128,11 @@ falloff and material modifiers; it is not a rocket with a green color.
 Navigation is a two-layer, one-unit grid over the Blood Gulch encounter,
 including reachable base interiors and roofs. Edges are baked with the production
 capsule solver and the largest supported enemy capsule. This is not CE's original
-navigation/cover planner. Campaign scripting, conversation, boarding, coordinated
-squad maneuvers and all actor variants/ranks are not ported. The original source
+navigation/cover planner. The [shared navigation prototype](FIREFIGHT_NAVIGATION.md)
+retains that graph and exact route costs while replacing per-human full-map
+floods with goal-keyed caches and a shared search-work budget. Campaign scripting,
+conversation, boarding, coordinated squad maneuvers and all actor variants/ranks
+are not ported. The original source
 selectors alone do not imply full CE behavioral parity.
 
 Animation tracks stream from a private ROM bank through a bounded 98 KiB transfer
@@ -201,3 +204,6 @@ the private asset repository. Hardware performance is not inferred from Ares.
 A subsequent [performance diagnosis](FIREFIGHT_PERFORMANCE.md) adds ordinary
 two-player measurements, per-tick CPU attribution, model comparisons and the
 CE behavior fidelity audit.
+
+The [navigation appraisal](FIREFIGHT_NAVIGATION.md) records the subsequent shared,
+budgeted route implementation and fresh paired ordinary/crowded 1–4P captures.

@@ -1,0 +1,59 @@
+Retained 96 functions/blocks
+[
+  {
+    "path": "vehicles\\warthog\\warthog",
+    "cache": "bloodgulch",
+    "mass_points": 15,
+    "powered": 2,
+    "mass": 5000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\ghost\\ghost_mp",
+    "cache": "bloodgulch",
+    "mass_points": 5,
+    "powered": 2,
+    "mass": 2000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\scorpion\\scorpion_mp",
+    "cache": "bloodgulch",
+    "mass_points": 18,
+    "powered": 2,
+    "mass": 20000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\banshee\\banshee",
+    "cache": "a30",
+    "mass_points": 22,
+    "powered": 2,
+    "mass": 4000.0,
+    "radius": -1.0
+  }
+]
+navigation nodes 7016 linked 7003
+unit 0 -2.000 0.099 1.500 clearance 1
+unit 1 -3.500 0.142 1.500 clearance 1
+unit 2 -2.000 0.138 3.000 clearance 1
+unit 3 -3.500 0.192 3.000 clearance 1
+unit 4 3.000 0.102 1.500 clearance 1
+unit 5 4.200 0.107 1.500 clearance 1
+unit 6 5.400 0.138 1.500 clearance 1
+unit 7 3.000 0.029 3.000 clearance 1
+unit 8 4.200 0.041 3.000 clearance 1
+actor0 action3 aware1 shots7
+actor1 action3 aware1 shots5
+actor2 action3 aware1 shots3
+actor3 action3 aware1 shots5
+actor4 action3 aware1 shots0
+PASS 1-player 120s ticks 3600
+PASS 2-player 120s ticks 3600
+PASS 3-player 120s ticks 3600
+PASS 4-player 120s ticks 3600
+QA leader health 0.0 kills 1
+PASS timed Elite melee after a fire animation
+PASS highest NPC-slot needle damage, grenade kills and weapon drops
+PASS Firefight restart, three-player staging, leave to CTF and return to squad
+PASS squad source selectors, leader-death panic, navigation and split-screen simulation

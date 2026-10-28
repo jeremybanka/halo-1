@@ -1,5 +1,9 @@
 # Firefight performance appraisal — 28 October 2026
 
+This is the diagnosis of the pre-optimization baseline. The subsequent
+[shared navigation appraisal](FIREFIGHT_NAVIGATION.md) documents the replacement
+of repeated full-map searches and fresh paired 1–4P results.
+
 **The drops have two major causes: expensive simulation spikes in our custom
 navigation services, and enemy representations that are much heavier than the
 multiplayer models.** The original CE action-selection functions are a small

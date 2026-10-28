@@ -1,0 +1,489 @@
+{
+  "schema": 1,
+  "emulator": "Ares v148, NTSC 320x240, 8 MiB, audio enabled, uncapped diagnostic",
+  "settings_sha256": "1f48ba810b8d36673cfcc2a8b3ab46e92cf9d1e9ee2e952ddae9b917cada275c",
+  "cases": {
+    "baseline-opening-1": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "73351cde50cb9788fe299eee42176fb19aa98b70d5376e40c08ba05e9855ad15",
+      "rom_sha256": "45383a1a08a3761f552d80e00680ca72cacc6c22d06728b58e8fc6c71efc5a4f",
+      "manifest_sha256": "5de02f473abfa5168974613d09c0fe53946edb9d09b3bb336389adc2b2f8ca8b",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-1/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-1/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-opening-1": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "e5e1391e075d1ea5dfeef6e416b81d8430d51d4767e5f56fc40bb9394e8ebcae",
+      "rom_sha256": "24a243c46471802713e03a2c03a3aad0b7e7006bdcfc6e7ce453be5ef07df54c",
+      "manifest_sha256": "1c1b4cbe2025d2d7522df737e61b405c7082fd73e1d5dccddd0dff1ab9170893",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-1/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-1/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "baseline-opening-2": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "cc749d1d3d31a4b36f4a7f48d0df640cac3ab73fc294cc4b03fa15b0652f0e71",
+      "rom_sha256": "582391a09a07a28b2a5c331d28b9d5e43c22d0535bdbf7caa64a39afe6f0b9cf",
+      "manifest_sha256": "bdb759d7a9499ed79942961ff61c7e64555c2425c140683935166dceaeeacde2",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-2/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-2/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-opening-2": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "9eea05abc185a692e4c2105d350646a0faec5d942cada88d5b27934383eee33c",
+      "rom_sha256": "e5802934971badab8520d6f03dc22fb776d3d24a11f500147e5f0060321588ad",
+      "manifest_sha256": "ad42fdab74f0a08c379e445c84de7b3ff153d3bec9b91f98b905a3d46acdda90",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-2/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-2/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "baseline-opening-3": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "939edaaa64ac4ad67924d0c81c7c802482e34c87400256ad20ec0853b6030a97",
+      "rom_sha256": "845511ce7ddbcdcae97c52b179310ca69f7b63357c058cd8da9db438f10fee0b",
+      "manifest_sha256": "a449c48ebc64a07eb2d59cffab9aa34472dd070250ab1ad45068c1fef3ab92c1",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-3/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-3/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-opening-3": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "34a20012aed4b7e65ce68bc0b059d5718335f2e214b8a9735df86652466cfffe",
+      "rom_sha256": "92e1f4df86880ef4cbaf1d00a942208cb7663b00273ffd0c1460ea2e379a44c8",
+      "manifest_sha256": "16d0232499aab5d7da5e36a4df0ddf1a1780f8214a7248eefb6c63e656bb5dbb",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-3/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-3/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "baseline-opening-4": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "561a0a581af5feef26ac522e8099e41996974425ad62f760ce39de9a3286f369",
+      "rom_sha256": "cf38a628ee5900c2c51646a061bf210b215ad71a4f2da56108a6d6ae217a1c87",
+      "manifest_sha256": "01c28c551bc2b5be9b1796e487e08e2c482692238427e60412bf92c19fd2c587",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-4/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-opening-4/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-opening-4": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "4043f0ba1914b12e35e84a66e7058ae318101006ac375b8a108ea49ec259ed9e",
+      "rom_sha256": "818be92da7b0109e67c169a875c65786eed5f367a687e4a7bc86acd20e160dad",
+      "manifest_sha256": "ab3669b90b9040955b5b1271c178abacd899998d87a54e53a63c0556f48464a9",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-4/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-opening-4/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "baseline-perf-1": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "f1f11eb170d85df8c7536ef4d0831caf55044b7feb20f8879d453213fdd03a08",
+      "rom_sha256": "4fefa466bda9ef6906278065c9a5bd8fa0ac0deb79aa1ea05892f1d4948eced7",
+      "manifest_sha256": "7cd9253f606ddfb96a6df131bdd7211ce3af4ace9ee2b722ae9d9041f0cd1342",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-1/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-1/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-perf-1": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "41564b20eea2fc5acd353255b0b2ab9c4c3401ea5aab24ff2c7c0dd1552ec2c2",
+      "rom_sha256": "21ad4697e6771f1f4f680a24e4cc035baed314e71b0be39fce99c3db3a1129a6",
+      "manifest_sha256": "2c0c965a2697120dededed29855034266d9d4fc516a353b994033a74b0d032b3",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-1/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-1/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "baseline-perf-2": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "d588c5a954e5a16d07805043774e788b7c7571fc320af63af49ad10cc19942ec",
+      "rom_sha256": "cda77ba0e941c9e9fbb380dc89db420352e293036e9f190839a899b397b704e1",
+      "manifest_sha256": "6b0572585cfbc73d5d137fae5ad8feac57cf871788571305d6ae04496895a67b",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-2/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-2/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-perf-2": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "227b4008f5ca6ca412f6aaae1c1359c330c41987225cbfc4ed87d3226afa7758",
+      "rom_sha256": "cb131a311c88eb5908d3fb59356c21d8854c638f3045a5fd21c2920212f6a5cf",
+      "manifest_sha256": "c0b28360791a66fb8e270a134fad3415634346a04762fd7a2fae223f516f928e",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-2/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-2/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "baseline-perf-3": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "6396eea5566e97dca49102c55c84e4da8c07886049324125c6338bf865958e17",
+      "rom_sha256": "6711a084f874b68f0d3f4bec481c37b9b35af3e6b09b2574d2a4a51bc1df4b36",
+      "manifest_sha256": "cb8a9285d3c484e86fbd785a4227aeab3393d6d9597014807b56b29a4423b8cc",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-3/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-3/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-perf-3": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "0e78c11c8b7007717ed3ab7bb0f8a8dcc24aaffba024d9d02a77d49229460f36",
+      "rom_sha256": "60c1f254ca3c033d5fb33754f53ac3675f447d0addf8d7f105b447243dd0c74f",
+      "manifest_sha256": "91d585a3d5730bae6a51706b28794457a26d494933f9e4879ba0a08406c166b2",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-3/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-3/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "baseline-perf-4": {
+      "source_commit": "5b652475c798c4e7b0f36e4be000a4cd1f35d38f",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "d870da8fc88355bed6f01325dd49c36b5e0547a6d2b1e0180ea02042dda99668",
+      "rom_sha256": "8efb9a7cad73a3bcb857dfa95d5402d799449187564db7aca9348745d107aa18",
+      "manifest_sha256": "4d4f298be665cb754882ed77f69c757c2a20410bad8fdc7ae4765bbe9aa529a1",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-4/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/baseline-source/build/navigation-matrix/baseline-perf-4/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    },
+    "candidate-perf-4": {
+      "source_commit": "42f2b8da2afd45ee3f79f61e31b0380d0aa08117",
+      "asset_commit": "07daf1cf1821701955c3eba20d1acccf784598d8",
+      "log_sha256": "ae9acec8ffa3d92333f7d80d3b52070163dba574fc1da2be78e99ae98d3dea3d",
+      "rom_sha256": "39ff328db75af491d678109bc086e7d3e8da7bd81387eb3c9b85f6966cac0d0d",
+      "manifest_sha256": "15d03dac9535c878f9e47c57f773bd1665bbb8063a2b46c82a2e36a053720298",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-4/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-navigation/matrix/candidate-perf-4/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4"
+    }
+  },
+  "matched_inputs": {
+    "opening-1": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    },
+    "opening-2": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    },
+    "opening-3": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    },
+    "opening-4": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    },
+    "perf-1": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    },
+    "perf-2": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    },
+    "perf-3": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    },
+    "perf-4": {
+      "options_identical_except_output_directory": true,
+      "private_assets_and_render_bank_identical": true,
+      "runtime_differences": {
+        "port/n64/firefight_game.inc": {
+          "baseline": "2380a6971e5152c6c3089ba568a1cd058a7e9258c1c4d8cc7e5b7d69cccaf4ac",
+          "candidate": "da8740799cbaa7ea787c99bd5e8a3c57954938c40957acae6d1c43b6b9cb02e2"
+        },
+        "port/n64/main.c": {
+          "baseline": "851a1ae3451df1e94a88dd40c463a1e0e69b52916000103e324567cfc919941b",
+          "candidate": "fd53c601b747dbef66fa77ae2469ae328d6c20e5054b112c5a61bd7b583df843"
+        },
+        "port/n64/pve.h": {
+          "baseline": "a7d77321deb6ae7bf0220c33cff565cd6e7e6568cb64e48105b24cbd124f258a",
+          "candidate": "0eeae559680a632dc7c5ace41ec195d107d38fe3d999f75975411f6e9adaaca6"
+        },
+        "port/n64/pve_nav.inc": {
+          "baseline": "2b070fcfb4d0070b593fd6e4a36e6c36e6eff6de8eca837d72c3ba4487264435",
+          "candidate": "c67b47bed7c2ae384a0bb17590db2d30f2e6a0bf026fd3d7a564f947bc455259"
+        },
+        "port/n64/pve_routes.inc": {
+          "baseline": null,
+          "candidate": "45bdbc70b91517fdcdb07b342ba306eac093eff54c347329798cafc7408cfc03"
+        },
+        "port/n64/pve_tick.inc": {
+          "baseline": "4c0e5841e21a07559b8751df97f085c5d6450f6f7239235bfb295aa73cae4909",
+          "candidate": "f1ecf1c74b82cbab0b07d094ff0b036cdf50935d160260457b590c92c65f31fb"
+        }
+      }
+    }
+  }
+}

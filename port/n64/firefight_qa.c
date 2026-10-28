@@ -58,7 +58,7 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
    bool expected=current<31;
    assertf(bg_pve_is_active()==expected,"Firefight session cleanup");
    assertf(bg_player_count()==BG_FRONTEND_QA_PLAYERS,"Firefight player count");
-   assertf(bg_pve_count==(expected?5:0),"Firefight squad count");
+   assertf(bg_ff.active==expected&&bg_pve_count<=BG_PVE_MAX&&(!expected?bg_pve_count==0:true),"Firefight director/actor lifecycle");
  }
  for(unsigned p=0;p<4;p++)if(s->ports&(1u<<p))raw[p].pressed=raw[p].held=s->button;
  debugf("FIREFIGHT_QA step=%u page=%u players=%u npcs=%u active=%u\n",current,f->page,bg_player_count(),bg_pve_count,bg_pve_is_active());

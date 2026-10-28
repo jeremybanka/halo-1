@@ -171,7 +171,7 @@ def tag_values(block):
     return getattr(block,'data',None)
 
 
-def extract(output, maps, models_only=False, include_source_lods=False):
+def extract(output, maps, models_only=False, include_source_lods=False, campaign_name='a30'):
     from reclaimer.model.model_decompilation import extract_model
     from reclaimer.animation.animation_decompilation import extract_animation
     from reclaimer.bitmaps.bitmap_decompilation import extract_bitmaps
@@ -195,8 +195,8 @@ def extract(output, maps, models_only=False, include_source_lods=False):
             h=halo;ix=next((i for i,t in enumerate(entries) if t.class_1.enum_name=='model' and t.path==path),None)
             if ix is None:
                 if campaign is None:
-                    campaign=open_cache(maps/'a30.map',output)
-                    result['sources']['a30']=hashlib.sha256((maps/'a30.map').read_bytes()).hexdigest()
+                    campaign=open_cache(maps/(campaign_name+'.map'),output)
+                    result['sources'][campaign_name]=hashlib.sha256((maps/(campaign_name+'.map')).read_bytes()).hexdigest()
                 h=campaign;ix=next((i for i,t in enumerate(h.tag_index.tag_index) if t.class_1.enum_name=='model' and t.path==path),None)
             if ix is None:raise ValueError('Required model missing: '+path)
             meta=h.get_meta(ix);h.meta_to_tag_data(meta,'mode',h.tag_index.tag_index[ix])
@@ -262,7 +262,7 @@ def extract(output, maps, models_only=False, include_source_lods=False):
                 textures_fullres.append(full);multipurpose_fullres.append(multi);material_metadata.append(material)
                 material_colors.append(fallback);material_overrides.append(override)
             result['models'][name]={'name':model.name,'path':path,
-                'source_lod':model.name,'source_cache':'bloodgulch' if h is halo else 'a30',
+                'source_lod':model.name,'source_cache':'bloodgulch' if h is halo else campaign_name,
                 'source_lods':[{'name':m.name,'triangles':len(m.tris),'vertices':len(m.verts)} for m in lods],
                 'vertices':[[v.pos_x/100,v.pos_y/100,v.pos_z/100] for v in model.verts],
                 'uv':[[v.tex_u,1-v.tex_v] for v in model.verts],'uv_origin':'top-left',

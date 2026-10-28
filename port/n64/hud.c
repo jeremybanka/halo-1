@@ -315,7 +315,7 @@ static void radar(unsigned p, int x, int y, float scale) {
     bg_player *viewer = &bg_players[p];
     const float range = 8.333333f; /* Xbox motion sensor25m; Halo world unit=3m. */
     float sn = sinf(viewer->yaw), cs = cosf(viewer->yaw);
-    for (unsigned j = 0; j < bg_player_count(); j++) {
+    for (unsigned j = 0; j < bg_unit_count(); j++) {
         bg_player *other = &bg_players[j];
         if (j == p || !bg_motion_sensor_visible(other))
             continue;
@@ -644,6 +644,28 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if (p->health > 0 && !p->zoom && bg_mode_radar())
         notice_left += (int)ceilf(bg_hud_images[BG_H_MOTION_BG].w * scale) + 3;
     pickup_notices(index, notice_left, notice_bottom, right - notice_left, height < 200 ? 2 : 3);
+#ifdef BG_PVE
+    if(bg_ff.active){
+        char state[72];unsigned alive=0;
+        for(unsigned i=0;i<bg_pve_count;i++)alive+=bg_pve_actors[i].occupied&&bg_players[BG_PLAYERS+i].health>0;
+        rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
+        if(bg_ff.phase==BG_FF_BONUS)snprintf(state,sizeof(state),"BONUS %us E%u",(unsigned)ceilf(fmaxf(0,bg_ff.timer)),alive);
+        else snprintf(state,sizeof(state),"R%u W%u L%u E%u",bg_ff.round+1,bg_ff.wave+1,bg_ff.lives,alive);
+        hud_text(state,x+margin,y+height-19,hud_cyan);
+        snprintf(state,sizeof(state),"%u  %02u:%02u",(unsigned)bg_ff.team_score,(unsigned)bg_ff.elapsed/60,(unsigned)bg_ff.elapsed%60);
+        hud_text(state,x+margin,y+height-10,hud_cyan);
+        if(p->health<=0){snprintf(state,sizeof(state),bg_ff_can_respawn(index)?"Respawn: %u":"Waiting for round clear",(unsigned)ceilf(fmaxf(0,p->respawn)));hud_text(state,x+(width-hud_text_width(state))/2,y+height/2,hud_cyan);}
+        if(bg_ff.message_time>0&&hud_text_width(bg_ff.message)<width-8)hud_text(bg_ff.message,x+(width-hud_text_width(bg_ff.message))/2,y+25,hud_cyan);
+        if(alive<=3&&bg_ff.packet>=bg_ff.packets&&p->health>0){
+            const T3DViewport*vp=bg_scene_viewport(index);
+            for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].arrival!=1){
+                const float*pos=bg_players[BG_PLAYERS+i].pos;T3DVec3 world={{pos[0]*BG_SCALE,(pos[1]+1)*BG_SCALE,pos[2]*BG_SCALE}},screen={{0}};
+                float depth=-(world.v[0]*vp->matCamera.m[0][2]+world.v[1]*vp->matCamera.m[1][2]+world.v[2]*vp->matCamera.m[2][2]+vp->matCamera.m[3][2]);if(depth<=0)continue;
+                t3d_viewport_calc_viewspace_pos((T3DViewport*)vp,&screen,&world);int px=(int)fmaxf(x+8,fminf(x+width-8,screen.v[0])),py=(int)fmaxf(y+25,fminf(y+height-30,screen.v[1]));hud_text("!",px,py,red);
+            }
+        }
+    }
+#endif
 #ifdef BG_INTERACTION_QA
     if (BG_INTERACTION_QA == 4) {
         const bg_vehicle *v = &bg_vehicles[index];

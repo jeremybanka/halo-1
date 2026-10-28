@@ -115,7 +115,7 @@ static bg_world_command_plan world_plans[BG_FRAME_SLOTS][4];
 uint64_t bg_submit_stats[8]; /* views, rebuilds, LOD us, selection us, frustum us, dispatch us */
 #endif
 #endif
-static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[7][12] __attribute__((aligned(16)));
+static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[8][12] __attribute__((aligned(16)));
 static T3DVertPacked *firstperson[BG_FRAME_SLOTS][4];
 static unsigned firstperson_bytes[BG_FRAME_SLOTS][4];
 static int firstperson_weapon[BG_FRAME_SLOTS][4];
@@ -126,7 +126,7 @@ static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
 static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static float fired_at[4] = {-100, -100, -100, -100};
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
-    *particle_blocks[7];
+    *particle_blocks[8];
 static rspq_block_t *vehicle_lods[4];
 static rspq_block_t *covenant_wreck_blocks[2];
 static rspq_block_t *pickup_lod_blocks[BG_M_COUNT];
@@ -501,10 +501,10 @@ static void init_scene(void) {
                                          {0, 0, 32}, {-32, 0, 0}, {0, 0, -32}};
     static const uint8_t indices[24] = {0, 3, 2, 0, 4, 3, 0, 5, 4, 0, 2, 5,
                                         1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 2};
-    const uint32_t hues[7] = {0x54d9ffff, 0xf15cffff, 0xffd38aff, 0x818977ff,
-                              0x76abffff, 0xffbc50ff, 0xff9836ff};
+    const uint32_t hues[8] = {0x54d9ffff, 0xf15cffff, 0xffd38aff, 0x818977ff,
+                              0x76abffff, 0xffbc50ff, 0xff9836ff, 0x98ff32ff};
     objectives_init();
-    for (unsigned k = 0; k < 7; k++) {
+    for (unsigned k = 0; k < 8; k++) {
         for (unsigned i = 0; i < 24; i++) {
             memcpy(t3d_vertbuffer_get_pos(particles[k], i), points[indices[i]], 6);
             *t3d_vertbuffer_get_color(particles[k], i) = hues[k];
@@ -1241,7 +1241,7 @@ static void prepare_frame(void) {
         bg_projectile *q = bg_projectile_at(i);
         if (!q || !q->active)
             continue;
-        float scale = q->kind == BG_P_CANNON ? .09f : q->kind == BG_P_FLAME ? .18f : .045f;
+        float scale = (q->kind == BG_P_CANNON||q->kind==BG_P_FUEL) ? .09f : q->kind == BG_P_FLAME ? .18f : .045f;
         if (q->kind == BG_P_FRAG || q->kind == BG_P_PLASMA_GRENADE)
             scale = BG_SCALE / BG_OBJECT_SCALE;
         matrix(&projectile_matrices[slot][i], scale, game_time * 4, 0, q->pos);

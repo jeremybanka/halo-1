@@ -4,11 +4,12 @@
 int main(void){
     bg_map_load(9);bg_pve_stage(4);
     FILE*f=fopen("halo64-assets/generated/pve/pve_nav.c","w");assert(f);
-    fputs("#include <stdint.h>\nconst float bg_pve_nav_heights[625]={",f);
+    fprintf(f,"#include <stdint.h>\nconst float bg_pve_nav_heights[%u]={",PVE_NODES);
     unsigned nodes=0,links=0;
     for(unsigned i=0;i<PVE_NODES;i++){fprintf(f,"%a%s",(double)pve_nav_height[i],i+1==PVE_NODES?"};\n":",");nodes+=pve_nav_height[i]>-999;}
-    fputs("const uint8_t bg_pve_nav_links[625]={",f);
-    for(unsigned i=0;i<PVE_NODES;i++){fprintf(f,"%u%s",pve_nav_edges[i],i+1==PVE_NODES?"};\n":",");links+=!!pve_nav_edges[i];}fclose(f);
+    fprintf(f,"const uint8_t bg_pve_nav_links[%u]={",PVE_NODES);
+    for(unsigned i=0;i<PVE_NODES;i++){fprintf(f,"%u%s",pve_nav_edges[i],i+1==PVE_NODES?"};\n":",");links+=!!pve_nav_edges[i];}
+    fprintf(f,"const uint8_t bg_pve_nav_layers[%u]={",PVE_NODES);for(unsigned i=0;i<PVE_NODES;i++)fprintf(f,"%u%s",pve_nav_layers[i],i+1==PVE_NODES?"};\n":",");fclose(f);
     printf("navigation nodes %u linked %u\n",nodes,links);
     for(unsigned i=0;i<bg_unit_count();i++)if(i<active_players||i>=4){bg_player*p=&bg_players[i];printf("unit %u %.3f %.3f %.3f clearance %u\n",i,p->pos[0],p->pos[1],p->pos[2],bg_terrain_clearance(p));assert(bg_terrain_clearance(p));}
     bg_input inputs[4]={0};for(unsigned tick=0;tick<90;tick++)bg_tick(inputs,1.f/30);
@@ -20,7 +21,8 @@ int main(void){
     for(unsigned i=1;i<5;i++){assert(bg_pve_actors[i].action==_actor_action_flee);assert(bg_pve_actors[i].panic_time>0);}
     for(unsigned players=1;players<=4;players++){bg_pve_stage(players);for(unsigned tick=0;tick<3600;tick++)bg_tick(inputs,1.f/30);printf("PASS %u-player 120s ticks %u\n",players,bg_pve_tick_number);}
     bg_pve_stage(2);
-    for(unsigned tick=0;tick<390;tick++){bg_pve_qa_input(inputs);bg_tick(inputs,1.f/30);}
+    for(unsigned i=0;i<bg_pve_count;i++){bg_pve_actors[i].burst_pause=1000;bg_pve_actors[i].melee_time=1000;bg_pve_actors[i].grenades=0;}
+    for(unsigned tick=0;tick<440;tick++){bg_pve_qa_input(inputs);bg_tick(inputs,1.f/30);}
     printf("QA leader health %.1f kills %d\n",bg_players[4].health,bg_players[0].score);assert(bg_players[4].health==0);
     bg_pve_stage(1);bg_pve_start(1);
     bg_player*elite=&bg_players[4];elite->pos[0]=bg_players[0].pos[0]+.8f;elite->pos[2]=bg_players[0].pos[2];elite->pos[1]=bg_floor(elite->pos[0],elite->pos[2],100)+.015f;

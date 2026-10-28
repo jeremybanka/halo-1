@@ -98,7 +98,8 @@ typedef enum {
     BG_P_FRAG,
     BG_P_PLASMA_GRENADE,
     BG_P_CANNON,
-    BG_P_FLAME
+    BG_P_FLAME,
+    BG_P_FUEL
 } bg_projectile_kind;
 /* BG_EVENT_EXPLOSION stores this presentation type in event.weapon. */
 typedef enum { BG_EXPLOSION_NORMAL, BG_EXPLOSION_PLASMA, BG_EXPLOSION_NEEDLER } bg_explosion_kind;
@@ -188,6 +189,7 @@ typedef struct {
     float attached_offset[3], distance, age;
     int8_t tracked;
     uint8_t damage_profile;
+    uint16_t hit_region;
     bool active, countdown, combined;
 } bg_projectile;
 /* Map slots are permanent schedule owners. Dynamic slots are a bounded pool;

@@ -62,6 +62,9 @@ unsigned bg_player_ball_count(unsigned p) {
 }
 int bg_player_target(unsigned p) { return mode_enabled&&p<active_players?mode_targets[p]:-1; }
 bool bg_player_eliminated(unsigned p) {
+#ifdef BG_PVE
+    if(bg_ff.active)return bg_players[p].health<=0&&!bg_ff_can_respawn(p);
+#endif
     return mode_enabled&&bg_current_rules()->lives&&bg_players[p].health<=0&&
            statistics.deaths[p]>=bg_current_rules()->lives;
 }
@@ -92,7 +95,11 @@ static float mode_damage(unsigned victim,int owner) {
     }
     return scale;
 }
-bool bg_mode_radar(void) { return !mode_enabled||(bg_current_rules()->flags&BG_MODE_SENSOR); }
+bool bg_mode_radar(void) {
+#ifdef BG_PVE
+    if(bg_ff_cloud())return false;
+#endif
+    return !mode_enabled||(bg_current_rules()->flags&BG_MODE_SENSOR); }
 static unsigned mode_random(unsigned count) {
     mode_rng=mode_rng*1664525u+1013904223u;
     return count?(mode_rng>>8)%count:0;

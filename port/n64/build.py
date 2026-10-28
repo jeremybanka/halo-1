@@ -32,7 +32,7 @@ def parse_args(argv=None):
     parser.add_argument("--firefight-qa",type=int,choices=range(1,5),help="Exercise Firefight menus with 1–4 controllers")
     parser.add_argument("--pve-players",type=int,choices=(1,2,3,4),default=4)
     parser.add_argument("--pve-count",type=int,choices=(0,5,8),default=5)
-    parser.add_argument("--pve-qa",type=int,choices=(0,1,2),default=0)
+    parser.add_argument("--pve-qa",type=int,choices=(0,1,2,3,4,5,6),default=0)
     parser.add_argument("--pve-photo-tick",type=int)
     parser.add_argument(
         "--preset",
@@ -1107,7 +1107,7 @@ def main():
         for name in sources
     ]
     if args.pve_squad or args.firefight:
-        runtime_sources.extend(ROOT/"halo64-assets/generated/pve"/name for name in ("pve_data.c","pve_defs.c","pve_nav.c"))
+        runtime_sources.extend(ROOT/"halo64-assets/generated/pve"/name for name in ("pve_data.c","pve_defs.c","pve_nav.c","pve_collision.c"))
     if args.photo_tour:
         from photo_tour_source import photo_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
@@ -1204,6 +1204,13 @@ def main():
             target = out / "frontend-files" / source.name
             if not target.exists():
                 target.symlink_to(source.resolve())
+    if args.pve_squad or args.firefight:
+        motion=ROOT/'halo64-assets/generated/pve/pve-motion.bin'
+        report=json.loads((motion.parent/'pve-report.json').read_text())
+        if hashlib.sha256(motion.read_bytes()).hexdigest()!=report['motion']['sha256']:build_error('Stale PvE motion bank')
+        target=out/'frontend-files/pve-motion.bin'
+        if target.is_symlink():target.unlink()
+        shutil.copy2(motion,target)
     maps_directory = out / "frontend-files/maps"
     assert not maps_directory.is_symlink(),'Refuse shared map-bank output directory'
     maps_directory.mkdir(parents=True, exist_ok=True)

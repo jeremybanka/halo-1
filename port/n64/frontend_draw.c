@@ -511,14 +511,15 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         snprintf(value, sizeof(value), "%u", f->count);
         label(532, 459, 320, value, white);
         snprintf(value,sizeof(value),"%u",bg_mode_preset(f->type)->goal);
-        label(533, 397, 341, f->firefight?"1":value, white);
-        label(534, 426, 341, f->firefight?"Squad":bg_mode_units(bg_mode_preset(f->type)), white);
+        label(533, 397, 341, f->firefight?"10":value, white);
+        label(534, 426, 341, f->firefight?"Lives / Heroic":bg_mode_units(bg_mode_preset(f->type)), white);
         if(bg_mode_preset(f->type)->teams)text(1,69,385,500,22,0,white,"LEFT / RIGHT =CHANGE TEAM");
         text(1, 50, 414, 560, 26, 0, blue, "C-LEFT =DELAY GAME       B =BACK       A =START GAME");
         break;
     }
     case BG_FRONT_RESULTS: {
         bitmap(11420, 0, 0, 0, 640, 480, 255);
+        if(f->firefight)text(1,125,92,430,26,0,white,f->winner>=0?"FIREFIGHT - SET COMPLETE":"FIREFIGHT - DEFEAT");
         /* game_engine_post_rasterize_post_game: six tabs and 18px rows. */
         const unsigned tabs[] = {50, 125, 250, 350, 410, 500};
         const char *const headings[] = {"Place", "Player", "Score", "Kills", "Assists", "Deaths"};
@@ -558,7 +559,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
                              : c == 4 ? f->statistics.assists[p]
                                       : f->statistics.deaths[p]);
                 text(1, tabs[c], y, c == 1 ? 124 : 85, 26, 0,
-                     (f->winner>=0&&(p==(unsigned)f->winner||(bg_mode_preset(f->type)->teams&&f->teams[f->ports[p]]==f->teams[f->ports[f->winner]]))) ? white : blue, value);
+                     (f->winner>=0&&(f->firefight||p==(unsigned)f->winner||(bg_mode_preset(f->type)->teams&&f->teams[f->ports[p]]==f->teams[f->ports[f->winner]]))) ? white : blue, value);
             }
         }
         art(306, 0, 380, 410, 255);

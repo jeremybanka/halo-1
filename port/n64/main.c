@@ -313,7 +313,7 @@ static bool input(bg_input in[4]) {
             views = front.count;
             bg_set_players(views);
 #ifdef BG_FIREFIGHT
-            if(front.firefight)bg_pve_stage(views);else
+            if(front.firefight)bg_ff_start(views);else
 #endif
             bg_reset();
             bg_hud_messages_reset();
@@ -901,7 +901,11 @@ int main(void) {
     bg_reset();
 #endif
     #if defined(BG_PVE) && !defined(BG_FIREFIGHT)
+#if BG_PVE_QA>=3
+    bg_ff_qa_stage(views,BG_PVE_QA);
+#else
     bg_pve_stage(views);if(BG_PVE_COUNT!=5)bg_pve_start(BG_PVE_COUNT);
+#endif
 #ifdef BG_PVE_PHOTO_TICK
     for(unsigned tick=0;tick<BG_PVE_PHOTO_TICK;tick++){bg_input in[4]={0};bg_clear_events();bg_pve_qa_input(in);bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;bg_scene_update(BLAM_TICK_SECONDS,game_time);}
     bg_clear_events();
@@ -1528,6 +1532,13 @@ int main(void) {
                    frame_maximum, (unsigned)frame_time_count);
 #ifdef BG_PVE
             debugf("PVE tick=%u count=%u ai_us=%u move_us=%u pve_render_us=%u\n",bg_pve_tick_number,bg_pve_count,(unsigned)bg_pve_ai_us,(unsigned)bg_pve_move_us,bg_pve_animation_us);
+            if(bg_ff.active){
+                unsigned living=0,enemies=0,arriving=0,projectiles=0;
+                for(unsigned h=0;h<views;h++)living+=bg_players[h].health>0;
+                for(unsigned i=0;i<bg_pve_count;i++){enemies+=bg_players[4+i].health>0;arriving+=bg_pve_actors[i].arrival!=0;}
+                for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){const bg_projectile*q=bg_projectile_at(i);projectiles+=q&&q->active;}
+                debugf("FF_STATE phase=%u round=%u wave=%u living=%u enemies=%u arriving=%u ship=%u projectiles=%u lives=%u score=%u\n",bg_ff.phase,bg_ff.round+1,bg_ff.wave+1,living,enemies,arriving,bg_ff_dropship.phase,projectiles,bg_ff.lives,(unsigned)bg_ff.team_score);
+            }
             debugf("PVE_PHASE sim=%u prep=%u draw=%u rsp_wait=%u rdp_wait=%u vertices=%u\n",sim_us,prep_us,draw_us,geometry_rsp_us,geometry_rdp_us,bg_scene_profile.submitted_vertices);
 #endif
             debugf("PERF views=%u fps=%u triangles=%u free=%d audio=%d p1=(%.2f %.2f %.2f)\n",

@@ -1,5 +1,9 @@
 # First Covenant squad — appraisal prototype
 
+Historical checkpoint: the complete finite mode is now documented in
+[FIREFIGHT_LIMITED.md](FIREFIGHT_LIMITED.md). The results below describe the earlier
+five-enemy prototype, not the expanded roster.
+
 This isolated prototype stages one minor Elite with a plasma rifle and four
 minor Grunts with plasma pistols in Blood Gulch. It supports one to four local
 players, real projectiles, player weapons, grenades, melee, deaths, dropped

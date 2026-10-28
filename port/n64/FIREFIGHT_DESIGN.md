@@ -1,8 +1,8 @@
 # Reach Firefight design for the CE N64 port
 
 Research date: 28 October 2026. Scope: one to four human players, including
-Reach's solo and cooperative matchmaking variants. This is a design proposal;
-the running port still contains the single-squad Firefight prototype.
+Reach's solo and cooperative matchmaking variants. This records the pre-implementation design proposal. The completed first
+implementation and its measured boundaries are in [FIREFIGHT_LIMITED.md](FIREFIGHT_LIMITED.md).
 
 The best starting point is a finite cooperative survival match, drawing on
 Reach's Firefight Limited. Its important ingredients are distinct encounters,

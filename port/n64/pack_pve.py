@@ -10,15 +10,33 @@ ROOT=Path(__file__).resolve().parents[2]
 NAMES=('grunt','elite','jackal','hunter');CLIPS=('idle','run','fire','death','flee','melee','throw','evade_left','evade_right','ride','exit','crouch')
 def braces(v):return '{'+','.join(map(str,v))+'}'
 def f(v):return float(v).hex()+'f'
-def prepare_model(w):
+def material_mode(meta):
+    shader=meta.get('shader',{})
+    if meta['class']=='shader_model':
+        return int(bool(shader.get('soso_attrs',{}).get('model_shader',{}).get('flags',{}).get('two_sided')))
+    flags=shader.get('sotr_attrs',{}).get('generic_transparent_shader',{}).get('flags',{})
+    return 2|int(bool(flags.get('two_sided')))
+
+def prepare_model(w,model_candidate=False):
     images=load_images(w['textures']);metadata=w['material_metadata']
     masks=load_images([m.get('multipurpose_fullres') for m in metadata])
     channels=[2 if m.get('color_change_source')=='A' else None for m in metadata]
     points=[];colors=[];tints=[];materials=[]
     for t in w['triangles']:
         points.extend([[round(v*128) for v in position(p,(0,0,0))] for p in t['p']])
-        colors.extend(bake_triangle(t,images,w));tints.extend(bake_team_mask(t,masks,channels));materials.extend([t['material']]*3)
-    mesh=indexed_mesh(points,colors,tints,trajectory_keys(w['clips'],128,16),color_tolerance=8,material_keys=materials)
+        colors.extend(t.get('colors') or bake_triangle(t,images,w));tints.extend(t.get('tints') or bake_team_mask(t,masks,channels));materials.extend([t['material']]*3)
+    segments=None;modes=[]
+    if model_candidate:
+        segments=[];start=0;previous=None
+        for i,t in enumerate(w['triangles']):
+            mode=material_mode(metadata[t['material']])
+            if previous is not None and mode!=previous:segments.append((start*3,(i-start)*3));modes.append(previous);start=i
+            previous=mode
+        segments.append((start*3,len(points)-start*3));modes.append(previous)
+    tolerance=24 if model_candidate and w['source_lod'].startswith('n64 ') else 8
+    mesh=indexed_mesh(points,colors,tints,trajectory_keys(w['clips'],128,16),segments=segments,color_tolerance=tolerance,material_keys=materials)
+    mesh['batch_modes']=[mode for mode,(_,count) in zip(modes,mesh['segments']) for _ in range(count)] if model_candidate else [0]*len(mesh['batches'])
+    mesh['alphas']=[160 if model_candidate and material_mode(metadata[materials[s]])&2 else 255 for s in mesh['sources']]
     return mesh,{n:remap_clip(c,mesh['sources']) for n,c in w['clips'].items()}
 
 def emit_rom_clip(lines,name,clip,motion):
@@ -29,20 +47,20 @@ def emit_rom_clip(lines,name,clip,motion):
     lines.append('static const uint16_t '+name+'_indices[]='+braces(packed['indices'])+';')
     return packed
 
-def pack(source,out):
+def pack(source,out,model_candidate=False):
     motion=bytearray();needler_rows=[];needler_sources={}
     source=source.resolve();out=out.resolve();out.mkdir(parents=True,exist_ok=True)
     baked=source/'squad-baked.json.gz'
     if not baked.exists():baked=source/'squad-baked.json'
     data=json.loads(gzip.decompress(baked.read_bytes()) if baked.suffix=='.gz' else baked.read_bytes());raw=json.loads((source/'squad-source.json').read_text())
     lines=['/* Private original CE geometry and animation. */','#include "asset_pve.h"'];models=[];anims=[];grips=[];report={}
-    shield_arrays=[]
+    shield_arrays=[];mode_rows=[]
     for name in (*NAMES,'spirit'):
-        model_rows=[];anim_rows=[];grip_rows=[];report[name]=[]
+        model_rows=[];anim_rows=[];grip_rows=[];surface_rows=[];report[name]=[]
         for lod,w in enumerate(data[name]):
             if lod and w['source_lod']==data[name][0]['source_lod']:
-                model_rows.append(model_rows[0]);anim_rows.append(anim_rows[0]);report[name].append({**report[name][0],'shared_with_lod':0});continue
-            symbol=f'pve_{name}_{lod}';mesh,clips=prepare_model(w)
+                model_rows.append(model_rows[0]);anim_rows.append(anim_rows[0]);surface_rows.append(surface_rows[0]);report[name].append({**report[name][0],'shared_with_lod':0});continue
+            symbol=f'pve_{name}_{lod}';mesh,clips=prepare_model(w,model_candidate)
             verts=mesh['vertices'];colors=raw['actors'][name]['variant']['change_colors'] if name!='spirit' else []
             if not colors and name!='spirit':
                 changes=raw['actors'][name]['biped']['obje_attrs']['change_colors'];colors=changes[0]['permutations'] if changes else []
@@ -50,12 +68,13 @@ def pack(source,out):
             lines.append('static T3DVertPacked '+symbol+'[] __attribute__((aligned(16)))={')
             for i in range(0,len(verts),2):
                 pair=[]
-                for v in verts[i:i+2]:
+                for vi,v in enumerate(verts[i:i+2],i):
                     rgb=v[1]
                     if tint:rgb=[round(c*(1-v[2]/255+v[2]/255*tint[j])) for j,c in enumerate(rgb)]
-                    pair.append((braces(v[0]),(rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255))
+                    pair.append((braces(v[0]),(rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|mesh['alphas'][vi]))
                 lines.append('{'+f'{pair[0][0]},0,{pair[1][0]},0,0x{pair[0][1]:08x},0x{pair[1][1]:08x},{{0,0}},{{0,0}}'+'},')
             lines.append('};');emit_batches(lines,symbol,mesh)
+            lines.append('static const uint8_t '+symbol+'_modes[]='+braces(mesh['batch_modes'])+';');surface_rows.append(symbol+'_modes')
             if name=='jackal':
                 shield=set(w['shield_corners']);mask=[int(s in shield) for s in mesh['sources']]
                 lines.append('static const uint8_t '+symbol+'_shield[]='+braces(mask)+';');shield_arrays.append(symbol+'_shield')
@@ -71,12 +90,13 @@ def pack(source,out):
                     hand=w['grips'][key];hs='pve_'+name+'_hand_'+key
                     lines.append('static const bg_attachment_pose '+hs+'[]='+braces([braces([braces(map(f,p['pos'])),braces(map(f,p['quat']))]) for p in hand['poses']])+';')
                     grip_rows.append(braces([hs,len(hand['poses']),f(hand['duration'])]))
-            anim_rows.append(braces(clip_rows));report[name].append({'lod':w['source_lod'],'triangles':len(w['triangles']),'vertices':len(verts),'batches':len(mesh['batches']),'animation_bytes':motion_bytes})
-        models.append(braces(model_rows));anims.append(braces(anim_rows));grips.append(braces(grip_rows))
+            anim_rows.append(braces(clip_rows));report[name].append({'lod':w['source_lod'],'triangles':len(w['triangles']),'vertices':len(verts),'batches':len(mesh['batches']),'animation_bytes':motion_bytes,'batch_modes':mesh['batch_modes']})
+        models.append(braces(model_rows));anims.append(braces(anim_rows));grips.append(braces(grip_rows));mode_rows.append(braces(surface_rows))
     lines+=['const bg_model_asset bg_pve_models[BG_PVE_MODELS][2]='+braces(models)+';',
         'const bg_pve_animation bg_pve_animations[BG_PVE_MODELS][2][PVE_CLIPS]='+braces(anims)+';',
         'const bg_attachment_clip bg_pve_grips[BG_PVE_MODELS][PVE_CLIPS]='+braces(grips)+';',
-        'const uint8_t *const bg_pve_shield_vertices[2]='+braces(shield_arrays)+';'
+        'const uint8_t *const bg_pve_shield_vertices[2]='+braces(shield_arrays)+';',
+        'const uint8_t *const bg_pve_batch_modes[BG_PVE_MODELS][2]='+braces(mode_rows)+';'
     ]
     (out/'pve-motion.bin').write_bytes(motion)
     (out/'pve_data.c').write_text('\n'.join(lines)+'\n')
@@ -172,4 +192,4 @@ def pack(source,out):
     (out/'pve-report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k in NAMES},indent=2))
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('source',type=Path);p.add_argument('--output',type=Path,required=True);a=p.parse_args();pack(a.source,a.output)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('source',type=Path);p.add_argument('--output',type=Path,required=True);p.add_argument('--model-candidate',action='store_true');a=p.parse_args();pack(a.source,a.output,a.model_candidate)

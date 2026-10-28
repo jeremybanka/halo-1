@@ -34,6 +34,8 @@ def parse_args(argv=None):
     parser.add_argument("--pve-count",type=int,choices=(0,5,8),default=5)
     parser.add_argument("--pve-qa",type=int,choices=(0,1,2,3,4,5,6),default=0)
     parser.add_argument("--pve-photo-tick",type=int)
+    parser.add_argument("--pve-model-qa",action="store_true",help="Native four-angle Covenant model audit")
+    parser.add_argument("--pve-model-bank",type=Path,help="Isolated Covenant visual-bank candidate; simulation assets stay canonical")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument(
@@ -312,6 +314,9 @@ def parse_args(argv=None):
     if args.firefight_qa:
         args.firefight=True;args.frontend_qa=args.firefight_qa
     if args.firefight and args.pve_squad:parser.error("Choose menu Firefight or direct squad diagnostics")
+    if args.pve_model_qa and not args.pve_squad:parser.error('--pve-model-qa requires --pve-squad')
+    if args.pve_model_bank and (not args.output_dir or not (args.pve_squad or args.firefight)):
+        parser.error('--pve-model-bank requires an isolated PvE output directory')
     if (args.pve_qa or args.pve_photo_tick is not None) and not args.pve_squad:parser.error("PvE QA requires --pve-squad")
     if args.pve_squad and args.initial_map!="bloodgulch":parser.error("The first squad navigation fixture is Blood Gulch only")
     if args.pve_photo_tick is not None and not 0<=args.pve_photo_tick<450:parser.error("PvE photo tick must be in the 0..449 route")
@@ -402,6 +407,7 @@ def parse_args(argv=None):
         or args.plasma_qa is not None
         or args.model_qa
         or args.spartan_motion_qa
+        or args.pve_model_qa
         or args.weapon_qa
         or args.geometry_qa
         or args.environment_qa
@@ -470,6 +476,8 @@ def compile_options(args, sdk, tiny, out, source):
     sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
     return [
         *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
+        *(["-DBG_PVE_MODEL_CANDIDATE"] if args.pve_model_bank else []),
+        *(["-DBG_PVE_MODEL_QA"] if args.pve_model_qa else []),
         *(["-DBG_FIREFIGHT"] if args.firefight else []),
         *(["-DBG_FIREFIGHT_QA"] if args.firefight_qa else []),
         *(["-DBG_FIREFIGHT_QA_PHOTO="+str({"main":2,"join":5,"map":9}[args.firefight_photo])] if args.firefight_photo else []),
@@ -552,6 +560,7 @@ def compile_options(args, sdk, tiny, out, source):
             or args.plasma_qa is not None
             or args.model_qa
             or args.spartan_motion_qa
+            or args.pve_model_qa
             or args.weapon_qa
             or args.geometry_qa
             or args.environment_qa
@@ -671,6 +680,8 @@ def rom_name(args):
         name += "-model-qa"
     if args.spartan_motion_qa:
         name += "-spartan-motion-qa"
+    if args.pve_model_qa:name += "-pve-model-qa"
+    if args.pve_model_bank:name += "-pve-model-candidate"
     if args.plasma_qa is not None:
         name += "-plasma" + str(args.plasma_qa)
     if args.weapon_qa:
@@ -988,8 +999,8 @@ def main():
         if not (ROOT / name).is_file() or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
             build_error("Stale prompt silhouette bank; rerun port/n64/pack_prompt_icons.py: " + name)
     out = args.output_dir.resolve() if args.output_dir else asset_root
-    if args.map_bank_override and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
-        build_error('--map-bank-override requires a separate output tree')
+    if (args.map_bank_override or args.pve_model_bank) and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
+        build_error('Map/model bank overrides require a separate output tree')
     out.mkdir(parents=True, exist_ok=True)
     objects = []
     run([sys.executable, ROOT / "port/n64/blam/prepare_core.py", "--output", out / "blam-core"])
@@ -1117,7 +1128,7 @@ def main():
         for name in sources
     ]
     if args.pve_squad or args.firefight:
-        runtime_sources.extend(ROOT/"halo64-assets/generated/pve"/name for name in ("pve_data.c","pve_defs.c","pve_nav.c","pve_collision.c"))
+        runtime_sources.extend((args.pve_model_bank.resolve() if name=="pve_data.c" and args.pve_model_bank else ROOT/"halo64-assets/generated/pve")/name for name in ("pve_data.c","pve_defs.c","pve_nav.c","pve_collision.c"))
     if args.photo_tour:
         from photo_tour_source import photo_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
@@ -1215,7 +1226,7 @@ def main():
             if not target.exists():
                 target.symlink_to(source.resolve())
     if args.pve_squad or args.firefight:
-        motion=ROOT/'halo64-assets/generated/pve/pve-motion.bin'
+        motion=(args.pve_model_bank.resolve() if args.pve_model_bank else ROOT/'halo64-assets/generated/pve')/'pve-motion.bin'
         report=json.loads((motion.parent/'pve-report.json').read_text())
         if hashlib.sha256(motion.read_bytes()).hexdigest()!=report['motion']['sha256']:build_error('Stale PvE motion bank')
         target=out/'frontend-files/pve-motion.bin'

@@ -2060,6 +2060,12 @@ static void draw_view(unsigned p) {
         submitted_vertices += 24;
 #endif
     }
+#if defined(BG_PVE) && defined(BG_PVE_MODEL_CANDIDATE)
+    /* All opaque geometry must precede energy surfaces, including Spartans,
+     * pickups and grenades behind a Jackal shield or the Spirit's beam. */
+    if(bg_pve_is_active())pve_draw_alpha(p);
+    t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH);
+#endif
     unsigned fx_triangles = bg_fx_draw_blasts();
     fx_triangles += bg_fx_draw_trails(game_time);
     for (unsigned j = 0; j < views; j++)

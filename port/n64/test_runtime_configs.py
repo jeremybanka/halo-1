@@ -42,6 +42,9 @@ VARIANTS = {
     "menu": ["--menu-qa"],
     "model": ["--model-qa"],
     "spartan-motion": ["--spartan-motion-qa"],
+    "covenant-models": ["--pve-squad", "--pve-model-qa"],
+    "covenant-candidate": ["--pve-squad", "--pve-model-qa", "--pve-model-bank",
+                           "build/covenant-models/bank", "--output-dir", "build/covenant-models/config"],
     "weapon": ["--weapon-qa"],
     "hud": ["--hud-qa"],
     "geometry": ["--geometry-qa"],
@@ -74,6 +77,9 @@ def main():
         ["--preset", "release", "--gpu-minimal-attributes"],
         ["--benchmark", "--gpu-diagnostic", "--gpu-minimal-attributes"],
         ["--vi-benchmark", "--gpu-empty-scissor"],
+        ["--pve-model-qa"],
+        ["--firefight", "--pve-model-bank", "build/covenant-models/bank"],
+        ["--pve-model-bank", "build/covenant-models/bank", "--output-dir", "build/covenant-models/config"],
     ):
         try:
             with contextlib.redirect_stderr(io.StringIO()):

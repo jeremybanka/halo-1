@@ -1,0 +1,396 @@
+{
+  "frames_per_version": 52,
+  "four_matched_cameras": true,
+  "native_size": [
+    320,
+    240
+  ],
+  "cases": {
+    "before": {
+      "log_sha256": "75d7f64b3075a418ae2a1cf7c60e7deba335398ae29f553f6b61adce3c0a045e",
+      "rom_sha256": "948a53d32207a80ba96a0edd7b812d691ee120ec76f44fe0c13b7ac059ea4edf",
+      "manifest_sha256": "e6695124bbd9c5f690a044d783538054c1d12a32434e18146fc8b294e9f260de",
+      "fixture_sha256": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/photo-before-validation/halo-64-render-candidate-pve-model-qa-validation-rspq8k.build.json",
+      "validation": true,
+      "options": {
+        "pve_squad": true,
+        "firefight": false,
+        "firefight_photo": null,
+        "firefight_qa": null,
+        "pve_players": 4,
+        "pve_count": 5,
+        "pve_qa": 0,
+        "pve_photo_tick": null,
+        "pve_model_qa": true,
+        "pve_model_bank": null,
+        "spartan_motion_qa": false,
+        "scene_source": null,
+        "preset": null,
+        "initial_map": "bloodgulch",
+        "output_dir": "build/covenant-models/photo-before-validation",
+        "game_source": null,
+        "feature_cache_slots": null,
+        "world_pvs_data": null,
+        "world_coarse_cull": false,
+        "world_hierarchy": false,
+        "playable_candidate": false,
+        "world_bulk_submit": false,
+        "world_command_cache": false,
+        "world_submit_cache": false,
+        "geometry_census": false,
+        "photo_tour": false,
+        "photo_walk_benchmark": false,
+        "map_bank_override": "build/pve/ground/bloodgulch.map64",
+        "sdk": "/Users/jem/dojo/n64-2048/.build/libdragon",
+        "tiny3d": "/Users/jem/dojo/halo-1/build/n64-sidewinder-throughput/tiny3d-unlit",
+        "validate": true,
+        "lto": false,
+        "solver_opt": 2,
+        "telemetry": false,
+        "profile": false,
+        "benchmark": false,
+        "benchmark_page": 0,
+        "vi_benchmark": false,
+        "scores_benchmark": false,
+        "gpu_diagnostic": false,
+        "gpu_empty_scissor": false,
+        "gpu_minimal_attributes": false,
+        "guard_band4": false,
+        "vehicle_body_candidates": true,
+        "paced30": false,
+        "paced30_buffers": 3,
+        "rspq_buffer_kib": 8,
+        "libdragon_source": null,
+        "blam_bsp": false,
+        "map_qa": null,
+        "wizard_qa": null,
+        "combat_qa": null,
+        "movement_qa": null,
+        "demo": false,
+        "showcase": null,
+        "snapshot_tick": null,
+        "menu_qa": false,
+        "frontend_qa": null,
+        "aim_qa": null,
+        "model_qa": false,
+        "plasma_qa": null,
+        "weapon_qa": false,
+        "environment_qa": false,
+        "ground_qa": false,
+        "hud_qa": false,
+        "hud_qa_page": null,
+        "geometry_qa": false,
+        "reload_qa": false,
+        "effects_qa": false,
+        "shield_qa": null,
+        "interaction_qa": null,
+        "interaction_tick": 25,
+        "destruction_qa": false,
+        "maps_cycle": false,
+        "modes_cycle": false,
+        "modes_preview": null,
+        "objective_photo": null,
+        "flag_cloth_qa": false
+      }
+    },
+    "after": {
+      "log_sha256": "c726c2e99802a6011678ca634610b1bbcf4c2ba6ab1324b153610af30c6fc6e9",
+      "rom_sha256": "0067113613e2d29424ee7fad713127cb92aa26addf61a3aad43ccfb164e07f08",
+      "manifest_sha256": "e77f0564d910172b9975a0491211bc186c5044a1466dd1fbb8c65198e262357a",
+      "fixture_sha256": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/photo-after/halo-64-render-candidate-pve-model-qa-pve-model-candidate-validation-rspq8k.build.json",
+      "validation": true,
+      "options": {
+        "pve_squad": true,
+        "firefight": false,
+        "firefight_photo": null,
+        "firefight_qa": null,
+        "pve_players": 4,
+        "pve_count": 5,
+        "pve_qa": 0,
+        "pve_photo_tick": null,
+        "pve_model_qa": true,
+        "pve_model_bank": "build/covenant-models/bank",
+        "spartan_motion_qa": false,
+        "scene_source": null,
+        "preset": null,
+        "initial_map": "bloodgulch",
+        "output_dir": "build/covenant-models/photo-after",
+        "game_source": null,
+        "feature_cache_slots": null,
+        "world_pvs_data": null,
+        "world_coarse_cull": false,
+        "world_hierarchy": false,
+        "playable_candidate": false,
+        "world_bulk_submit": false,
+        "world_command_cache": false,
+        "world_submit_cache": false,
+        "geometry_census": false,
+        "photo_tour": false,
+        "photo_walk_benchmark": false,
+        "map_bank_override": "build/pve/ground/bloodgulch.map64",
+        "sdk": "/Users/jem/dojo/n64-2048/.build/libdragon",
+        "tiny3d": "/Users/jem/dojo/halo-1/build/n64-sidewinder-throughput/tiny3d-unlit",
+        "validate": true,
+        "lto": false,
+        "solver_opt": 2,
+        "telemetry": false,
+        "profile": false,
+        "benchmark": false,
+        "benchmark_page": 0,
+        "vi_benchmark": false,
+        "scores_benchmark": false,
+        "gpu_diagnostic": false,
+        "gpu_empty_scissor": false,
+        "gpu_minimal_attributes": false,
+        "guard_band4": false,
+        "vehicle_body_candidates": true,
+        "paced30": false,
+        "paced30_buffers": 3,
+        "rspq_buffer_kib": 8,
+        "libdragon_source": null,
+        "blam_bsp": false,
+        "map_qa": null,
+        "wizard_qa": null,
+        "combat_qa": null,
+        "movement_qa": null,
+        "demo": false,
+        "showcase": null,
+        "snapshot_tick": null,
+        "menu_qa": false,
+        "frontend_qa": null,
+        "aim_qa": null,
+        "model_qa": false,
+        "plasma_qa": null,
+        "weapon_qa": false,
+        "environment_qa": false,
+        "ground_qa": false,
+        "hud_qa": false,
+        "hud_qa_page": null,
+        "geometry_qa": false,
+        "reload_qa": false,
+        "effects_qa": false,
+        "shield_qa": null,
+        "interaction_qa": null,
+        "interaction_tick": 25,
+        "destruction_qa": false,
+        "maps_cycle": false,
+        "modes_cycle": false,
+        "modes_preview": null,
+        "objective_photo": null,
+        "flag_cloth_qa": false
+      }
+    }
+  },
+  "pixel_changes": [
+    {
+      "page": 0,
+      "changed_pixels": 3233
+    },
+    {
+      "page": 1,
+      "changed_pixels": 3200
+    },
+    {
+      "page": 2,
+      "changed_pixels": 3288
+    },
+    {
+      "page": 3,
+      "changed_pixels": 3202
+    },
+    {
+      "page": 4,
+      "changed_pixels": 3417
+    },
+    {
+      "page": 5,
+      "changed_pixels": 3665
+    },
+    {
+      "page": 6,
+      "changed_pixels": 3534
+    },
+    {
+      "page": 7,
+      "changed_pixels": 3701
+    },
+    {
+      "page": 8,
+      "changed_pixels": 3998
+    },
+    {
+      "page": 9,
+      "changed_pixels": 3565
+    },
+    {
+      "page": 10,
+      "changed_pixels": 2898
+    },
+    {
+      "page": 11,
+      "changed_pixels": 2637
+    },
+    {
+      "page": 12,
+      "changed_pixels": 3681
+    },
+    {
+      "page": 13,
+      "changed_pixels": 3644
+    },
+    {
+      "page": 14,
+      "changed_pixels": 3684
+    },
+    {
+      "page": 15,
+      "changed_pixels": 3657
+    },
+    {
+      "page": 16,
+      "changed_pixels": 3684
+    },
+    {
+      "page": 17,
+      "changed_pixels": 3941
+    },
+    {
+      "page": 18,
+      "changed_pixels": 3814
+    },
+    {
+      "page": 19,
+      "changed_pixels": 4014
+    },
+    {
+      "page": 20,
+      "changed_pixels": 4355
+    },
+    {
+      "page": 21,
+      "changed_pixels": 3879
+    },
+    {
+      "page": 22,
+      "changed_pixels": 3176
+    },
+    {
+      "page": 23,
+      "changed_pixels": 2907
+    },
+    {
+      "page": 24,
+      "changed_pixels": 3066
+    },
+    {
+      "page": 25,
+      "changed_pixels": 3200
+    },
+    {
+      "page": 26,
+      "changed_pixels": 3655
+    },
+    {
+      "page": 27,
+      "changed_pixels": 3736
+    },
+    {
+      "page": 28,
+      "changed_pixels": 3155
+    },
+    {
+      "page": 29,
+      "changed_pixels": 3293
+    },
+    {
+      "page": 30,
+      "changed_pixels": 3703
+    },
+    {
+      "page": 31,
+      "changed_pixels": 3799
+    },
+    {
+      "page": 32,
+      "changed_pixels": 267
+    },
+    {
+      "page": 33,
+      "changed_pixels": 267
+    },
+    {
+      "page": 34,
+      "changed_pixels": 261
+    },
+    {
+      "page": 35,
+      "changed_pixels": 261
+    },
+    {
+      "page": 36,
+      "changed_pixels": 244
+    },
+    {
+      "page": 37,
+      "changed_pixels": 244
+    },
+    {
+      "page": 38,
+      "changed_pixels": 248
+    },
+    {
+      "page": 39,
+      "changed_pixels": 248
+    },
+    {
+      "page": 40,
+      "changed_pixels": 55
+    },
+    {
+      "page": 41,
+      "changed_pixels": 42
+    },
+    {
+      "page": 42,
+      "changed_pixels": 0
+    },
+    {
+      "page": 43,
+      "changed_pixels": 0
+    },
+    {
+      "page": 44,
+      "changed_pixels": 0
+    },
+    {
+      "page": 45,
+      "changed_pixels": 0
+    },
+    {
+      "page": 46,
+      "changed_pixels": 0
+    },
+    {
+      "page": 47,
+      "changed_pixels": 0
+    },
+    {
+      "page": 48,
+      "changed_pixels": 267
+    },
+    {
+      "page": 49,
+      "changed_pixels": 267
+    },
+    {
+      "page": 50,
+      "changed_pixels": 240
+    },
+    {
+      "page": 51,
+      "changed_pixels": 240
+    }
+  ]
+}

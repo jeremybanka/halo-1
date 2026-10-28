@@ -1,12 +1,13 @@
-"""Bake original artist LODs and skeleton clips in Blender; no mesh reduction."""
+"""Bake source or authored LODs and original skeleton clips; no reduction here."""
 import json,math,gzip
 from pathlib import Path
 
-def bake(source,output):
+def bake(source,output,model_names=None):
     from mathutils import Matrix,Quaternion,Vector
     data=json.loads(Path(source).read_text());result={}
     basis=Matrix(((1,0,0,0),(0,0,1,0),(0,-1,0,0),(0,0,0,1)))
     for name,model in data['models'].items():
+        if model_names and name not in model_names:continue
         nodes=model['nodes'];actor=data['spirit'] if name=='spirit' else data['actors'][name]
         keys=tuple(data['actors']['grunt']['clips'])
         if name=='spirit':actor={**actor,'clips':{key:actor['clips']['exit' if key=='exit' else 'idle'] for key in keys}}
@@ -40,7 +41,7 @@ def bake(source,output):
                     else:raise ValueError('Collision polygon did not close')
                     for k in range(1,len(poly)-1):hit_faces.append([poly[0],poly[k],poly[k+1]]);hit_materials.append(s[4])
         models=[]
-        lods=('base00 low','base00 superlow') if 'base00 low' in model['source_geometry_lods'] else (model['source_lod'],)*2
+        lods=model.get('n64_lods') or (('base00 low','base00 superlow') if 'base00 low' in model['source_geometry_lods'] else (model['source_lod'],)*2)
         for lod_index,lod in enumerate(lods):
             geometry=model['source_geometry_lods'][lod]
             assert [n['name'] for n in geometry['nodes']]==[n['name'] for n in nodes]
@@ -62,8 +63,12 @@ def bake(source,output):
                     if lod_index==0:hit_frames.append([list(pose[ni]@Vector(p)) for ni,p in hit_vertices])
                     points=[]
                     for vertex in corners:
-                        p=Vector(geometry['vertices'][vertex]);a,b,w=geometry['weights'][vertex]
-                        value=skin[a]@p if b<0 or w==0 else (skin[a]@p)*(1-w)+(skin[b]@p)*w
+                        p=Vector(geometry['vertices'][vertex])
+                        if 'skin_weights' in geometry:
+                            value=sum(((skin[b]@p)*w for b,w in geometry['skin_weights'][vertex]),Vector((0,0,0)))
+                        else:
+                            a,b,w=geometry['weights'][vertex]
+                            value=skin[a]@p if b<0 or w==0 else (skin[a]@p)*(1-w)+(skin[b]@p)*w
                         assert all(math.isfinite(v) for v in value);points.append(list(value))
                     frames.append(points)
                     hand=basis@pose[marker['node']]@marker_matrix@basis.inverted();q=hand.to_quaternion().normalized()
@@ -73,6 +78,8 @@ def bake(source,output):
                 if lod_index==0:hit_clips[key]={'frames':hit_frames,'duration':clip['duration']}
             triangles=[{'p':clips['idle']['frames'][0][i*3:i*3+3],
                 'uv':[geometry['uv'][v] for v in face],'material':geometry['materials'][i]} for i,face in enumerate(geometry['faces'])]
+            if 'corner_colors' in geometry:
+                for i,t in enumerate(triangles):t.update(colors=geometry['corner_colors'][i],tints=geometry['corner_tints'][i])
             models.append({**{k:v for k,v in model.items() if k.startswith('material') or k in ('textures','team_masks','team_mask_channels')},
                 'source_lod':lod,'triangles':triangles,'clips':clips,'grips':grips,
                 'shield_corners':[j for i,m in enumerate(geometry['materials']) if name=='jackal' and model['material_metadata'][m]['path'].endswith('jackal shield') for j in range(i*3,i*3+3)],

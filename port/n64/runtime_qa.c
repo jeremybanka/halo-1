@@ -20,7 +20,9 @@ static struct {
     float *seconds;
 } qa;
 #ifdef BG_MODEL_QA
-#if defined(BG_SPARTAN_MOTION_QA)
+#if defined(BG_PVE_MODEL_QA)
+#include "pve_model_qa.h"
+#elif defined(BG_SPARTAN_MOTION_QA)
 #include "spartan_motion_qa.h"
 #elif defined(BG_MAP_QA)
 #include "map_qa.h"

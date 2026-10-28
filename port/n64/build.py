@@ -26,6 +26,14 @@ SHOWCASES = [
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--pve-squad",action="store_true",help="Boot directly into the squad diagnostic")
+    parser.add_argument("--firefight",action="store_true",help="Enable the Firefight menu and squad encounter (8 MiB)")
+    parser.add_argument("--firefight-photo",choices=("main","join","map"),help="Hold a Firefight QA menu for a native photograph")
+    parser.add_argument("--firefight-qa",type=int,choices=range(1,5),help="Exercise Firefight menus with 1–4 controllers")
+    parser.add_argument("--pve-players",type=int,choices=(1,2,3,4),default=4)
+    parser.add_argument("--pve-count",type=int,choices=(0,5,8),default=5)
+    parser.add_argument("--pve-qa",type=int,choices=(0,1,2),default=0)
+    parser.add_argument("--pve-photo-tick",type=int)
     parser.add_argument(
         "--preset",
         choices=["release"],
@@ -298,6 +306,13 @@ def parse_args(argv=None):
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
     args = parser.parse_args(argv)
+    if args.firefight_photo and not args.firefight_qa:parser.error("--firefight-photo requires --firefight-qa")
+    if args.firefight_qa:
+        args.firefight=True;args.frontend_qa=args.firefight_qa
+    if args.firefight and args.pve_squad:parser.error("Choose menu Firefight or direct squad diagnostics")
+    if (args.pve_qa or args.pve_photo_tick is not None) and not args.pve_squad:parser.error("PvE QA requires --pve-squad")
+    if args.pve_squad and args.initial_map!="bloodgulch":parser.error("The first squad navigation fixture is Blood Gulch only")
+    if args.pve_photo_tick is not None and not 0<=args.pve_photo_tick<450:parser.error("PvE photo tick must be in the 0..449 route")
     if args.objective_photo is not None and args.modes_preview is None:
         parser.error('--objective-photo requires --modes-preview')
     if args.flag_cloth_qa and args.modes_preview!=17:parser.error("--flag-cloth-qa requires --modes-preview 17")
@@ -319,7 +334,7 @@ def parse_args(argv=None):
             parser.error('--photo-tour is a separate frozen visual inspection')
         args.initial_map='sidewinder';args.snapshot_tick=0
     if args.map_bank_override:
-        if not args.output_dir or not (args.playable_candidate or args.photo_tour or args.vi_benchmark or args.benchmark or args.snapshot_tick is not None or args.validate or args.frontend_qa or args.maps_cycle):
+        if not args.output_dir or not (args.firefight or args.pve_squad or args.playable_candidate or args.photo_tour or args.vi_benchmark or args.benchmark or args.snapshot_tick is not None or args.validate or args.frontend_qa or args.maps_cycle):
             parser.error('--map-bank-override requires isolated output and an explicit diagnostic or playable-candidate mode')
         if args.world_pvs_data:
             data=json.loads(args.world_pvs_data.read_text())
@@ -449,6 +464,11 @@ def parse_args(argv=None):
 def compile_options(args, sdk, tiny, out, source):
     sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
     return [
+        *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
+        *(["-DBG_FIREFIGHT"] if args.firefight else []),
+        *(["-DBG_FIREFIGHT_QA"] if args.firefight_qa else []),
+        *(["-DBG_FIREFIGHT_QA_PHOTO="+str({"main":2,"join":5,"map":9}[args.firefight_photo])] if args.firefight_photo else []),
+        *(["-DBG_PVE_PHOTO_TICK="+str(args.pve_photo_tick)] if args.pve_photo_tick is not None else []),
         *(["-flto"] if args.lto else []),
         *(["-DBG_BODY_CANDIDATES"] if args.vehicle_body_candidates else []),
         "-DBG_STREAM_MAPS",
@@ -671,6 +691,8 @@ def rom_name(args):
     if args.flag_cloth_qa:name += "-cloth-qa"
     if args.objective_photo is not None:
         name += "-objective-photo"+str(args.objective_photo)
+    if args.firefight:name += "-firefight"
+    if args.firefight_photo:name += "-photo-"+args.firefight_photo
     if args.frontend_qa:
         name += "-frontend-qa" + str(args.frontend_qa)
     if args.blam_bsp:
@@ -708,6 +730,13 @@ def main():
     args = parse_args()
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     connect_assets(required=False)
+    if args.firefight:
+        voice_report=ROOT/'halo64-assets/assets/firefight/provenance.json'
+        if not voice_report.exists():build_error("Missing private Firefight announcement provenance")
+        for name,record in json.loads(voice_report.read_text())["files"].items():
+            path=ROOT/'halo64-assets'/name
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=record['sha256']:
+                build_error("Missing or stale Firefight announcement: "+name)
     out = ROOT / "build/n64"
     out.mkdir(parents=True, exist_ok=True)
     terrain_report = out / "generated/terrain-report.json"
@@ -1033,7 +1062,7 @@ def main():
     if args.menu_qa:
         sources.append("menu_qa.c")
     if args.frontend_qa:
-        sources.append("modes_qa.c" if args.modes_cycle else "frontend_qa.c")
+        sources.append("firefight_qa.c" if args.firefight_qa else "modes_qa.c" if args.modes_cycle else "frontend_qa.c")
     generated = [
         "maps/common_data.c",
         "combat_data.c",
@@ -1077,6 +1106,8 @@ def main():
         )
         for name in sources
     ]
+    if args.pve_squad or args.firefight:
+        runtime_sources.extend(ROOT/"halo64-assets/generated/pve"/name for name in ("pve_data.c","pve_defs.c","pve_nav.c"))
     if args.photo_tour:
         from photo_tour_source import photo_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
@@ -1257,6 +1288,9 @@ def main():
     manifest = {
         "preset": args.preset,
         "render_bank_experiment":override_info,
+        "firefight": ({"required_ram_mib":8,"map_id":9,"players":[1,2,3,4],
+            "voice":json.loads((ROOT/'halo64-assets/assets/firefight/provenance.json').read_text())}
+            if args.firefight else None),
         "runtime_commit": revision(ROOT),
         "asset_commit": revision(ROOT / "halo64-assets"),
         "toolchain": {

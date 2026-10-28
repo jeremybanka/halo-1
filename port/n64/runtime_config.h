@@ -8,7 +8,7 @@
 #endif
 #if !defined(BG_RELOAD_QA) && !defined(BG_COMBAT_QA) && !defined(BG_MOVEMENT_QA) &&                \
     !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) &&                 \
-    !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+    !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA) && (!defined(BG_PVE) || defined(BG_FIREFIGHT))
 #define BG_FRONTEND
 #endif
 #ifndef BG_PACED30_BUFFERS

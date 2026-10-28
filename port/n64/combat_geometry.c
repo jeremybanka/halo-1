@@ -346,6 +346,9 @@ static const player_hit_pose*player_pose(unsigned index){
     c->valid=true;c->clip=clip;c->phase=phase;c->blend_clip=blend_clip;c->blend_phase=second;c->weight=weight;return c;
 }
 float bg_player_hit_ray_impl(unsigned index,const float origin[3],const float direction[3],float distance,int *region){
+#ifdef BG_PVE
+    if(index>=BG_PLAYERS)return bg_pve_hit_ray(index,origin,direction,distance,region);
+#endif
     const bg_player*p=&bg_players[index];float offset[3];for(unsigned a=0;a<3;a++)offset[a]=origin[a]-p->pos[a];
     float along=fminf(distance,fmaxf(0,-dot3(offset,direction))),closest[3];for(unsigned a=0;a<3;a++)closest[a]=offset[a]+direction[a]*along;
     if(dot3(closest,closest)>4)return distance;

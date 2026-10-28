@@ -1,5 +1,9 @@
 # Halo: Combat Evolved for Nintendo 64
 
+The opt-in one-to-four-player Firefight shell and source-derived Covenant squad
+are documented in [PVE_SQUAD.md](PVE_SQUAD.md). The researched direction for the
+complete mode is in [FIREFIGHT_DESIGN.md](FIREFIGHT_DESIGN.md).
+
 A four-player local Slayer demake built with libdragon and Tiny3D. It boots on
 an emulated **8 MiB N64 with Expansion Pak** for the complete multiplayer roster,
 using the supplied Xbox disc for map, model,

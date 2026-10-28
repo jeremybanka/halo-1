@@ -25,6 +25,9 @@ const bg_mode_rules *bg_current_rules(void) { return bg_mode_preset(mode_id); }
 bool bg_mode_has_teams(void) { return mode_enabled&&bg_current_rules()->teams; }
 unsigned bg_player_team(unsigned p) { return p<BG_PLAYERS?mode_teams[p]:0; }
 bool bg_players_allied(unsigned a,unsigned b) {
+#ifdef BG_PVE
+    if(bg_pve_is_active())return (a<BG_PLAYERS)==(b<BG_PLAYERS);
+#endif
     return a<active_players&&b<active_players&&(a==b||(bg_mode_has_teams()&&mode_teams[a]==mode_teams[b]));
 }
 unsigned bg_player_color(unsigned p) {

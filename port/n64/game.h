@@ -6,6 +6,13 @@
 #include "interaction.h"
 #include "game_modes.h"
 #define BG_PLAYERS 4
+#ifdef BG_PVE
+#include "pve.h"
+#define BG_UNITS (BG_PLAYERS+BG_PVE_MAX)
+#else
+#define BG_UNITS BG_PLAYERS
+#endif
+unsigned bg_unit_count(void);
 #define BG_MAX_VEHICLES 12
 #define BG_MAX_PROJECTILES 48
 #define BG_MAX_PICKUPS 56
@@ -109,6 +116,9 @@ typedef struct {
      * explicitly named *_tick(s) fields advance on the 30 Hz source clock. */
     float pos[3], yaw, pitch, vy, cooldown, reload, respawn, hurt, flash;
     float health;
+#ifdef BG_PVE
+    float pve_height,pve_radius;
+#endif
     int ammo, score;
     bool grounded;
     bool climbing;
@@ -210,7 +220,7 @@ extern unsigned bg_teleporter_count;
 extern const bg_teleporter bg_teleporters[2];
 extern const unsigned bg_teleporter_count;
 #endif
-extern bg_player bg_players[BG_PLAYERS];
+extern bg_player bg_players[BG_UNITS];
 /* Profile identity is independent of physical controller and viewport. */
 extern unsigned bg_player_profiles[BG_PLAYERS];
 extern bg_vehicle bg_vehicles[BG_MAX_VEHICLES];

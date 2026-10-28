@@ -16,6 +16,7 @@ float bg_aim_attenuation(float value,float maximum);
 float bg_look_curve(float value);
 void bg_start_landing(bg_player*p,float speed);
 float bg_body_height(const bg_player*p);
+float bg_body_radius(const bg_player*p);
 void bg_walk_velocity(bg_player*p,float forward,float strafe,float dt);
 void bg_walk_velocity_scaled(bg_player*p,float forward,float strafe,float dt,float speed);
 void bg_look_input(bg_player*p,const bg_input*in,float magnification,float dt,float *yaw,float *pitch);

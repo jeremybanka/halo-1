@@ -28,7 +28,7 @@ static bool loaded;
  * the batching workspace resident only while the front end is open. */
 typedef struct {
     const bg_menu_glyph *g;
-    float x, y;
+    float x, y, scale;
     unsigned font;
     color_t color;
 } glyph;
@@ -225,7 +225,7 @@ static void text(unsigned font, float x, float y, float w, float h, unsigned ali
             if (g->w && g->h) {
                 assert(letter_count < 1200);
                 letters[letter_count++] = (glyph){g, (px - g->origin_x) * .5f,
-                                                  (baseline - g->origin_y) * .5f, font, color};
+                                                  (baseline - g->origin_y) * .5f, .5f, font, color};
             }
             px += g->advance;
         }
@@ -235,6 +235,18 @@ static void text(unsigned font, float x, float y, float w, float h, unsigned ali
         baseline += line;
     }
 }
+#ifdef BG_FIREFIGHT
+static void main_title(float y,color_t tint,const char *s){
+    const float scale=1.8f;
+    float x=320-width(0,s,strlen(s))*scale*.5f;
+    unsigned first=letter_count;text(0,0,0,640,36,0,tint,s);
+    for(unsigned i=first;i<letter_count;i++){
+        letters[i].x=x*.5f+letters[i].x*scale;
+        letters[i].y=y*.5f+letters[i].y*scale;
+        letters[i].scale*=scale;
+    }
+}
+#endif
 static void label(unsigned tag, int dx, int dy, const char *override, color_t color) {
     const bg_shell_node *n = node(tag);
     text(n->font, n->x + dx + n->text_x, n->y + dy + n->text_y, n->w, n->h, n->align, color,
@@ -256,8 +268,8 @@ static void flush(void) {
                 if (l->font != f || g->page != p)
                     continue;
                 rdpq_set_prim_color(l->color);
-                rdpq_texture_rectangle_scaled(TILE0, l->x, l->y, l->x + g->w * .5f,
-                                              l->y + g->h * .5f, g->s, g->t, g->s + g->w,
+                rdpq_texture_rectangle_scaled(TILE0, l->x, l->y, l->x + g->w * l->scale,
+                                              l->y + g->h * l->scale, g->s, g->t, g->s + g->w,
                                               g->t + g->h);
             }
         }
@@ -375,7 +387,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
     /* Disjoint fields: profile choices may repeat in unjoined slots, so a
      * summed 32-bit key could alias another page and retain stale textures. */
     uint64_t key = f->page | ((uint64_t)f->row << 4) | ((uint64_t)f->map << 7) |
-                   ((uint64_t)f->type << 11) | ((uint64_t)f->settings_profile << 16);
+                   ((uint64_t)f->type << 11) | ((uint64_t)f->settings_profile << 16) | ((uint64_t)f->firefight << 40);
     if (f->page == BG_FRONT_JOIN)
         for (unsigned p = 0; p < 4; p++)
             key |= (uint64_t)(f->profile[p] + 4 * f->joined[p] + 8 * f->ready[p]) << (18 + 4 * p);
@@ -391,9 +403,16 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
     case BG_FRONT_MAIN: {
         art(272, 0, 0, 28, 255);
         const unsigned tags[] = {276, 381, 902, 911};
-        for (unsigned r = 0; r < 4; r++)
+        for (unsigned r = 0; r < 4; r++) {
+#ifdef BG_FIREFIGHT
+            if(r==3) {
+                main_title(244+36*r,color(bg_front_available(f->page,r),f->row==r),"FIREFIGHT");
+                continue;
+            }
+#endif
             art(tags[r], f->row == r ? 1 : 0, r ? 192 : 194, 247 + 36 * r,
                 bg_front_available(f->page, r) ? 255 : 140);
+        }
         break;
     }
     case BG_FRONT_MULTIPLAYER: {
@@ -446,16 +465,23 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         const unsigned cards[2][3] = {{545, 551, 555}, {563, 568, 572}};
         for (unsigned col = 0; col < 3; col++) {
             unsigned item = (selected + count + col - f->row) % count, tag = cards[map][col];
-            bool avail = bg_front_available(f->page, item), focus = col == f->row;
+            bool avail = bg_front_session_available(f, f->page, item), focus = col == f->row;
             art(tag, focus ? 1 : 0, 0, 0, avail ? 255 : 140);
             art(tag + 2, map ? item : type_icon(item), 0, 0, avail ? 255 : 140);
             label(tag + 1, 0, 0, map ? bg_front_maps[item].name : bg_shell_type_names[item],
                   color(avail, focus));
-            label(tag + 3, 0, 0,
-                  map ? (bg_front_map_needs_expansion(item)?"Expansion Pak required":bg_shell_map_descriptions[item]) : (avail?bg_shell_type_descriptions[item]:"Expansion Pak required"),
-                  color(avail, false));
+            const char *description;
+            if (map && f->firefight)
+                description = item == 9 ? "One Covenant squad.\n\n1 to 4 players\n\nCooperative"
+                                        : "Unavailable in Firefight";
+            else if (map)
+                description = bg_front_map_needs_expansion(item) ? "Expansion Pak required"
+                                                                : bg_shell_map_descriptions[item];
+            else
+                description = avail ? bg_shell_type_descriptions[item] : "Expansion Pak required";
+            label(tag + 3, 0, 0, description, color(avail, false));
         }
-        buttons(bg_front_available(f->page, selected));
+        buttons(bg_front_session_available(f, f->page, selected));
         break;
     }
     case BG_FRONT_PREGAME: {
@@ -480,13 +506,13 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         }
         label(535, 4, 32, NULL, blue);
         label(528, 330, 257, bg_front_maps[f->map].name, white);
-        label(530, 400, 278, bg_front_types[f->type].name, white);
-        label(531, 342, 299, bg_mode_preset(f->type)->teams?"Red vs Blue":"Free-for-all", white);
+        label(530, 400, 278, f->firefight?"Firefight":bg_front_types[f->type].name, white);
+        label(531, 342, 299, f->firefight?"Cooperative":bg_mode_preset(f->type)->teams?"Red vs Blue":"Free-for-all", white);
         snprintf(value, sizeof(value), "%u", f->count);
         label(532, 459, 320, value, white);
         snprintf(value,sizeof(value),"%u",bg_mode_preset(f->type)->goal);
-        label(533, 397, 341, value, white);
-        label(534, 426, 341, bg_mode_units(bg_mode_preset(f->type)), white);
+        label(533, 397, 341, f->firefight?"1":value, white);
+        label(534, 426, 341, f->firefight?"Squad":bg_mode_units(bg_mode_preset(f->type)), white);
         if(bg_mode_preset(f->type)->teams)text(1,69,385,500,22,0,white,"LEFT / RIGHT =CHANGE TEAM");
         text(1, 50, 414, 560, 26, 0, blue, "C-LEFT =DELAY GAME       B =BACK       A =START GAME");
         break;

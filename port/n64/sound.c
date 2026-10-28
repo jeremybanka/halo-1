@@ -76,7 +76,6 @@ void bg_sound_frontend(bool active) {
             free((void *)menu_effects[i].samples);
             menu_effects[i] = (bg_audio_asset){0};
         }
-        announce_mode();
         /* The regular update starts vehicle effects after the new match. */
         voices[13] = (voice){.asset = &bg_audio_assets[BG_S_AMBIENCE],
                              .step = ((uint32_t)bg_audio_assets[BG_S_AMBIENCE].rate << 16) / rate,
@@ -145,25 +144,32 @@ static void announce_file(const char *name){
     announcer_rom=dfs_rom_addr(name);
     unsigned count=dfs_rom_size(name);
     assertf(announcer_rom&&count,"Missing mode voice: %s",name);
+#ifdef BG_FIREFIGHT_QA
+    debugf("MATCH_VOICE file=%s samples=%u\n",name,count);
+#endif
     mode_voice=(bg_audio_asset){.count=count,.rate=11025};
     announcer_source=&mode_voice;
     voices[12]=(voice){.asset=&mode_voice,.step=(11025u<<16)/rate,.left=80,.right=80};
     announcer_stream=(bg_sound_stream){0};announcer_streaming=true;
 }
 static void announce_mode(void){
+#ifdef BG_FIREFIGHT
+    if(bg_pve_is_active()){announce_file("firefight.s8");return;}
+#endif
     const bg_mode_rules *r=bg_current_rules();
     static const char *const solo[]={NULL,"mode_capture_the_flag.s8","mode_oddball.s8","mode_king_of_the_hill.s8","mode_race.s8"};
     static const char *const team[]={"mode_team_slayer.s8","mode_capture_the_flag.s8","mode_team_oddball.s8","mode_team_king_of_the_hill.s8","mode_team_race.s8"};
     const char *name=(r->teams?team:solo)[r->engine];
     if(name)announce_file(name);else bg_sound_announce(BG_S_SLAYER);
 }
+void bg_sound_begin_match(void) { announce_mode(); }
 void bg_sound_init(void) {
     audio_init(22050, 6);
     rate = audio_get_frequency();
     memset(voices, 0, sizeof(voices));
     memset(shield_gain, 0, sizeof(shield_gain));
     memset(shield_hit_delay, 0, sizeof(shield_hit_delay));
-    bg_sound_announce(BG_S_SLAYER);
+    announce_mode();
     play(13, BG_S_AMBIENCE, 18, 128, true);
 }
 static unsigned reload_sound(int weapon) {

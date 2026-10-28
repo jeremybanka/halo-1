@@ -1185,6 +1185,9 @@ static void ensure_firstperson_animation(unsigned p) {
 #endif
 }
 #include "scene_objectives.inc"
+#ifdef BG_PVE
+#include "pve_draw.inc"
+#endif
 static void prepare_frame(void) {
     objectives_prepare();
 #ifdef BG_PROFILE
@@ -1226,6 +1229,9 @@ static void prepare_frame(void) {
     for (unsigned p = 0; p < views; p++)
         prepare_view(p);
     objectives_cloth_prepare();
+#ifdef BG_PVE
+    pve_prepare();
+#endif
 #ifdef BG_PROFILE
     camera_us = get_ticks_us() - begin;
     bg_scene_profile.view_prepare_us = get_ticks_us() - section_begin;
@@ -1888,6 +1894,9 @@ static void draw_view(unsigned p) {
     category_triangles[1] += triangles - before;
     before = triangles;
 #endif
+#ifdef BG_PVE
+    pve_draw(p);
+#endif
     for (unsigned j = 0; j < views; j++) {
         if (body_lods[p][j] || (held_masks[p] & (1u << j)))
             ensure_player_animation(j);
@@ -2142,6 +2151,9 @@ void bg_scene_reserve_firstperson(unsigned players) {
 }
 void bg_scene_release_bodies(void) {
     body_buffers_release();
+#ifdef BG_PVE
+    pve_release();
+#endif
 }
 void bg_scene_release_firstperson(void) {
     firstperson_buffers_release();

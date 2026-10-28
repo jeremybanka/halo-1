@@ -11,7 +11,19 @@ float bg_look_curve(float value){
     float y=bg_movement.curve[lo]+(bg_movement.curve[hi]-bg_movement.curve[lo])*(x-lo);
     return copysignf(y,value);
 }
-float bg_body_height(const bg_player*p){return bg_movement.height[0]+(bg_movement.height[1]-bg_movement.height[0])*p->crouch_amount;}
+float bg_body_radius(const bg_player*p){
+#ifdef BG_PVE
+    if(p->pve_radius>0)return p->pve_radius;
+#else
+    (void)p;
+#endif
+    return bg_movement.radius;
+}
+float bg_body_height(const bg_player*p){
+#ifdef BG_PVE
+float npc=bg_pve_height(p);if(npc>0)return npc;
+#endif
+return bg_movement.height[0]+(bg_movement.height[1]-bg_movement.height[0])*p->crouch_amount;}
 void bg_start_landing(bg_player*p,float speed){
     const float*l=bg_movement.landing;
     if(speed<l[0])return;

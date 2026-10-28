@@ -14,6 +14,7 @@ typedef enum { BG_FRONT_SILENT, BG_FRONT_CURSOR, BG_FRONT_ACCEPT,
 typedef struct {
  bg_front_page page,return_page;
  unsigned row,host,map,type,count,settings_profile;
+ bool firefight; /* Session kind, separate from competitive mode presets. */
  bool joined[4],ready[4]; unsigned profile[4],ports[4];
  uint8_t teams[4]; /* Physical controller slots; packed at match launch. */
  bg_control_style styles[4];
@@ -26,6 +27,7 @@ typedef struct {
 void bg_front_init(bg_frontend *f);
 bg_front_action bg_front_update(bg_frontend *f,const bg_control_state input[4],uint64_t now);
 bool bg_front_available(bg_front_page page,unsigned item);
+bool bg_front_session_available(const bg_frontend *f,bg_front_page page,unsigned item);
 /* Keep the accepted five-map 4 MiB profile; the full roster uses 8 MiB. */
 unsigned bg_front_map_memory_requirement(unsigned map);
 void bg_front_set_memory_size(unsigned bytes);

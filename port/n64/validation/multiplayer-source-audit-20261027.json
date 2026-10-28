@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "inspected_runtime_commit": "fb443de9833fced9922ef5f73e07bd812ce1a27c",
+  "asset_commit": "02b5409285646b7a7b6ff32bf116d60a16e22105",
+  "fresh_checks": {
+    "preset_table": {
+      "command": "build/n64-python/bin/python port/n64/export_game_modes.py --check",
+      "result": "all 26 N64 preset rows match represented source-builder fields"
+    },
+    "modes": {
+      "command": "build/n64-python/bin/python port/n64/test_maps.py --modes --output-dir build/modes-publication-audit",
+      "result": "pass: 338 map/preset combinations and production rule transitions with ASan/UBSan",
+      "log_sha256": "1d7b1b2335534197326a0752e29296d8376567bca569db2a9a933d5c88cd6823"
+    }
+  },
+  "limits": [
+    "Not a complete original-engine differential replay.",
+    "Five spawn clearance corrections and simplified friendly spawn weighting; Invasion spawn modifier absent.",
+    "Inventory/objective drop physics and inventory cleanup retain N64 policies.",
+    "One active map pickup per pedestal.",
+    "Objective proximity, reset edge timing and missing-marker fallback are adapters.",
+    "Native mode acceptance stages players and reduces goals; tie/endgame edges are not exhaustively compared."
+  ],
+  "inputs": {
+    "port/n64/game.c": "b5163301f015a5897a5a689324509798ce12e08c7b4a601ff02c5256b4f5e718",
+    "port/n64/game_modes.inc": "259baf2295b876b24b49048e8201b0e476e8da8c9049f3eeeeb4fe0827529f4b",
+    "port/n64/game_modes.def": "995dce15daa95d309471bc4de06eecb6f8f73c071a9b64f83a59a958e1472910",
+    "port/n64/pickups.inc": "9f7502251e9f99a1beb0132991b7ce55642841de1b59339f416ec89b5c56a6ea",
+    "port/n64/extract_mode_maps.py": "bd50b684dd9db42c48a88aaae2fc19d5ad53ed4cc1279d84bb31fce782f13f48",
+    "port/n64/export_game_modes.py": "8ab6967934c638b1e32102aa8a28beb746313941e9f011d14a0d9ac73964d8ac",
+    "port/n64/test_modes.c": "7cee308d85ce136aee3a5376c11f4809316d9f0a429702c09c0eb3a0caefb7bd",
+    "source/game/game_engine.c": "bca5836786d4f052771215654249426a868c68aec81e41e03e94648939c13c85",
+    "source/game/game_engine_ctf.c": "e2981c8e68047628a494c363b8f575fb55f96dca822054376e6af64f86198035",
+    "source/game/game_engine_oddball.c": "21a14e26ce85ee7d9e935bedd9f5fecec51fcf3c2349b552f1c83fc6e394b70b",
+    "source/game/game_engine_king.c": "15474b09f4e5f6031bb5455d52e0d4ec69db21f7b766f614480cff3dc0f42a68",
+    "source/game/game_engine_race.c": "ad8a38e647012027cdef355ded3f0d47701fe1e3314bb23aa0ac0142b127e419"
+  }
+}

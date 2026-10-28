@@ -15,7 +15,7 @@ System Link and saved profiles remain outside this implementation.
 
 `game_modes.def` is generated from the preset builders in
 `source/game/game_engine.c`. `export_game_modes.py --check` compares every
-field against those builders: score limits, health, loadouts, radar, vehicles,
+field represented in the N64 rule table against those builders: score limits, health, loadouts, radar, vehicles,
 respawn delays and growth, lives, handicaps and objective traits. Timed goals
 are shown as minutes and seconds; scores for other modes retain their own units.
 
@@ -61,6 +61,30 @@ roster is retained for ordinary Slayer. Race vehicle starts exist on Blood
 Gulch and Sidewinder; indoor races are on foot. The port's existing movement,
 collision and combat implementation remains the foundation of these modes.
 
+## Source consistency audit (2026-10-27)
+
+The preset settings and scenario data are source-derived; the runtime is still
+an N64 adaptation. Passing the tests below is not proof of complete source
+behavior equivalence. This audit makes the current boundaries explicit:
+
+| Area | Source consistency and limits |
+| --- | --- |
+| Starting locations | Source mode eligibility and CTF team partitions are retained. Starts are floor-projected; five need capsule-clearance corrections. Selection among eligible starts differs: the N64 teammate bonus is a flat 1.5× within five units, whereas `game_engine_get_friendly_bonus` uses a curved, accumulated bonus. The source Invasion-specific spawn-rating modifier in `ctf_engine_starting_location_rating` is not implemented. |
+| Starting weapons and grenades | Map/mode starting equipment is extracted from scenario tags. Generic-loadout and Rockets/Snipers overrides follow the source presets. Inventory/ammunition behavior uses the existing N64 weapon implementation. |
+| Map pickups | Source locations, mode eligibility, weighted item choices and respawn periods are exported. The N64 pickup manager retains one active object per pedestal rather than stacking untouched copies. |
+| Death and manual drops | Weapons retain ammunition, heat and grenade quantities; objectives drop on death or weapon-switch input. Placement/physics are simplified: inventory drops are placed near the floor, and objectives fall vertically. Loose inventory has an N64 lifetime/pool policy (30 seconds maximum, with earlier unseen/pressure cleanup), not full source item-object behavior. |
+| Objective mechanics | Capture/return rules, carrier restrictions, ball transfers and traits, hill scoring and race progression have production-transition tests. The flag's 17-second and ball's 40-second return periods come from source. Pickup/capture tests use the port's proximity/raycast adapter; reset edge timing and object physics are not tick-for-tick source comparisons. Oddball's missing-marker fallback selects marker zero/first rather than the source random fallback. |
+| Win conditions | The named presets' goals, score units, team rules and lives are represented and tested. Native acceptance completed every preset, but stages players and lowers goals to one; it is not an exhaustive comparison of tie/endgame edge cases against the original engine. |
+| Existing engine | Movement, combat, collision and ordinary Slayer's expanded vehicle roster retain the accepted N64 behavior. Custom gametype editing and the full Xbox engine are outside this implementation. |
+
+The publication audit reran `export_game_modes.py --check` (all 26 represented
+preset rows match) and `test_maps.py --modes` with ASan/UBSan (all 338 map/preset
+combinations and the production rule-transition tests pass). Earlier native
+acceptance and the latest flag checks remain in the linked validation reports.
+The [audit record](validation/multiplayer-source-audit-20261027.json) binds this
+review to the inspected code and fresh test log. No gameplay behavior changed
+as part of the audit.
+
 ## Asset and memory design
 
 Map geometry banks are unchanged. Each map gains a small version-2 `.modes64`
@@ -73,8 +97,8 @@ All authored hills have at least one capsule-clear, standable scoring position.
 
 Objective meshes and first-person animations come from the owned source.
 Flag banners retain the original red/blue artwork and attachment points on a
-two-triangle cloth surface; cloth simulation and Xbox shader effects are not
-reproduced. World meshes use the source artist LOD. First-person arms use the
+30-vertex cloth simulation (see Animated flag cloth below). Full Xbox shader
+effects are not reproduced. World meshes use the source artist LOD. First-person arms use the
 existing Blender reduction and animation pipeline. Frame-slot fences protect
 all animated and hill vertex buffers, including switching between guns and
 objectives. Mode audio reuses the existing small streamed-announcer window.

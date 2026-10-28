@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "world.h"
 #include "interaction.h"
+#include "game_modes.h"
 #define BG_PLAYERS 4
 #define BG_MAX_VEHICLES 12
 #define BG_MAX_PROJECTILES 48
@@ -78,8 +79,11 @@ typedef enum {
     BG_EVENT_SHIELD_HIT,
     BG_EVENT_SHIELD_BREAK,
     BG_EVENT_AMMO, /* Actual reserve rounds transferred; distinguishes weapon acquisition. */
-    BG_EVENT_KILL  /* player=credited killer (-1 environment), weapon=victim viewport. */
+    BG_EVENT_KILL, /* player=credited killer (-1 environment), weapon=victim viewport. */
+    BG_EVENT_OBJECTIVE
 } bg_event_kind;
+enum { BG_OBJECTIVE_TAKEN, BG_OBJECTIVE_DROPPED, BG_OBJECTIVE_RETURNED,
+       BG_OBJECTIVE_SCORED, BG_OBJECTIVE_MOVED, BG_OBJECTIVE_CHECKPOINT };
 typedef enum {
     BG_P_PLASMA,
     BG_P_NEEDLE,

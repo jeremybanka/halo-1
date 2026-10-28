@@ -18,6 +18,16 @@ static inline void bg_motion_decode(bg_motion_track*output,unsigned count,
         output[i].xyz[3]=0;
     }
 }
+static inline void bg_motion_decode16(bg_motion_track*output,unsigned count,
+        const uint16_t*frame0,const uint16_t*frame1,const int16_t origin[3],int fraction) {
+    for(unsigned i=0;i<count;i++,frame0+=3,frame1+=3) {
+        for(unsigned axis=0;axis<3;axis++) {
+            int a=frame0[axis],b=frame1[axis];
+            output[i].xyz[axis]=origin[axis]+a+((b-a)*fraction)/256;
+        }
+        output[i].xyz[3]=0;
+    }
+}
 static inline void bg_motion_write(bg_motion_word*output,uint64_t position) {
 #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
     const uint64_t normal_mask=UINT64_C(0xffff);

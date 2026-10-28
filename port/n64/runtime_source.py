@@ -10,7 +10,12 @@ RUNTIME_UNITS = ("runtime_config.h", "scene.c", "presentation.c", "runtime_qa.c"
 def read_runtime(path):
     path = Path(path)
     if path.name == "main.c" and (path.parent / "scene.c").exists():
-        return "\n".join((path.parent / name).read_text() for name in RUNTIME_UNITS)
+        source="\n".join((path.parent / name).read_text() for name in RUNTIME_UNITS)
+        source=source.replace('#include "scene_objectives.inc"', (path.parent / "scene_objectives.inc").read_text())
+        source=source.replace('#include "scene_flag_cloth.inc"', (path.parent / "scene_flag_cloth.inc").read_text())
+        # The general contracts cover the ordinary renderer. Dedicated PVS /
+        # hierarchy tests inspect their explicitly enabled branches separately.
+        return without_experiments(source)
     return path.read_text()
 
 
@@ -21,7 +26,7 @@ def without_experiments(source):
     it only selects the two reviewed #ifdef experiment blocks and their else
     paths. Their active behavior needs separate renderer/PVS/target checks.
     """
-    disabled={'BG_CHIRON_PVS','BG_WORLD_PVS','BG_WORLD_LOD','BG_WORLD_REP','BG_WORLD_CELLS','BG_WORLD_SUBMIT_CACHE','BG_WORLD_COMMAND_CACHE','BG_WORLD_BULK_SUBMIT','BG_WORLD_COARSE_CULL','BG_WORLD_HIERARCHY','BG_GEOMETRY_CENSUS'}
+    disabled={'BG_FLAG_CLOTH_QA','BG_CHIRON_PVS','BG_WORLD_PVS','BG_WORLD_LOD','BG_WORLD_REP','BG_WORLD_CELLS','BG_WORLD_SUBMIT_CACHE','BG_WORLD_COMMAND_CACHE','BG_WORLD_BULK_SUBMIT','BG_WORLD_COARSE_CULL','BG_WORLD_HIERARCHY','BG_GEOMETRY_CENSUS'}
     stack=[];active=True;out=[]
     for line in source.splitlines(keepends=True):
         directive=line.strip()

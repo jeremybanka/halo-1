@@ -23,13 +23,14 @@ void bg_start_landing(bg_player*p,float speed){
     float fraction=range>0?pin((p->hard_landing?speed:speed-l[0])/range,0,1):0;
     p->landing_duration=p->landing_time=(int)((p->hard_landing?l[4]:l[3])*30*fraction)/30.f;
 }
-void bg_walk_velocity(bg_player*p,float forward,float strafe,float dt){
+void bg_walk_velocity_scaled(bg_player*p,float forward,float strafe,float dt,float multiplier){
     float length=hypotf(forward,strafe);if(length>1){forward/=length;strafe/=length;}
     if(p->hard_landing&&p->landing_time>0)forward=strafe=0;
     float stun=1-p->body_stun*bg_stun_config[0];forward*=stun;strafe*=stun;
     float c=p->crouch_amount;
     float f=forward*(bg_movement.run[forward<0]+(bg_movement.sneak[forward<0]-bg_movement.run[forward<0])*c);
     float s=strafe*(bg_movement.run[2]+(bg_movement.sneak[2]-bg_movement.run[2])*c);
+    f*=multiplier;s*=multiplier;
     float cy=cosf(p->yaw),sy=sinf(p->yaw),v[3]={cy*f+sy*s,0,-sy*f+cy*s};
     const float*n=p->ground_normal,*k=bg_movement.slope;
     if(p->grounded&&(n[1]>0||p->climbing)){
@@ -58,6 +59,9 @@ void bg_walk_velocity(bg_player*p,float forward,float strafe,float dt){
     float limit=dt*(p->grounded?bg_movement.accel[0]+(bg_movement.accel[1]-bg_movement.accel[0])*c:bg_movement.accel[2]);
     if(delta>limit)for(unsigned a=0;a<3;a++)d[a]*=limit/delta;
     for(unsigned a=0;a<3;a++)p->velocity[a]+=d[a];
+}
+void bg_walk_velocity(bg_player*p,float forward,float strafe,float dt){
+    bg_walk_velocity_scaled(p,forward,strafe,dt,1);
 }
 void bg_look_input(bg_player*p,const bg_input*in,float magnification,float dt,float*yaw,float*pitch){
     float x=in->turn,y=in->look,ax=fabsf(x),ay=fabsf(y);

@@ -49,9 +49,9 @@ def model_color_tolerance(bank, name):
     return MODEL_COLOR_TOLERANCES[bank][name]
 
 
-def trajectory_keys(clips, scale):
+def trajectory_keys(clips, scale, coordinate_bits=8):
     """Exact identities for every quantized pose across all supplied clips."""
-    packed = [compact_clip(clip, scale) for clip in clips.values()]
+    packed = [compact_clip(clip, scale, coordinate_bits) for clip in clips.values()]
     count = packed[0]['vertices']
     assert all(clip['vertices'] == count for clip in packed)
     return [tuple(clip['indices'][i] for clip in packed) for i in range(count)]

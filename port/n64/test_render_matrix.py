@@ -40,15 +40,15 @@ def check_source(main, sdk):
     assert 'return' not in view, 'An early return could leak stack depth'
     assert view.count('t3d_matrix_push(&terrain_matrix);') == 1
     assert view.index('t3d_matrix_push(&terrain_matrix);') < view.index('rspq_block_run(world_blocks[b]);') < view.index('t3d_matrix_pop(1);') < view.index('t3d_matrix_push_pos(1);')
-    for name in ('instance', 'small_model_instance'):
+    for name in ('instance', 'small_model_instance', 'objective_instance'):
         helper = compact(function(source, name))
-        assert helper.count('t3d_matrix_set(matrix,true);') == 1
+        assert helper.count('t3d_matrix_set(matrix,true);') + helper.count('t3d_matrix_set(transform,true);') == 1
         assert 't3d_matrix_pop' not in helper and 't3d_matrix_push' not in helper
     calls = re.findall(r't3d_matrix_set\(([^;]+)\);', source)
-    assert len(calls) == 9  # Wrecks share their vehicle matrix; terrain has its own push.
+    assert len(calls) == 11  # Wrecks share their vehicle matrix; terrain has its own push.
     assert all(compact(c).endswith(',true') for c in calls), 'Each draw must multiply the camera below it'
     # All non-helper sets remain within the single sibling scope.
-    assert view.count('t3d_matrix_set(') == len(calls) - 2
+    assert view.count('t3d_matrix_set(') == len(calls) - 4
 
     api = (sdk / 'src/t3d/t3d.c').read_text()
     assert 't3d_matrix_stack((void*)mat,0,doMultiply,false);' in compact(function(api, 't3d_matrix_set'))

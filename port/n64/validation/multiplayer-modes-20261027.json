@@ -1,0 +1,499 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "base_commit": "c17d306aed7f168fa107d2f2f0d9829ff3f2aa2f",
+  "private_asset_commit": "977160d3c1396e50a024248d8a8ff084d7577bd1",
+  "presets": 26,
+  "maps": 13,
+  "host_combinations": 338,
+  "gameplay_geometry_changed": false,
+  "checks": {
+    "host": [
+      {
+        "name": "game/vehicle sanitizer suites",
+        "status": "pass",
+        "seconds": 133.892
+      },
+      {
+        "name": "selected-map sanitizer suite",
+        "status": "pass",
+        "seconds": 10.703
+      },
+      {
+        "name": "multiplayer presets and objectives",
+        "status": "pass",
+        "seconds": 9.413
+      },
+      {
+        "name": "source preset catalog",
+        "status": "pass",
+        "seconds": 0.034
+      },
+      {
+        "name": "render_bounds",
+        "status": "pass",
+        "seconds": 0.245
+      },
+      {
+        "name": "render_lod",
+        "status": "pass",
+        "seconds": 0.218
+      },
+      {
+        "name": "render_animation",
+        "status": "pass",
+        "seconds": 0.236
+      },
+      {
+        "name": "firstperson_service",
+        "status": "pass",
+        "seconds": 0.242
+      },
+      {
+        "name": "firstperson_ammo",
+        "status": "pass",
+        "seconds": 0.321
+      },
+      {
+        "name": "hud_layout",
+        "status": "pass",
+        "seconds": 0.274
+      },
+      {
+        "name": "benchmark",
+        "status": "pass",
+        "seconds": 0.231
+      },
+      {
+        "name": "cadence",
+        "status": "pass",
+        "seconds": 0.226
+      },
+      {
+        "name": "cadence_tail",
+        "status": "pass",
+        "seconds": 0.262
+      },
+      {
+        "name": "render_pacing",
+        "status": "pass",
+        "seconds": 0.389
+      },
+      {
+        "name": "pacing_fifo",
+        "status": "pass",
+        "seconds": 0.482
+      },
+      {
+        "name": "bounds with production math flags",
+        "status": "pass",
+        "seconds": 0.234
+      }
+    ],
+    "contracts": [
+      {
+        "name": "test_map_material_modes.py",
+        "status": "pass",
+        "seconds": 0.261
+      },
+      {
+        "name": "test_camera_batch.py",
+        "status": "pass",
+        "seconds": 15.974
+      },
+      {
+        "name": "test_camera_packet.py",
+        "status": "pass",
+        "seconds": 14.525
+      },
+      {
+        "name": "test_vehicle_camera_packet.py",
+        "status": "pass",
+        "seconds": 14.235
+      },
+      {
+        "name": "blam/test_vehicle_candidates.py",
+        "status": "pass",
+        "seconds": 30.147
+      },
+      {
+        "name": "blam/test_polygon_cache.py",
+        "status": "pass",
+        "seconds": 14.664
+      },
+      {
+        "name": "test_projection_cache.py",
+        "status": "pass",
+        "seconds": 0.836
+      },
+      {
+        "name": "test_texture_blocks.py",
+        "status": "pass",
+        "seconds": 0.243
+      },
+      {
+        "name": "test_render_cull.py",
+        "status": "pass",
+        "seconds": 0.861
+      },
+      {
+        "name": "test_bounds_quantize.py",
+        "status": "pass",
+        "seconds": 0.547
+      },
+      {
+        "name": "test_scene_equivalence.py",
+        "status": "pass",
+        "seconds": 0.067
+      },
+      {
+        "name": "test_render_matrix.py",
+        "status": "pass",
+        "seconds": 0.071
+      },
+      {
+        "name": "test_render_prepare.py",
+        "status": "pass",
+        "seconds": 0.059
+      },
+      {
+        "name": "test_render_flush.py",
+        "status": "pass",
+        "seconds": 0.041
+      },
+      {
+        "name": "test_vehicle_culling.py",
+        "status": "pass",
+        "seconds": 3.59
+      },
+      {
+        "name": "test_vehicle_pose_cache.py",
+        "status": "pass",
+        "seconds": 10.638
+      },
+      {
+        "name": "test_vehicle_map_origin.py",
+        "status": "pass",
+        "seconds": 16.631
+      },
+      {
+        "name": "test_deferred_animation.py",
+        "status": "pass",
+        "seconds": 0.543
+      },
+      {
+        "name": "test_vi_benchmark.py",
+        "status": "pass",
+        "seconds": 0.088
+      },
+      {
+        "name": "test_weapon_workspace.py",
+        "status": "pass",
+        "seconds": 0.232
+      },
+      {
+        "name": "test_model_index_aliases.py",
+        "status": "pass",
+        "seconds": 0.265
+      },
+      {
+        "name": "test_effect_bounds.py",
+        "status": "pass",
+        "seconds": 0.701
+      },
+      {
+        "name": "test_audio_schedule.py",
+        "status": "pass",
+        "seconds": 0.358
+      },
+      {
+        "name": "test_paced_acquire.py",
+        "status": "pass",
+        "seconds": 0.898
+      },
+      {
+        "name": "test_input_menu.py",
+        "status": "pass",
+        "seconds": 1.074
+      }
+    ],
+    "assets": [
+      {
+        "name": "test_map_assets.py",
+        "status": "pass",
+        "seconds": 0.092
+      },
+      {
+        "name": "test_announcer.py",
+        "status": "pass",
+        "seconds": 1.1
+      },
+      {
+        "name": "test_hud_prompts.py",
+        "status": "pass",
+        "seconds": 1.34
+      },
+      {
+        "name": "test_interaction_assets.py",
+        "status": "pass",
+        "seconds": 1.374
+      },
+      {
+        "name": "test_pack_bounds.py",
+        "status": "pass",
+        "seconds": 0.075
+      },
+      {
+        "name": "test_scope_geometry.py",
+        "status": "pass",
+        "seconds": 0.418
+      },
+      {
+        "name": "test_scorpion_barrel.py",
+        "status": "pass",
+        "seconds": 0.087
+      },
+      {
+        "name": "test_menu_assets.py",
+        "status": "pass",
+        "seconds": 0.068
+      }
+    ]
+  },
+  "native_acceptance": {
+    "emulator": "Ares / paraLLEl-RDP, 8 MiB",
+    "map": "Wizard",
+    "players": 4,
+    "score_limit": 1,
+    "method": "Normal menus/controller edges; staged positions/combat; production pickups/scoring/game-over; not a performance benchmark",
+    "passes": [
+      {
+        "mode": 0,
+        "name": "Slayer",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 1,
+        "name": "Slayer Pro",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 2,
+        "name": "Elimination",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 3,
+        "name": "Phantoms",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 4,
+        "name": "Endurance",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 5,
+        "name": "Rockets",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 6,
+        "name": "Snipers",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 7,
+        "name": "Oddball",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 8,
+        "name": "Reverse Tag",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 9,
+        "name": "Accumulate",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 10,
+        "name": "Juggernaut",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 11,
+        "name": "Stalker",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 12,
+        "name": "King",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 13,
+        "name": "King Pro",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 14,
+        "name": "Crazy King",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 15,
+        "name": "Race",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 16,
+        "name": "Rally",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 17,
+        "name": "CTF",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 18,
+        "name": "Invasion",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 19,
+        "name": "Iron CTF",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 20,
+        "name": "CTF Pro",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 21,
+        "name": "Team Race",
+        "winner": 2,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 22,
+        "name": "Team Rally",
+        "winner": 2,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 23,
+        "name": "Team Ball",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 24,
+        "name": "Team King",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      },
+      {
+        "mode": 25,
+        "name": "Team Slayer",
+        "winner": 0,
+        "score": 1,
+        "postgame_free_bytes": 4102568
+      }
+    ],
+    "rom_sha256": "e2689cd761ea7dcdc16bf6f0d9bc017b7ff02247c31a9825fdf2687d2f3a194e"
+  },
+  "four_mib_compatibility": {
+    "preset": "Slayer",
+    "map": "Wizard",
+    "players": 4,
+    "passed": true,
+    "postgame_free_bytes": 415976,
+    "scope": "Ordinary release renderer; optimized Sidewinder candidate requires 8 MiB."
+  },
+  "rom": {
+    "filename": "halo-64-hierarchy-playable-bulk-submit-submit-cache-world-pvs-render-candidate-paced30-rspq32k.z64",
+    "bytes": 41369600,
+    "sha256": "d8a911e801c13836730072e7c410b75242875518dad4cc0be05ab8a5d27a1db9",
+    "configuration": "Release, paced30, 32 KiB RSPQ, accepted Sidewinder candidate with PVS/shared hierarchy/bulk submission",
+    "scripted_qa": false
+  },
+  "evidence": {
+    "native-cycle.log": "0e9b94568b6a361a7d8de87a4c3a6711785c5a67c76d9c316d778b6e7244acca",
+    "native-4mib.log": "9b431493fd02e3e4636e3d57aa9e11817044770cedb9f1f4ec5f5f75dd4808bc",
+    "rules-final.log": "1d7b1b2335534197326a0752e29296d8376567bca569db2a9a933d5c88cd6823",
+    "maps.log": "182c82fb94593da27cd95801a4561801329c54cc3e48f93cd574d116c2ec7fa1",
+    "rules.log": "1d7b1b2335534197326a0752e29296d8376567bca569db2a9a933d5c88cd6823"
+  },
+  "final_followup": {
+    "legacy_maps_and_mode_tests": "pass",
+    "team_assist_filter": "Teammates who damaged their own teammate cannot receive an assist for the enemy kill.",
+    "checks_log_sha256": "9f674952db8e8a29bb83f50d4c66c78025277a0c5d27ca3777e867cf895a1952"
+  },
+  "native_visual_validation": {
+    "flag": {
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "screenshot_sha256": "5d2c36c381676bc875d6d281740499f4e8fb4a7ed423980a1b46995fa6a5a28e"
+    },
+    "skull": {
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "screenshot_sha256": "dad13c783d45fdd3864471350007d992798f5a157a119c2e2f6e80b60bba7b69"
+    },
+    "hill": {
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "screenshot_sha256": "b58b76781ab44d77e36045abbf2dc788e115252fbaf463f9d9ceaa8931a7e0c6"
+    }
+  }
+}

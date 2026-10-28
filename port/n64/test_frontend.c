@@ -32,7 +32,14 @@ int main(void){
         unsigned packed=0;for(unsigned p=0;p<f.count;p++)packed|=1u<<f.ports[p];assert(packed==mask);
         press(&f,host,BG_BUTTON_D_LEFT);assert(f.map==8);
         press(&f,host,BG_BUTTON_D_RIGHT);assert(f.map==9);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_TYPE&&f.type==0);
-        for(unsigned i=1;i<26;i++){press(&f,host,BG_BUTTON_D_RIGHT);assert(f.type==i);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_TYPE);}
+        for(unsigned i=1;i<26;i++){
+            press(&f,host,BG_BUTTON_D_RIGHT);assert(f.type==i);
+            press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME);
+            if(bg_mode_preset(i)->teams)for(unsigned p=0;p<4;p++)if(mask&(1u<<p)){
+                unsigned before=f.teams[p];press(&f,p,BG_BUTTON_D_LEFT);assert(f.teams[p]==(before^1));
+            }
+            press(&f,host,BG_BUTTON_B);assert(f.page==BG_FRONT_TYPE);
+        }
         press(&f,host,BG_BUTTON_D_RIGHT);assert(f.type==0);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME);
         uint64_t deadline=f.deadline;press(&f,host,BG_BUTTON_C_LEFT);assert(f.deadline==deadline+5000000);
         press(&f,host,BG_BUTTON_A);assert(f.deadline==deadline);press(&f,host,BG_BUTTON_A);press(&f,host,BG_BUTTON_A);assert(f.deadline==now+999000);
@@ -47,8 +54,11 @@ int main(void){
     press(&f,0,BG_BUTTON_D_DOWN);press(&f,0,BG_BUTTON_D_DOWN);press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_SETTINGS);
     press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_PROFILE);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.styles[0]==BG_CONTROLS_XBOX);
     press(&f,0,BG_BUTTON_B);press(&f,0,BG_BUTTON_B);assert(f.styles[0]==BG_CONTROLS_XBOX);
-    joins(&f,3,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);f.map=0;
+    joins(&f,3,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);f.type=1;
+    bg_front_set_memory_size(4*1024*1024);
+    for(unsigned i=0;i<26;i++)assert(bg_front_available(BG_FRONT_TYPE,i)==(i==0));
     bg_control_state empty[4]={0};assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_NONE&&f.page==BG_FRONT_JOIN);
+    bg_front_set_memory_size(8*1024*1024);
     joins(&f,15,0);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.map==10);
     press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_TYPE);
     press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME&&f.map==10);

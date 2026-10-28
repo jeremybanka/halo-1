@@ -452,7 +452,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
             label(tag + 1, 0, 0, map ? bg_front_maps[item].name : bg_shell_type_names[item],
                   color(avail, focus));
             label(tag + 3, 0, 0,
-                  map ? (bg_front_map_needs_expansion(item)?"Expansion Pak required":bg_shell_map_descriptions[item]) : bg_shell_type_descriptions[item],
+                  map ? (bg_front_map_needs_expansion(item)?"Expansion Pak required":bg_shell_map_descriptions[item]) : (avail?bg_shell_type_descriptions[item]:"Expansion Pak required"),
                   color(avail, false));
         }
         buttons(bg_front_available(f->page, selected));
@@ -473,17 +473,21 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         for (unsigned p = 0; p < f->count; p++) {
             int y = 205 + 48 * p;
             art(511, 1, 69, y, 255);
-            snprintf(value, sizeof(value), "Player %u", f->profile[f->ports[p]] + 1);
+            if(bg_mode_preset(f->type)->teams)
+                snprintf(value,sizeof(value),"P%u - %s",f->profile[f->ports[p]]+1,f->teams[f->ports[p]]?"Blue":"Red");
+            else snprintf(value, sizeof(value), "Player %u", f->profile[f->ports[p]] + 1);
             label(513, 133, y, value, white);
         }
         label(535, 4, 32, NULL, blue);
         label(528, 330, 257, bg_front_maps[f->map].name, white);
-        label(530, 400, 278, "Slayer", white);
-        label(531, 342, 299, "Free-for-all", white);
+        label(530, 400, 278, bg_front_types[f->type].name, white);
+        label(531, 342, 299, bg_mode_preset(f->type)->teams?"Red vs Blue":"Free-for-all", white);
         snprintf(value, sizeof(value), "%u", f->count);
         label(532, 459, 320, value, white);
-        label(533, 397, 341, "15", white);
-        label(534, 426, 341, "Kills", white);
+        snprintf(value,sizeof(value),"%u",bg_mode_preset(f->type)->goal);
+        label(533, 397, 341, value, white);
+        label(534, 426, 341, bg_mode_units(bg_mode_preset(f->type)), white);
+        if(bg_mode_preset(f->type)->teams)text(1,69,385,500,22,0,white,"LEFT / RIGHT =CHANGE TEAM");
         text(1, 50, 414, 560, 26, 0, blue, "C-LEFT =DELAY GAME       B =BACK       A =START GAME");
         break;
     }
@@ -516,8 +520,11 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
                              : rank == 2 ? "nd"
                              : rank == 3 ? "rd"
                                          : "th");
-                else if (c == 1)
-                    snprintf(value, sizeof(value), "Player %u", f->profile[f->ports[p]] + 1);
+                else if (c == 1) {
+                    if(bg_mode_preset(f->type)->teams)snprintf(value,sizeof(value),"P%u %s",f->profile[f->ports[p]]+1,f->teams[f->ports[p]]?"Blue":"Red");
+                    else snprintf(value, sizeof(value), "Player %u", f->profile[f->ports[p]] + 1);
+                } else if(c==2&&bg_mode_timed(bg_mode_preset(f->type)))
+                    snprintf(value,sizeof(value),"%d:%02d",f->final_scores[p]/60,f->final_scores[p]%60);
                 else
                     snprintf(value, sizeof(value), "%d",
                              c == 2   ? f->final_scores[p]
@@ -525,7 +532,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
                              : c == 4 ? f->statistics.assists[p]
                                       : f->statistics.deaths[p]);
                 text(1, tabs[c], y, c == 1 ? 124 : 85, 26, 0,
-                     p == (unsigned)f->winner ? white : blue, value);
+                     (f->winner>=0&&(p==(unsigned)f->winner||(bg_mode_preset(f->type)->teams&&f->teams[f->ports[p]]==f->teams[f->ports[f->winner]]))) ? white : blue, value);
             }
         }
         art(306, 0, 380, 410, 255);

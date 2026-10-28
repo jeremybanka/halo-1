@@ -2,13 +2,14 @@
 from pathlib import Path
 import subprocess,tempfile,re
 from test_render_matrix import function,compact
+from runtime_source import without_experiments
 ROOT=Path(__file__).resolve().parents[2]
 def world_region(source):
     body=function(source,'draw_view');start=body.index('unsigned bound = ~0u;')
     end=body.index('/* Every object matrix',start)
     return body[start:end]
 old=subprocess.check_output(['git','show','0ac2d7c9:port/n64/scene.c'],cwd=ROOT,text=True)
-new=(ROOT/'port/n64/scene.c').read_text()
+new=without_experiments((ROOT/'port/n64/scene.c').read_text())
 STUB=r'''
 #include <stdint.h>
 #include <stdbool.h>

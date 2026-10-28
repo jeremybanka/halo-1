@@ -43,6 +43,8 @@ CONTRACTS = (
     "test_input_menu.py",
 )
 ASSETS = (
+    "test_objective_grip.py",
+    "test_objective_materials.py",
     "test_map_assets.py",
     "test_announcer.py",
     "test_hud_prompts.py",
@@ -53,6 +55,7 @@ ASSETS = (
     "test_menu_assets.py",
 )
 HEADERS = (
+    "flag_cloth",
     "render_bounds",
     "render_lod",
     "render_animation",
@@ -108,6 +111,13 @@ def main():
         check("game/vehicle sanitizer suites", lambda: host_suites(out / "host"))
         check("selected-map sanitizer suite", lambda: command(
             [sys.executable, "port/n64/test_maps.py", "--frontend-cycle", "--output-dir", out / "maps"]
+        ))
+    if "host" in groups:
+        check("multiplayer presets and objectives", lambda: command(
+            [sys.executable, "port/n64/test_maps.py", "--modes", "--output-dir", out / "modes"]
+        ))
+        check("source preset catalog", lambda: command(
+            [sys.executable, "port/n64/export_game_modes.py", "--check"]
         ))
     if "host" in groups or "headers" in groups:
         (out / "host").mkdir(parents=True, exist_ok=True)

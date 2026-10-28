@@ -15,6 +15,7 @@ typedef struct {
  bg_front_page page,return_page;
  unsigned row,host,map,type,count,settings_profile;
  bool joined[4],ready[4]; unsigned profile[4],ports[4];
+ uint8_t teams[4]; /* Physical controller slots; packed at match launch. */
  bg_control_style styles[4];
  int final_scores[4],winner;
  bg_match_statistics statistics;

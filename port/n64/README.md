@@ -111,7 +111,7 @@ The collision/camera follow-up measures **25.3 / 26.6 / 24.1 FPS** with the same
 49 KiB free. Five-ray hull traversal and shared projected polygons improve
 repeated work; the vehicle and 30 FPS gates remain open.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
-Select Profile → Blood Gulch → Slayer**. Join and ready one to four controllers;
+Select Profile → map → game type**. Join and ready one to four controllers;
 three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.
 Any active player can press **Start** to pause and own the menu. Another
@@ -119,6 +119,9 @@ player's Start transfers ownership; the current owner's Start resumes.
 **Setup** is enabled only for Player 1 and offers Restart Match or Quit Game.
 **Controls** changes only the menu owner's layout. Player count is set by joining
 controllers in the front end.
+All 26 original Xbox multiplayer presets are available with an 8 MiB Expansion
+Pak, including CTF, Oddball, King, Race and their team/variant rules. See
+[MULTIPLAYER_MODES.md](MULTIPLAYER_MODES.md) for rules, controls and validation.
 Slayer uses each map’s source starting profile. Blood Gulch and Wizard start
 with a plasma pistol and no grenades; the other loadouts are recorded in
 [ALL_MAPS.md](ALL_MAPS.md). Find additional weapons and equipment on the map.
@@ -575,7 +578,7 @@ world services; material damage, homing, biped collision and effect systems
 remain simplified. Animation is sampled from a subset of source clips; there is
 no complete animation graph, ragdoll or inverse kinematics. The coarse bases,
 solid-color sky, flat model shading and reduced effects remain visible.
-There is no campaign, networking, bots, CTF/ball objective rules, saved games,
+There is no campaign, networking, bots, saved games,
 or full Xbox shader/lightmap pipeline. HUD counters and status text use native
 pixel artwork alongside original radar/reticle assets. Scope masks use alpha darkening instead of the Xbox
 convolution/blur effect, and sniper night vision is not implemented. The PC-only

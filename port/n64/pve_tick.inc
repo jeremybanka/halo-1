@@ -26,6 +26,7 @@ static void pve_fire(unsigned i,const float origin[3],const float direction[3]){
 void bg_pve_tick(float dt){
     if(!pve_active)return;
     bg_pve_tick_number++;pve_encounter_grenade_time=fmaxf(0,pve_encounter_grenade_time-dt);
+    pve_routes_service();
     const bg_pve_difficulty*scale=&bg_pve_difficulties[bg_ff.active?bg_ff.difficulty:1];
     for(unsigned i=0;i<bg_pve_count;i++){
         bg_pve_actor*a=&bg_pve_actors[i];if(!a->occupied)continue;

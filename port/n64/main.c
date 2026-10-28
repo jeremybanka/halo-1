@@ -981,7 +981,7 @@ int main(void) {
 #ifdef BG_PROFILE
         uint64_t profile_start = get_ticks_us();
 #ifdef BG_PVE
-        bg_pve_ai_us=bg_pve_move_us=0;
+        bg_pve_ai_us=bg_pve_move_us=bg_pve_nav_us=0;
 #endif
         bg_scene_profile.camera_us = bg_scene_profile.animation_us = bg_scene_profile.matrix_us =
             bg_scene_profile.world_us = bg_scene_profile.object_us = bg_scene_profile.fp_us =
@@ -1560,6 +1560,7 @@ int main(void) {
                 for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){const bg_projectile*q=bg_projectile_at(i);projectiles+=q&&q->active;}
                 debugf("FF_STATE phase=%u round=%u wave=%u living=%u enemies=%u arriving=%u ship=%u projectiles=%u lives=%u score=%u\n",bg_ff.phase,bg_ff.round+1,bg_ff.wave+1,living,enemies,arriving,bg_ff_dropship.phase,projectiles,bg_ff.lives,(unsigned)bg_ff.team_score);
             }
+            debugf("NAV tick=%u us=%u total_us=%u max_us=%u requests=%u ready=%u shared=%u fields=%u evictions=%u searches=%u expanded=%u committed=%u work=%u max_work=%u completed=%u wait_ticks=%u max_wait=%u\n",bg_pve_tick_number,(unsigned)bg_pve_nav_us,bg_pve_navigation.service_us,bg_pve_navigation.max_us,bg_pve_navigation.requests,bg_pve_navigation.ready,bg_pve_navigation.shared,bg_pve_navigation.fields,bg_pve_navigation.evictions,bg_pve_navigation.searches,bg_pve_navigation.expanded,bg_pve_navigation.committed,bg_pve_navigation.work,bg_pve_navigation.max_work,bg_pve_navigation.completed,bg_pve_navigation.wait_ticks,bg_pve_navigation.max_wait);
             debugf("PVE_PHASE sim=%u prep=%u draw=%u rsp_wait=%u rdp_wait=%u vertices=%u\n",sim_us,prep_us,draw_us,geometry_rsp_us,geometry_rdp_us,bg_scene_profile.submitted_vertices);
 #endif
             debugf("PERF views=%u fps=%u triangles=%u free=%d audio=%d p1=(%.2f %.2f %.2f)\n",

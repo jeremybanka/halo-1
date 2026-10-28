@@ -7,8 +7,7 @@
 #define PVE_ORIGIN 64
 static float pve_nav_height[PVE_NODES];
 static uint8_t pve_nav_edges[PVE_NODES],pve_nav_layers[PVE_NODES];
-static uint16_t pve_nav_distance[4][PVE_NODES],pve_nav_queue[PVE_NODES];
-static int pve_nav_goal[4];
+static void pve_routes_reset(bool initialize);
 static const int pve_dx[8]={1,-1,0,0,1,1,-1,-1},pve_dz[8]={0,0,1,-1,1,-1,1,-1};
 #ifndef BG_PVE_NAV_BUILD
 extern const float bg_pve_nav_heights[PVE_NODES];
@@ -73,31 +72,8 @@ static void pve_nav_init(void){
 #else
         memcpy(pve_nav_height,bg_pve_nav_heights,sizeof(pve_nav_height));memcpy(pve_nav_edges,bg_pve_nav_links,sizeof(pve_nav_edges));memcpy(pve_nav_layers,bg_pve_nav_layers,sizeof(pve_nav_layers));
 #endif
-        loaded=true;
+        pve_routes_reset(true);loaded=true;
     }
-    for(unsigned p=0;p<4;p++)pve_nav_goal[p]=-2;
+    pve_routes_reset(false);
 }
-static void pve_path(unsigned target,const float pos[3]){
-    int goal=pve_node(pos);if(goal==pve_nav_goal[target])return;
-    pve_nav_goal[target]=goal;memset(pve_nav_distance[target],255,sizeof(pve_nav_distance[target]));
-    if(goal<0)return;
-    unsigned first=0,last=0;pve_nav_queue[last++]=goal;pve_nav_distance[target][goal]=0;
-    while(first<last){int node=pve_nav_queue[first++];for(unsigned k=0;k<8;k++)if(pve_nav_edges[node]&(1u<<k)){
-        int next=pve_neighbor(node,k);
-        if(pve_nav_distance[target][next]==UINT16_MAX){pve_nav_distance[target][next]=pve_nav_distance[target][node]+1;pve_nav_queue[last++]=next;}
-    }}
-}
-static void pve_destination(unsigned i){
-    bg_pve_actor*a=&bg_pve_actors[i];bg_player*p=&bg_players[BG_PLAYERS+i];
-    if(a->target<0)return;
-    int node=pve_node(p->pos);if(node<0)return;
-    pve_path(a->target,a->last_seen);a->path_queries++;float best=pve_nav_distance[a->target][node];int chosen=node;
-    bool retreat=a->action==_actor_action_flee||(a->action==_actor_action_guard&&actor_get(i)->state.action_data.guard.cower);
-    for(unsigned k=0;k<8;k++)if(pve_nav_edges[node]&(1u<<k)){
-        int next=pve_neighbor(node,k);unsigned steps=pve_nav_distance[a->target][next];if(steps==UINT16_MAX)continue;
-        float point[3];pve_node_pos(next,point);float cost=steps;
-        for(unsigned j=0;j<bg_pve_count;j++)if(j!=i&&bg_players[BG_PLAYERS+j].health>0&&distance2(point,bg_players[BG_PLAYERS+j].pos)<.64f)cost+=retreat?-3:3;
-        if((retreat&&cost>best)||(!retreat&&cost<best)){best=cost;chosen=next;}
-    }
-    pve_node_pos(chosen,a->destination);
-}
+#include "pve_routes.inc"

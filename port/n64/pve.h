@@ -44,7 +44,9 @@ typedef struct {
 } bg_pve_actor;
 extern bg_pve_actor bg_pve_actors[BG_PVE_MAX];
 extern unsigned bg_pve_count,bg_pve_tick_number;
-extern uint32_t bg_pve_ai_us,bg_pve_move_us;
+extern uint32_t bg_pve_ai_us,bg_pve_move_us,bg_pve_nav_us;
+typedef struct {unsigned requests,ready,shared,fields,evictions,searches,expanded,committed,work,max_work,completed,wait_ticks,max_wait,service_us,max_us;} bg_pve_navigation_profile;
+extern bg_pve_navigation_profile bg_pve_navigation;
 extern unsigned bg_pve_animation_us;
 void bg_pve_start(unsigned count);
 void bg_pve_stop(void);

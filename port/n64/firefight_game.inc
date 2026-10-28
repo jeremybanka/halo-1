@@ -57,7 +57,7 @@ static bool ff_hidden(const float point[3],float height){
 }
 static bool ff_reachable(int node){
     if(node<0)return false;
-    for(unsigned p=0;p<active_players;p++)if(bg_players[p].health>0){pve_path(p,bg_players[p].pos);if(pve_nav_distance[p][node]!=UINT16_MAX)return true;}
+    for(unsigned p=0;p<active_players;p++)if(bg_players[p].health>0){if(pve_reachable(node,pve_node(bg_players[p].pos)))return true;}
     return false;
 }
 static bool ff_clear_point(float point[3],unsigned kind,bool concealed){

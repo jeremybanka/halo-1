@@ -69,7 +69,7 @@ behavior equivalence. This audit makes the current boundaries explicit:
 
 | Area | Source consistency and limits |
 | --- | --- |
-| Starting locations | Source mode eligibility and CTF team partitions are retained. Starts are floor-projected; five need capsule-clearance corrections. Selection among eligible starts differs: the N64 teammate bonus is a flat 1.5× within five units, whereas `game_engine_get_friendly_bonus` uses a curved, accumulated bonus. The source Invasion-specific spawn-rating modifier in `ctf_engine_starting_location_rating` is not implemented. |
+| Starting locations | Source mode eligibility and CTF team partitions are retained. Threat weights, accumulated teammate bonuses and Invasion's base-distance preference now match the recovered rating routines on identical inputs (see Spawn weighting below). Starts remain floor-projected; five need capsule-clearance corrections. Living N64 players stand in for source unit presence, and nearby-vehicle rejection uses the existing collision-bounds adapter. |
 | Starting weapons and grenades | Map/mode starting equipment is extracted from scenario tags. Generic-loadout and Rockets/Snipers overrides follow the source presets. Inventory/ammunition behavior uses the existing N64 weapon implementation. |
 | Map pickups | Source locations, mode eligibility, weighted item choices and respawn periods are exported. The N64 pickup manager retains one active object per pedestal rather than stacking untouched copies. |
 | Death and manual drops | Weapons retain ammunition, heat and grenade quantities; objectives drop on death or weapon-switch input. Placement/physics are simplified: inventory drops are placed near the floor, and objectives fall vertically. Loose inventory has an N64 lifetime/pool policy (30 seconds maximum, with earlier unseen/pressure cleanup), not full source item-object behavior. |
@@ -81,9 +81,41 @@ The publication audit reran `export_game_modes.py --check` (all 26 represented
 preset rows match) and `test_maps.py --modes` with ASan/UBSan (all 338 map/preset
 combinations and the production rule-transition tests pass). Earlier native
 acceptance and the latest flag checks remain in the linked validation reports.
-The [audit record](validation/multiplayer-source-audit-20261027.json) binds this
-review to the inspected code and fresh test log. No gameplay behavior changed
-as part of the audit.
+The [audit record](validation/multiplayer-source-audit-20261027.json) binds the
+original review to its inspected code and test log. The subsequent spawn fix
+below resolves the two weighting gaps identified by that audit.
+
+## Spawn weighting
+
+Spawn selection now uses the source distance rules. Enemies inside two units
+exclude a start; the weight ramps up between two and five units. Teammates
+closer than 0.25 units exclude it; exactly 0.25 applies the source 0.1 penalty.
+In team games, each living teammate one to six units away contributes a curved
+bonus. Those contributions add, saturate at three, and become a multiplier
+of `1 + 3 × bonus` (maximum 10), instead of the old flat 1.5 multiplier.
+All distances are three-dimensional.
+
+Invasion additionally uses the reciprocal of squared distance to the team's
+authored base marker, clamped to 0.5–10 before taking the reciprocal. After
+game tick 30, the source's 0.33-power curve and 0.5–2 bounds soften this
+preference. Source Invasion swaps flag slots, so its opposite-slot lookup
+refers to the player's own authored base, not the opposing base. Drawable
+flag floor adjustment, carrying and dropping do not move this spawn anchor.
+An integer warmup counter advances after simulation, matching source tick
+order and avoiding a floating-point transition one tick early.
+
+The existing seeded random selection remains unchanged. `test_maps.py --modes`
+compiles the original rating function bodies with a small storage adapter,
+then compares weights and selected starts against production gameplay. It
+covers all 26 presets and 13 maps, both team layouts, one to four players,
+live/dead/self units, exact distance boundaries and Invasion ticks 30/31.
+`--target-math` also checks the port with target-style math flags while keeping
+the reference compiled strictly. This is a host differential test on the
+same adapted coordinates and presence state, not a complete Xbox replay or
+a bit-exact claim across host and N64 math libraries.
+
+The [spawn validation report](validation/multiplayer-spawns-20261027.json)
+records fresh mode/gameplay checks, the target build and input hashes.
 
 ## Asset and memory design
 

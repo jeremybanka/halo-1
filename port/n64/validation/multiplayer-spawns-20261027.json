@@ -1,0 +1,200 @@
+{
+  "schema": 1,
+  "date": "2026-10-27",
+  "runtime_commit": "38136192d635f2a1e17ee7765546a9f81c2c17fa",
+  "asset_commit": "6cd3756bdf797689332ef43b1bfa678c2d14363e",
+  "scope": "Source distance/threat weighting, accumulated friendly bonus, and Invasion authored-base preference with strict >30 completed-tick warmup.",
+  "reference": {
+    "method": "Compile original C function bodies with engine storage stubs in a separate strict-math translation unit; inverse-transform N64 positions into source axes. Source math bodies and Invasion flag-slot initialization are also extracted.",
+    "functions": [
+      "game_engine_get_distance_rating_for_spawn",
+      "game_engine_get_friendly_bonus",
+      "ctf_engine_starting_location_rating",
+      "default_starting_location_rate_function"
+    ],
+    "coverage": [
+      "all 26 presets and 13 maps",
+      "one to four active players, both team layouts, living/dead/self units",
+      "3D distance boundary neighbors at 0.25, 0.5, 1, 2, 5, 6 units",
+      "summed bonus and three-contribution cap",
+      "CTF team eligibility and unchanged seeded candidate selection",
+      "Invasion squared-distance clamps, source flag-slot reversal, authored vs drawable marker",
+      "ticks 0/29/30/31/32/300, real respawn on tick 30, half-tick steps, restart and finished-match clock",
+      "vehicle rejection still overrides positive bonus"
+    ]
+  },
+  "mode_checks": [
+    {
+      "math": "strict",
+      "command": "build/n64-python/bin/python port/n64/test_maps.py --modes --output-dir build/modes-spawn-source",
+      "result": "pass",
+      "map_preset_combinations": 338,
+      "exact_rating_comparisons": 647729,
+      "identical_seeded_selections": 10140,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "log_sha256": "7a6847d3f1aa7e7c39aae4c3bb4e3248d77b792f95d6a479ac2fd029f7f7d990"
+    },
+    {
+      "math": "target_math",
+      "command": "build/n64-python/bin/python port/n64/test_maps.py --modes --target-math --output-dir build/modes-spawn-target-math",
+      "result": "pass",
+      "map_preset_combinations": 338,
+      "exact_rating_comparisons": 647729,
+      "identical_seeded_selections": 10140,
+      "sanitizers": [
+        "address",
+        "undefined"
+      ],
+      "log_sha256": "7a6847d3f1aa7e7c39aae4c3bb4e3248d77b792f95d6a479ac2fd029f7f7d990"
+    }
+  ],
+  "host_checks": {
+    "command": "build/n64-python/bin/python port/n64/validate.py --group host --output-dir build/modes-spawn-validation",
+    "result": "pass",
+    "groups": 17,
+    "results": [
+      {
+        "name": "game/vehicle sanitizer suites",
+        "status": "pass",
+        "seconds": 133.996
+      },
+      {
+        "name": "selected-map sanitizer suite",
+        "status": "pass",
+        "seconds": 10.604
+      },
+      {
+        "name": "multiplayer presets and objectives",
+        "status": "pass",
+        "seconds": 9.218
+      },
+      {
+        "name": "source preset catalog",
+        "status": "pass",
+        "seconds": 0.033
+      },
+      {
+        "name": "flag_cloth",
+        "status": "pass",
+        "seconds": 0.364
+      },
+      {
+        "name": "render_bounds",
+        "status": "pass",
+        "seconds": 0.24
+      },
+      {
+        "name": "render_lod",
+        "status": "pass",
+        "seconds": 0.207
+      },
+      {
+        "name": "render_animation",
+        "status": "pass",
+        "seconds": 0.264
+      },
+      {
+        "name": "firstperson_service",
+        "status": "pass",
+        "seconds": 0.248
+      },
+      {
+        "name": "firstperson_ammo",
+        "status": "pass",
+        "seconds": 0.321
+      },
+      {
+        "name": "hud_layout",
+        "status": "pass",
+        "seconds": 0.266
+      },
+      {
+        "name": "benchmark",
+        "status": "pass",
+        "seconds": 0.232
+      },
+      {
+        "name": "cadence",
+        "status": "pass",
+        "seconds": 0.222
+      },
+      {
+        "name": "cadence_tail",
+        "status": "pass",
+        "seconds": 0.231
+      },
+      {
+        "name": "render_pacing",
+        "status": "pass",
+        "seconds": 0.377
+      },
+      {
+        "name": "pacing_fifo",
+        "status": "pass",
+        "seconds": 0.465
+      },
+      {
+        "name": "bounds with production math flags",
+        "status": "pass",
+        "seconds": 0.236
+      }
+    ],
+    "log_sha256": "3c1a6c03bce6a9db407fd75e82dc8aacfff1279ae2aaf54476658faf0d1ea4ca"
+  },
+  "native_build": {
+    "result": "pass",
+    "artifact": "build/modes-native/halo-64-hierarchy-playable-bulk-submit-submit-cache-world-pvs-render-candidate-paced30-rspq32k.z64",
+    "bytes": 41435136,
+    "sha256": "be21650a059455ff5659aeff5ffd49e142bc904f881ef0d1b55f2e86d9976b70",
+    "manifest_sha256": "64a214c2ab8fb2f52958a170b6cfbd084690e40907613a4cf6f988b6efdb5fea",
+    "configuration": "Release, Sidewinder accepted hierarchy/PVS/render bank, bulk submission, paced30, RSPQ 32 KiB; no QA fixtures.",
+    "runtime_commit": "38136192d635f2a1e17ee7765546a9f81c2c17fa",
+    "asset_commit": "6cd3756bdf797689332ef43b1bfa678c2d14363e",
+    "toolchain": {
+      "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+      "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+      "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+    },
+    "log_sha256": "6d8984eca698f73bfe642f6d8c379b953e22fec31855a4d3fdc99df48a92aa0d"
+  },
+  "private_manifest_refresh": {
+    "consumed_game_input": "Blood Gulch teleporter declaration",
+    "declaration_unchanged": true,
+    "regenerated_files_identical": [
+      "bloodgulch.map64",
+      "bloodgulch-world.bin",
+      "common_data.c"
+    ],
+    "all_map_bank_files_verified": 27,
+    "old_game_sha256": "b5163301f015a5897a5a689324509798ce12e08c7b4a601ff02c5256b4f5e718",
+    "new_game_sha256": "20a7a56f6da528d80557886bc2b986b7d51f2177275c1a3a256b14ad6c4939ef",
+    "changes": [
+      "generated/maps/maps-report.json input hash",
+      "bank-manifest.json provenance and report hash"
+    ],
+    "payload_files_verified": 1206,
+    "map_geometry_and_scenario_banks_changed": false
+  },
+  "limits": [
+    "Host comparison on the same adapted coordinates/presence state, not full original-engine replay or bit-exact cross-libm/N64 proof.",
+    "Five source-start clearance corrections, floor projection, living-player unit-presence adapter and existing vehicle-bounds query remain.",
+    "No fresh Ares mode-cycle, FPS measurement or hardware run in this spawn-only revision; prior native mode acceptance is historical."
+  ],
+  "inputs": {
+    "port/n64/game.c": "20a7a56f6da528d80557886bc2b986b7d51f2177275c1a3a256b14ad6c4939ef",
+    "port/n64/game_modes.inc": "bc654be227e83ee51037bc870f76600e0410fef15b564c600967974cc9774abf",
+    "port/n64/test_modes.c": "bd5e29d6ba00d739364c7e563e06700b4728581821fb9fca5b3771ddccbd1331",
+    "port/n64/test_spawn_weights.inc": "98f0826f2b0ae6d90a11bb41f5a73b9827c2f5fdfb7dcb5463181b85b067da94",
+    "port/n64/test_spawn_reference.h": "a0f4806eeb7667cf915c22b8ea04b540deee04218a1b51a08a78b8f20beb0471",
+    "port/n64/spawn_source_reference.py": "ad1b3de6c1b8b2e5d4b722ca64f1348e7dce9157fbb10d76512d63a28c5f3804",
+    "port/n64/test_maps.py": "16b339699350b8e5c4db1fd71601f03e22b97847080cd7ce20a56632a9825d3a",
+    "source/game/game_engine.c": "bca5836786d4f052771215654249426a868c68aec81e41e03e94648939c13c85",
+    "source/game/game_engine_ctf.c": "e2981c8e68047628a494c363b8f575fb55f96dca822054376e6af64f86198035",
+    "source/game/game_time.c": "40ffceddbb5c0b858268f9e5aefb859565d2bbc5c04f42e152465cdaf2a7427b",
+    "source/math/real_math.h": "f50befc4193d6d3d46cd00fc5f869c8a7a538a581b64ab8baeefce5e4d7220c5",
+    "source/cseries/cseries.h": "aa7d6f14653606d0a0d8ce1987ddf5f94201d0facb8769fd990ce95b4780d5d3"
+  }
+}

@@ -17,6 +17,9 @@ extern const bg_rom_pose bg_locomotion_poses[6][2], bg_locomotion_grips[6];
  * cycle, allowing gait and shot time to advance independently. */
 extern const bg_rom_pose bg_body_fire_poses[4][BG_BODY_FIRE_FRAMES][2];
 extern const bg_rom_pose bg_body_fire_grips[4][BG_BODY_FIRE_FRAMES];
+/* Source masked replacement over independently advancing gait; no runtime skinning. */
+extern const bg_rom_pose bg_body_reload_poses[4][BG_BODY_RELOAD_FRAMES][2];
+extern const bg_rom_pose bg_body_reload_grips[4][BG_BODY_RELOAD_FRAMES];
 extern const bg_rom_pose bg_seat_poses[][3][2];
 extern const bg_rom_pose bg_body_ready_poses[2], bg_body_ready_grip;
 extern const bg_rom_pose bg_seat_grips[], bg_hatch_poses[2][2];

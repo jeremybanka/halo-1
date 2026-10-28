@@ -125,7 +125,7 @@ static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
  * fenced player/slot buffers. Segment 1 is reserved for these draw calls. */
 static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static float fired_at[4] = {-100, -100, -100, -100};
-static bool body_firing[4];
+static bool body_firing[4], body_reloading[4];
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
     *particle_blocks[8];
 static rspq_block_t *vehicle_lods[4];
@@ -670,13 +670,16 @@ static void prepare_player_bounds(unsigned p) {
     /* CE keeps weapon recoil separate from base locomotion. Shots still own
      * anim_time for first-person/actions; the base loop has its own clock. */
     body_firing[p] = bg_player_body_firing(player);
+    body_reloading[p] = bg_player_body_reloading(player);
     if (clip == BG_A_FIRE && player->grounded && !seat && !throwing)
+        clip = hypotf(player->velocity[0], player->velocity[2]) > .15f ? BG_A_RUN : BG_A_IDLE;
+    if (body_reloading[p])
         clip = hypotf(player->velocity[0], player->velocity[2]) > .15f ? BG_A_RUN : BG_A_IDLE;
     body_clips[p] = clip;
     body_throwing[p] = throwing;
     float size = 1;
     float height_scale =
-        locomotion_clip(player) < 0 ? bg_body_height(player) / bg_movement.height[0] : 1;
+        !body_reloading[p] && locomotion_clip(player) < 0 ? bg_body_height(player) / bg_movement.height[0] : 1;
     T3DMat4 *body = &body_matrices[p];
     t3d_mat4_from_srt_euler(
         body, (float[]){size, height_scale, size}, (float[]){0, -body_yaw, -body_pitch},
@@ -712,10 +715,11 @@ static void prepare_player_bounds(unsigned p) {
             merged.max[k] = fmaxf(merged.max[k], b->max[k]);
         }
     }
-    if (body_firing[p]) {
+    if (body_firing[p] || body_reloading[p]) {
         unsigned moving = clip == BG_A_RUN;
         for (unsigned crouched = 0; crouched < 2; crouched++) {
-            const bg_bounds *b = &bg_body_fire_poses[moving + 2 * crouched][0][0].bounds;
+            const bg_bounds *b = body_reloading[p] ? &bg_body_reload_poses[moving + 2 * crouched][0][0].bounds
+                                                  : &bg_body_fire_poses[moving + 2 * crouched][0][0].bounds;
             for (unsigned k = 0; k < 3; k++) {
                 merged.min[k] = fminf(merged.min[k], b->min[k]);
                 merged.max[k] = fmaxf(merged.max[k], b->max[k]);
@@ -728,7 +732,7 @@ static void prepare_player_bounds(unsigned p) {
     /* Any normalized hand quaternion keeps a weapon within its origin sphere.
      * Marker position interpolation stays inside this clip's endpoint box. */
     bg_bounds marker = bg_attachment_cull_bounds[clip];
-    if (seat || player->weapon_ready > 0 || locomotion >= 0 || body_firing[p])
+    if (seat || player->weapon_ready > 0 || locomotion >= 0 || body_firing[p] || body_reloading[p])
         marker = (bg_bounds){{-1, -1, -1}, {1, 1, 1}};
     bg_bounds_expand(&marker, bg_model_cull_radii[weapon_model(player->weapon)]);
     bg_bounds_transform(&box, &marker, body->m, BG_SCALE);
@@ -752,10 +756,12 @@ static int locomotion_clip(const bg_player *p) {
 static float locomotion_seconds(const bg_player *p, int clip) {
     return clip < 2 ? p->locomotion_time : p->landing_duration - p->landing_time;
 }
-static void animate_firing_player(unsigned p) {
+static void animate_layered_player(unsigned p) {
     const bg_player *player = &bg_players[p];
-    float frame = bg_player_body_fire_frame(player);
-    unsigned f0 = frame, f1 = f0 + 1 < BG_BODY_FIRE_FRAMES ? f0 + 1 : f0;
+    bool reload = body_reloading[p];
+    float frame = reload ? bg_player_body_reload_frame(player) : bg_player_body_fire_frame(player);
+    unsigned frames = reload ? BG_BODY_RELOAD_FRAMES : BG_BODY_FIRE_FRAMES;
+    unsigned f0 = frame, f1 = f0 + 1 < frames ? f0 + 1 : f0;
     float fraction = frame - f0, accumulated = 0;
     float hand_points[4][3] = {{0}};
     unsigned moving = body_clips[p] == BG_A_RUN;
@@ -769,14 +775,16 @@ static void animate_firing_player(unsigned p) {
             float blend = weight / (accumulated + weight);
             for (unsigned lod = 0; lod < 2; lod++) if (wanted_lods[p] & (1u << lod)) {
                 T3DVertPacked *out = CachedAddr(lod ? armor_lod[slot][p] : armor[slot][p]);
-                const bg_rom_pose *pose = &bg_body_fire_poses[base][fire][lod];
+                const bg_rom_pose *pose = reload ? &bg_body_reload_poses[base][fire][lod]
+                                                : &bg_body_fire_poses[base][fire][lod];
                 if (accumulated == 0)
                     bg_interaction_pose(out, pose, player->locomotion_time, true);
                 else
                     bg_interaction_pose_blend(out, pose, player->locomotion_time, true, blend);
             }
             if (wanted_held & (1u << p)) {
-                const bg_rom_pose *pose = &bg_body_fire_grips[base][fire];
+                const bg_rom_pose *pose = reload ? &bg_body_reload_grips[base][fire]
+                                                : &bg_body_fire_grips[base][fire];
                 int16_t points[4][3];
                 bg_interaction_points(points, pose, fmodf(player->locomotion_time, pose->duration));
                 for (unsigned i = 0; i < 4; i++) for (unsigned a = 0; a < 3; a++)
@@ -832,8 +840,8 @@ static void animate_player(unsigned p) {
         }
         return;
     }
-    if (body_firing[p]) {
-        animate_firing_player(p);
+    if (body_firing[p] || body_reloading[p]) {
+        animate_layered_player(p);
         return;
     }
     int locomotion = locomotion_clip(player);

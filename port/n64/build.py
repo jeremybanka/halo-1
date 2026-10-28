@@ -36,6 +36,7 @@ def parse_args(argv=None):
     parser.add_argument("--pve-photo-tick",type=int)
     parser.add_argument("--pve-model-qa",action="store_true",help="Native four-angle Covenant model audit")
     parser.add_argument("--pve-model-bank",type=Path,help="Isolated Covenant visual-bank candidate; simulation assets stay canonical")
+    parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument(
@@ -378,7 +379,8 @@ def parse_args(argv=None):
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
     ):
         parser.error("--game-source requires an explicit profiling or telemetry mode")
-    if args.scene_source and not (args.profile or args.spartan_motion_qa):
+    if args.spartan_motion_qa and args.spartan_reload_qa:parser.error('Choose one Spartan animation fixture')
+    if args.scene_source and not (args.profile or args.spartan_motion_qa or args.spartan_reload_qa):
         parser.error("--scene-source requires profiling or Spartan motion QA")
     if args.feature_cache_slots and not (
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
@@ -406,7 +408,7 @@ def parse_args(argv=None):
         or args.interaction_qa is not None
         or args.plasma_qa is not None
         or args.model_qa
-        or args.spartan_motion_qa
+        or (args.spartan_motion_qa or args.spartan_reload_qa)
         or args.pve_model_qa
         or args.weapon_qa
         or args.geometry_qa
@@ -559,7 +561,7 @@ def compile_options(args, sdk, tiny, out, source):
             if args.aim_qa is not None
             or args.plasma_qa is not None
             or args.model_qa
-            or args.spartan_motion_qa
+            or (args.spartan_motion_qa or args.spartan_reload_qa)
             or args.pve_model_qa
             or args.weapon_qa
             or args.geometry_qa
@@ -579,6 +581,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_PLASMA_QA=" + str(args.plasma_qa)] if args.plasma_qa is not None else []),
         *(["-DBG_WEAPON_QA"] if args.weapon_qa else []),
         *(["-DBG_SPARTAN_MOTION_QA"] if args.spartan_motion_qa else []),
+        *(["-DBG_SPARTAN_RELOAD_QA"] if args.spartan_reload_qa else []),
         *(["-DBG_ENVIRONMENT_QA"] if args.environment_qa else []),
         *(["-DBG_GROUND_QA"] if args.ground_qa else []),
         *(["-DBG_GEOMETRY_QA"] if args.geometry_qa else []),
@@ -680,6 +683,8 @@ def rom_name(args):
         name += "-model-qa"
     if args.spartan_motion_qa:
         name += "-spartan-motion-qa"
+    if args.spartan_reload_qa:
+        name += "-spartan-reload-qa"
     if args.pve_model_qa:name += "-pve-model-qa"
     if args.pve_model_bank:name += "-pve-model-candidate"
     if args.plasma_qa is not None:

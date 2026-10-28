@@ -1426,7 +1426,7 @@ int main(void) {
         overlay_us = get_ticks_us() - profile_start;
         profile_start = get_ticks_us();
 #endif
-#if defined(BG_PVE_PHOTO_TICK) || defined(BG_SPARTAN_MOTION_QA) || defined(BG_PVE_MODEL_QA)
+#if defined(BG_PVE_PHOTO_TICK) || defined(BG_SPARTAN_MOTION_QA) || defined(BG_SPARTAN_RELOAD_QA) || defined(BG_PVE_MODEL_QA)
         /* Frozen QA only: read completed native RDP pixels, without desktop
          * capture or VI/window scaling. Never compiled into perf/play builds. */
         rdpq_detach_wait();
@@ -1434,6 +1434,8 @@ int main(void) {
         if(photo_exported<
 #ifdef BG_PVE_MODEL_QA
             52
+#elif defined(BG_SPARTAN_RELOAD_QA)
+            72
 #elif defined(BG_SPARTAN_MOTION_QA)
             51
 #else
@@ -1442,7 +1444,7 @@ int main(void) {
         ){
             assertf(surface_get_format(screen)==FMT_RGBA16&&screen->width==320&&screen->height==240,"Photo format");
             debugf("FF_PHOTO_BEGIN tick=%u width=320 height=240 format=RGBA5551\n",
-#if defined(BG_SPARTAN_MOTION_QA) || defined(BG_PVE_MODEL_QA)
+#if defined(BG_SPARTAN_MOTION_QA) || defined(BG_SPARTAN_RELOAD_QA) || defined(BG_PVE_MODEL_QA)
                    photo_exported
 #else
                    BG_PVE_PHOTO_TICK

@@ -16,7 +16,7 @@ def poses(node):
  else:
   for child in node:yield from poses(child)
 checked=0;maximum=0
-for name in ['bg_body_fire_poses','bg_body_fire_grips','bg_locomotion_poses','bg_locomotion_grips','bg_seat_poses','bg_seat_grips','bg_body_ready_poses','bg_body_ready_grip','bg_ready_poses','bg_ready_needles','bg_reload_needles','bg_ready_ar_digits','bg_ready_scope','bg_hatch_poses','bg_service_poses','bg_service_details','bg_service_vents','bg_reload_ar_digits','bg_shotgun_fire_muzzle']:
+for name in ['bg_body_reload_poses','bg_body_reload_grips','bg_body_fire_poses','bg_body_fire_grips','bg_locomotion_poses','bg_locomotion_grips','bg_seat_poses','bg_seat_grips','bg_body_ready_poses','bg_body_ready_grip','bg_ready_poses','bg_ready_needles','bg_reload_needles','bg_ready_ar_digits','bg_ready_scope','bg_hatch_poses','bg_service_poses','bg_service_details','bg_service_vents','bg_reload_ar_digits','bg_shotgun_fire_muzzle']:
  for offset,stride,vertices,frames,duration,bounds in poses(array(name)):
   if not vertices:
    assert frames==stride==offset==0;continue
@@ -99,3 +99,11 @@ for index in [13,*hit_report['fire_clips'][3]]:
  c=hit_report['clips'][index]
  in_place(hit_bank,c['offset'],c['stride'],hit_report['vertices'],c['count'],1024)
 print('PASS: both visual LODs and animated hit surfaces walk in place throughout crouched recoil')
+
+for pose in [pose for pair in array('bg_body_reload_poses')[3] for pose in pair]:
+ offset,stride,vertices,frames,*_=pose
+ in_place(bank,offset,stride,vertices,frames,128)
+for index in hit_report['reload_clips'][3]:
+ c=hit_report['clips'][index]
+ in_place(hit_bank,c['offset'],c['stride'],hit_report['vertices'],c['count'],1024)
+print('PASS: both visual LODs and hit surfaces keep crouch strides in place throughout reload')

@@ -12,7 +12,7 @@ from pack_firstperson import prepare_model, split_details
 from pack_fp_ammo import globals_for, overlay_states, prepare_ar
 from extract_extended import MODEL_PATHS
 from asset_ids import service_keys, SERVICE_SCHEMA
-from spartan_motion import firing_cycles
+from spartan_motion import firing_cycles,reload_cycles,BODY_RELOAD_FRAMES
 ROOT=Path(__file__).resolve().parents[2]
 A=ROOT/'build/n64/assets'; G=ROOT/'build/n64/generated'; F=ROOT/'build/n64/frontend-files'
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
@@ -111,6 +111,19 @@ def run():
             for d in lods:d['bounds']=union
         body_fire.append(row);body_fire_grips.append(hands)
         body_fire_report.append({k:v for k,v in base.items() if k!='cycles'})
+    body_reload=[];body_reload_grips=[];body_reload_report=[]
+    for base in reload_cycles(raw,locomotion_clips[:2]):
+        row=[];hands=[]
+        for frames in base['cycles']:
+            combined={'duration':base['duration'],'frames':frames}
+            row.append([skin_body(combined,world['models']['spartan'],mapping['spartan']),
+                        skin_body(combined,world['spartan_lod'],mapping['spartan_lod'])])
+            hands.append(grip_for(combined))
+        bounds=np.array([d['bounds'] for lods in row for d in lods]);union=[bounds[:,0,:].min(axis=0).tolist(),bounds[:,1,:].max(axis=0).tolist()]
+        for lods in row:
+            for d in lods:d['bounds']=union
+        body_reload.append(row);body_reload_grips.append(hands)
+        body_reload_report.append({k:v for k,v in base.items() if k!='cycles'})
     groups=[];seats=[];clip_report=[];grips=[]
     paths=[('warthog',r'vehicles\warthog\warthog'),('ghost',r'vehicles\ghost\ghost_mp'),
            ('scorpion',r'vehicles\scorpion\scorpion_mp'),('banshee',r'vehicles\banshee\banshee')]
@@ -265,6 +278,8 @@ def run():
     lines=['/* Generated owned Xbox animation metadata. */','#include "interaction_poses.h"']
     lines.append('const bg_rom_pose bg_locomotion_poses[6][2]={'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in locomotion)+'};')
     lines.append('const bg_rom_pose bg_locomotion_grips[6]={'+','.join(init(d) for d in locomotion_grips)+'};')
+    lines.append('const bg_rom_pose bg_body_reload_poses[4][BG_BODY_RELOAD_FRAMES][2]={'+','.join('{'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in row)+'}' for row in body_reload)+'};')
+    lines.append('const bg_rom_pose bg_body_reload_grips[4][BG_BODY_RELOAD_FRAMES]={'+','.join('{'+','.join(init(d) for d in row)+'}' for row in body_reload_grips)+'};')
     lines.append('const bg_rom_pose bg_body_fire_poses[4][BG_BODY_FIRE_FRAMES][2]={'+','.join('{'+','.join('{'+','.join(init(d) for d in lods)+'}' for lods in row)+'}' for row in body_fire)+'};')
     lines.append('const bg_rom_pose bg_body_fire_grips[4][BG_BODY_FIRE_FRAMES]={'+','.join('{'+','.join(init(d) for d in row)+'}' for row in body_fire_grips)+'};')
     lines.append('const bg_rom_pose bg_hatch_poses[2][2]={'+','.join('{'+','.join(init(d) for d in pair)+'}' for pair in hatches)+'};')
@@ -285,7 +300,7 @@ def run():
     defs.append('};');(G/'interaction_defs.c').write_text('\n'.join(defs)+'\n')
     inputs={str(p.relative_to(ROOT)):sha(p) for p in [A/'extended-raw.json',A/'extended-reduced.json',A/'firstperson-raw.json',A/'firstperson-reduced.json',A/'firstperson-ammo.json',A/'bloodgulch-decompressed.map',A/'a30-decompressed.map',G/'models_data.c',G/'firstperson_data.c',G/'world-mesh-sources.json',Path(__file__),SERVICE_SCHEMA,Path(__file__).with_name('asset_ids.py'),Path(__file__).with_name('spartan_motion.py')]}
     files={str(p.relative_to(ROOT)):sha(p) for p in [G/'interaction_assets.c',G/'interaction_defs.c',F/'interactions.bin']}
-    report={'inputs':inputs,'files':files,'rom_bytes':len(bank),'scratch_bytes':scratch,'seats':seats,'locomotion':locomotion_report,'body_fire':{'recoil':raw['animations']['fire']['tag_name'],'frames':5,'bases':body_fire_report},'body_clips':clip_report,'ready':fp_report,'service':service_report,'hold_ticks':7}
+    report={'inputs':inputs,'files':files,'rom_bytes':len(bank),'scratch_bytes':scratch,'seats':seats,'locomotion':locomotion_report,'body_fire':{'recoil':raw['animations']['fire']['tag_name'],'frames':5,'bases':body_fire_report},'body_reload':{'replacement':raw['animations']['reload']['tag_name'],'frames':BODY_RELOAD_FRAMES,'bases':body_reload_report},'body_clips':clip_report,'ready':fp_report,'service':service_report,'hold_ticks':7}
     (G/'interaction-report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps({'rom_bytes':len(bank),'scratch_bytes':scratch,'body_groups':len(groups),'ready':fp_report},indent=2))
 if __name__=='__main__':run()

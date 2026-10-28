@@ -22,6 +22,8 @@ static struct {
 #ifdef BG_MODEL_QA
 #if defined(BG_PVE_MODEL_QA)
 #include "pve_model_qa.h"
+#elif defined(BG_SPARTAN_RELOAD_QA)
+#include "spartan_reload_qa.h"
 #elif defined(BG_SPARTAN_MOTION_QA)
 #include "spartan_motion_qa.h"
 #elif defined(BG_MAP_QA)

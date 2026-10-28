@@ -6,7 +6,7 @@ in RAM; there is no per-frame allocation or simplified head/torso proxy.
 import json,struct
 import numpy as np
 from pack_fp_ammo import globals_for,rotate,overlay_states
-from spartan_motion import firing_cycles
+from spartan_motion import firing_cycles,reload_cycles,BODY_RELOAD_FRAMES
 
 def player_hits(h,campaign,root):
  from reclaimer.animation.animation_decompilation import extract_animation
@@ -81,6 +81,12 @@ def player_hits(h,campaign,root):
   for frames in base['cycles']:
    row.append(len(clips));emit(frames,base['duration'])
   fire_ids.append(row)
+ reload_ids=[]
+ for base in reload_cycles(raw,crouch):
+  row=[]
+  for frames in base['cycles']:
+   row.append(len(clips));emit(frames,base['duration'])
+  reload_ids.append(row)
  (root/'build/n64/frontend-files/player-hits.bin').write_bytes(bank)
  def array(v):return str(v).replace('[','{').replace(']','}')
  lines=['const uint16_t bg_player_hit_triangles[][3]='+array(triangles)+';',
@@ -92,4 +98,5 @@ def player_hits(h,campaign,root):
  for c in clips:lines.append('{'+f'{c["offset"]},{c["stride"]},{c["count"]},{c["duration"]:.9f}f'+'},')
  lines.append('};')
  lines.append('const uint16_t bg_player_hit_fire_clips[4][5]='+array(fire_ids)+';')
- return lines,dict(vertices=len(vertices),triangles=len(triangles),groups=len(groups),clips=clips,fire_clips=fire_ids,rom_bytes=len(bank),source=r'characters\cyborg\cyborg')
+ lines.append('const uint16_t bg_player_hit_reload_clips[4]['+str(BODY_RELOAD_FRAMES)+']='+array(reload_ids)+';')
+ return lines,dict(vertices=len(vertices),triangles=len(triangles),groups=len(groups),clips=clips,fire_clips=fire_ids,reload_clips=reload_ids,rom_bytes=len(bank),source=r'characters\cyborg\cyborg')

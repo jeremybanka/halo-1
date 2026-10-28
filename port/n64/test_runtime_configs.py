@@ -42,6 +42,7 @@ VARIANTS = {
     "menu": ["--menu-qa"],
     "model": ["--model-qa"],
     "spartan-motion": ["--spartan-motion-qa"],
+    "spartan-reload": ["--spartan-reload-qa"],
     "covenant-models": ["--pve-squad", "--pve-model-qa"],
     "covenant-candidate": ["--pve-squad", "--pve-model-qa", "--pve-model-bank",
                            "build/covenant-models/bank", "--output-dir", "build/covenant-models/config"],

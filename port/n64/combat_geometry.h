@@ -13,6 +13,7 @@ const bg_hit_mesh *bg_vehicle_collision_pose(const bg_vehicle*v);
 typedef struct {uint32_t offset;uint16_t stride,count;float duration;} bg_hit_clip;
 extern const bg_hit_clip bg_player_hit_clips[];
 extern const uint16_t bg_player_hit_fire_clips[4][5];
+extern const uint16_t bg_player_hit_reload_clips[4][12];
 extern const uint16_t bg_player_hit_triangles[][3],bg_player_hit_groups[][2];
 extern const uint8_t bg_player_hit_regions[];
 extern const unsigned bg_player_hit_vertex_count,bg_player_hit_group_count;

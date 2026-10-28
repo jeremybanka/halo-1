@@ -45,7 +45,7 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
  if(!deadline){
    /* Hold the key appraisal screens long enough for native capture. */
    unsigned delay=current==2||current==5||current==9?5:1;
-   if(current==14||current==18)delay=6;
+   if(current==14||current==18)delay=20; /* Enter with live actors and a departing transport. */
    deadline=now+delay*1000000u;return;
  }
  if(now<deadline)return;
@@ -56,6 +56,7 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
  assertf(f->page==s->page,"Firefight QA step %u page %u expected %u",current,f->page,s->page);
  if(f->page==BG_FRONT_PLAY){
    bool expected=current<31;
+   if(current==14||current==18)assertf(bg_pve_count>0,"Exercise live arrival before restart/quit");
    assertf(bg_pve_is_active()==expected,"Firefight session cleanup");
    assertf(bg_player_count()==BG_FRONTEND_QA_PLAYERS,"Firefight player count");
    assertf(bg_ff.active==expected&&bg_pve_count<=BG_PVE_MAX&&(!expected?bg_pve_count==0:true),"Firefight director/actor lifecycle");

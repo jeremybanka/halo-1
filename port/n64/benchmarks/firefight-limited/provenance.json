@@ -1,0 +1,188 @@
+{
+  "schema": 1,
+  "measurement_source_revision": "2e6f1b028e5648214edf8d097add725d4f66849f",
+  "final_gameplay_revision": "92dd0e809074503e2aac495af920835848b3dfc5",
+  "gameplay_assets_revision": "ce0e4fd2b3aba5b001cbac5ce4edba4254e39b37",
+  "private_appraisal_revision": "07daf1cf1821701955c3eba20d1acccf784598d8",
+  "notes": [
+    "Live perf sources match 2e6f1b02; subsequent changes remove one duplicate respawn prompt and add photo-only readback.",
+    "Lifecycle soak predates the inactive-session render guard. Menu and PvP checks include that guard.",
+    "Menu-live QA additionally waits twenty seconds before restart/quit so actor and transport buffers are allocated.",
+    "Photo readback is raw native RDP RGBA5551, before VI filtering.",
+    "Each build manifest records exact source/header/include/generated-input hashes even if built before its final commit."
+  ],
+  "cases": {
+    "perf-1": {
+      "rom": "halo-64-render-candidate-profile.z64",
+      "rom_bytes": 43810816,
+      "rom_sha256": "684f6fb42b663de956af0f32d786fdf21283d99cee0606b518316f76e0b88ea1",
+      "build_manifest_sha256": "7e429732590e116e861ab416ffde37effab2f20d671150e6f0f64c0ba4542823",
+      "log_sha256": "315e6b7a5c21aa92a589b46b8dee97e78ae209f55b59525bb77aa0ab6c9be4f5"
+    },
+    "perf-2": {
+      "rom": "halo-64-render-candidate-profile.z64",
+      "rom_bytes": 43810816,
+      "rom_sha256": "37b27ede90ad9f27a8d5c0ce85c39a2d3a9bced72471edfba211d59af9fad466",
+      "build_manifest_sha256": "1966ca4a563339ceb245620ea86ec09d0f9b2807e0dcd032c1875d1372ad3e2a",
+      "log_sha256": "e32c04c0542750ff0ab76487767e777ee55953b5b97f9d65fb2c35cbd70e65be"
+    },
+    "perf-3": {
+      "rom": "halo-64-render-candidate-profile.z64",
+      "rom_bytes": 43810816,
+      "rom_sha256": "e8a022001ada1dfbcab06b40e65461866da5ddad64fd933720b4092d35fdc8a5",
+      "build_manifest_sha256": "9678b2ad9298374d986cc8160b55928ddd67a8f879feff40206dffcf5461fb4e",
+      "log_sha256": "0874aa2a99cdfa8495342bb6c0cd0e882c6f1d5512c40833480b8f227ae54a1f"
+    },
+    "perf-4": {
+      "rom": "halo-64-render-candidate-profile.z64",
+      "rom_bytes": 43810816,
+      "rom_sha256": "bc8b876a2080d4982f43a4dc70828f21077ed61e1b6131b8adc5a2c21e7dc98d",
+      "build_manifest_sha256": "2e1b98a608781aaaa3225dd1e96a0f4a39ae63d1b9aa49294b62dc224ec60f12",
+      "log_sha256": "ce9e09fb512d04e2c139aacb0bddb271eb8edb03d14ca761354ab797890981c3"
+    },
+    "opening-1": {
+      "rom": "halo-64-render-candidate-profile.z64",
+      "rom_bytes": 43810816,
+      "rom_sha256": "42ecd5a65bb50af9030dcd523a207690257fc78e87136a25ad8af64bdc0567e9",
+      "build_manifest_sha256": "a44b489dadc849ef61b9cf137ef11d17242d45040ae70007d3271e01822e8af9",
+      "log_sha256": "bd22c8c1e63a849ae47966912214feef333cad0bb7bd9b067bf0ace47d4ffdec"
+    },
+    "opening-4": {
+      "rom": "halo-64-render-candidate-profile.z64",
+      "rom_bytes": 43810816,
+      "rom_sha256": "1b6e350c99b4759cc17d7d3931fea93145d0acf5e4ddd12e8a47cfbdba9de469",
+      "build_manifest_sha256": "b44c745e0149dceeaa5057001bcb27e626f1ecfaad7662f8001b041ade442a01",
+      "log_sha256": "c17ccd39cadf4484c85fd9ed41e2b37b9aa329012e0100ffbed0e1430ba78cad"
+    },
+    "lifecycle-4": {
+      "rom": "halo-64-render-candidate-profile.z64",
+      "rom_bytes": 43810816,
+      "rom_sha256": "a8857fc70bf00948bae61130d1595e2730adb80cab42677bf7623cc92bdba91e",
+      "build_manifest_sha256": "157a7bd74cbd10504f5c532f36b239bb129b2180f7adebf0f397bced755cb164",
+      "log_sha256": "fb3f705da86ccc1179069256ba1e6892a642e2d607c628289f655b48d3d86c3d"
+    },
+    "play": {
+      "rom": "halo-64-render-candidate-firefight-paced30-rspq32k.z64",
+      "rom_bytes": 43794432,
+      "rom_sha256": "b769a1d283e5ea2b788f1f0a634a6378ce2ce54aef3a405c41d2659b2d5dbc57",
+      "build_manifest_sha256": "9fa2a26332f7abd7308dd1dc2d4ef797d1af882786afd65ede29874d2c5c880e"
+    },
+    "ship-approach": {
+      "rom": "halo-64-render-candidate.z64",
+      "rom_bytes": 43761664,
+      "rom_sha256": "1c1b35770da45ba287e6d39d125049b1b8727b60e41678c2ac65a8e646373a97",
+      "build_manifest_sha256": "8d0e37d06ea225997fcc2907ae34247717445300c4e02a50e95a1ae39c99bfd1",
+      "log_sha256": "2c03de586b84ddcce133ecc8e83932769db5f8951bb8c03790b3ad605ff8c46d",
+      "poses": [
+        "PVE_START views=1 count=4 tick=230 seed=505645",
+        "PVE_POSE unit=0 pos=-7.996696,2.114977,27.986464 yaw=0.674741 pitch=0.080000 crouch=0.000000 hp=100.000 shield=100.000",
+        "PVE_POSE unit=4 pos=3.777738,5.568680,20.000000 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000",
+        "PVE_POSE unit=5 pos=0.209523,5.568680,19.997322 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000",
+        "PVE_POSE unit=6 pos=3.777738,5.568680,17.535538 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=60.000 shield=240.000",
+        "PVE_POSE unit=7 pos=0.209523,5.568680,17.511736 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000",
+        "FF_PHOTO_BEGIN tick=230 width=320 height=240 format=RGBA5551"
+      ],
+      "png_sha256": "9da6f2a0a6ed1042fd2628988c48a708aa02d0341854f43f2040026499d8f7c7"
+    },
+    "ship-photo": {
+      "rom": "halo-64-render-candidate.z64",
+      "rom_bytes": 43761664,
+      "rom_sha256": "38acf6f86bfe1567f0f9fe92718e04edbc9d059e91fcba0ec9206986deac74cc",
+      "build_manifest_sha256": "321f8f52328bf9ecf522264f938e56fb90d16b16d3a0573f3bf010e96d664c38",
+      "log_sha256": "9eac329f0b605dcc60058c141999a75cad13d334baaf74f20965559e3c241c6b",
+      "poses": [
+        "PVE_START views=1 count=4 tick=310 seed=505645",
+        "PVE_POSE unit=0 pos=-7.996696,2.114977,27.986464 yaw=0.674741 pitch=0.080000 crouch=0.000000 hp=100.000 shield=100.000",
+        "PVE_POSE unit=4 pos=1.188138,2.110216,20.000000 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000",
+        "PVE_POSE unit=5 pos=0.747038,3.612628,19.997747 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000",
+        "PVE_POSE unit=6 pos=3.777738,3.994555,17.535538 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=60.000 shield=240.000",
+        "PVE_POSE unit=7 pos=0.209523,3.994555,17.511736 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000",
+        "FF_PHOTO_BEGIN tick=310 width=320 height=240 format=RGBA5551"
+      ],
+      "png_sha256": "29fb4b784da7223e7f7602f4a9dce2e2e147bb72c327bb45d191c4c79c235118"
+    },
+    "ship-departure": {
+      "rom": "halo-64-render-candidate.z64",
+      "rom_bytes": 43761664,
+      "rom_sha256": "8162df30e17a58f5e02fd29401c9d4acdf6dba119d7b581cee11fe901ceebacd",
+      "build_manifest_sha256": "205ee04f40bc37a998db5175e9fc84ce594b6054eca670a437cf57223495ad45",
+      "log_sha256": "8d3b7840961f23da6fa967e52490cb6f8d47af26af48dd97b5284b72eef8dacc",
+      "poses": [
+        "PVE_START views=1 count=4 tick=430 seed=505645",
+        "PVE_POSE unit=0 pos=-8.400745,2.359748,28.379971 yaw=0.674741 pitch=0.080000 crouch=0.000000 hp=87.535 shield=0.000",
+        "PVE_POSE unit=4 pos=0.026181,1.424260,19.997856 yaw=3.924325 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000",
+        "PVE_POSE unit=5 pos=3.998323,0.998775,19.982746 yaw=-2.546301 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000",
+        "PVE_POSE unit=6 pos=0.063320,1.389329,18.026762 yaw=4.027050 pitch=0.000000 crouch=0.000000 hp=60.000 shield=240.000",
+        "PVE_POSE unit=7 pos=4.007015,0.808496,18.017109 yaw=-2.445759 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000",
+        "FF_PHOTO_BEGIN tick=430 width=320 height=240 format=RGBA5551"
+      ],
+      "png_sha256": "5649691935cb53fc14d612e26960a62ae1d4a1c22d739b2eeb164b50b0f462a5"
+    },
+    "combat-photo": {
+      "rom": "halo-64-render-candidate.z64",
+      "rom_bytes": 43761664,
+      "rom_sha256": "880a8aec008d3569bf556f58ab84bf71f5668f8b5ce3fa09de3ff0dd055a0257",
+      "build_manifest_sha256": "0eb4855575c94c2f0ed8bc2c300116c7c8886895f5e149837d6dcb4a74db83e6",
+      "log_sha256": "c4b5691ba30d4903ef9ddab56b0e7c1cb4fec77f546f359a2a114f1d81387f2b",
+      "poses": [
+        "PVE_START views=4 count=12 tick=90 seed=505645",
+        "PVE_POSE unit=0 pos=-0.926489,0.126410,1.300643 yaw=0.191532 pitch=0.000659 crouch=0.000000 hp=0.000 shield=0.000",
+        "PVE_POSE unit=1 pos=-1.535237,0.120331,0.884699 yaw=0.333717 pitch=0.008578 crouch=0.000000 hp=37.626 shield=0.000",
+        "PVE_POSE unit=2 pos=-0.379289,0.079668,2.540206 yaw=0.118540 pitch=-0.030585 crouch=0.000000 hp=15.959 shield=0.000",
+        "PVE_POSE unit=3 pos=-0.843566,0.094775,2.384178 yaw=0.083883 pitch=-0.031029 crouch=0.000000 hp=71.317 shield=0.000",
+        "PVE_POSE unit=4 pos=4.516249,0.243278,-1.207800 yaw=3.575859 pitch=0.000000 crouch=0.000000 hp=250.000 shield=0.000",
+        "PVE_POSE unit=5 pos=5.971192,0.287195,-1.959527 yaw=3.758044 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000",
+        "PVE_POSE unit=6 pos=10.983677,0.303975,-1.997208 yaw=6.282315 pitch=0.000000 crouch=0.000000 hp=40.000 shield=240.000",
+        "PVE_POSE unit=7 pos=6.985540,0.251424,0.000087 yaw=6.289230 pitch=0.000000 crouch=0.000000 hp=56.000 shield=0.000",
+        "PVE_POSE unit=8 pos=4.603289,0.232946,-0.991986 yaw=3.474023 pitch=0.000000 crouch=0.000000 hp=0.000 shield=0.000",
+        "PVE_POSE unit=9 pos=4.966163,0.146820,0.781596 yaw=3.235602 pitch=0.000000 crouch=0.000000 hp=0.000 shield=0.000",
+        "PVE_POSE unit=10 pos=6.065156,0.208856,-0.066181 yaw=1.047196 pitch=0.000000 crouch=0.000000 hp=0.000 shield=0.000",
+        "PVE_POSE unit=11 pos=5.945322,0.174157,1.171168 yaw=3.318403 pitch=0.000000 crouch=0.000000 hp=120.000 shield=85.000",
+        "PVE_POSE unit=12 pos=5.414481,0.130738,1.862244 yaw=3.258079 pitch=0.000000 crouch=0.000000 hp=2.000 shield=0.000",
+        "PVE_POSE unit=13 pos=4.893593,0.090287,2.446948 yaw=3.221635 pitch=0.000000 crouch=0.000000 hp=0.000 shield=0.000",
+        "PVE_POSE unit=14 pos=8.672376,0.222190,2.003917 yaw=0.002823 pitch=0.000000 crouch=0.000000 hp=40.000 shield=240.000",
+        "PVE_POSE unit=15 pos=6.412797,0.149320,3.298462 yaw=3.030415 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000",
+        "FF_PHOTO_BEGIN tick=90 width=320 height=240 format=RGBA5551"
+      ],
+      "png_sha256": "f9ac20a2fa82e2e6e1dfedc267f4fb04fd894e29191dc7103caebd2706023658"
+    },
+    "combat-1-photo": {
+      "rom": "halo-64-render-candidate.z64",
+      "rom_bytes": 43761664,
+      "rom_sha256": "75961b9943a4de83a15d32430352f5260c67a8899284b56ee10470f33fd7136a",
+      "build_manifest_sha256": "f04fec09ff6ff33039236aa5cc0973b7921962a909b86a820274b1668b2035ef",
+      "log_sha256": "5a9261beb94221628ec667615cc39f0178db35beb0b74d1a0e68190c66bdad12",
+      "poses": [
+        "PVE_START views=1 count=6 tick=60 seed=505645",
+        "PVE_POSE unit=0 pos=-1.179017,0.120786,1.286593 yaw=0.069247 pitch=-0.036701 crouch=0.000000 hp=50.732 shield=0.000",
+        "PVE_POSE unit=4 pos=5.451653,0.281756,-1.878386 yaw=3.586936 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000",
+        "PVE_POSE unit=5 pos=5.985390,0.287359,-1.961524 yaw=3.567245 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000",
+        "PVE_POSE unit=6 pos=6.765895,0.283340,-1.723117 yaw=3.503710 pitch=0.000000 crouch=0.000000 hp=60.000 shield=240.000",
+        "PVE_POSE unit=7 pos=6.035887,0.205877,-0.001271 yaw=6.279489 pitch=0.000000 crouch=0.000000 hp=120.000 shield=50.000",
+        "PVE_POSE unit=8 pos=4.603415,0.232961,-0.992283 yaw=3.517006 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000",
+        "PVE_POSE unit=9 pos=4.610840,0.139742,0.891501 yaw=3.209726 pitch=0.000000 crouch=0.000000 hp=28.000 shield=0.000",
+        "FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551"
+      ],
+      "png_sha256": "22f99f052fc4f389c0a5207b5a0bf7b3db54794e76f560b263926ba5be99acd0"
+    },
+    "menu-live-4": {
+      "rom": "halo-64-render-candidate-firefight-frontend-qa4.z64",
+      "rom_bytes": 43794432,
+      "rom_sha256": "d7fb0699cce6bade07300f4b345d3299415456f0b5625744d2814bf318fc4ce7",
+      "build_manifest_sha256": "b30fedb10ff3e236ee0e812735caac535b694398b74aecc247d450d272016aa1",
+      "log_sha256": "5cb2a6002f4a9c566c285f70baf03ea50b98f6b66131e765c17464c9006f9894"
+    }
+  },
+  "emulator": "Ares v148",
+  "capture_settings": {
+    "region": "NTSC",
+    "resolution": [
+      320,
+      240
+    ],
+    "ram_mib": 8,
+    "interframe_blending": false,
+    "defocus": "Block",
+    "global_settings_changed": false
+  }
+}

@@ -1,8 +1,8 @@
 /* Objective geometry uses the same frame-slot fences as ordinary weapons.
  * Map selection owns no renderer buffers; the bounded assets are shared. */
 static rspq_block_t *objective_blocks[2],*objective_fp_blocks[2];
-static rspq_block_t *flag_fp_cloth_block;
 static T3DMat4FP objective_matrices[BG_FRAME_SLOTS][BG_MAX_OBJECTIVES];
+#include "scene_flag_cloth.inc"
 static T3DVertPacked hill_vertices[BG_FRAME_SLOTS][24] __attribute__((aligned(16)));
 static unsigned hill_vertices_count;
 static int objective_kind(unsigned player){
@@ -15,12 +15,9 @@ static void objectives_init(void){
         prepare_model(&bg_objective_fp_models[k]);
         const bg_model_asset *fp=&bg_objective_fp_models[k];
         T3DVertPacked *vertices=t3d_segment_placeholder(T3D_SEGMENT_1);
-        if(k==BG_OBJECTIVE_FLAG){
-            objective_fp_blocks[k]=record_model_range(fp,vertices,0,fp->vertex_count,0,bg_flag_fp_body_batches);
-            flag_fp_cloth_block=record_model_range(fp,vertices,0,fp->vertex_count,
-                bg_flag_fp_body_batches,fp->batch_count-bg_flag_fp_body_batches);
-        }else objective_fp_blocks[k]=record_model(fp,vertices);
+        objective_fp_blocks[k]=record_model(fp,vertices);
     }
+    flag_cloth_init();
     data_cache_hit_writeback((void*)bg_flag_textures,sizeof(bg_flag_textures));
 }
 static void objective_texture(int team){
@@ -28,32 +25,35 @@ static void objective_texture(int team){
     rdpq_sync_pipe();rdpq_mode_tlut(TLUT_NONE);rdpq_mode_combiner(RDPQ_COMBINER_TEX_SHADE);
     rdpq_mode_persp(true);rdpq_mode_filter(FILTER_POINT);rdpq_mode_alphacompare(128);
     rdpq_sync_tile();rdpq_sync_load();rdpq_tex_upload(TILE0,&image,NULL);
-    /* The original cloth is two-sided. Keep the small pole mesh two-sided too. */
+    /* The original cloth is two-sided. */
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_TEXTURED);
 }
 static void objective_texture_end(void){
     rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);rdpq_mode_alphacompare(0);
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH);
 }
-static void objective_instance(unsigned kind,int team,T3DMat4FP *transform,bool fp){
+static void objective_instance(unsigned kind,int team,T3DMat4FP *transform,bool fp,unsigned player){
     const bg_model_asset *a=fp?&bg_objective_fp_models[kind]:&bg_objective_models[kind];
     t3d_matrix_set(transform,true);
-    if(kind==BG_OBJECTIVE_FLAG&&fp){
-        /* The closed hand/pole must never sample the cloth atlas or its alpha.
-         * Only the two-sided banner uses the textured cutout pass. */
+    if(kind==BG_OBJECTIVE_FLAG){
+        /* Opaque hand/pole first, then the independently deformed cloth. */
         rdpq_sync_pipe();rdpq_mode_combiner(RDPQ_COMBINER_SHADE);rdpq_mode_alphacompare(0);
-        t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
-        rspq_block_run(objective_fp_blocks[kind]);
-        objective_texture(team);rspq_block_run(flag_fp_cloth_block);
-    }else{
-        if(kind==BG_OBJECTIVE_FLAG)objective_texture(team);
-        rspq_block_run(fp?objective_fp_blocks[kind]:objective_blocks[kind]);
+        t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|(fp?T3D_FLAG_CULL_BACK:0));
+    }
+    rspq_block_run(fp?objective_fp_blocks[kind]:objective_blocks[kind]);
+    if(kind==BG_OBJECTIVE_FLAG){
+        objective_texture(team);
+        rspq_block_run(fp?flag_cloth_fp_blocks[slot][player]:flag_cloth_world_blocks[slot][team==1]);
+        triangles+=BG_CLOTH_TRIANGLES;
+#ifdef BG_PROFILE
+        submitted_vertices+=BG_CLOTH_VERTICES;
+#endif
+        objective_texture_end();
     }
     triangles+=a->triangle_count;
 #ifdef BG_PROFILE
     for(unsigned b=0;b<a->batch_count;b++)submitted_vertices+=a->batches[b].count;
 #endif
-    if(kind==BG_OBJECTIVE_FLAG)objective_texture_end();
 }
 static void objectives_prepare(void){
     for(unsigned i=0;i<bg_objective_count;i++){
@@ -79,9 +79,9 @@ static void objectives_draw(unsigned viewer,T3DViewport *vp){
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH);
     for(unsigned i=0;i<bg_objective_count;i++){
         const bg_objective *o=&bg_objectives[i];if(!o->active||o->owner>=0)continue;
-        bg_cull_bounds bounds;prepare_effect_bounds(&bounds,o->pos,bg_objective_models[o->kind].radius+.5f);
+        bg_cull_bounds bounds;prepare_effect_bounds(&bounds,o->pos,o->kind==BG_OBJECTIVE_FLAG?2.f:bg_objective_models[o->kind].radius+.5f);
         if(visible_bounds(vp,&bounds,cull_selected[viewer]))
-            objective_instance(o->kind,o->team,&objective_matrices[slot][i],false);
+            objective_instance(o->kind,o->team,&objective_matrices[slot][i],false,0);
     }
     if(hill_vertices_count){
         t3d_matrix_set(&terrain_matrix,true);t3d_vert_load(hill_vertices[slot],0,hill_vertices_count);
@@ -128,6 +128,13 @@ static void animate_objective(unsigned p,unsigned kind){
         BG_ANIM_BEGIN(scatter_begin);
         bg_motion_scatter(output,a->vertices,a->indices,motion_tracks);
         BG_ANIM_END(scatter,scatter_begin);
+        float corners[3][3];unsigned fraction=(frame-f0)*256;
+        for(unsigned c=0;c<3;c++)for(unsigned axis=0;axis<3;axis++){
+            int v0=bg_flag_fp_corners[clip][f0][c][axis],v1=bg_flag_fp_corners[clip][f1][c][axis];
+            corners[c][axis]=(v0+(v1-v0)*(int)fraction/256)/(float)BG_FLAG_FP_SCALE;
+        }
+        int carried=bg_player_objective(p);
+        flag_cloth_emit(flag_cloth_fp[slot][p],bg_objectives[carried].team==1,corners,BG_FLAG_FP_SCALE);
 #ifdef BG_PROFILE
         animated_tracks+=a->tracks;animated_vertices+=a->vertices;
 #endif

@@ -296,9 +296,11 @@ def parse_args(argv=None):
     parser.add_argument("--modes-preview",type=int,choices=range(26),help="QA: stage one preset and hold it open for objective visual review")
     parser.add_argument("--objective-photo",type=int,choices=range(10),
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
+    parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
     args = parser.parse_args(argv)
     if args.objective_photo is not None and args.modes_preview is None:
         parser.error('--objective-photo requires --modes-preview')
+    if args.flag_cloth_qa and args.modes_preview!=17:parser.error("--flag-cloth-qa requires --modes-preview 17")
     if args.modes_preview is not None:args.modes_cycle=True
     if args.modes_cycle:args.frontend_qa=4
     if args.playable_candidate:
@@ -506,6 +508,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_DEMO"] if args.demo else []),
         *(["-DBG_SHOWCASE=" + str(SHOWCASES.index(args.showcase))] if args.showcase else []),
         *(["-DBG_MENU_QA"] if args.menu_qa else []),
+        *(["-DBG_FLAG_CLOTH_QA"] if args.flag_cloth_qa else []),
         *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),
         *(["-DBG_OBJECTIVE_PHOTO="+str(args.objective_photo)] if args.objective_photo is not None else []),
         *(
@@ -665,6 +668,7 @@ def rom_name(args):
         name += "-maps-cycle"
     if args.modes_preview is not None:
         name += "-modes-preview"+str(args.modes_preview)
+    if args.flag_cloth_qa:name += "-cloth-qa"
     if args.objective_photo is not None:
         name += "-objective-photo"+str(args.objective_photo)
     if args.frontend_qa:

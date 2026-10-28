@@ -189,3 +189,51 @@ For repeatable native photos, use `--modes-preview 17 --objective-photo N
 The preview also freezes gait bob. These controls are absent from playable
 builds. Native screenshots show the reduced viewmodel; they are not a claim
 that all reduced arm/other-hand silhouettes match the full source mesh.
+
+## Animated flag cloth
+
+The flag banner now uses a 6×5 particle grid (30 vertices, 40 triangles), replacing
+its rigid two-triangle rectangle. The original uses a 16×13 grid. The port keeps
+the original pole markers, fabric dimensions, gravity, air drag, and weighted
+neighbor constraints from `source/objects/widgets/flags.c` and
+`source/physics/point_physics.c`. It retains the authored difference between the
+0.35-unit pole attachment spacing and the fabric's 0.30-unit rest height.
+
+`extract_flag_cloth.py` exports the source map wind settings, including Derelict's
+sheltered clusters, into the private bank. Its compact weather selector matches
+164,144 valid point queries through the original BSPs, with zero differences.
+The wind follows the original bounded random walk and spatial gust lookup, using
+a private deterministic random stream so visual motion cannot change gameplay.
+Wind definitions are indexed by the stable Xbox map ID, not catalog row order.
+
+Each flag updates once at 30 Hz, shared by all cameras. Grounded and carried flags
+use the same state; the first-person view maps that deformation onto its animated
+pole markers. Transfers, large attachment jumps and long hitches reset the cloth.
+Vertices remain local to each fenced frame slot. The repaired hand and pole keep
+their opaque pass; only the cloth uses the two-sided, alpha-tested team texture.
+
+This is a reduced air-only simulation, not full Xbox cloth/shader fidelity. In
+particular, it has fewer folds and does not simulate a separate first-person
+cloth state. The hand/pole geometry is unchanged. The first-person flag now uses
+**833 triangles and 1,406 vertex loads**, up 38 triangles and 26 loads, with the
+same 25 batches. The world flag uses 485 triangles, 430 loads and 13 batches.
+
+The [cloth validation report](validation/flag-cloth-20261027.json) records 48
+passing header/renderer/asset checks, a final focused recheck after replacing
+libm gust-index rounding with the source bit-based lookup, and native four-player
+CTF captures with zero RDP errors/warnings. The sanitizer fixture covers ten
+simulated minutes of moving/turning anchors, exact pinned endpoints, sag,
+independent flags, teleport resets and 4,096 gust-index comparisons.
+
+In the native diagnostic route, wind plus simulation for both flags averaged
+**0.978 ms per 30 Hz update**. Total preparation averaged 4.377 ms per rendered
+frame in this heavy, close-up four-view fixture, which performed about three
+simulation steps per rendered frame. That wider timer includes deferred carrier
+animation and world vertex emission. Neither timer includes first-person emission
+or GPU drawing; these are not matched FPS measurements or cartridge results.
+Four-MiB Wizard Slayer still completes, with 321,616 bytes free at postgame.
+
+Reproduce the native wind/turning/grounded-flag route with
+`build.py --modes-preview 17 --flag-cloth-qa --validate`. It is excluded from
+playable builds. The local `build/n64-multiplayer-modes/flag-cloth.html` review
+contains unmodified native capture sequences and the updated playable ROM.

@@ -16,6 +16,7 @@ def pack(source,out,frontend):
     world=json.loads((source/'extended-raw.json').read_text())['models']
     fp=json.loads((source/'firstperson-reduced.json').read_text())['weapons']
     details=json.loads((source/'objective-details.json').read_text())
+    cloth=json.loads((source/'cloth-config.json').read_text())
     # Extraction records absolute source paths. Rebind owned-bank inputs to
     # this checkout so a cloned private bank can be repacked unchanged.
     referenced=set()
@@ -38,9 +39,14 @@ def pack(source,out,frontend):
         atlas=Image.new('RGBA',(64,32),'white');atlas.paste(Image.open(path).convert('RGBA').resize((64,31),Image.Resampling.LANCZOS),(0,0))
         tex.append([((r>>3)<<11)|((g>>3)<<6)|((b>>3)<<1)|int(a>=96) for r,g,b,a in atlas.getdata()])
     lines.append('const uint16_t bg_flag_textures[2][2048] __attribute__((aligned(16)))={'+','.join(xyz(t) for t in tex)+'};')
-    models={};animations={};report={}
+    models={};animations={};report={};flag_corners={}
     for name,model in world.items():
         triangles=[{'p':[model['vertices'][i] for i in f],'uv':[model['uv'][i] for i in f],'material':m} for f,m in zip(model['faces'],model['materials'])]
+        if name=='flag':
+            banner=[t for t in triangles if t['material']==model['banner_material']]
+            assert len(banner)==2
+            flag_corners['world']=[position(p,(0,0,0)) for p in (banner[0]['p'][0],banner[0]['p'][1],banner[1]['p'][2])]
+            triangles=[t for t in triangles if t['material']!=model['banner_material']]
         points=[];colors=[];uvs=[];images=load_images(model['textures'])
         for t in triangles:
             banner=t['material']==model.get('banner_material',-1)
@@ -57,7 +63,10 @@ def pack(source,out,frontend):
             banner=[i for i,t in enumerate(w['triangles'])
                     if w['material_names'][t['material']]=='objective flag banner']
             assert banner==list(range(len(w['triangles'])-2,len(w['triangles'])))
-            segments=[(0,banner[0]*3),(banner[0]*3,6)]
+            flag_corners['fp']={name:[[[round(v*FLAG_FP_SCALE) for v in position(f[i],(0,0,0))]
+                for i in (-6,-5,-1)] for f in c['frames']] for name,c in w['clips'].items()}
+            w={**w,'triangles':w['triangles'][:-2],
+               'clips':{n:{**c,'frames':[f[:-6] for f in c['frames']]} for n,c in w['clips'].items()}}
         mesh,clips,preview=prepare_model(w,name,FLAG_FP_SCALE if name=='flag' else 256,
                                        16 if name=='flag' else 8,segments)
         models['fp_'+name]=(mesh,len(w['triangles']),1)
@@ -90,16 +99,32 @@ def pack(source,out,frontend):
     lines.append('};')
     lines.append('const uint16_t *const bg_flag_fp_positions[BG_FP_CLIPS]={'+
                  ','.join('fp_flag_'+name for name in animations['flag'])+'};')
-    body_batches=models['fp_flag'][0]['segments'][0][1]
-    lines.append(f'const unsigned bg_flag_fp_body_batches={body_batches};')
+    lines.append('const float bg_flag_world_corners[3][3]='+xyz([xyz([float(v).hex()+'f' for v in p]) for p in flag_corners['world']])+';')
+    for name,frames in flag_corners['fp'].items():
+        lines.append('static const int16_t flag_corners_'+name+'[][3][3]='+xyz([xyz([xyz(p) for p in f]) for f in frames])+';')
+    lines.append('const int16_t (*const bg_flag_fp_corners[BG_FP_CLIPS])[3][3]='+xyz(['flag_corners_'+n for n in animations['flag']])+';')
+    physics=cloth['physics'];lines.append('const bg_cloth_physics bg_flag_cloth_physics='+xyz([float(physics[k]).hex()+'f' for k in ('width','height','gravity','drag')])+';')
+    lines.append('const float bg_flag_wind_noise[3][64][3]='+xyz([xyz([xyz([float(v).hex()+'f' for v in p]) for p in axis]) for axis in cloth['noise']])+';')
+    weather=[]
+    assert sorted(w["id"] for w in cloth["maps"].values())==list(range(13))
+    for name,w in cloth['maps'].items():
+        symbol='flag_weather_'+name
+        if w['nodes']:
+            lines.append('static const bg_cloth_weather_node '+symbol+'[]='+xyz([xyz([xyz([float(v).hex()+'f' for v in n['plane']]),n['back'],n['front']]) for n in w['nodes']])+';')
+        values=[xyz([float(v).hex()+'f' for v in w['speed']]),float(w['yaw']).hex()+'f',float(w['pitch']).hex()+'f',xyz([float(v).hex()+'f' for v in w['variation']])]
+        values += [float(w[k]).hex()+'f' for k in ('magnitude','local_weight','local_rate')]
+        values += [symbol if w['nodes'] else 'NULL',w['root'],len(w['nodes'])]
+        weather.append("["+str(w["id"])+"]="+xyz(values))
+    lines.append('const bg_cloth_weather bg_flag_weather[13]='+xyz(weather)+';')
     (out/'objectives_data.c').write_text('\n'.join(lines)+'\n')
     for name,a in details['audio'].items():shutil.copyfile(a['file'],frontend/('mode_'+name+'.s8'))
     report['animation_bytes']=sum(p['bytes'] for p in packed.values())
     report['flag_position_scale']=FLAG_FP_SCALE
     report['flag_coordinate_bits']=16
-    report['flag_body_batches']=body_batches
+    report['cloth']={'vertices':30,'triangles':40,'source_vertices':16*13,'source_triangles':15*12*2,'grid':[6,5],
+                     'physics':physics,'weather_nodes':sum(len(w['nodes']) for w in cloth['maps'].values())}
     root=Path(__file__).resolve().parents[2]
-    inputs=[Path(__file__).resolve(),source/'extended-raw.json',source/'firstperson-raw.json',source/'firstperson-reduced.json',source/'objective-details.json']
+    inputs=[Path(__file__).resolve(),source/'extended-raw.json',source/'firstperson-raw.json',source/'firstperson-reduced.json',source/'objective-details.json',source/'cloth-config.json']
     inputs += [root/'port/n64'/n for n in ('pack_firstperson.py','pack_animation.py','pack_mesh.py','model_colors.py','reduce_objectives.py','reduce_firstperson.py')]
     inputs += sorted(referenced)
     outputs=[out/'objectives_data.c']+[frontend/('mode_'+name+'.s8') for name in details['audio']]

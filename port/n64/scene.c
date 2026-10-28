@@ -1225,6 +1225,7 @@ static void prepare_frame(void) {
     }
     for (unsigned p = 0; p < views; p++)
         prepare_view(p);
+    objectives_cloth_prepare();
 #ifdef BG_PROFILE
     camera_us = get_ticks_us() - begin;
     bg_scene_profile.view_prepare_us = get_ticks_us() - section_begin;
@@ -1435,7 +1436,7 @@ static void prepare_view(unsigned p) {
             wanted_lods[j] |= 1u << lod;
         }
         bg_cull_bounds objective_bound;
-        if(carried>=0)prepare_effect_bounds(&objective_bound,q->pos,1.5f);
+        if(carried>=0)prepare_effect_bounds(&objective_bound,q->pos,bg_objectives[carried].kind==BG_OBJECTIVE_FLAG?2.f:1.5f);
         if (held && visible_bounds(vp, carried>=0?&objective_bound:&held_bounds[j], cull_selected[p])) {
             held_masks[p] |= 1u << j;
             wanted_held |= 1u << j;
@@ -1939,7 +1940,7 @@ static void draw_view(unsigned p) {
                                  &eye, player->zoom != 0, NULL);
         if((held_masks[p] & (1u<<j)) && objective_kind(j)>=0){
             int carried=bg_player_objective(j);
-            objective_instance(bg_objectives[carried].kind,bg_objectives[carried].team,&held_matrices[slot][j],false);
+            objective_instance(bg_objectives[carried].kind,bg_objectives[carried].team,&held_matrices[slot][j],false,0);
         }
         if (fading) {
             rdpq_sync_pipe();
@@ -2036,7 +2037,7 @@ static void draw_view(unsigned p) {
         t3d_segment_set(T3D_SEGMENT_1, firstperson[slot][p]);
         int carried=bg_player_objective(p);
         if(carried>=0){
-            objective_instance(bg_objectives[carried].kind,bg_objectives[carried].team,&guns[slot][p],true);
+            objective_instance(bg_objectives[carried].kind,bg_objectives[carried].team,&guns[slot][p],true,p);
         } else {
         if (player->weapon == BG_W_PISTOL || player->weapon == BG_W_ROCKET) {
             surface_t atlas =

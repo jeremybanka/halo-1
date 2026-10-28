@@ -121,6 +121,18 @@ void bg_front_qa_tick(bg_input in[4],float seconds){
         bg_players[0].yaw=0;bg_players[1].yaw=3.14159265f;
         bg_players[0].pitch=bg_players[1].pitch=0;
         bg_players[0].gait=bg_players[1].gait=0;
+#ifdef BG_FLAG_CLOTH_QA
+        float phase=fmodf(seconds-3,12),moving=phase>=4&&phase<8;
+        photo[0]=moving?.3f*sinf((phase-4)*3.14159265f):0;photo[2]=4;place(0,photo);
+        bg_players[0].yaw=moving?.7f*sinf((phase-4)*3.14159265f):0;
+        /* Red-team observer inspects its grounded flag without picking it up. */
+        photo[0]=0;photo[2]=4;place(2,photo);bg_players[2].yaw=3.14159265f;bg_players[2].pitch=.25f;
+        for(unsigned i=0;i<bg_objective_count;i++)if(bg_objectives[i].owner<0){
+            bg_objective *o=&bg_objectives[i];memcpy(o->pos,photo,12);o->pos[0]-=.9f;
+            o->pos[1]=bg_floor(o->pos[0],o->pos[2],bg_players[2].pos[1]+.7f)+.015f;
+            o->yaw=0;o->at_home=true;
+        }
+#endif
     }
 #else
     assertf(seconds<100,"Mode acceptance timed out: %u %s",mode,r->name);

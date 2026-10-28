@@ -55,6 +55,7 @@ ASSETS = (
     "test_menu_assets.py",
 )
 HEADERS = (
+    "flag_cloth",
     "render_bounds",
     "render_lod",
     "render_animation",

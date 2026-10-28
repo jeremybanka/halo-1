@@ -578,7 +578,7 @@ world services; material damage, homing, biped collision and effect systems
 remain simplified. Animation is sampled from a subset of source clips; there is
 no complete animation graph, ragdoll or inverse kinematics. The coarse bases,
 solid-color sky, flat model shading and reduced effects remain visible.
-There is no campaign, networking, bots, CTF/ball objective rules, saved games,
+There is no campaign, networking, bots, saved games,
 or full Xbox shader/lightmap pipeline. HUD counters and status text use native
 pixel artwork alongside original radar/reticle assets. Scope masks use alpha darkening instead of the Xbox
 convolution/blur effect, and sniper night vision is not implemented. The PC-only

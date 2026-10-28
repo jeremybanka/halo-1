@@ -25,7 +25,7 @@ static int firstperson_weapon[2][4];
 static unsigned slot,allocated,fences;
 #define BG_FP_WEAPONS 8
 static struct {unsigned vertex_count;} bg_fp_models[8]={{504},{536},{512},{576},{626},{466},{576},{566}};
-static struct {unsigned vertex_count;} bg_objective_fp_models[2]={{1380},{958}};
+static struct {unsigned vertex_count;} bg_objective_fp_models[2]={{1376},{958}};
 static unsigned ram;
 static unsigned get_memory_size(void){return ram;}
 static bool busy[2];
@@ -37,9 +37,9 @@ for name,args in [('firstperson_buffers_load','void'),('firstperson_buffers_rele
     code += '\nstatic void '+name+'('+args+'){'+function(source,name)+'}\n'
 code += r'''
 int main(void){
- unsigned sizes[]={504,536,512,576,626,466,576,566,1380,958};
+ unsigned sizes[]={504,536,512,576,626,466,576,566,1376,958};
  for(unsigned memory=4;memory<=8;memory+=4){
- ram=memory*1024*1024;unsigned count=memory==8?10:8,capacity=memory==8?1380:626;
+ ram=memory*1024*1024;unsigned count=memory==8?10:8,capacity=memory==8?1376:626;
  for(unsigned lifecycle=0;lifecycle<20;lifecycle++){
   firstperson_buffers_load();assert(allocated==0);
   for(unsigned frame=0;frame<64;frame++){

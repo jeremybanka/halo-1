@@ -15,7 +15,8 @@ static uint16_t pve_route_id[PVE_NODES],pve_route_grid[PVE_ROUTE_NODES];
 static uint16_t pve_route_component[PVE_ROUTE_NODES];
 static uint8_t pve_route_x[PVE_ROUTE_NODES],pve_route_z[PVE_ROUTE_NODES];
 static unsigned pve_route_count,pve_route_clock;
-static uint16_t pve_route_landmarks[PVE_ROUTE_LANDMARKS][PVE_ROUTE_NODES];
+/* One node's eight landmark distances occupy one 16-byte cache line. */
+static uint16_t pve_route_landmarks[PVE_ROUTE_NODES][PVE_ROUTE_LANDMARKS];
 typedef struct {
     uint16_t distance[PVE_ROUTE_NODES],goal;
     unsigned used;
@@ -30,8 +31,8 @@ typedef struct {
 } pve_route_request;
 static pve_route_request pve_route_requests[BG_PVE_MAX];
 static struct {
-    uint16_t heap[PVE_ROUTE_NODES+1],position[PVE_ROUTE_NODES],cost[PVE_ROUTE_NODES];
-    uint16_t estimate[PVE_ROUTE_NODES],parent[PVE_ROUTE_NODES],stamp[PVE_ROUTE_NODES];
+    uint16_t heap[PVE_ROUTE_NODES+1];
+    struct {uint16_t cost,estimate,parent,stamp,position,pad[3];} nodes[PVE_ROUTE_NODES];
     uint16_t epoch,best,best_node,cursor;
     unsigned count,actor,field;
     bool active,committing;
@@ -65,21 +66,21 @@ static void pve_routes_reset(bool initialize){
          * detours. Compute once while loading, never in the simulation loop.
          * |d(L,a)-d(L,b)| is a consistent lower bound on d(a,b). Use farthest
          * point sampling in the largest component; small islands keep Chebyshev. */
-        uint16_t*sizes=pve_route_job.cost;memset(sizes,0,sizeof(pve_route_job.cost));unsigned largest=0;
+        uint16_t*sizes=pve_route_fields[0].distance;memset(sizes,0,sizeof(pve_route_fields[0].distance));unsigned largest=0;
         for(unsigned n=0;n<pve_route_count;n++)sizes[pve_route_component[n]]++;
         for(unsigned c=1;c<component;c++)if(sizes[c]>sizes[largest])largest=c;
         unsigned landmark=0;while(pve_route_component[landmark]!=largest)landmark++;
         for(unsigned l=0;l<PVE_ROUTE_LANDMARKS;l++){
-            uint16_t*d=pve_route_landmarks[l];memset(d,255,sizeof(pve_route_landmarks[l]));
-            unsigned first=0,last=0;pve_route_job.heap[last++]=landmark;d[landmark]=0;
+            for(unsigned n=0;n<pve_route_count;n++)pve_route_landmarks[n][l]=PVE_ROUTE_NONE;
+            unsigned first=0,last=0;pve_route_job.heap[last++]=landmark;pve_route_landmarks[landmark][l]=0;
             while(first<last){unsigned n=pve_route_job.heap[first++],raw=pve_route_grid[n];
                 for(unsigned k=0;k<8;k++)if(pve_nav_edges[raw]&(1u<<k)){
-                    unsigned next=pve_route_id[pve_neighbor(raw,k)];if(d[next]==PVE_ROUTE_NONE){d[next]=d[n]+1;pve_route_job.heap[last++]=next;}
+                    unsigned next=pve_route_id[pve_neighbor(raw,k)];if(pve_route_landmarks[next][l]==PVE_ROUTE_NONE){pve_route_landmarks[next][l]=pve_route_landmarks[n][l]+1;pve_route_job.heap[last++]=next;}
                 }
             }
             unsigned farthest=0;
             for(unsigned n=0;n<pve_route_count;n++)if(pve_route_component[n]==largest){
-                unsigned nearest=PVE_ROUTE_NONE;for(unsigned j=0;j<=l;j++)if(pve_route_landmarks[j][n]<nearest)nearest=pve_route_landmarks[j][n];
+                unsigned nearest=PVE_ROUTE_NONE;for(unsigned j=0;j<=l;j++)if(pve_route_landmarks[n][j]<nearest)nearest=pve_route_landmarks[n][j];
                 if(nearest>farthest){farthest=nearest;landmark=n;}
             }
         }
@@ -159,71 +160,71 @@ static unsigned pve_route_heuristic(unsigned n){
     int dx=abs((int)pve_route_x[n]-pve_route_x[goal]),dz=abs((int)pve_route_z[n]-pve_route_z[goal]);
     unsigned lower=dx>dz?dx:dz;
     for(unsigned l=0;l<PVE_ROUTE_LANDMARKS;l++){
-        unsigned a=pve_route_landmarks[l][n],b=pve_route_landmarks[l][goal];
+        unsigned a=pve_route_landmarks[n][l],b=pve_route_landmarks[goal][l];
         if(a==PVE_ROUTE_NONE||b==PVE_ROUTE_NONE)continue;
         unsigned bound=a>b?a-b:b-a;if(bound>lower)lower=bound;
     }
     return lower;
 }
 static bool pve_route_less(unsigned a,unsigned b){
-    if(pve_route_job.estimate[a]!=pve_route_job.estimate[b])return pve_route_job.estimate[a]<pve_route_job.estimate[b];
-    if(pve_route_job.cost[a]!=pve_route_job.cost[b])return pve_route_job.cost[a]>pve_route_job.cost[b];
+    if(pve_route_job.nodes[a].estimate!=pve_route_job.nodes[b].estimate)return pve_route_job.nodes[a].estimate<pve_route_job.nodes[b].estimate;
+    if(pve_route_job.nodes[a].cost!=pve_route_job.nodes[b].cost)return pve_route_job.nodes[a].cost>pve_route_job.nodes[b].cost;
     return a<b;
 }
 static void pve_route_up(unsigned at){
     unsigned n=pve_route_job.heap[at];
     while(at>1&&pve_route_less(n,pve_route_job.heap[at/2])){
-        pve_route_job.heap[at]=pve_route_job.heap[at/2];pve_route_job.position[pve_route_job.heap[at]]=at;at/=2;
+        pve_route_job.heap[at]=pve_route_job.heap[at/2];pve_route_job.nodes[pve_route_job.heap[at]].position=at;at/=2;
     }
-    pve_route_job.heap[at]=n;pve_route_job.position[n]=at;
+    pve_route_job.heap[at]=n;pve_route_job.nodes[n].position=at;
 }
 static unsigned pve_route_pop(void){
     unsigned result=pve_route_job.heap[1],n=pve_route_job.heap[pve_route_job.count--],at=1;
-    pve_route_job.position[result]=0;
+    pve_route_job.nodes[result].position=0;
     if(pve_route_job.count){
         while(at*2<=pve_route_job.count){unsigned child=at*2;
             if(child<pve_route_job.count&&pve_route_less(pve_route_job.heap[child+1],pve_route_job.heap[child]))child++;
             if(!pve_route_less(pve_route_job.heap[child],n))break;
-            pve_route_job.heap[at]=pve_route_job.heap[child];pve_route_job.position[pve_route_job.heap[at]]=at;at=child;
+            pve_route_job.heap[at]=pve_route_job.heap[child];pve_route_job.nodes[pve_route_job.heap[at]].position=at;at=child;
         }
-        pve_route_job.heap[at]=n;pve_route_job.position[n]=at;
+        pve_route_job.heap[at]=n;pve_route_job.nodes[n].position=at;
     }
     return result;
 }
 static void pve_route_begin(unsigned actor,unsigned start){
     pve_route_job.active=true;pve_route_job.committing=false;pve_route_job.actor=actor;pve_route_job.field=pve_route_requests[actor].field;
-    if(!++pve_route_job.epoch){memset(pve_route_job.stamp,0,sizeof(pve_route_job.stamp));pve_route_job.epoch=1;}
-    pve_route_job.count=1;pve_route_job.heap[1]=start;pve_route_job.position[start]=1;
-    pve_route_job.stamp[start]=pve_route_job.epoch;pve_route_job.cost[start]=0;pve_route_job.parent[start]=PVE_ROUTE_NONE;
-    pve_route_job.estimate[start]=pve_route_heuristic(start);pve_route_job.best=PVE_ROUTE_NONE;bg_pve_navigation.searches++;
+    if(!++pve_route_job.epoch){for(unsigned n=0;n<pve_route_count;n++)pve_route_job.nodes[n].stamp=0;pve_route_job.epoch=1;}
+    pve_route_job.count=1;pve_route_job.heap[1]=start;pve_route_job.nodes[start].position=1;
+    pve_route_job.nodes[start].stamp=pve_route_job.epoch;pve_route_job.nodes[start].cost=0;pve_route_job.nodes[start].parent=PVE_ROUTE_NONE;
+    pve_route_job.nodes[start].estimate=pve_route_heuristic(start);pve_route_job.best=PVE_ROUTE_NONE;bg_pve_navigation.searches++;
 }
 static void pve_route_step(void){
     pve_route_field*c=&pve_route_fields[pve_route_job.field];
     if(pve_route_job.committing){
-        unsigned n=pve_route_job.cursor,distance=pve_route_job.best-pve_route_job.cost[n];
+        unsigned n=pve_route_job.cursor,distance=pve_route_job.best-pve_route_job.nodes[n].cost;
         assert(c->distance[n]==PVE_ROUTE_NONE||c->distance[n]==distance);c->distance[n]=distance;bg_pve_navigation.committed++;
-        pve_route_job.cursor=pve_route_job.parent[n];
+        pve_route_job.cursor=pve_route_job.nodes[n].parent;
         if(pve_route_job.cursor==PVE_ROUTE_NONE)pve_route_job.active=false;
         return;
     }
-    if(!pve_route_job.count||(pve_route_job.best!=PVE_ROUTE_NONE&&pve_route_job.estimate[pve_route_job.heap[1]]>=pve_route_job.best)){
+    if(!pve_route_job.count||(pve_route_job.best!=PVE_ROUTE_NONE&&pve_route_job.nodes[pve_route_job.heap[1]].estimate>=pve_route_job.best)){
         assert(pve_route_job.best!=PVE_ROUTE_NONE);pve_route_job.committing=true;pve_route_job.cursor=pve_route_job.best_node;return;
     }
-    unsigned n=pve_route_pop(),cost=pve_route_job.cost[n],raw=pve_route_grid[n];bg_pve_navigation.expanded++;
+    unsigned n=pve_route_pop(),cost=pve_route_job.nodes[n].cost,raw=pve_route_grid[n];bg_pve_navigation.expanded++;
     if(c->distance[n]!=PVE_ROUTE_NONE){
         unsigned total=cost+c->distance[n];if(total<pve_route_job.best){pve_route_job.best=total;pve_route_job.best_node=n;}
         return; /* An exact cached suffix replaces expansion beyond this node. */
     }
     for(unsigned k=0;k<8;k++)if(pve_nav_edges[raw]&(1u<<k)){
         unsigned next=pve_route_id[pve_neighbor(raw,k)],g=cost+1;
-        if(pve_route_job.stamp[next]==pve_route_job.epoch&&g>=pve_route_job.cost[next])continue;
-        bool fresh=pve_route_job.stamp[next]!=pve_route_job.epoch;
+        if(pve_route_job.nodes[next].stamp==pve_route_job.epoch&&g>=pve_route_job.nodes[next].cost)continue;
+        bool fresh=pve_route_job.nodes[next].stamp!=pve_route_job.epoch;
         /* A consistent heuristic cannot improve a closed node. */
-        assert(fresh||pve_route_job.position[next]);
-        pve_route_job.stamp[next]=pve_route_job.epoch;pve_route_job.cost[next]=g;pve_route_job.parent[next]=n;
-        pve_route_job.estimate[next]=g+pve_route_heuristic(next);
-        if(fresh){assert(pve_route_job.count<PVE_ROUTE_NODES);pve_route_job.position[next]=++pve_route_job.count;pve_route_job.heap[pve_route_job.count]=next;}
-        pve_route_up(pve_route_job.position[next]);
+        assert(fresh||pve_route_job.nodes[next].position);
+        pve_route_job.nodes[next].stamp=pve_route_job.epoch;pve_route_job.nodes[next].cost=g;pve_route_job.nodes[next].parent=n;
+        pve_route_job.nodes[next].estimate=g+pve_route_heuristic(next);
+        if(fresh){assert(pve_route_job.count<PVE_ROUTE_NODES);pve_route_job.nodes[next].position=++pve_route_job.count;pve_route_job.heap[pve_route_job.count]=next;}
+        pve_route_up(pve_route_job.nodes[next].position);
     }
 }
 static void pve_routes_service(void){

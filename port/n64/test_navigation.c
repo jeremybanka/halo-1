@@ -32,10 +32,18 @@ static unsigned settle(unsigned i){
 }
 int main(void){
     assert(bg_map_load(9));bg_pve_stage(4);bg_pve_start(2);
+    static const unsigned reverse[8]={1,0,3,2,7,6,5,4};
+    for(unsigned n=0;n<pve_route_count;n++)for(unsigned k=0;k<8;k++)if(pve_nav_edges[pve_route_grid[n]]&(1u<<k)){
+        unsigned next=pve_neighbor(pve_route_grid[n],k);assert(pve_nav_edges[next]&(1u<<reverse[k]));assert(pve_neighbor(next,reverse[k])==pve_route_grid[n]);
+    }
     unsigned maximum=0,comparisons=0,exact=0;
     for(unsigned sample=0;sample<240;sample++){
         unsigned goal=random_node(),node=random_node();reference_flood(goal);
         for(unsigned n=0;n<pve_route_count;n++)assert(pve_reachable(pve_route_grid[n],pve_route_grid[goal])==(reference[n]!=UINT16_MAX));
+        for(unsigned n=0;n<pve_route_count;n++)if(reference[n]!=UINT16_MAX)for(unsigned l=0;l<PVE_ROUTE_LANDMARKS;l++){
+            unsigned a=pve_route_landmarks[n][l],b=pve_route_landmarks[goal][l];
+            if(a!=UINT16_MAX&&b!=UINT16_MAX)assert((a>b?a-b:b-a)<=reference[n]);
+        }
         position_actor(0,node,goal);
         if(sample%3==1)bg_pve_actors[0].action=_actor_action_flee;
         if(sample%3==2)bg_pve_actors[0].action=_actor_action_guard;
@@ -83,6 +91,8 @@ int main(void){
     position_actor(0,n,g);pve_destination(0);bg_pve_actors[0].target=-1;pve_routes_service();assert(!pve_route_requests[0].pending&&!pve_route_job.active);
     position_actor(0,n,g);pve_destination(0);bg_players[4].health=0;pve_routes_service();assert(!pve_route_requests[0].pending&&!pve_route_job.active);
     bg_pve_start(1);assert(!pve_route_job.active&&!bg_pve_navigation.requests);for(unsigned i=0;i<PVE_ROUTE_FIELDS;i++)assert(!pve_route_fields[i].valid);
+    pve_route_job.epoch=UINT16_MAX;position_actor(0,n,g);pve_destination(0);settle(0);assert(pve_route_job.epoch>0&&pve_route_job.epoch<UINT16_MAX);
+    puts("PASS reciprocal graph, admissible landmarks and search-generation wrap");
     puts("PASS goal sharing/isolation, moving-memory refresh, generation/target/death cancellation and restart; bounded work per tick");
     return 0;
 }

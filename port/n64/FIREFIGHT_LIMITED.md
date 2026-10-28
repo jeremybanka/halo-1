@@ -197,3 +197,7 @@ The native measurements, build hashes, raw logs and results are recorded in
 [benchmarks/firefight-limited](benchmarks/firefight-limited/README.md). Screenshots
 and the playable cartridge remain in the local appraisal; original art stays in
 the private asset repository. Hardware performance is not inferred from Ares.
+
+A subsequent [performance diagnosis](FIREFIGHT_PERFORMANCE.md) adds ordinary
+two-player measurements, per-tick CPU attribution, model comparisons and the
+CE behavior fidelity audit.

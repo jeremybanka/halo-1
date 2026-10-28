@@ -1,0 +1,40 @@
+{
+  "required_ram_mib": 8,
+  "map_id": 9,
+  "players": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "voice": {
+    "game": "Halo 3: ODST (MCC)",
+    "line": "Firefight",
+    "source_url": "https://www.youtube.com/watch?v=0ZbG4kmbUEk",
+    "uploader": "Yazite",
+    "source_title": "Halo 3 ODST Firefight Announcements Voice Lines [Raw Sound]",
+    "provenance": "Uploader describes a direct MCC export. Retrieved recording is YouTube Opus; not a bit-exact game-cache extraction.",
+    "source_recording_sha256": "f32ca553eaf7314d0dfaa4c1d1a66c268d6321b6218e29284363e06c2c29714d",
+    "trim_seconds": [
+      0,
+      1.04
+    ],
+    "verification": "Local Whisper base.en transcript: Firefight 0.00\u20130.82 s; next word Round starts 1.12 s.",
+    "format": {
+      "sample_rate": 11025,
+      "channels": 1,
+      "encoding": "signed 8-bit PCM",
+      "fade_out_seconds": 0.02
+    },
+    "files": {
+      "assets/firefight/firefight-odst.wav": {
+        "bytes": 99294,
+        "sha256": "1f990bb04fb8de1d7abc62f7201010b1ffd9efb7eafdeba05559369760e74b53"
+      },
+      "frontend-files/firefight.s8": {
+        "bytes": 11395,
+        "sha256": "84b3031a2b52820204d8338e061d4bc3d17ec3c8e3bd145a7b8edead3c6f3ae6"
+      }
+    }
+  }
+}

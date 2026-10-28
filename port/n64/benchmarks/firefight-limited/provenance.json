@@ -184,5 +184,33 @@
     "interframe_blending": false,
     "defocus": "Block",
     "global_settings_changed": false
+  },
+  "integration_runs": {
+    "maps-cycle": {
+      "source_revision": "2e6f1b028e5648214edf8d097add725d4f66849f",
+      "gameplay_assets_revision": "ce0e4fd2b3aba5b001cbac5ce4edba4254e39b37",
+      "log_sha256": "c4ae414fd4aa3fc2849a000894dcafb087b768220dec68d5ae30a56d29cfb00e",
+      "steps": 223,
+      "players": 4,
+      "matches": [
+        10,
+        9,
+        10,
+        5,
+        6,
+        0,
+        1,
+        2,
+        3,
+        4,
+        7,
+        8,
+        11,
+        12
+      ],
+      "result": "pass",
+      "rom_sha256": null,
+      "note": "Source-bound integration trace; the launch ROM checksum was not retained before the isolated output was rebuilt for the cosmetic HUD correction."
+    }
   }
 }

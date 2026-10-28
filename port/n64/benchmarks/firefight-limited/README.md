@@ -73,3 +73,15 @@ decode. Geometry submission remains significant, but the new ordinary fight
 shows substantial simulation cost too. This implementation intentionally retains
 the chosen encounter strength and original source representations; it does not
 claim four-player 30 FPS.
+
+Repeated build-manifest sections are shared under `build-manifests/shared/`.
+`resolve_manifest.py` expands a case to the byte-identical original JSON; its
+SHA-256 must equal the recorded `build_manifest_sha256`. This keeps the review
+diff readable without discarding source or toolchain provenance.
+
+The native multiplayer residency cycle also passed all 223 controller steps:
+fourteen completed matches across all thirteen maps, including the eight
+first-person weapon workspaces and quit/resume. `maps-cycle-native.log` records
+that integration trace from source `2e6f1b02` with Firefight compiled in. Its
+launch ROM checksum was not retained; this is a source-bound functional test,
+not another performance measurement.

@@ -1,0 +1,109 @@
+{
+  "world_flag": {
+    "vertices": 400,
+    "triangles": 445,
+    "batches": 12
+  },
+  "world_ball": {
+    "vertices": 334,
+    "triangles": 386,
+    "batches": 10
+  },
+  "fp_flag": {
+    "vertices": 1376,
+    "triangles": 793,
+    "batches": 24
+  },
+  "fp_ball": {
+    "vertices": 958,
+    "triangles": 430,
+    "batches": 17
+  },
+  "animation_bytes": 102546,
+  "flag_position_scale": 4096,
+  "flag_coordinate_bits": 16,
+  "cloth": {
+    "vertices": 30,
+    "triangles": 40,
+    "source_vertices": 208,
+    "source_triangles": 360,
+    "grid": [
+      6,
+      5
+    ],
+    "physics": {
+      "width": 0.37500000558793545,
+      "height": 0.30000000447034836,
+      "gravity": -3.2016100426116085,
+      "drag": 7.579341913920596
+    },
+    "weather_nodes": 77
+  },
+  "schema": 1,
+  "inputs": {
+    "port/n64/pack_objectives.py": "320bc75bc467ae2a50fecd8db4fb54a44f4f3907a05212ad13918a684d3ab915",
+    "halo64-assets/assets/objectives/extended-raw.json": "53e30ea437be48047067132d5c4f4c0156818e62403b727e00e5ee74100ca876",
+    "halo64-assets/assets/objectives/firstperson-raw.json": "54d0da114662df686f18ccacc490e1bfa6af62176b27f748d7cea5e3a766ee89",
+    "halo64-assets/assets/objectives/firstperson-reduced.json": "eefef4ab3ba08d54a715d7d407c7cd99147ed95b69052e612c0e9e458effe684",
+    "halo64-assets/assets/objectives/objective-details.json": "18ba3d326db20d47ac2a1027d9e9b7b976d2cc6dff1c7381f7ca90e7a624965d",
+    "halo64-assets/assets/objectives/cloth-config.json": "8b70ae5cd5d82155c4b6f8b9022f09c64b871da11740cfd40ca0b6a8c73d6b04",
+    "port/n64/pack_firstperson.py": "571ee9520216b010218aa6d3f8539bfaea76c32b0acc3baa55d89cf2285b5238",
+    "port/n64/pack_animation.py": "a681aa67380fab3f94e41d7415ea1eae1b1bab5a45c1c38c6572b824a59327e3",
+    "port/n64/pack_mesh.py": "86586feaf6582b6d6623f76f36b67c7b3232458a46b1efe91538321378b1096e",
+    "port/n64/model_colors.py": "90b031b9ed5336020104037c38b3c3fb1e4de7d1766534a46da432095f294e19",
+    "port/n64/reduce_objectives.py": "b9704800d4729e5ea4bfbb7142b30e5b2bd3a7c0db3bcea598d1b2f3648b0bd6",
+    "port/n64/reduce_firstperson.py": "bd289949541664810ad4be2a7401dbb7c6262552c5ee9d91d130ac7a54288d2f",
+    "halo64-assets/assets/objectives/firstperson-textures-reference/ball_0.png": "692b981173515db42ce3c715fc6711d14e6a6f95cee055823b807018089265b2",
+    "halo64-assets/assets/objectives/firstperson-textures-reference/flag_0.png": "b65a719308e72a7c88b1628f963e21b10839e3c92d97afd3d536cea9c1baa5a6",
+    "halo64-assets/assets/objectives/firstperson-textures-reference/hands_0.png": "734240064f8ed7f3d06f1ef668378a89514fe3e91e3907d23f9a4617830fa5b5",
+    "halo64-assets/assets/objectives/firstperson-textures-reference/hands_1.png": "734240064f8ed7f3d06f1ef668378a89514fe3e91e3907d23f9a4617830fa5b5",
+    "halo64-assets/assets/objectives/firstperson-textures-reference/hands_1_multipurpose.png": "91806ffb75ddab7ac40725dadfc04ff7fb4afed04f237ea4dee23f3b13494e9a",
+    "halo64-assets/assets/objectives/flag_red.png": "21a403bd748550d66cbe7a50ee90646aa57e7c64118a504c4530e73ecd03d511",
+    "halo64-assets/assets/objectives/flags_blue.png": "045d96bc84c0bcec52e4756bf6a3e8aca8775f729e9f5362881ce0afa460d870",
+    "halo64-assets/assets/objectives/model-textures/ball_0.png": "95981c70838407536c845de4909cb7492d2f6e17bb421e4baf5757ccc3f78643",
+    "halo64-assets/assets/objectives/model-textures/flag_0.png": "9bf53b69f4ea30db23e4c5a0b7cb4aaf0a755752e31e96874acb547723c49dd8",
+    "halo64-assets/assets/objectives/model-textures/flag_1.png": "9bf53b69f4ea30db23e4c5a0b7cb4aaf0a755752e31e96874acb547723c49dd8",
+    "halo64-assets/assets/objectives/model-textures/flag_2.png": "9bf53b69f4ea30db23e4c5a0b7cb4aaf0a755752e31e96874acb547723c49dd8",
+    "halo64-assets/assets/objectives/model-textures-reference/ball_0_diffuse.png": "86cca7bc62e1ad4ccbea5b651c2fecd114ec9d5f48d307695c98e6d92b4554eb",
+    "halo64-assets/assets/objectives/model-textures-reference/ball_0_multipurpose.png": "d89623e5d476f193395deb7614afebd23fb565658586aa22797a0c9b44897e6c",
+    "halo64-assets/assets/objectives/model-textures-reference/flag_0_diffuse.png": "7b17c6940b5a43aa3ac966fb178ecc75e24a67014705b9c0a53790ac36f0c997",
+    "halo64-assets/assets/objectives/model-textures-reference/flag_0_multipurpose.png": "bf09b0c4a6155b7aad5bb4357365cc4e7ba964dcf06a006e23589900c38b4f5b",
+    "halo64-assets/assets/objectives/model-textures-reference/flag_1_diffuse.png": "7b17c6940b5a43aa3ac966fb178ecc75e24a67014705b9c0a53790ac36f0c997",
+    "halo64-assets/assets/objectives/model-textures-reference/flag_1_multipurpose.png": "bf09b0c4a6155b7aad5bb4357365cc4e7ba964dcf06a006e23589900c38b4f5b",
+    "halo64-assets/assets/objectives/model-textures-reference/flag_2_diffuse.png": "7b17c6940b5a43aa3ac966fb178ecc75e24a67014705b9c0a53790ac36f0c997",
+    "halo64-assets/assets/objectives/model-textures-reference/flag_2_multipurpose.png": "7b17c6940b5a43aa3ac966fb178ecc75e24a67014705b9c0a53790ac36f0c997",
+    "halo64-assets/assets/objectives/sounds/blue_team_flag_returned.s8": "b1002a0b90aba7378e8ca5897a59e3c533e1b698607a27fe3ccc8edc959c4943",
+    "halo64-assets/assets/objectives/sounds/blue_team_has_the_flag.s8": "89b55731ce31d33e64180a2ab4ce65ffb2082ec4c77e5f6f4fbeab510a9f0b38",
+    "halo64-assets/assets/objectives/sounds/blue_team_score.s8": "a5ab7fc09db490fd7cd9c1649edb96d690c664be7373dfde7123cdc5133db49d",
+    "halo64-assets/assets/objectives/sounds/capture_the_flag.s8": "28579819480d37bba0da35f5ff59736bff3673548ab475c987afd026a8d60759",
+    "halo64-assets/assets/objectives/sounds/king_of_the_hill.s8": "0cc0d29a8d5d9566d6b8eac64522de27d76cce4f6816251fd6e860b3497aa19e",
+    "halo64-assets/assets/objectives/sounds/oddball.s8": "3746f588180621afd85cbfc48a591605e8ae78c17e231185d109ecb08454d091",
+    "halo64-assets/assets/objectives/sounds/play_ball.s8": "035b9203dbb50f2e48d2bfcf8c01072b9fc2fe68e02e4874027e521c2545f79a",
+    "halo64-assets/assets/objectives/sounds/race.s8": "90c6151323aac766d78e96e8ff2cb62545c9ed8c1db8348694fb177dfee108b2",
+    "halo64-assets/assets/objectives/sounds/red_team_flag_returned.s8": "7bda29dab843def77bf0a7441dfa8876d1d4cfcad1efacf667758410fac9a783",
+    "halo64-assets/assets/objectives/sounds/red_team_has_the_flag.s8": "dca6837bf5446a76064cfeff8e5334746b5fbb5cf75778770842cd9d4c9e268c",
+    "halo64-assets/assets/objectives/sounds/red_team_score.s8": "1ea2949d8d8b91e1a2eecc6a6f257688f964577244df24c66fd4f996528198c7",
+    "halo64-assets/assets/objectives/sounds/team_king_of_the_hill.s8": "24c6067b5b59a1d6a108ae3a23253782e1d415d29ba4f248c6ec3b2c33c97b0c",
+    "halo64-assets/assets/objectives/sounds/team_oddball.s8": "2d1599f48a7ea1b8ab05ec36297eac0bc213c5cdf5ebaad2be6b9f6b39d70cc5",
+    "halo64-assets/assets/objectives/sounds/team_race.s8": "bce66db6ebc8d63c9f99312b8f62c208dabcc17e1509bf7b9ac507fe94da9ac3",
+    "halo64-assets/assets/objectives/sounds/team_slayer.s8": "b860dcd6cc417fcf0b7bd951af5baf54b3c438725de2cfde9443fc656d72165a"
+  },
+  "files": {
+    "halo64-assets/generated/objectives_data.c": "ee2629f65b8ebd46d7d7da28055d2a78a64d34c135150c15e2258f785ed3ac49",
+    "halo64-assets/frontend-files/mode_capture_the_flag.s8": "28579819480d37bba0da35f5ff59736bff3673548ab475c987afd026a8d60759",
+    "halo64-assets/frontend-files/mode_oddball.s8": "3746f588180621afd85cbfc48a591605e8ae78c17e231185d109ecb08454d091",
+    "halo64-assets/frontend-files/mode_race.s8": "90c6151323aac766d78e96e8ff2cb62545c9ed8c1db8348694fb177dfee108b2",
+    "halo64-assets/frontend-files/mode_king_of_the_hill.s8": "0cc0d29a8d5d9566d6b8eac64522de27d76cce4f6816251fd6e860b3497aa19e",
+    "halo64-assets/frontend-files/mode_team_king_of_the_hill.s8": "24c6067b5b59a1d6a108ae3a23253782e1d415d29ba4f248c6ec3b2c33c97b0c",
+    "halo64-assets/frontend-files/mode_team_oddball.s8": "2d1599f48a7ea1b8ab05ec36297eac0bc213c5cdf5ebaad2be6b9f6b39d70cc5",
+    "halo64-assets/frontend-files/mode_team_race.s8": "bce66db6ebc8d63c9f99312b8f62c208dabcc17e1509bf7b9ac507fe94da9ac3",
+    "halo64-assets/frontend-files/mode_team_slayer.s8": "b860dcd6cc417fcf0b7bd951af5baf54b3c438725de2cfde9443fc656d72165a",
+    "halo64-assets/frontend-files/mode_play_ball.s8": "035b9203dbb50f2e48d2bfcf8c01072b9fc2fe68e02e4874027e521c2545f79a",
+    "halo64-assets/frontend-files/mode_blue_team_has_the_flag.s8": "89b55731ce31d33e64180a2ab4ce65ffb2082ec4c77e5f6f4fbeab510a9f0b38",
+    "halo64-assets/frontend-files/mode_blue_team_flag_returned.s8": "b1002a0b90aba7378e8ca5897a59e3c533e1b698607a27fe3ccc8edc959c4943",
+    "halo64-assets/frontend-files/mode_blue_team_score.s8": "a5ab7fc09db490fd7cd9c1649edb96d690c664be7373dfde7123cdc5133db49d",
+    "halo64-assets/frontend-files/mode_red_team_has_the_flag.s8": "dca6837bf5446a76064cfeff8e5334746b5fbb5cf75778770842cd9d4c9e268c",
+    "halo64-assets/frontend-files/mode_red_team_flag_returned.s8": "7bda29dab843def77bf0a7441dfa8876d1d4cfcad1efacf667758410fac9a783",
+    "halo64-assets/frontend-files/mode_red_team_score.s8": "1ea2949d8d8b91e1a2eecc6a6f257688f964577244df24c66fd4f996528198c7"
+  }
+}

@@ -125,6 +125,7 @@ static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
  * fenced player/slot buffers. Segment 1 is reserved for these draw calls. */
 static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static float fired_at[4] = {-100, -100, -100, -100};
+static bool body_firing[4];
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
     *particle_blocks[8];
 static rspq_block_t *vehicle_lods[4];
@@ -666,6 +667,11 @@ static void prepare_player_bounds(unsigned p) {
     bool throwing = player->health > 0 && player->grenade_cooldown > .55f && player->vehicle < 0;
     if (throwing)
         clip = BG_A_THROW;
+    /* CE keeps weapon recoil separate from base locomotion. Shots still own
+     * anim_time for first-person/actions; the base loop has its own clock. */
+    body_firing[p] = bg_player_body_firing(player);
+    if (clip == BG_A_FIRE && player->grounded && !seat && !throwing)
+        clip = hypotf(player->velocity[0], player->velocity[2]) > .15f ? BG_A_RUN : BG_A_IDLE;
     body_clips[p] = clip;
     body_throwing[p] = throwing;
     float size = 1;
@@ -706,13 +712,23 @@ static void prepare_player_bounds(unsigned p) {
             merged.max[k] = fmaxf(merged.max[k], b->max[k]);
         }
     }
+    if (body_firing[p]) {
+        unsigned moving = clip == BG_A_RUN;
+        for (unsigned crouched = 0; crouched < 2; crouched++) {
+            const bg_bounds *b = &bg_body_fire_poses[moving + 2 * crouched][0][0].bounds;
+            for (unsigned k = 0; k < 3; k++) {
+                merged.min[k] = fminf(merged.min[k], b->min[k]);
+                merged.max[k] = fmaxf(merged.max[k], b->max[k]);
+            }
+        }
+    }
     bg_bounds box;
     bg_bounds_transform(&box, &merged, body->m, BG_SCALE);
     bg_bounds_quantize(&body_bounds[p], &box);
     /* Any normalized hand quaternion keeps a weapon within its origin sphere.
      * Marker position interpolation stays inside this clip's endpoint box. */
     bg_bounds marker = bg_attachment_cull_bounds[clip];
-    if (seat || player->weapon_ready > 0 || locomotion >= 0)
+    if (seat || player->weapon_ready > 0 || locomotion >= 0 || body_firing[p])
         marker = (bg_bounds){{-1, -1, -1}, {1, 1, 1}};
     bg_bounds_expand(&marker, bg_model_cull_radii[weapon_model(player->weapon)]);
     bg_bounds_transform(&box, &marker, body->m, BG_SCALE);
@@ -725,7 +741,7 @@ static void prepare_player_bounds(unsigned p) {
 }
 static int locomotion_clip(const bg_player *p) {
     if (p->health <= 0 || p->vehicle >= 0 || p->weapon_ready > 0 || p->melee_time > 0 ||
-        p->reload > 0 || p->flash > 0 || p->grenade_cooldown > .55f)
+        p->reload > 0 || p->grenade_cooldown > .55f)
         return -1;
     if (p->landing_time > 0)
         return 2 + (p->hard_landing ? 1 : 0) + (p->crouch_amount > .5f ? 2 : 0);
@@ -734,7 +750,52 @@ static int locomotion_clip(const bg_player *p) {
     return -1;
 }
 static float locomotion_seconds(const bg_player *p, int clip) {
-    return clip < 2 ? p->anim_time : p->landing_duration - p->landing_time;
+    return clip < 2 ? p->locomotion_time : p->landing_duration - p->landing_time;
+}
+static void animate_firing_player(unsigned p) {
+    const bg_player *player = &bg_players[p];
+    float frame = bg_player_body_fire_frame(player);
+    unsigned f0 = frame, f1 = f0 + 1 < BG_BODY_FIRE_FRAMES ? f0 + 1 : f0;
+    float fraction = frame - f0, accumulated = 0;
+    float hand_points[4][3] = {{0}};
+    unsigned moving = body_clips[p] == BG_A_RUN;
+    for (unsigned crouched = 0; crouched < 2; crouched++) {
+        float stance = crouched ? player->crouch_amount : 1 - player->crouch_amount;
+        unsigned base = moving + 2 * crouched;
+        for (unsigned endpoint = 0; endpoint < 2; endpoint++) {
+            float weight = stance * (endpoint ? fraction : 1 - fraction);
+            if (weight <= 0) continue;
+            unsigned fire = endpoint ? f1 : f0;
+            float blend = weight / (accumulated + weight);
+            for (unsigned lod = 0; lod < 2; lod++) if (wanted_lods[p] & (1u << lod)) {
+                T3DVertPacked *out = CachedAddr(lod ? armor_lod[slot][p] : armor[slot][p]);
+                const bg_rom_pose *pose = &bg_body_fire_poses[base][fire][lod];
+                if (accumulated == 0)
+                    bg_interaction_pose(out, pose, player->locomotion_time, true);
+                else
+                    bg_interaction_pose_blend(out, pose, player->locomotion_time, true, blend);
+            }
+            if (wanted_held & (1u << p)) {
+                const bg_rom_pose *pose = &bg_body_fire_grips[base][fire];
+                int16_t points[4][3];
+                bg_interaction_points(points, pose, fmodf(player->locomotion_time, pose->duration));
+                for (unsigned i = 0; i < 4; i++) for (unsigned a = 0; a < 3; a++)
+                    hand_points[i][a] += (points[i][a] - hand_points[i][a]) * blend;
+            }
+            accumulated += weight;
+        }
+    }
+    if (wanted_held & (1u << p)) {
+        T3DMat4 hand, world;
+        t3d_mat4_identity(&hand);
+        for (unsigned a = 0; a < 3; a++) {
+            hand.m[3][a] = hand_points[0][a] * (BG_SCALE / 4096);
+            for (unsigned c = 0; c < 3; c++)
+                hand.m[c][a] = hand_points[c + 1][a] * (BG_SCALE / BG_OBJECT_SCALE / 4096);
+        }
+        t3d_mat4_mul(&world, &body_matrices[p], &hand);
+        t3d_mat4_to_fixed_3x4(&held_matrices[slot][p], &world);
+    }
 }
 static void animate_player(unsigned p) {
     if (!wanted_lods[p] && !(wanted_held & (1u << p)))
@@ -771,11 +832,16 @@ static void animate_player(unsigned p) {
         }
         return;
     }
+    if (body_firing[p]) {
+        animate_firing_player(p);
+        return;
+    }
     int locomotion = locomotion_clip(player);
     float loc_seconds = locomotion >= 0 ? locomotion_seconds(player, locomotion) : 0;
     const bg_anim_asset *base = &bg_animations[clip];
     float phase = body_throwing[p] ? (.9f - player->grenade_cooldown) / .35f
-                                   : player->anim_time / base->duration;
+                 : clip == BG_A_RUN || clip == BG_A_IDLE ? player->locomotion_time / base->duration
+                                                       : player->anim_time / base->duration;
     bool loop = clip == BG_A_RUN || clip == BG_A_IDLE || clip == BG_A_DRIVE ||
                 clip == BG_A_PASSENGER || clip == BG_A_GUNNER;
     if (loop)

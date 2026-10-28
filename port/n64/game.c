@@ -749,6 +749,7 @@ static bool eject(unsigned player, bool forced) {
     p->cooldown = p->weapon_ready;
     p->animation = BG_ANIM_IDLE;
     p->anim_time = 0;
+    p->locomotion_time = 0;
     event(BG_EVENT_EXIT, player, v->kind, p->pos, 1);
     return true;
 }
@@ -2331,6 +2332,7 @@ static void tick_player_timers(unsigned player_index, float dt) {
     bg_camo_tick(player, dt);
     player->teleport_cooldown = fmaxf(0, player->teleport_cooldown - dt);
     player->anim_time += dt;
+    player->locomotion_time += dt;
     player->weapon_ready = fmaxf(0, player->weapon_ready - dt);
     player->seat_blend = fmaxf(0, player->seat_blend - dt);
     if (player->seat_state != BG_SEAT_STABLE) {

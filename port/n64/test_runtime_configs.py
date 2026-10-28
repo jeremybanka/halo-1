@@ -41,6 +41,7 @@ VARIANTS = {
     "frontend": ["--frontend-qa", "4"],
     "menu": ["--menu-qa"],
     "model": ["--model-qa"],
+    "spartan-motion": ["--spartan-motion-qa"],
     "weapon": ["--weapon-qa"],
     "hud": ["--hud-qa"],
     "geometry": ["--geometry-qa"],

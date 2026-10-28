@@ -1,0 +1,6 @@
+{
+  "baseline_game_sha256": "ccf71b54113b269807324a8e10859cf8426dfedb44c694e4b5ecaa201086f607",
+  "candidate_game_sha256": "430f2295f5dc3ae51ec156ce1dca62bf7718d6014c22e6596505e7661000eb74",
+  "unchanged_consumed_teleporter_block_sha256": "02341d1b6c84db387b9bc43f9dc7a739f1ca59d2d0bb7043bf5b1d3231a6247f",
+  "reason": "pack_maps.py reads only the teleporter declaration from game.c. Only animation clocks changed; generated map bytes are unchanged."
+}

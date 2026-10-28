@@ -11,7 +11,7 @@ from asset_ids import map_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
-def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False,target_math=False,pve=False,with_pve=False,firefight=False,navigation=False):
+def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False,target_math=False,pve=False,with_pve=False,firefight=False,navigation=False,spartan_motion=False):
     output = output.resolve(); output.mkdir(parents=True, exist_ok=True)
     solver = output/'solver'; solver.mkdir(exist_ok=True)
     for script in ('prepare_vehicle.py','export_vehicle.py'):
@@ -51,6 +51,8 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
         sources += ["halo64-assets/generated/pve/pve_defs.c","halo64-assets/generated/pve/pve_nav.c","halo64-assets/generated/pve/pve_collision.c"]
     if firefight or navigation:
         sources[0]="port/n64/test_navigation.c" if navigation else "port/n64/test_firefight.c";sources.remove("port/n64/game.c")
+    if spartan_motion:
+        sources[0]="port/n64/test_spartan_motion.c";sources.remove("port/n64/game.c")
     if blam_bsp:
         flags.append('-DBG_BLAM_BSP')
         sources += ['port/n64/blam/collision.c', 'build/n64/generated/blam_collision_data.c']
@@ -87,6 +89,7 @@ if __name__=='__main__':
     parser.add_argument('--output-dir',type=Path,default=ROOT/'build/n64-wizard-audit/maps-tests')
     parser.add_argument('--blam-bsp', action='store_true', help='Also exercise the optional Blood Gulch source BSP')
     parser.add_argument('--navigation',action='store_true',help='Exact shortest-distance, scheduling and cache-lifecycle navigation checks')
+    parser.add_argument('--spartan-motion',action='store_true',help='Sustained-fire locomotion clocks and animated hit poses')
     parser.add_argument('--firefight',action='store_true',help='Finite Firefight lifecycle and formation-arrival tests')
     parser.add_argument('--with-pve', action='store_true', help='Run regressions with the NPC pool compiled in but inactive')
     parser.add_argument('--frontend-cycle', action='store_true', help='Run the real three-match menu/map/quit/resume fixture')
@@ -100,4 +103,4 @@ if __name__=='__main__':
     args = parser.parse_args()
     if args.export_spawn_clearance and args.map_directory:parser.error('Spawn export uses only the canonical banks')
     if args.target_math and not args.modes:parser.error('--target-math requires --modes')
-    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes,args.target_math,args.pve,args.with_pve or args.firefight or args.navigation,args.firefight,args.navigation)
+    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes,args.target_math,args.pve,args.with_pve or args.firefight or args.navigation,args.firefight,args.navigation,args.spartan_motion)

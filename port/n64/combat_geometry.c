@@ -293,9 +293,10 @@ float bg_vehicle_hit_ray(const bg_vehicle*v,const float origin[3],const float di
 #else
 #include <stdio.h>
 #endif
+#include "player_animation.h"
 #define PLAYER_HIT_VERTICES 160
 #define PLAYER_HIT_GROUPS 16
-typedef struct {bool valid;unsigned clip,blend_clip;float phase,blend_phase,weight;int16_t points[PLAYER_HIT_VERTICES][3];int16_t bounds[PLAYER_HIT_GROUPS][6];} player_hit_pose;
+typedef struct {bool valid,firing;unsigned clip,blend_clip;float phase,blend_phase,weight,fire_frame,motion_seconds;int16_t points[PLAYER_HIT_VERTICES][3];int16_t bounds[PLAYER_HIT_GROUPS][6];} player_hit_pose;
 static player_hit_pose player_poses[BG_PLAYERS];
 static uint8_t hit_frames[2*PLAYER_HIT_VERTICES*6] __attribute__((aligned(16)));
 static void player_hit_read(uint32_t offset,unsigned bytes){
@@ -326,24 +327,34 @@ static const player_hit_pose*player_pose(unsigned index){
     const bg_player*p=&bg_players[index];const bg_seat_definition*seat=bg_player_seat(p);
     unsigned clip=0;bool loop=false;float seconds=p->anim_time,weight=0,second=0;unsigned blend_clip=0;
     switch(p->animation){case BG_ANIM_WALK:case BG_ANIM_RUN:clip=1;break;case BG_ANIM_FIRE:clip=2;break;case BG_ANIM_RELOAD:clip=3;break;case BG_ANIM_DIE:clip=4;break;case BG_ANIM_JUMP:clip=5;break;case BG_ANIM_MELEE:clip=6;break;case BG_ANIM_DRIVE:clip=8;break;default:break;}
+    if(clip==2&&p->grounded&&!seat&&p->grenade_cooldown<=.55f)clip=hypotf(p->velocity[0],p->velocity[2])>.15f;
+    if(clip==0||clip==1)seconds=p->locomotion_time;
     loop=clip==0||clip==1||clip>=8;
     if(p->grenade_cooldown>.55f&&p->vehicle<0){clip=7;seconds=(.9f-p->grenade_cooldown)/.35f*bg_player_hit_clips[7].duration;loop=false;}
     if(seat){clip=18+seat->pose*3+p->seat_state;loop=p->seat_state==BG_SEAT_STABLE;}
     else if(p->weapon_ready>0){clip=11;seconds=(1-p->weapon_ready/bg_ready_times[p->weapon])*bg_player_hit_clips[11].duration;loop=false;}
-    else if(p->health>0&&p->melee_time<=0&&p->reload<=0&&p->flash<=0&&p->grenade_cooldown<=.55f){
+    else if(p->health>0&&p->melee_time<=0&&p->reload<=0&&p->grenade_cooldown<=.55f){
         if(p->landing_time>0){blend_clip=14+(p->hard_landing?1:0)+(p->crouch_amount>.5f?2:0);second=clip_phase(blend_clip,p->landing_duration-p->landing_time,false);weight=1;}
-        else if(p->grounded&&p->crouch_amount>0){blend_clip=12+(hypotf(p->velocity[0],p->velocity[2])>.15f);second=clip_phase(blend_clip,p->anim_time,true);weight=p->crouch_amount;}
+        else if(p->grounded&&p->crouch_amount>0){blend_clip=12+(hypotf(p->velocity[0],p->velocity[2])>.15f);second=clip_phase(blend_clip,p->locomotion_time,true);weight=p->crouch_amount;}
     }
     float phase=clip_phase(clip,seconds,loop);player_hit_pose*c=&player_poses[index];
-    if(c->valid&&c->clip==clip&&c->phase==phase&&c->blend_clip==blend_clip&&c->blend_phase==second&&c->weight==weight)return c;
+    bool firing=bg_player_body_firing(p);float fire_frame=firing?bg_player_body_fire_frame(p):0;
+    if(c->valid&&c->clip==clip&&c->phase==phase&&c->blend_clip==blend_clip&&c->blend_phase==second&&c->weight==weight&&c->firing==firing&&(!firing||(c->fire_frame==fire_frame&&c->motion_seconds==p->locomotion_time)))return c;
     assert(bg_player_hit_vertex_count<=PLAYER_HIT_VERTICES&&bg_player_hit_group_count<=PLAYER_HIT_GROUPS);
-    sample_player_hits(c->points,clip,phase,1);if(weight>0)sample_player_hits(c->points,blend_clip,second,weight);
+    if(firing){
+        unsigned f0=fire_frame,f1=f0+1<BG_BODY_FIRE_FRAMES?f0+1:f0;float fraction=fire_frame-f0,total=0;
+        for(unsigned crouched=0;crouched<2;crouched++)for(unsigned end=0;end<2;end++){
+            float w=(crouched?p->crouch_amount:1-p->crouch_amount)*(end?fraction:1-fraction);if(w<=0)continue;
+            unsigned id=bg_player_hit_fire_clips[(clip==1)+2*crouched][end?f1:f0];
+            sample_player_hits(c->points,id,clip_phase(id,p->locomotion_time,true),w/(total+w));total+=w;
+        }
+    }else{sample_player_hits(c->points,clip,phase,1);if(weight>0)sample_player_hits(c->points,blend_clip,second,weight);}
     for(unsigned g=0;g<bg_player_hit_group_count;g++)for(unsigned a=0;a<3;a++){
         int lo=32767,hi=-32768;unsigned first=bg_player_hit_groups[g][0],count=bg_player_hit_groups[g][1];
         for(unsigned t=first;t<first+count;t++)for(unsigned j=0;j<3;j++){int value=c->points[bg_player_hit_triangles[t][j]][a];if(value<lo)lo=value;if(value>hi)hi=value;}
         c->bounds[g][a]=lo;c->bounds[g][a+3]=hi;
     }
-    c->valid=true;c->clip=clip;c->phase=phase;c->blend_clip=blend_clip;c->blend_phase=second;c->weight=weight;return c;
+    c->valid=true;c->clip=clip;c->phase=phase;c->blend_clip=blend_clip;c->blend_phase=second;c->weight=weight;c->firing=firing;c->fire_frame=fire_frame;c->motion_seconds=p->locomotion_time;return c;
 }
 float bg_player_hit_ray_impl(unsigned index,const float origin[3],const float direction[3],float distance,int *region){
 #ifdef BG_PVE

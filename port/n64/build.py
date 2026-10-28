@@ -34,6 +34,8 @@ def parse_args(argv=None):
     parser.add_argument("--pve-count",type=int,choices=(0,5,8),default=5)
     parser.add_argument("--pve-qa",type=int,choices=(0,1,2,3,4,5,6),default=0)
     parser.add_argument("--pve-photo-tick",type=int)
+    parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
+    parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument(
         "--preset",
         choices=["release"],
@@ -371,6 +373,8 @@ def parse_args(argv=None):
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
     ):
         parser.error("--game-source requires an explicit profiling or telemetry mode")
+    if args.scene_source and not (args.profile or args.spartan_motion_qa):
+        parser.error("--scene-source requires profiling or Spartan motion QA")
     if args.feature_cache_slots and not (
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
         or args.validate or args.snapshot_tick is not None or args.frontend_qa
@@ -397,6 +401,7 @@ def parse_args(argv=None):
         or args.interaction_qa is not None
         or args.plasma_qa is not None
         or args.model_qa
+        or args.spartan_motion_qa
         or args.weapon_qa
         or args.geometry_qa
         or args.environment_qa
@@ -546,6 +551,7 @@ def compile_options(args, sdk, tiny, out, source):
             if args.aim_qa is not None
             or args.plasma_qa is not None
             or args.model_qa
+            or args.spartan_motion_qa
             or args.weapon_qa
             or args.geometry_qa
             or args.environment_qa
@@ -563,6 +569,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_HUD_QA_PAGE=" + str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
         *(["-DBG_PLASMA_QA=" + str(args.plasma_qa)] if args.plasma_qa is not None else []),
         *(["-DBG_WEAPON_QA"] if args.weapon_qa else []),
+        *(["-DBG_SPARTAN_MOTION_QA"] if args.spartan_motion_qa else []),
         *(["-DBG_ENVIRONMENT_QA"] if args.environment_qa else []),
         *(["-DBG_GROUND_QA"] if args.ground_qa else []),
         *(["-DBG_GEOMETRY_QA"] if args.geometry_qa else []),
@@ -662,6 +669,8 @@ def rom_name(args):
         name += "-aim" + str(args.aim_qa)
     if args.model_qa:
         name += "-model-qa"
+    if args.spartan_motion_qa:
+        name += "-spartan-motion-qa"
     if args.plasma_qa is not None:
         name += "-plasma" + str(args.plasma_qa)
     if args.weapon_qa:
@@ -1102,6 +1111,7 @@ def main():
         (
             args.game_source.resolve()
             if name == "game.c" and args.game_source
+            else args.scene_source.resolve() if name == "scene.c" and args.scene_source
             else ROOT / "port/n64" / name
         )
         for name in sources

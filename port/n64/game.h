@@ -124,6 +124,7 @@ typedef struct {
     bool grounded;
     bool climbing;
     float shield, shield_delay, heat, charge, recoil, gait, anim_time, melee_time, invisibility;
+    float locomotion_time; /* Base body cycle; weapon impulses must not restart it. */
     /* Source damage flash decays independently of remaining shield vitality. */
     float shield_hit, shield_break, shield_break_pos[3];
     float camo_opacity, camo_quiet;

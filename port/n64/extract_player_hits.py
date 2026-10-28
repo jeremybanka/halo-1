@@ -6,6 +6,7 @@ in RAM; there is no per-frame allocation or simplified head/torso proxy.
 import json,struct
 import numpy as np
 from pack_fp_ammo import globals_for,rotate,overlay_states
+from spartan_motion import firing_cycles
 
 def player_hits(h,campaign,root):
  from reclaimer.animation.animation_decompilation import extract_animation
@@ -53,13 +54,17 @@ def player_hits(h,campaign,root):
    frames.append(states)
   emit(frames,c['duration'])
  graph=meta(h,r'characters\cyborg\cyborg','model_animations')
- def clip(i,idle=False):
+ def clip(i,idle=False,in_place=False):
   a=extract_animation(i,graph,write_jma=False);count=graph.animations.STEPTREE[i].frame_count
+  if in_place:a.apply_root_node_info_to_states(undo=True)
   frames=[[{'p':[n.pos_x/100,n.pos_y/100,n.pos_z/100],'q':[n.rot_i,n.rot_j,n.rot_k,n.rot_w]} for n in frame] for frame in a.frames[:count]]
   if idle and count>4:frames=[frames[round(i*(count-1)/3)] for i in range(4)]
   emit(frames,count/30)
+  return {'name':a.name,'frames':frames,'duration':count/30}
+ crouch=[]
  for name in ['stand rifle ready','crouch rifle idle','crouch rifle move-front','stand rifle land-soft','stand rifle land-hard','crouch rifle land-soft','crouch rifle land-hard']:
-  clip(next(i for i,a in enumerate(graph.animations.STEPTREE) if a.name==name))
+  c=clip(next(i for i,a in enumerate(graph.animations.STEPTREE) if a.name==name),in_place=name=='crouch rifle move-front')
+  if name in ('crouch rifle idle','crouch rifle move-front'):crouch.append(c)
  seen=set()
  for name,path in [('warthog',r'vehicles\warthog\warthog'),('ghost',r'vehicles\ghost\ghost_mp'),('scorpion',r'vehicles\scorpion\scorpion_mp'),('banshee',r'vehicles\banshee\banshee')]:
   v=meta(campaign if name=='banshee' else h,path,'vehicle');seats=list(v.unit_attrs.seats.STEPTREE)
@@ -70,6 +75,12 @@ def player_hits(h,campaign,root):
    if ids in seen:continue
    seen.add(ids)
    for i,index in enumerate(ids):clip(index,i==0)
+ fire_ids=[]
+ for base in firing_cycles(raw,crouch):
+  row=[]
+  for frames in base['cycles']:
+   row.append(len(clips));emit(frames,base['duration'])
+  fire_ids.append(row)
  (root/'build/n64/frontend-files/player-hits.bin').write_bytes(bank)
  def array(v):return str(v).replace('[','{').replace(']','}')
  lines=['const uint16_t bg_player_hit_triangles[][3]='+array(triangles)+';',
@@ -80,4 +91,5 @@ def player_hits(h,campaign,root):
  'const bg_hit_clip bg_player_hit_clips[]={']
  for c in clips:lines.append('{'+f'{c["offset"]},{c["stride"]},{c["count"]},{c["duration"]:.9f}f'+'},')
  lines.append('};')
- return lines,dict(vertices=len(vertices),triangles=len(triangles),groups=len(groups),clips=clips,rom_bytes=len(bank),source=r'characters\cyborg\cyborg')
+ lines.append('const uint16_t bg_player_hit_fire_clips[4][5]='+array(fire_ids)+';')
+ return lines,dict(vertices=len(vertices),triangles=len(triangles),groups=len(groups),clips=clips,fire_clips=fire_ids,rom_bytes=len(bank),source=r'characters\cyborg\cyborg')

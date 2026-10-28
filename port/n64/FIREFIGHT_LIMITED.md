@@ -49,7 +49,8 @@ strength from simultaneous population: more players get additional opposition
 and four-second packet gaps, versus six seconds solo. The first round emphasizes
 patrols, Grunts, Needlers and Jackal shield lines. Later rounds add mixed and Elite
 strike teams; Hunters enter boss rounds two/three and late-round mixed encounters.
-These counts are initial challenge tuning. Automated completion tests use fixture
+The fifteen-wave totals are 285 / 353 / 419 / 488 enemies for one through
+four humans, before bonus reinforcements. These counts are initial challenge tuning. Automated completion tests use fixture
 kills and **do not establish fair difficulty or human completion time**.
 
 ## Authored arrivals
@@ -185,6 +186,12 @@ Validation commands:
 - Native `--firefight-qa 4`: controller edges through entry, restart, quit/cancel
   and return to multiplayer. `--firefight --maps-cycle`: PvP map residency with
   the expanded Firefight executable loaded.
+
+Frozen `--pve-photo-tick` builds also export the completed RDP framebuffer as
+RGBA5551 chunks through the diagnostic log. `benchmarks/firefight-limited/
+decode_photo.py` reconstructs exact 320×240 PNGs; they have no desktop scaling
+or VI filtering. Export is compiled out of performance and playable builds.
+Raw image logs and PNGs remain private/local.
 
 The native measurements, build hashes, raw logs and results are recorded in
 [benchmarks/firefight-limited](benchmarks/firefight-limited/README.md). Screenshots

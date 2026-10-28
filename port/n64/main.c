@@ -1426,7 +1426,28 @@ int main(void) {
         overlay_us = get_ticks_us() - profile_start;
         profile_start = get_ticks_us();
 #endif
-#if defined(BG_VI_MEASURE) || defined(BG_PACED30)
+#ifdef BG_PVE_PHOTO_TICK
+        /* Frozen QA only: read completed native RDP pixels, without desktop
+         * capture or VI/window scaling. Never compiled into perf/play builds. */
+        rdpq_detach_wait();
+        static bool photo_exported;
+        if(!photo_exported){
+            photo_exported=true;
+            assertf(surface_get_format(screen)==FMT_RGBA16&&screen->width==320&&screen->height==240,"Photo format");
+            debugf("FF_PHOTO_BEGIN tick=%u width=320 height=240 format=RGBA5551\n",BG_PVE_PHOTO_TICK);
+            static const char digits[]="0123456789abcdef";
+            for(unsigned first=0;first<320*240;first+=64){
+                char hex[257];
+                for(unsigned j=0;j<64;j++){
+                    unsigned n=first+j;const uint16_t*row=(const uint16_t*)((const uint8_t*)UncachedAddr(screen->buffer)+(n/320)*screen->stride);
+                    unsigned value=row[n%320];for(unsigned k=0;k<4;k++)hex[j*4+k]=digits[(value>>(12-k*4))&15];
+                }
+                hex[256]=0;debugf("FF_PIX %u %s\n",first,hex);
+            }
+            debugf("FF_PHOTO_END\n");
+        }
+        display_show(screen);
+#elif defined(BG_VI_MEASURE) || defined(BG_PACED30)
         frame_present(screen, fmodf(game_time, 75.f) >= 36.f);
 #else
         rdpq_detach_show();

@@ -600,6 +600,12 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if (p->health <= 0) {
         int seconds = (int)ceilf(p->respawn);
         char label[32];
+#ifdef BG_PVE
+        if(bg_ff.active){
+            if(bg_ff_can_respawn(index))snprintf(label,sizeof(label),"Respawn: %d",seconds<0?0:seconds);
+            else snprintf(label,sizeof(label),"Waiting for round clear");
+        }else
+#endif
         if(bg_player_eliminated(index))snprintf(label,sizeof(label),"Eliminated");
         else if(bg_player_waiting(index))snprintf(label,sizeof(label),"Waiting for respawn");
         else snprintf(label, sizeof(label), "Rejoin in %d", seconds < 0 ? 0 : seconds);
@@ -654,7 +660,6 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         hud_text(state,x+margin,y+height-19,hud_cyan);
         snprintf(state,sizeof(state),"%u  %02u:%02u",(unsigned)bg_ff.team_score,(unsigned)bg_ff.elapsed/60,(unsigned)bg_ff.elapsed%60);
         hud_text(state,x+margin,y+height-10,hud_cyan);
-        if(p->health<=0){snprintf(state,sizeof(state),bg_ff_can_respawn(index)?"Respawn: %u":"Waiting for round clear",(unsigned)ceilf(fmaxf(0,p->respawn)));hud_text(state,x+(width-hud_text_width(state))/2,y+height/2,hud_cyan);}
         if(bg_ff.message_time>0&&hud_text_width(bg_ff.message)<width-8)hud_text(bg_ff.message,x+(width-hud_text_width(bg_ff.message))/2,y+25,hud_cyan);
         if(alive<=3&&bg_ff.packet>=bg_ff.packets&&p->health>0){
             const T3DViewport*vp=bg_scene_viewport(index);

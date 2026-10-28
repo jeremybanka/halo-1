@@ -78,6 +78,7 @@ static float damage_history[4][4];
 static bool mode_spawn_eligible(unsigned player,unsigned index);
 static const float *mode_spawn_position(unsigned index);
 static float mode_spawn_height(unsigned index,float height);
+static float mode_spawn_weight(unsigned player,const float pos[3],float rating);
 static void mode_loadout(int weapons[2],int grenades[2]);
 const bg_match_statistics *bg_match_stats(void) {
     return &statistics;
@@ -367,26 +368,31 @@ bool bg_give_weapon(unsigned player, bg_weapon weapon) {
     event(BG_EVENT_PICKUP, player, weapon, p->pos, 1);
     return true;
 }
+static float spawn_distance_squared(const float a[3],const float b[3]) {
+    /* Source x/y/z order; the port maps those axes to x/-z/y. */
+    float dx=a[0]-b[0],dy=a[2]-b[2],dz=a[1]-b[1];
+    float d2=dx*dx;d2+=dy*dy;d2+=dz*dz;
+    return d2;
+}
 float bg_spawn_rating(unsigned player, unsigned index) {
     if (player >= active_players || index >= bg_spawn_count || !mode_spawn_eligible(player,index))
         return 0;
     const float *pos = mode_spawn_position(index);
     float rating = 1;
-    /* Free-for-all: no red/blue partition or friendly bonus. Recovered source
-     * rejects enemies within 2 units and ramps the rating to 1 over 2..5. */
+    /* game_engine_get_distance_rating_for_spawn. A living unit includes the
+     * queried player; normally its unit is absent while it awaits a respawn. */
     for (unsigned i = 0; i < active_players; i++)
-        if (i != player && bg_players[i].health > 0) {
-            float d2 = distance2(pos, bg_players[i].pos);
-            if(bg_players_allied(player,i)) {
-                if(d2<.25f)return 0;
-                /* Prefer a living teammate's area without overlapping them. */
-                if(d2<25)rating*=1.5f;
-                continue;
+        if (bg_players[i].health > 0) {
+            float distance=(float)sqrt(spawn_distance_squared(pos,bg_players[i].pos));
+            bool allied=bg_players_allied(player,i);
+            if(!bg_mode_has_teams()||!allied||!(distance>.25f)) {
+                if(distance<.25f)rating=0;
+                else if(distance<1)rating*=.1f;
+                if(!allied) {
+                    if(distance<2)rating=0;
+                    else if(!(distance>5))rating=(distance-2)*rating*.33333334f;
+                }
             }
-            if (d2 < 4)
-                return 0;
-            if (d2 <= 25)
-                rating *= (sqrtf(d2) - 2) * (1.f / 3);
         }
     /* Nearby-vehicle exclusion, using the authored local collision bounds.
      * Expanded by the source .1 query radius plus the player capsule radius. */
@@ -414,7 +420,7 @@ float bg_spawn_rating(unsigned player, unsigned index) {
             if (inside)
                 return 0;
         }
-    return rating;
+    return mode_spawn_weight(player,pos,rating);
 }
 int bg_select_spawn(unsigned player) {
     float best = 0;
@@ -2586,4 +2592,6 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
         bg_tick_profile[2] += get_ticks_us() - tick_begin;
 #endif
     }
+    /* game_time_update increments its tick counter after game_tick returns. */
+    mode_advance_spawn_clock(dt);
 }

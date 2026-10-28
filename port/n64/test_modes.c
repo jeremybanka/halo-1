@@ -10,6 +10,7 @@ static void start(unsigned mode) {
     bg_set_players(4);bg_configure_mode(mode,teams);bg_reset();
     for(unsigned p=0;p<4;p++)assert(bg_players[p].health>0);
 }
+#include "test_spawn_weights.inc"
 static void objective_step(unsigned count) { for(unsigned i=0;i<count;i++)mode_tick(1.f/30); }
 static void place(unsigned p,const float pos[3]) {
     memcpy(bg_players[p].pos,pos,12);memset(bg_players[p].velocity,0,12);
@@ -61,6 +62,7 @@ static void catalog_and_maps(void) {
             assert(!bg_match_finished());
         }
         reachable_hills();
+        spawn_map_checks();
         bg_map_unload();assert(!bg_current_mode_map());
         printf("PASS map%u: all 26 presets, source starts, loadouts, objectives and unload\n",ids[map]);
     }
@@ -204,6 +206,7 @@ static void export_clearance(const char *path) {
 }
 int main(void) {
     const char *path=getenv("BG_MODE_CLEARANCE_OUTPUT");if(path){export_clearance(path);return 0;}
-    catalog_and_maps();slayer_and_lives();ctf();balls();objective_controls();hill_and_race();bg_map_unload();
+    catalog_and_maps();spawn_boundaries();spawn_clock();slayer_and_lives();ctf();balls();objective_controls();hill_and_race();bg_map_unload();
+    printf("PASS: %u exact source spawn ratings, %u identical seeded selections, distance/bonus boundaries, Invasion flag mapping and 30/31-tick warmup\n",spawn_comparisons,spawn_selections);
     puts("PASS: mode scoring, team penalties, targets, lives, respawn growth, CTF variants, ball transfers/traits, hills and ordered/team races");
 }

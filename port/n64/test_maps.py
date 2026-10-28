@@ -11,7 +11,7 @@ from asset_ids import map_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
-def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False):
+def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False,target_math=False):
     output = output.resolve(); output.mkdir(parents=True, exist_ok=True)
     solver = output/'solver'; solver.mkdir(exist_ok=True)
     for script in ('prepare_vehicle.py','export_vehicle.py'):
@@ -31,8 +31,17 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
              'port/n64/blam/vehicle_physics.c','port/n64/replay.c','port/n64/frontend_qa.c',
              str(solver/'vehicle_data.c')]
     if mode_tests:
+        from spawn_source_reference import generate
+        generate(solver/'spawn_reference.c')
+        # The original routines remain strict even when testing the port with
+        # the target compiler's math options.
+        subprocess.run(['clang',*flags,'-c',str(solver/'spawn_reference.c'),'-o',str(solver/'spawn_reference.o')],cwd=ROOT,check=True)
         sources[0]='port/n64/test_modes.c'
         sources.remove('port/n64/game.c')
+        sources.append(str(solver/'spawn_reference.o'))
+        if target_math:
+            # VR4300 has no fused multiply-add; disable host contraction too.
+            flags+=['-ffast-math','-ftrapping-math','-fno-associative-math','-ffp-contract=off','-Wno-overriding-option']
     if blam_bsp:
         flags.append('-DBG_BLAM_BSP')
         sources += ['port/n64/blam/collision.c', 'build/n64/generated/blam_collision_data.c']
@@ -74,6 +83,8 @@ if __name__=='__main__':
     parser.add_argument('--map-directory',type=Path,help='Test an isolated candidate ROM map directory')
     parser.add_argument('--world-cells',action='store_true',help='Match the larger batch capacity of the world-cell/hierarchy renderer')
     parser.add_argument('--modes',action='store_true',help='Exercise every multiplayer preset and objective transition against all maps')
+    parser.add_argument('--target-math',action='store_true',help='Exercise modes with target math flags against a separately compiled strict source reference')
     args = parser.parse_args()
     if args.export_spawn_clearance and args.map_directory:parser.error('Spawn export uses only the canonical banks')
-    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes)
+    if args.target_math and not args.modes:parser.error('--target-math requires --modes')
+    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes,args.target_math)

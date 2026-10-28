@@ -8,6 +8,9 @@ static unsigned mode_penalty[BG_PLAYERS];
 static float mode_speed[BG_PLAYERS],mode_death_time[BG_PLAYERS],mode_fraction;
 static uint32_t mode_rng, race_mask, race_visited[BG_PLAYERS];
 static unsigned race_first,rally_flag,hill_id,hill_ticks;
+/* Only the first 31 completed ticks matter to Invasion's spawn warmup. */
+static unsigned mode_spawn_ticks;
+static float mode_spawn_fraction;
 bg_objective bg_objectives[BG_MAX_OBJECTIVES];
 unsigned bg_objective_count;
 
@@ -111,6 +114,43 @@ static bool mode_spawn_eligible(unsigned player,unsigned index) {
      * mode's spawn set and use the friendly distance bonus. */
     return r->engine!=BG_ENGINE_CTF||bg_spawns[index].team==(int)mode_teams[player];
 }
+static void mode_advance_spawn_clock(float dt) {
+    if(!mode_enabled||mode_spawn_ticks>30)return;
+    mode_spawn_fraction+=dt*30;
+    unsigned ticks=(unsigned)(mode_spawn_fraction+1e-5f);
+    mode_spawn_fraction=fmaxf(0,mode_spawn_fraction-ticks);
+    mode_spawn_ticks+=ticks;
+}
+static float mode_spawn_weight(unsigned player,const float pos[3],float rating) {
+    if(bg_mode_has_teams()&&rating>0) {
+        float bonus=0;
+        for(unsigned i=0;i<active_players;i++)
+            if(mode_teams[player]==mode_teams[i]&&bg_players[i].health>0) {
+                float distance=(float)sqrt(spawn_distance_squared(pos,bg_players[i].pos));
+                if(distance>=1&&distance<=6)
+                    bonus+=(float)pow((double)(1.f-(distance-1.f)*.2f),(double).6f);
+            }
+        if(bonus>3)bonus=3;
+        rating*=bonus*3+1;
+    }
+    if(mode_enabled&&bg_current_rules()->engine==BG_ENGINE_CTF&&
+       (bg_current_rules()->flags&BG_MODE_ASSAULT)) {
+        /* Invasion swaps the source flag slots on map initialization. Its
+         * opposite-slot lookup therefore means our team's authored marker,
+         * before the port's floor adjustment of the drawable objective. */
+        const bg_mode_marker *flag=mode_marker(BG_MARK_FLAG,mode_teams[player]);
+        if(flag) {
+            float d2=clamp(spawn_distance_squared(flag->pos,pos),.5f,10.f);
+            float preference=1.f/d2;
+            if(mode_spawn_ticks>30) {
+                if(d2>1)preference=(float)pow(preference,.33f);
+                preference=clamp(preference,.5f,2.f);
+            }
+            rating*=preference;
+        }
+    }
+    return rating;
+}
 static void mode_loadout(int weapons[2],int grenades[2]) {
     memcpy(weapons,bg_start_weapons,2*sizeof(int));memcpy(grenades,bg_start_grenades,2*sizeof(int));
     if(!mode_enabled)return;
@@ -158,6 +198,7 @@ static void mode_reset(void) {
     memset(mode_penalty,0,sizeof(mode_penalty));memset(mode_death_time,0,sizeof(mode_death_time));
     memset(race_visited,0,sizeof(race_visited));memset(bg_objectives,0,sizeof(bg_objectives));
     bg_objective_count=0;mode_fraction=0;mode_rng=0x4d4f4445;race_mask=0;hill_id=0;hill_ticks=1800;
+    mode_spawn_ticks=0;mode_spawn_fraction=0;
     for(unsigned i=0;i<BG_PLAYERS;i++){mode_speed[i]=1;mode_targets[i]=-1;}
     if(!mode_enabled)return;
     const bg_mode_rules *r=bg_current_rules();const bg_mode_map *map=bg_current_mode_map();

@@ -1,10 +1,11 @@
 #ifndef BG_VIEW_CAMERA_H
 #define BG_VIEW_CAMERA_H
+#include "vehicle_kinds.h"
 #include <math.h>
 #include <stdbool.h>
 typedef struct { const float (*points)[3]; unsigned count; float origin[3]; } bg_camera_track;
 #define BG_CAMERA_NORMALIZE_SUM 1024.f
-extern const bg_camera_track bg_camera_tracks[4][5];
+extern const bg_camera_track bg_camera_tracks[BG_VEHICLE_COUNT][5];
 /* following_camera.c:camera_track_splut + real_math.h:uniform_cubic_spline.
  * Points are still in Xbox forward/left/up coordinates, in world units. */
 static inline void bg_camera_track_sample(const bg_camera_track*track,float pitch,float out[3]){

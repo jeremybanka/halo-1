@@ -115,7 +115,7 @@ static bg_world_command_plan world_plans[BG_FRAME_SLOTS][4];
 uint64_t bg_submit_stats[8]; /* views, rebuilds, LOD us, selection us, frustum us, dispatch us */
 #endif
 #endif
-static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[8][12] __attribute__((aligned(16)));
+static T3DVertPacked *armor[BG_FRAME_SLOTS][4], particles[9][12] __attribute__((aligned(16)));
 static T3DVertPacked *firstperson[BG_FRAME_SLOTS][4];
 static unsigned firstperson_bytes[BG_FRAME_SLOTS][4];
 static int firstperson_weapon[BG_FRAME_SLOTS][4];
@@ -127,14 +127,14 @@ static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static float fired_at[4] = {-100, -100, -100, -100};
 static bool body_firing[4], body_reloading[4];
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
-    *particle_blocks[8];
-static rspq_block_t *vehicle_lods[4];
+    *particle_blocks[9];
+static rspq_block_t *vehicle_lods[BG_VEHICLE_COUNT];
 static rspq_block_t *covenant_wreck_blocks[2];
 static rspq_block_t *pickup_lod_blocks[BG_M_COUNT];
-static rspq_block_t *vehicle_micro_blocks[4], *pickup_micro_blocks[BG_M_COUNT];
+static rspq_block_t *vehicle_micro_blocks[BG_VEHICLE_COUNT], *pickup_micro_blocks[BG_M_COUNT];
 static bg_micro_sphere vehicle_micro_spheres[BG_MAX_VEHICLES], pickup_micro_spheres[BG_MAX_PICKUPS];
-static bool vehicle_micro_available[4], pickup_micro_available[BG_M_COUNT];
-static rspq_block_t *vehicle_parts[4][7];
+static bool vehicle_micro_available[BG_VEHICLE_COUNT], pickup_micro_available[BG_M_COUNT];
+static rspq_block_t *vehicle_parts[BG_VEHICLE_COUNT][7];
 static T3DMat4FP part_matrices[BG_FRAME_SLOTS][BG_MAX_VEHICLES][7];
 static bg_cull_bounds vehicle_part_bounds[BG_MAX_VEHICLES][7];
 static float wheel_rotation[BG_MAX_VEHICLES];
@@ -189,9 +189,9 @@ bg_scene_metrics bg_scene_profile;
 #define animated_tracks bg_scene_profile.animated_tracks
 #define category_triangles bg_scene_profile.category_triangles
 static unsigned model_vertex_loads[BG_M_COUNT], pickup_vertex_loads[BG_M_COUNT];
-static unsigned vehicle_vertex_loads[4], part_vertex_loads[4][7], spartan_lod_vertex_loads,
+static unsigned vehicle_vertex_loads[BG_VEHICLE_COUNT], part_vertex_loads[BG_VEHICLE_COUNT][7], spartan_lod_vertex_loads,
     fp_vertex_loads[BG_FP_WEAPONS];
-static unsigned vehicle_micro_vertex_loads[4], pickup_micro_vertex_loads[BG_M_COUNT];
+static unsigned vehicle_micro_vertex_loads[BG_VEHICLE_COUNT], pickup_micro_vertex_loads[BG_M_COUNT];
 #endif
 static unsigned weapon_model(unsigned w) {
     return w == BG_W_FLAMETHROWER ? BG_M_FLAMETHROWER : w < 8 ? w : BG_M_AR;
@@ -419,7 +419,7 @@ static void init_scene(void) {
             pickup_lod_blocks[m] = record_model(far, far->vertices);
         }
     }
-    for (unsigned m = 0; m < 4; m++) {
+    for (unsigned m = 0; m < BG_VEHICLE_COUNT; m++) {
         const bg_model_asset *a = &bg_vehicle_lods[m];
         prepare_model(a);
         vehicle_lods[m] = record_model(a, a->vertices);
@@ -430,7 +430,7 @@ static void init_scene(void) {
         assertf(rig->count <= 7, "Vehicle rig capacity");
         for (unsigned j = 0; j < rig->count; j++) {
             const bg_vehicle_part *part = &rig->parts[j];
-            const bg_model_asset *full = &bg_model_assets[BG_M_WARTHOG + m];
+            const bg_model_asset *full = &bg_model_assets[bg_vehicle_model_id(m)];
             vehicle_parts[m][j] = record_model_range(full, full->vertices, part->first, part->count,
                                                      part->batch_first, part->batch_count);
 #ifdef BG_PROFILE
@@ -453,7 +453,7 @@ static void init_scene(void) {
         pickup_micro_vertex_loads[m] = model_load_count(a, a->vertex_count, 0, a->batch_count);
 #endif
     }
-    for (unsigned m = 0; m < 4; m++) {
+    for (unsigned m = 0; m < BG_VEHICLE_COUNT; m++) {
         const bg_model_asset *a = bg_vehicle_micro_lods[m], *old = &bg_vehicle_lods[m];
         vehicle_micro_available[m] = a->vertices != old->vertices || a->indices != old->indices;
         if (!vehicle_micro_available[m])
@@ -502,10 +502,10 @@ static void init_scene(void) {
                                          {0, 0, 32}, {-32, 0, 0}, {0, 0, -32}};
     static const uint8_t indices[24] = {0, 3, 2, 0, 4, 3, 0, 5, 4, 0, 2, 5,
                                         1, 2, 3, 1, 3, 4, 1, 4, 5, 1, 5, 2};
-    const uint32_t hues[8] = {0x54d9ffff, 0xf15cffff, 0xffd38aff, 0x818977ff,
-                              0x76abffff, 0xffbc50ff, 0xff9836ff, 0x98ff32ff};
+    const uint32_t hues[9] = {0x54d9ffff, 0xf15cffff, 0xffd38aff, 0x818977ff,
+                              0x76abffff, 0xffbc50ff, 0xff9836ff, 0x98ff32ff,0x9480ffff};
     objectives_init();
-    for (unsigned k = 0; k < 8; k++) {
+    for (unsigned k = 0; k < 9; k++) {
         for (unsigned i = 0; i < 24; i++) {
             memcpy(t3d_vertbuffer_get_pos(particles[k], i), points[indices[i]], 6);
             *t3d_vertbuffer_get_color(particles[k], i) = hues[k];
@@ -946,6 +946,17 @@ static void compute_vehicle_pose(unsigned i) {
             else if (part->kind == BG_PART_HATCH) {
                 t3d_mat4_identity(&local);
                 if (v->active) {
+                    #ifdef BG_ENEMY_VEHICLES
+                    if(v->kind==BG_V_WRAITH){
+                        const bg_hit_hatch*h=&bg_hit_hatches[2][v->hatch_closing];
+                        float frame=fminf(h->count-1,fmaxf(0,v->hatch*(h->count-1)));unsigned a=frame,b=a+1<h->count?a+1:a;float blend=frame-a;
+                        for(unsigned k=0;k<3;k++)for(unsigned j=0;j<4;j++){
+                            float value=(h->frames[a][j][k]+blend*(h->frames[b][j][k]-h->frames[a][j][k]))/4096.f;
+                            local.m[j?j-1:3][k]=value*(j?1:BG_OBJECT_SCALE);
+                        }
+                    }else
+#endif
+                    {
                     const bg_rom_pose *pose =
                         &bg_hatch_poses[v->kind == BG_V_BANSHEE][v->hatch_closing];
                     int16_t points[4][3];
@@ -954,6 +965,7 @@ static void compute_vehicle_pose(unsigned i) {
                         local.m[3][a] = points[0][a] * (BG_OBJECT_SCALE / 4096);
                         for (unsigned c = 0; c < 3; c++)
                             local.m[c][a] = points[c + 1][a] * (1.f / 4096);
+                    }
                     }
                 }
             } else if (part->kind == BG_PART_WHEEL) {
@@ -1315,7 +1327,7 @@ static void prepare_frame(void) {
         bg_projectile *q = bg_projectile_at(i);
         if (!q || !q->active)
             continue;
-        float scale = (q->kind == BG_P_CANNON||q->kind==BG_P_FUEL) ? .09f : q->kind == BG_P_FLAME ? .18f : .045f;
+        float scale = (q->kind == BG_P_CANNON||q->kind==BG_P_FUEL||q->kind==BG_P_GRUNT_FUEL) ? .09f : q->kind == BG_P_FLAME ? .18f : .045f;
         if (q->kind == BG_P_FRAG || q->kind == BG_P_PLASMA_GRENADE)
             scale = BG_SCALE / BG_OBJECT_SCALE;
         matrix(&projectile_matrices[slot][i], scale, game_time * 4, 0, q->pos);
@@ -1495,11 +1507,11 @@ static void prepare_view(unsigned p) {
         body_lods[p][j] = 0;
         if (bg_player_visibility(q) <= 0)
             continue;
-#if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA)
+#if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA) && !defined(BG_PVE_MODEL_QA)
         if (j == p && !bg_player_third_person(player) && player->health > 0)
             continue;
 #endif
-        if (q->vehicle >= 0 && bg_vehicles[q->vehicle].kind == BG_V_BANSHEE &&
+        if (q->vehicle >= 0 && (bg_player_seat(q)->flags&1) &&
             q->seat_state == BG_SEAT_STABLE)
             continue;
         float distance = 0;
@@ -2066,7 +2078,11 @@ static void draw_view(unsigned p) {
             continue;
         }
         t3d_matrix_set(&projectile_matrices[slot][i], true);
-        rspq_block_run(particle_blocks[q->kind]);
+        unsigned particle=q->kind>=BG_P_FUEL?BG_P_FUEL:q->kind;
+#ifdef BG_ENEMY_VEHICLES
+        if(q->damage_profile==BG_D_WRAITH)particle=8;
+#endif
+        rspq_block_run(particle_blocks[particle]);
         triangles += 8;
 #ifdef BG_PROFILE
         submitted_vertices += 24;

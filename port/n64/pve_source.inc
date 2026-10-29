@@ -38,10 +38,10 @@ struct actor_datum {
 struct actor_definition {struct {float shield_fraction_emerge_attack,shield_fraction_emerge_pursue;} defensive;};
 typedef float real;
 static struct actor_datum pve_source_actors[BG_PVE_MAX];
-static struct actor_definition pve_source_defs[BG_PVE_KINDS];
+static struct actor_definition pve_source_defs[BG_PVE_MAX];
 typedef unsigned short word;
 struct actor_variant_definition {struct {int grenade_type,trajectory_type,stimulus_type;float throw_grenade_delay,throw_grenade_chance;} grenade_combat;};
-static struct actor_variant_definition pve_source_variants[BG_PVE_KINDS];
+static struct actor_variant_definition pve_source_variants[BG_PVE_MAX];
 static struct actor_variant_definition*actor_variant_definition_get(int i){return &pve_source_variants[i];}
 struct prop_datum {bool swarm;};
 static struct prop_datum *prop_get(int i){(void)i;static struct prop_datum p;return &p;}
@@ -63,7 +63,7 @@ static long game_time_get(void){return bg_pve_tick_number;}
 static bool actor_action_deny_transition(long i){bg_pve_actor*a=&bg_pve_actors[i];return a->melee_pending||a->throw_pending||a->evade_time>0||a->arrival;}
 static void actor_action_handle_initial_action(long i){if(!actor_get(i)->state.action)actor_get(i)->state.action=_actor_action_guard;}
 static void actor_action_handle_panic_from_damage(long i){
-    bg_pve_actor *a=&bg_pve_actors[i];const bg_pve_definition*d=pve_definition_for(a->kind,bg_players[BG_PLAYERS+i].weapon);
+    bg_pve_actor *a=&bg_pve_actors[i];const bg_pve_definition*d=pve_definition(i);
     if(a->recent_damage>d->panic_damage){actor_get(i)->stimuli.panic_type=MAX(actor_get(i)->stimuli.panic_type,1);actor_get(i)->stimuli.panic_prop_index=1;}
 }
 static void actor_action_handle_panic_from_attached_projectiles(long i){
@@ -74,7 +74,7 @@ static void actor_action_handle_panic_from_attached_projectiles(long i){
 static bool actor_action_try_to_panic(long i,int type,int prop,bool force){
     (void)prop;(void)force;bg_pve_actor*a=&bg_pve_actors[i];
     actor_get(i)->state.action=_actor_action_flee;actor_get(i)->state.action_data.flee.panic_type=type;
-    a->panic_time=pve_range(bg_pve_definitions[a->kind].cower);if(a->panic_time<1)a->panic_time=1;
+    a->panic_time=pve_range(pve_definition(i)->cower);if(a->panic_time<1)a->panic_time=1;
     return true;
 }
 static bool action_flee_blind_panic(int type){return type>=10;}
@@ -95,12 +95,12 @@ static void actor_action_handle_combat_transition(long i){actor_action_handle_co
 static bool actor_action_can_stop_guarding(long i,int action,int reason){(void)action;(void)reason;return !actor_get(i)->state.action_data.guard.cower;}
 static void actor_action_handle_active_cover_seeking(long i,bool unused,bool unused2){
     (void)unused;(void)unused2;bg_pve_actor*a=&bg_pve_actors[i];struct actor_datum*s=actor_get(i);
-    if(s->input.shield_vitality<bg_pve_definitions[a->kind].hide_shield){
+    if(s->input.shield_vitality<pve_definition(i)->hide_shield){
         s->state.action=_actor_action_guard;s->state.action_data.guard.cower=true;
-        a->cover_time=fmaxf(a->cover_time,pve_range(bg_pve_definitions[a->kind].hide));}
+        a->cover_time=fmaxf(a->cover_time,pve_range(pve_definition(i)->hide));}
 }
 static void actor_action_handle_berserking_from_damage(long i){
-    bg_pve_actor*a=&bg_pve_actors[i];bg_player*p=&bg_players[BG_PLAYERS+i];const bg_pve_definition*d=pve_definition_for(a->kind,bg_players[BG_PLAYERS+i].weapon);
+    bg_pve_actor*a=&bg_pve_actors[i];bg_player*p=&bg_players[BG_PLAYERS+i];const bg_pve_definition*d=pve_definition(i);
     if(a->recent_damage>d->berserk_damage&&p->health/(d->health*bg_pve_difficulties[bg_ff.active?bg_ff.difficulty:1].vitality)<d->berserk_threshold)a->berserk=true;
 }
 static void actor_action_handle_berserk_transition(long i,int level){(void)level;actor_get(i)->emotions.berserk=bg_pve_actors[i].berserk;}

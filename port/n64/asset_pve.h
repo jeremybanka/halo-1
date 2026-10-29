@@ -15,4 +15,9 @@ extern const bg_attachment_clip bg_pve_grips[BG_PVE_MODELS][PVE_CLIPS];
 extern const uint8_t *const bg_pve_shield_vertices[BG_PVE_LODS];
 extern const uint8_t *const bg_pve_batch_modes[BG_PVE_MODELS][BG_PVE_LODS];
 extern const float bg_spirit_seats[8][3];
+#ifdef BG_PVE_ROSTER
+#include "pve_roster.h"
+extern const uint32_t *const bg_pve_variant_colors[PVE_R_COUNT][BG_PVE_LODS];
+extern const bg_model_asset bg_pve_roster_weapons[2];
+#endif
 #endif

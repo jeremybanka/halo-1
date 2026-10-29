@@ -40,13 +40,7 @@ enum {
     BG_PICK_OVERSHIELD,
     BG_PICK_CAMO
 };
-typedef enum {
-    BG_V_WARTHOG,
-    BG_V_GHOST,
-    BG_V_SCORPION,
-    BG_V_BANSHEE,
-    BG_VEHICLE_COUNT
-} bg_vehicle_kind;
+#include "vehicle_kinds.h"
 typedef enum {
     BG_ANIM_IDLE,
     BG_ANIM_WALK,
@@ -87,7 +81,8 @@ typedef enum {
     BG_EVENT_SHIELD_BREAK,
     BG_EVENT_AMMO, /* Actual reserve rounds transferred; distinguishes weapon acquisition. */
     BG_EVENT_KILL, /* player=credited killer (-1 environment), weapon=victim viewport. */
-    BG_EVENT_OBJECTIVE
+    BG_EVENT_OBJECTIVE,
+    BG_EVENT_COVENANT
 } bg_event_kind;
 enum { BG_OBJECTIVE_TAKEN, BG_OBJECTIVE_DROPPED, BG_OBJECTIVE_RETURNED,
        BG_OBJECTIVE_SCORED, BG_OBJECTIVE_MOVED, BG_OBJECTIVE_CHECKPOINT };
@@ -99,7 +94,7 @@ typedef enum {
     BG_P_PLASMA_GRENADE,
     BG_P_CANNON,
     BG_P_FLAME,
-    BG_P_FUEL
+    BG_P_FUEL, BG_P_GRUNT_FUEL, BG_P_DROPPED_FUEL
 } bg_projectile_kind;
 /* BG_EVENT_EXPLOSION stores this presentation type in event.weapon. */
 typedef enum { BG_EXPLOSION_NORMAL, BG_EXPLOSION_PLASMA, BG_EXPLOSION_NEEDLER } bg_explosion_kind;
@@ -137,6 +132,7 @@ typedef struct {
     float body_stun, stun_time;
     float exit_grace;
     int exit_vehicle;
+    uint32_t exit_tick; /* Source own-vehicle protection lasts through exit+90. */
     uint16_t support_triangle;
     uint8_t support_vehicle; /* one-based; zero means no moving support */
     float support_local[3];
@@ -170,7 +166,7 @@ typedef struct {
     bool physics_valid;
     float home[3], home_yaw, secondary_cooldown, turret_yaw, turret_pitch, health;
     int kind, occupants[BG_VEHICLE_SEATS];
-    bool active;
+    bool active, encounter_owned;
     float gun_rate[2], gun_error[2];
     float hatch;
     bool hatch_closing, flipping;

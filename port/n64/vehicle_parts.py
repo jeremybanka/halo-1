@@ -45,6 +45,19 @@ def _layout(name,original):
     elif name=='banshee':
         roots=[-1,1];kinds=[0,4];turret=0
         def group(bone):return 1 if descendants(bone,1) else 0
+    elif name=='wraith':
+        roots=[-1,1,7,2];kinds=[0,3,3,4];turret=0
+        def group(bone):
+            if descendants(bone,2):return 3
+            if descendants(bone,7):return 2
+            if descendants(bone,1):return 1
+            return 0
+    elif name=='shade':
+        roots=[-1,4,8];kinds=[0,2,3];turret=4
+        def group(bone):
+            if descendants(bone,8):return 2
+            if descendants(bone,4):return 1
+            return 0
     else:
         # Retail "stand fixed aim-still" rotates node7 about Z (yaw) and
         # node8 about Y (pitch). The broad turret and its gun/cannon children
@@ -60,7 +73,7 @@ def _layout(name,original):
 
 def triangle_groups(name,model,original):
     """Original skinning-palette rigid group for each reduced triangle."""
-    if name not in ('warthog','scorpion','banshee'):return [0]*len(model['triangles'])
+    if name not in ('warthog','scorpion','banshee','wraith','shade'):return [0]*len(model['triangles'])
     roots,_,_,group=_layout(name,original)
     source=original['vertices'];weights=original['weights']
     cache={}
@@ -81,7 +94,7 @@ def triangle_groups(name,model,original):
 
 
 def split_vehicle(name,model,original):
-    if name not in ('warthog','scorpion','banshee'):
+    if name not in ('warthog','scorpion','banshee','wraith','shade'):
         return model,{'parts':[{'first':0,'count':len(model['triangles'])*3,'kind':0,'pivot':[0,0,0]}],'turret_pivot':[0,0,0]}
     nodes=original['nodes'];pivots=node_positions(nodes)
     roots,kinds,turret,_=_layout(name,original)

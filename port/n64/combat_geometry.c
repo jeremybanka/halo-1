@@ -25,10 +25,20 @@ typedef struct {
 static int16_t hit_hog_vertices[340][3],hit_tank_vertices[209][3],hit_banshee_vertices[158][3];
 static bg_hit_node hit_hog_nodes[255],hit_tank_nodes[127],hit_banshee_nodes[127];
 static uint8_t hit_hog_moving[255],hit_tank_moving[127],hit_banshee_moving[127];
-static hit_pose_cache pose_cache[3]={
+#ifdef BG_ENEMY_VEHICLES
+static int16_t hit_wraith_vertices[368][3],hit_shade_vertices[134][3];
+static bg_hit_node hit_wraith_nodes[255],hit_shade_nodes[63];
+static uint8_t hit_wraith_moving[255],hit_shade_moving[63];
+#endif
+static hit_pose_cache pose_cache[]={
  {.vertices=hit_hog_vertices,.nodes=hit_hog_nodes,.moving=hit_hog_moving},
  {.vertices=hit_tank_vertices,.nodes=hit_tank_nodes,.moving=hit_tank_moving},
- {.vertices=hit_banshee_vertices,.nodes=hit_banshee_nodes,.moving=hit_banshee_moving}};
+ {.vertices=hit_banshee_vertices,.nodes=hit_banshee_nodes,.moving=hit_banshee_moving},
+#ifdef BG_ENEMY_VEHICLES
+ {.vertices=hit_wraith_vertices,.nodes=hit_wraith_nodes,.moving=hit_wraith_moving},
+ {.vertices=hit_shade_vertices,.nodes=hit_shade_nodes,.moving=hit_shade_moving},
+#endif
+};
 static void rotate_pivot(float p[3],const float pivot[3],float yaw,float pitch){
     float x=p[0]-pivot[0],y=p[1]-pivot[1],z=p[2]-pivot[2];
     float c=cosf(pitch),s=sinf(pitch),rx=c*x-s*y; y=s*x+c*y;x=rx;
@@ -36,17 +46,21 @@ static void rotate_pivot(float p[3],const float pivot[3],float yaw,float pitch){
 }
 const bg_hit_mesh *bg_vehicle_collision_pose_impl(const bg_vehicle*v){
     const bg_hit_mesh*source=&bg_vehicle_hit_meshes[v->kind];
-    bool hatch=v->active&&(v->kind==BG_V_SCORPION||v->kind==BG_V_BANSHEE);
+    bool hatch=v->active&&(v->kind==BG_V_SCORPION||v->kind==BG_V_BANSHEE
+#ifdef BG_ENEMY_VEHICLES
+||v->kind==BG_V_WRAITH
+#endif
+);
     float pitch=v->turret_pitch-v->pitch;
     if(v->kind==BG_V_GHOST||(!hatch&&v->turret_yaw==0&&pitch==0))return source;
-    hit_pose_cache*c=&pose_cache[v->kind==BG_V_WARTHOG?0:v->kind==BG_V_SCORPION?1:2];
+    hit_pose_cache*c=&pose_cache[v->kind==BG_V_WARTHOG?0:v->kind==BG_V_SCORPION?1:v->kind==BG_V_BANSHEE?2:v->kind-1];
     if(c->valid&&c->yaw==v->turret_yaw&&c->pitch==pitch&&c->hatch==(hatch?v->hatch:-1)&&c->closing==v->hatch_closing)return &c->mesh;
     unsigned changed=0;
     if(!c->valid||c->yaw!=v->turret_yaw)changed|=(1u<<2)|(1u<<3);
     if(!c->valid||c->pitch!=pitch)changed|=1u<<3;
     if(!c->valid||c->hatch!=(hatch?v->hatch:-1)||c->closing!=v->hatch_closing)changed|=1u<<4;
     if(!c->initialized){
-        static const unsigned capacities[4][2]={{340,255},{0,0},{209,127},{158,127}};
+        static const unsigned capacities[][2]={{340,255},{0,0},{209,127},{158,127},{368,255},{134,63}};
         assert(source->vertex_count<=capacities[v->kind][0]&&source->node_count<=capacities[v->kind][1]);
         c->mesh=*source;c->mesh.vertices=c->vertices;c->mesh.nodes=c->nodes;
         memcpy(c->vertices,source->vertices,source->vertex_count*sizeof(c->vertices[0]));
@@ -62,7 +76,7 @@ const bg_hit_mesh *bg_vehicle_collision_pose_impl(const bg_vehicle*v){
     c->kind=v->kind;c->yaw=v->turret_yaw;c->pitch=pitch;c->hatch=hatch?v->hatch:-1;c->closing=v->hatch_closing;c->valid=true;
     float matrix[4][3]={{0},{1,0,0},{0,1,0},{0,0,1}};
     if(hatch){
-        const bg_hit_hatch*h=&bg_hit_hatches[v->kind==BG_V_BANSHEE][v->hatch_closing];
+        const bg_hit_hatch*h=&bg_hit_hatches[bg_vehicle_hatch_index(v->kind)][v->hatch_closing];
         float frame=fminf(h->count-1,fmaxf(0,v->hatch*(h->count-1)));unsigned a=frame,b=a+1<h->count?a+1:a;float weight=frame-a;
         for(unsigned j=0;j<4;j++)for(unsigned k=0;k<3;k++)matrix[j][k]=(h->frames[a][j][k]+weight*(h->frames[b][j][k]-h->frames[a][j][k]))/4096.f;
     }
@@ -100,7 +114,7 @@ const bg_hit_mesh *bg_vehicle_collision_pose_impl(const bg_vehicle*v){
 const bg_hit_mesh* bg_vehicle_collision_pose(const bg_vehicle*v){PROFILE_BEGIN;const bg_hit_mesh* result=bg_vehicle_collision_pose_impl(v);PROFILE_END(1);return result;}
 
 static float vehicle_sweep_radius(const bg_vehicle*v){
-    static float radii[4];if(radii[v->kind]>0)return radii[v->kind];
+    static float radii[BG_VEHICLE_COUNT];if(radii[v->kind]>0)return radii[v->kind];
     const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];float radius=0;
     const float*yaw=m->parts[m->turret_part].pivot;
     /* Bound each rigid part around its actual joint. A whole-hull bound at
@@ -113,7 +127,7 @@ static float vehicle_sweep_radius(const bg_vehicle*v){
         if(part->kind==3){float between[3];for(unsigned a=0;a<3;a++){delta[a]=point[a]-part->pivot[a];between[a]=part->pivot[a]-yaw[a];}
             reach=sqrtf(dot3(yaw,yaw))+sqrtf(dot3(between,between))+sqrtf(dot3(delta,delta));}
         if(part->kind==4)for(unsigned c=0;c<2;c++){
-            const bg_hit_hatch*h=&bg_hit_hatches[v->kind==BG_V_BANSHEE][c];
+            const bg_hit_hatch*h=&bg_hit_hatches[bg_vehicle_hatch_index(v->kind)][c];
             for(unsigned f=0;f<h->count;f++){
                 for(unsigned a=0;a<3;a++)delta[a]=(h->frames[f][0][a]+h->frames[f][1][a]*point[0]+h->frames[f][2][a]*point[1]+h->frames[f][3][a]*point[2])/4096.f;
                 reach=fmaxf(reach,sqrtf(dot3(delta,delta)));
@@ -309,7 +323,13 @@ static void player_hit_read(uint32_t offset,unsigned bytes){
     if(!rom){rom=dfs_rom_addr("player-hits.bin");size=dfs_rom_size("player-hits.bin");assert(rom&&size);}
     assert(offset+bytes<=size);data_cache_hit_invalidate(hit_frames,bytes);dma_read(hit_frames,rom+offset,bytes);
 #else
-    static FILE*f;if(!f)f=fopen("build/n64/frontend-files/player-hits.bin","rb");assert(f);
+    static FILE*f;if(!f)f=fopen(
+#ifdef BG_ENEMY_VEHICLES
+"build/pve-vehicles/bank/player-hits.bin"
+#else
+"build/n64/frontend-files/player-hits.bin"
+#endif
+,"rb");assert(f);
     assert(!fseek(f,offset,SEEK_SET));assert(fread(hit_frames,1,bytes,f)==bytes);
 #endif
 }
@@ -333,7 +353,11 @@ static const player_hit_pose*player_pose(unsigned index){
     if(clip==0||clip==1)seconds=p->locomotion_time;
     loop=clip==0||clip==1||clip>=8;
     if(p->grenade_cooldown>.55f&&p->vehicle<0){clip=7;seconds=(.9f-p->grenade_cooldown)/.35f*bg_player_hit_clips[7].duration;loop=false;}
-    if(seat){clip=18+seat->pose*3+p->seat_state;loop=p->seat_state==BG_SEAT_STABLE;}
+    if(seat){clip=18+seat->pose*3+p->seat_state;
+#ifdef BG_ENEMY_VEHICLES
+if(bg_vehicles[p->vehicle].kind==BG_V_SHADE)clip=bg_shade_player_hit_clip+p->seat_state;
+#endif
+loop=p->seat_state==BG_SEAT_STABLE;}
     else if(p->weapon_ready>0){clip=11;seconds=(1-p->weapon_ready/bg_ready_times[p->weapon])*bg_player_hit_clips[11].duration;loop=false;}
     else if(p->health>0&&p->melee_time<=0&&p->reload<=0&&p->grenade_cooldown<=.55f){
         if(p->landing_time>0){blend_clip=14+(p->hard_landing?1:0)+(p->crouch_amount>.5f?2:0);second=clip_phase(blend_clip,p->landing_duration-p->landing_time,false);weight=1;}

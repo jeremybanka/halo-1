@@ -1,0 +1,53 @@
+Retained 96 functions/blocks
+[
+  {
+    "path": "vehicles\\warthog\\warthog",
+    "cache": "bloodgulch",
+    "mass_points": 15,
+    "powered": 2,
+    "mass": 5000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\ghost\\ghost_mp",
+    "cache": "bloodgulch",
+    "mass_points": 5,
+    "powered": 2,
+    "mass": 2000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\scorpion\\scorpion_mp",
+    "cache": "bloodgulch",
+    "mass_points": 18,
+    "powered": 2,
+    "mass": 20000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\banshee\\banshee",
+    "cache": "a30",
+    "mass_points": 22,
+    "powered": 2,
+    "mass": 4000.0,
+    "radius": -1.0
+  }
+]
+PASS map 0: 16 interleaved actor movement trajectories and scratch probes
+PASS map 1: 16 interleaved actor movement trajectories and scratch probes
+PASS map 2: 16 interleaved actor movement trajectories and scratch probes
+PASS map 3: 16 interleaved actor movement trajectories and scratch probes
+PASS map 4: 16 interleaved actor movement trajectories and scratch probes
+PASS map 5: 16 interleaved actor movement trajectories and scratch probes
+PASS map 6: 16 interleaved actor movement trajectories and scratch probes
+PASS map 7: 16 interleaved actor movement trajectories and scratch probes
+PASS map 8: 16 interleaved actor movement trajectories and scratch probes
+PASS map 9: 16 interleaved actor movement trajectories and scratch probes
+PASS map 10: 16 interleaved actor movement trajectories and scratch probes
+PASS map 11: 16 interleaved actor movement trajectories and scratch probes
+PASS map 12: 16 interleaved actor movement trajectories and scratch probes
+PASS 37440 bit-identical movement steps: position/velocity/support/impact, crouch/jump/teleport and scratch probes
+PASS actor-list and contact-list overflow: exact full-scan fallback
+PASS all 16 actor entries survive scratch-probe churn: zero grid rebuilds in 480 warm queries
+PASS 1000008 exact ray distances/materials/normals (325561 hits), all species/clips, shield states and recycled slots
+COUNTERS terrain hits 73208 misses 44475; narrow triangles 38301530 / 238931520 eligible before bounds

@@ -10,6 +10,11 @@ Limited. They are not a claim of an exact retail Reach variant or of a complete
 port of CE's AI engine. Native performance and human balance remain appraisal
 items; no dynamic frame-rate-based enemy reduction changes a scored encounter.
 
+The optional [Covenant roster appraisal](FIREFIGHT_ROSTER.md) extends this base
+ruleset with Majors, Spec Ops, fuel rods, Zealots, sword/cloaked Elites and dialogue.
+Its new formations, source-fidelity limits and fresh native measurements are
+documented separately; the composition/count descriptions below describe the base.
+
 ## Match and resources
 
 - Three rounds of five waves, with a full-clear boss wave at each round's end.

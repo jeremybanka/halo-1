@@ -1,5 +1,6 @@
 #ifndef BG_COMBAT_H
 #define BG_COMBAT_H
+#include "vehicle_kinds.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <math.h>
@@ -7,7 +8,11 @@
  * explicit while weapon impacts migrate to source-backed profiles. */
 typedef enum {BG_D_LEGACY, BG_D_AR, BG_D_PISTOL, BG_D_PLASMA_PISTOL,
     BG_D_PLASMA_RIFLE, BG_D_SHOTGUN, BG_D_SNIPER, BG_D_OVERCHARGE,
-    BG_D_MELEE, BG_D_FRAG, BG_D_PLASMA_GRENADE, BG_D_ROCKET, BG_D_NEEDLE, BG_D_SUPERCOMBINE, BG_D_STICK, BG_D_FALL, BG_D_DISTANCE, BG_D_HOG, BG_D_GHOST, BG_D_TANK, BG_D_TANK_MG, BG_D_BANSHEE, BG_D_FUEL_ROD, BG_D_COLLISION, BG_D_VEHICLE_KILL, BG_D_COUNT} bg_damage_kind;
+    BG_D_MELEE, BG_D_FRAG, BG_D_PLASMA_GRENADE, BG_D_ROCKET, BG_D_NEEDLE, BG_D_SUPERCOMBINE, BG_D_STICK, BG_D_FALL, BG_D_DISTANCE, BG_D_HOG, BG_D_GHOST, BG_D_TANK, BG_D_TANK_MG, BG_D_BANSHEE, BG_D_FUEL_ROD, BG_D_COLLISION, BG_D_VEHICLE_KILL,
+#ifdef BG_ENEMY_VEHICLES
+    BG_D_WRAITH, BG_D_SHADE,
+#endif
+    BG_D_COUNT} bg_damage_kind;
 enum {BG_DAMAGE_HEADSHOT=1, BG_DAMAGE_DOUBLE_HEAD=2, BG_DAMAGE_EMP=4, BG_DAMAGE_BACKSTAB=8, BG_DAMAGE_SKIP_SHIELDS=16, BG_DAMAGE_NO_OWNER=32, BG_DAMAGE_EXPLOSIVE=64};
 typedef struct {
     float minimum,lower,upper,body,shield,range_start,range_end,speed_start,speed_end,range;
@@ -24,8 +29,11 @@ typedef struct {
 enum {BG_GRENADE_MATERIALS=33};
 typedef struct {float arming,fuse,gravity,parallel[BG_GRENADE_MATERIALS],perpendicular[BG_GRENADE_MATERIALS];} bg_grenade_profile;
 typedef struct {bg_trigger_profile trigger;float chamber;uint8_t profile;} bg_mounted_profile;
-extern const bg_mounted_profile bg_mounted_profiles[6];
-extern const float bg_vehicle_child_damage[4];
+extern const bg_mounted_profile bg_mounted_profiles[];
+#ifdef BG_ENEMY_VEHICLES
+extern const float bg_enemy_vehicle_damage[2][33];
+#endif
+extern const float bg_vehicle_child_damage[BG_VEHICLE_COUNT];
 extern const bg_grenade_profile bg_grenade_profiles[2];
 extern const float bg_grenade_velocity;
 extern const float bg_needle_fuse,bg_needle_turn,bg_needle_range;

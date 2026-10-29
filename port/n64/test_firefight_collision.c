@@ -84,10 +84,22 @@ static void hit_check(unsigned unit,const float*o,const float*d,float length,uns
 }
 static void rays(void){
     assert(bg_map_load(9));bg_pve_count=12;unsigned checks=0,hits=0;
-    for(unsigned kind=0;kind<4;kind++)for(unsigned clip=0;clip<PVE_CLIPS;clip++)for(unsigned phase=0;phase<17;phase++){
+    unsigned poses=4;
+#ifdef BG_PVE_ROSTER
+    poses+=2; /* Fuel-rod Grunt and sword Elite collision tracks. */
+#endif
+    for(unsigned pose=0;pose<poses;pose++)for(unsigned clip=0;clip<12;clip++)for(unsigned phase=0;phase<17;phase++){
+        unsigned kind=pose<4?pose:pose-4;
+        const bg_pve_animation*c=&bg_pve_hits[kind].clips[clip];
+#ifdef BG_PVE_ROSTER
+        if(pose>=4)c=&bg_pve_alt_hit_clips[kind][clip];
+#endif
         unsigned slot=phase%12,unit=4+slot;bg_player*p=&bg_players[unit];bg_pve_actor*a=&bg_pve_actors[slot];
         *p=(bg_player){.pos={1.25f,.7f,-2.5f},.health=100,.shield=phase%2?0:100,.yaw=(phase%4)*.37f};
-        *a=(bg_pve_actor){.occupied=true,.kind=kind,.clip=clip,.time=bg_pve_hits[kind].clips[clip].duration*phase/16,.generation=1+phase+kind*17+clip*68};
+        *a=(bg_pve_actor){.occupied=true,.kind=kind,.clip=clip,.time=c->duration*phase/16,.generation=1+phase+pose*17+clip*102};
+#ifdef BG_PVE_ROSTER
+        if(pose>=4)a->armament=kind==0?PVE_ARM_FUEL:PVE_ARM_SWORD;
+#endif
         for(unsigned ray=0;ray<640;ray++){
             float o[3],d[3];
             for(unsigned k=0;k<3;k++){o[k]=p->pos[k]+(random01()-.5f)*4;d[k]=random01()-.5f;}
@@ -99,7 +111,6 @@ static void rays(void){
         }
         /* Shoot through authored vertices: grazing faces and nearest-hit ties
          * must preserve the old material and reflection normal. */
-        const bg_pve_animation*c=&bg_pve_hits[kind].clips[clip];
         for(unsigned v=0;v<c->vertices;v+=3){
             float co=cosf(p->yaw),si=sinf(p->yaw);
             const int16_t*q=reference_pve_hit_pose[slot][v];

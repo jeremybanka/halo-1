@@ -2,6 +2,13 @@
 #define BG_PVE_MODEL_QA_H
 #include "pve.h"
 #include "asset_pve.h"
+#ifdef BG_ENEMY_VEHICLE_QA
+#include "enemy_vehicle_qa.h"
+#elif defined(BG_JACKAL_SHIELD_QA)
+#include "jackal_shield_qa.h"
+#elif defined(BG_PVE_ROSTER)
+#include "pve_roster_qa.h"
+#else
 /* Frozen inspection only: four matched cameras, both LODs, articulated poses. */
 unsigned bg_pve_model_qa_lod;
 unsigned bg_pve_vehicle_qa_lod;
@@ -61,4 +68,5 @@ static void model_qa_camera(unsigned p,T3DVec3*eye,T3DVec3*target){
     float radius=model_qa_page==5?2.6f:model_qa_page==BG_PVE_SPIRIT?13:model_qa_page==BG_PVE_HUNTER?1.7f:1.25f;
     for(unsigned a=0;a<3;a++){target->v[a]=model_center[a]*BG_SCALE;eye->v[a]=(model_center[a]+dirs[p][a]*radius)*BG_SCALE;}
 }
+#endif
 #endif

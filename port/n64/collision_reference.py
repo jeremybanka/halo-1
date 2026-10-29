@@ -11,6 +11,16 @@ def generate(out):
         terrain=re.sub(r'\b'+name+r'\b','reference_'+name,terrain)
     (out/'collision_reference_terrain.c').write_text(terrain)
     hits=old('pve_collision.inc').split('static bool pve_needle_impact')[0]
+    # Feed new weapon poses into the old exhaustive triangle oracle. Keep its
+    # interpolation, ray arithmetic, triangle order and material selection.
+    # The wider identity only prevents alternate clips aliasing base clips.
+    needle='const bg_pve_animation*c=&m->clips[a->clip];'
+    assert needle in hits
+    hits=hits.replace(needle,needle+'''\n#ifdef BG_PVE_ROSTER
+    if(a->armament)c=&bg_pve_alt_hit_clips[a->kind][a->clip];
+#endif
+''')
+    hits=hits.replace('(a->kind<<28)+(a->clip<<24)', '(a->kind<<29)+(bg_pve_render_clip(a)<<24)')
     for name in ('pve_hit_pose','pve_hit_normals','pve_hit_keys','pve_hit_generations','pve_clip_once','pve_clip_frame','pve_triangle_ray','bg_pve_hit_ray'):
         hits=re.sub(r'\b'+name+r'\b','reference_'+name,hits)
     (out/'collision_reference_hits.inc').write_text(hits)

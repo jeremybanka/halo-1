@@ -15,12 +15,18 @@ from export_collision import decode,check,polygons,number,row
 def scalar(v):return number(float(v))
 def vec(v):return '{.n={'+','.join(scalar(x) for x in v)+'}}'
 def fields(o,names):return ','.join('.'+n+'='+scalar(getattr(o,n)) for n in names)
-def export():
+def export(enemy=False):
  OUT.mkdir(parents=True,exist_ok=True)
  with (OUT/'vehicle-export.log').open('w') as log,contextlib.redirect_stdout(log):
   g=CacheGraph(ROOT/'build/n64/assets');data,_=decode(ROOT/'build/n64/assets/bloodgulch-decompressed.map')
  check(data);lines=['/* Native cache values; no HEK unit conversion. Do not commit. */','#include "blam/vehicle_private.h"']
  keys=[k for k in g.root_ids() if g.entry(k).class_1.enum_name=='vehicle'];keys.sort(key=lambda k:next(i for i,n in enumerate(['warthog','ghost','scorpion','banshee']) if n in g.entry(k).path))
+ if enemy:
+  from reclaimer.meta.wrappers.halo1_map import Halo1Map
+  c=Halo1Map();c.load_map(ROOT/'build/n64/assets/b40-decompressed.map');g.caches['b40']=c
+  for path in (r'vehicles\wraith\wraith',r'vehicles\c gun turret\c gun turret'):
+   keys.append(('b40',next(i for i,e in enumerate(c.tag_index.tag_index) if e.class_1.enum_name=='vehicle' and e.path==path)))
+  g.sources['b40']={'sha256':hashlib.sha256((ROOT/'build/n64/assets/b40-decompressed.map').read_bytes()).hexdigest()}
  pdefs=[];vdefs=[];susp=[];bounds=[];seat_times=[];accel_scales=[];report=[]
  for kind,k in enumerate(keys):
   vehicle=g.meta(k);v=vehicle.vehi_attrs;p=g.meta((k[0],vehicle.obje_attrs.physics.id&65535));assert p.radius<=0 and p.mass_points.size<=22 and p.powered_mass_points.size<=2
@@ -120,6 +126,8 @@ def export():
   'const int16_t (*bg_vehicle_surface_bounds)[6];','#endif',
   'const unsigned bg_vehicle_world_bytes='+str(len(blob))+';',
   'const unsigned bg_vehicle_world_layout[7][2]={'+','.join('{'+str(o)+','+str(n)+'}' for o,n in layout)+'};']
+ if enemy:
+  lines=[s.replace('[4]','[6]') if s.startswith('const ') and 'bg_vehicle_' in s else s for s in lines]
  out=OUT/'vehicle_data.c';out.write_text('\n'.join(lines)+'\n')
  record=dict(world_bank_bytes=len(blob),world_bank_sha256=hashlib.sha256(blob).hexdigest(),vehicles=report,bvh_nodes=len(tree),bvh_depth=max_depth,surface_count=len(indices),source_maps=g.sources,files={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__),ROOT/'port/n64/blam/vehicle_private.h',out]})
  (OUT/'vehicle-report.json').write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record['vehicles'],indent=2))
@@ -127,5 +135,6 @@ if __name__=='__main__':
  parser=argparse.ArgumentParser(description=__doc__)
  parser.add_argument('--output',type=Path,default=OUT)
  parser.add_argument('--rom-files',type=Path,default=ROM_FILES)
+ parser.add_argument('--enemy-vehicles',action='store_true')
  args=parser.parse_args();OUT=args.output;ROM_FILES=args.rom_files
- export()
+ export(args.enemy_vehicles)

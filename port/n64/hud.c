@@ -40,8 +40,14 @@ static const unsigned reticles[BG_WEAPON_COUNT] = {
     BG_H_RETICLE_AR,           BG_H_RETICLE_PISTOL,  BG_H_RETICLE_PLASMA_PISTOL,
     BG_H_RETICLE_PLASMA_RIFLE, BG_H_RETICLE_NEEDLER, BG_H_RETICLE_SHOTGUN,
     BG_H_RETICLE_SNIPER,       BG_H_RETICLE_ROCKET,  BG_H_RETICLE_AR};
+/* Virtual Shade ID uses spare atlas quadrants, not bg_hud_images[]. */
+enum { BG_RETICLE_SHADE = BG_H_COUNT };
 static const int vehicle_reticles[BG_VEHICLE_COUNT] = {BG_H_RETICLE_WARTHOG, BG_H_RETICLE_GHOST,
-                                                       BG_H_RETICLE_SCORPION, BG_H_RETICLE_BANSHEE};
+                                                       BG_H_RETICLE_SCORPION, BG_H_RETICLE_BANSHEE
+#ifdef BG_ENEMY_VEHICLES
+                                                       ,BG_H_RETICLE_ROCKET, BG_RETICLE_SHADE
+#endif
+};
 
 static void set_combiner(int kind) {
     if (current_combiner == kind)
@@ -139,6 +145,9 @@ static void hud_sprite(int u, int v, int w, int h, int x, int y, color_t color) 
 static void hud_reticle(unsigned id, int cx, int cy) {
     unsigned q = id >= BG_H_RETICLE_WARTHOG ? 8 + id - BG_H_RETICLE_WARTHOG : id - BG_H_RETICLE_AR;
     unsigned lower = q == 2 ? 12 : q == 11 ? 13 : q == 9 ? 14 : q;
+#ifdef BG_ENEMY_VEHICLES
+    if(id==BG_RETICLE_SHADE){q=15;lower=16;}
+#endif
     set_combiner(1);
     rdpq_set_prim_color(hud_cyan);
     /* Even 24px footprint puts its geometric center exactly on the original
@@ -331,7 +340,7 @@ static void radar(unsigned p, int x, int y, float scale) {
 }
 
 static void interaction_label(bg_use_target target, char *out, unsigned size) {
-    const char *vehicles[] = {"Warthog", "Ghost", "Scorpion", "Banshee"};
+    const char *vehicles[] = {"Warthog", "Ghost", "Scorpion", "Banshee", "Wraith", "Shade"};
     out[0] = 0;
     if (target.kind == BG_USE_PICKUP)
         snprintf(out, size, "Pick up");

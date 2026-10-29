@@ -11,14 +11,22 @@ bg_ff_ship bg_ff_dropship;
 #define PR BG_W_PLASMA_RIFLE
 #define ND BG_W_NEEDLER
 const bg_ff_formation bg_ff_formations[BG_FF_FORMATIONS]={
-    {"Elite patrol",5,{E,G,G,G,G},{PR,PP,PP,ND,PP}},
-    {"Grunt infantry",5,{G,G,G,G,G},{PP,PP,ND,PP,PP}},
-    {"Needler patrol",4,{E,G,G,G},{ND,ND,ND,PP}},
-    {"Shield line",4,{J,J,G,G},{PP,PP,PP,ND}},
-    {"Mixed patrol",5,{E,J,G,G,G},{PR,PP,PP,ND,PP}},
-    {"Elite strike team",4,{E,E,G,G},{PR,ND,PP,PP}},
-    {"Hunter pair",2,{H,H},{PR,PR}},
-    {"Hunter escort",4,{H,E,J,G},{PR,PR,PP,ND}}
+    {"Elite patrol",5,{E,G,G,G,G},{PR,PP,PP,ND,PP},{0}},
+    {"Grunt infantry",5,{G,G,G,G,G},{PP,PP,ND,PP,PP},{0}},
+    {"Needler patrol",4,{E,G,G,G},{ND,ND,ND,PP},{0}},
+    {"Shield line",4,{J,J,G,G},{PP,PP,PP,ND},{0}},
+    {"Mixed patrol",5,{E,J,G,G,G},{PR,PP,PP,ND,PP},{0}},
+    {"Elite strike team",4,{E,E,G,G},{PR,ND,PP,PP},{0}},
+    {"Hunter pair",2,{H,H},{PR,PR},{0}},
+    {"Hunter escort",4,{H,E,J,G},{PR,PR,PP,ND},{0}},
+#ifdef BG_PVE_ROSTER
+    {"Major patrol",4,{E,G,G,J},{PR,PP,ND,PP},{PVE_R_ELITE_MAJOR_PR,PVE_R_GRUNT_MAJOR_PP,PVE_R_GRUNT_MAJOR_ND,PVE_R_JACKAL_MAJOR}},
+    {"Fuel rod team",4,{E,G,G,G},{PR,PP,PP,ND},{PVE_R_ELITE_MAJOR_PR,PVE_R_GRUNT_FUEL,0,0}},
+    {"Special operations",4,{E,E,G,G},{PR,ND,ND,PP},{PVE_R_ELITE_SPECOPS_PR,PVE_R_ELITE_SPECOPS_ND,PVE_R_GRUNT_SPECOPS_ND,PVE_R_GRUNT_FUEL}},
+    {"Zealot guard",4,{E,E,G,G},{PR,ND,PP,ND},{PVE_R_ZEALOT_PR,PVE_R_ELITE_MAJOR_ND,PVE_R_GRUNT_MAJOR_PP,PVE_R_GRUNT_MAJOR_ND}},
+    {"Sword assault",3,{E,E,G},{PR,PR,PP},{PVE_R_ZEALOT_SWORD,PVE_R_ELITE_MAJOR_PR,PVE_R_GRUNT_MAJOR_PP}},
+    {"Stealth team",3,{E,E,E},{PR,PR,PR},{PVE_R_STEALTH_PR,PVE_R_STEALTH_MAJOR_PR,PVE_R_STEALTH_SWORD}},
+#endif
 };
 #undef G
 #undef E
@@ -125,8 +133,59 @@ static void ff_ship_seat(unsigned j,float out[3]){
     const bg_ff_ship*s=&bg_ff_dropship;float c=cosf(s->yaw),sn=sinf(s->yaw);
     out[0]=s->pos[0]+c*seat[0]+sn*seat[2];out[1]=s->pos[1]+seat[1];out[2]=s->pos[2]-sn*seat[0]+c*seat[2];
 }
+#ifdef BG_ENEMY_VEHICLES
+static int ff_vehicle_for_packet(unsigned packet){
+    static const int kinds[]={-1,BG_V_GHOST,BG_V_BANSHEE,BG_V_SHADE,BG_V_WRAITH};
+    return packet==0&&bg_ff.phase!=BG_FF_BONUS?kinds[bg_ff.wave]:-1;
+}
+static bool ff_vehicle_spawn_clear(unsigned kind,const float pos[3],float yaw){
+    const bg_hit_mesh*m=&bg_vehicle_hit_meshes[kind];float c=cosf(yaw),sn=sinf(yaw);
+    float floor=bg_floor(pos[0],pos[2],pos[1]+1);
+    for(unsigned n=0;n<8;n++){
+        float x=m->bounds[n&1?3:0]/1024.f,z=m->bounds[n&4?5:2]/1024.f;
+        float p[3]={pos[0]+c*x+sn*z,pos[1]+m->bounds[n&2?4:1]/1024.f,pos[2]-sn*x+c*z};
+        if(!ff_hidden(p,.2f))return false;
+        float ground=bg_floor(p[0],p[2],pos[1]+1);if(ground<-999||fabsf(ground-floor)>.7f)return false;
+        float o[3]={pos[0],pos[1]+1,pos[2]},d[3];p[1]=fmaxf(p[1],pos[1]+.8f);sub(d,p,o);float len=sqrtf(dot(d,d));normalize(d);if(bg_raycast(o,d,len)<len-.02f)return false;
+    }
+    for(unsigned n=0;n<bg_vehicle_count;n++)if(bg_vehicle_body_present(&bg_vehicles[n])&&distance2(pos,bg_vehicles[n].pos)<36)return false;
+    return true;
+}
+static bool ff_vehicle_zone_points(unsigned zone,unsigned formation,unsigned kind){
+    const ff_zone*z=&ff_zones[zone];const bg_ff_formation*f=&bg_ff_formations[formation];
+    const bg_hit_mesh*m=&bg_vehicle_hit_meshes[kind];float c=cosf(z->yaw),sn=sinf(z->yaw);
+    float side=fmaxf(fabsf((float)m->bounds[2]),fabsf((float)m->bounds[5]))/1024.f+.8f;
+    for(unsigned attempt=0;attempt<81;attempt++){
+        float center[3]={z->x+(int)(attempt%9)-4,0,z->z+(int)(attempt/9)-4};
+        center[1]=bg_floor(center[0],center[2],12)+.15f;
+        if(!ff_reachable(pve_node(center))||!ff_vehicle_spawn_clear(kind,center,z->yaw))continue;
+        memcpy(ff_arrival_points[0],center,12);bool valid=true;
+        for(unsigned j=1;j<f->count;j++){
+            float forward=((int)((j-1)/2)-1)*1.6f,lateral=(j&1?1:-1)*side;
+            float*p=ff_arrival_points[j];p[0]=center[0]+c*forward+sn*lateral;p[2]=center[2]-sn*forward+c*lateral;p[1]=bg_floor(p[0],p[2],center[1]+1)+.015f;
+            if(fabsf(p[1]-center[1])>.7f||!ff_clear_point(p,f->kind[j],true)){valid=false;break;}
+        }
+        if(valid){memcpy(ff_landing,center,12);return true;}
+    }
+    return false;
+}
+/* Retired empty encounter hulls may be reclaimed only when their complete
+ * bounding sphere is concealed. Never remove a human-owned occupied vehicle. */
+static void ff_reclaim_vehicles(void){
+    for(unsigned n=0;n<bg_vehicle_count;n++){
+        bg_vehicle*v=&bg_vehicles[n];if(!v->encounter_owned||!v->active||v->occupants[0]>=0)continue;
+        const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];bool hidden=true;
+        for(unsigned j=0;j<8;j++){float local[3]={m->bounds[j&1?3:0]/1024.f,m->bounds[j&2?4:1]/1024.f,m->bounds[j&4?5:2]/1024.f},world[3];bg_vehicle_transform(v,local,world);if(!ff_hidden(world,.2f)){hidden=false;break;}}
+        if(!hidden)continue;
+        v->active=false;v->wreck_time=0;
+    }
+}
+#endif
 static bool ff_arrive(unsigned formation,bool spirit){
     if(bg_ff_dropship.phase)return false;
+#ifdef BG_ENEMY_VEHICLES
+    int vehicle_kind=ff_vehicle_for_packet(bg_ff.packet);if(vehicle_kind>=0)spirit=false;
+#endif
     const bg_ff_formation*f=&bg_ff_formations[formation];unsigned live=ff_alive(),free=0,hunters=0;
     for(unsigned i=0;i<BG_PVE_MAX;i++){
         free+=ff_recyclable(i);
@@ -135,8 +194,19 @@ static bool ff_arrive(unsigned formation,bool spirit){
     for(unsigned j=0;j<f->count;j++)hunters+=f->kind[j]==BG_PVE_HUNTER;
     if(live+f->count>bg_ff.cap||free<f->count||hunters>2)return false;
     unsigned first=(ff_last_zone+1+ff_random(FF_ZONES-1))%FF_ZONES,chosen=FF_ZONES;
-    for(unsigned n=0;n<FF_ZONES;n++){unsigned z=(first+n)%FF_ZONES;if(ff_zone_points(z,formation,!spirit,ff_arrival_points,ff_landing)){chosen=z;break;}}
+    for(unsigned n=0;n<FF_ZONES;n++){unsigned z=(first+n)%FF_ZONES;
+#ifdef BG_ENEMY_VEHICLES
+        bool valid=vehicle_kind>=0?ff_vehicle_zone_points(z,formation,vehicle_kind):ff_zone_points(z,formation,!spirit,ff_arrival_points,ff_landing);
+#else
+        bool valid=ff_zone_points(z,formation,!spirit,ff_arrival_points,ff_landing);
+#endif
+        if(valid){chosen=z;break;}}
     if(chosen==FF_ZONES){bg_ff.arrival_failures++;return false;}
+#ifdef BG_ENEMY_VEHICLES
+    int vehicle=-1;
+    if(vehicle_kind>=0){ff_reclaim_vehicles();vehicle=bg_add_vehicle(vehicle_kind,ff_arrival_points[0],ff_zones[chosen].yaw);if(vehicle<0)return false;bg_vehicles[vehicle].encounter_owned=true;
+        if(bg_vehicle_ai_defs[vehicle_kind].health>0)bg_vehicles[vehicle].health=bg_vehicle_ai_defs[vehicle_kind].health*(100.f/bg_combat_body_max);}
+#endif
     ff_last_zone=chosen;
     if(spirit){
         memset(&bg_ff_dropship,0,sizeof(bg_ff_dropship));bg_ff_ship*s=&bg_ff_dropship;s->phase=BG_FF_SHIP_APPROACH;s->zone=chosen;s->formation=formation;s->count=f->count;s->yaw=ff_zones[chosen].yaw;
@@ -145,7 +215,13 @@ static bool ff_arrive(unsigned formation,bool spirit){
     for(unsigned j=0;j<f->count;j++){
         int slot=ff_free_slot();assert(slot>=0);float point[3];memcpy(point,ff_arrival_points[j],12);if(spirit)ff_ship_seat(j,point);
         pve_spawn_actor(slot,f->kind[j],f->weapon[j],formation,point,ff_zones[chosen].yaw);
+#ifdef BG_PVE_ROSTER
+        if(f->variant[j])bg_pve_set_variant(slot,f->variant[j]);
+#endif
         bg_pve_actor*a=&bg_pve_actors[slot];memcpy(a->entry_goal,ff_arrival_points[j],12);
+        #ifdef BG_ENEMY_VEHICLES
+        if(j==0&&vehicle>=0)pve_vehicle_mount(slot,vehicle,true);
+#endif
         if(spirit){a->arrival=1;a->clip=PVE_RIDE;bg_players[BG_PLAYERS+slot].yaw+=j&1?-1.5707963f:1.5707963f;bg_ff_dropship.actors[j]=slot;}else ff_awaken(slot);
     }
     bg_ff.spawned+=f->count;bg_ff.packet++;if(spirit)bg_ff.ship_arrivals++;else bg_ff.ground_arrivals++;
@@ -209,8 +285,25 @@ static void ff_resupply(void){
     }
 }
 static unsigned ff_packet_kind(unsigned packet){
+#ifdef BG_ENEMY_VEHICLES
+    if(ff_vehicle_for_packet(packet)>=0)return BG_FF_PATROL;
+#endif
     if(bg_ff.phase==BG_FF_BONUS)return BG_FF_GRUNTS;
     if(bg_ff.wave==0&&packet==0)return BG_FF_PATROL;
+#ifdef BG_PVE_ROSTER
+    /* Composition changes, not a larger simultaneous population. Late packets
+     * retain all source armaments; no invisible on-screen replacement occurs. */
+    if(bg_ff.wave==4){
+        if(packet==0)return bg_ff.round?BG_FF_HUNTERS:BG_FF_ZEALOTS;
+        static const unsigned bosses[]={BG_FF_SWORDS,BG_FF_ZEALOTS,BG_FF_SPECOPS,BG_FF_HUNTER_ESCORT};
+        return bosses[(packet+bg_ff.round-1)%4];
+    }
+    static const unsigned roster[3][8]={
+        {BG_FF_PATROL,BG_FF_GRUNTS,BG_FF_NEEDLERS,BG_FF_SHIELDS,BG_FF_MAJORS,BG_FF_GRUNTS,BG_FF_FUEL,BG_FF_MIXED},
+        {BG_FF_MAJORS,BG_FF_FUEL,BG_FF_STEALTH,BG_FF_ELITES,BG_FF_SPECOPS,BG_FF_MIXED,BG_FF_SWORDS,BG_FF_SHIELDS},
+        {BG_FF_SPECOPS,BG_FF_ZEALOTS,BG_FF_STEALTH,BG_FF_FUEL,BG_FF_HUNTER_ESCORT,BG_FF_MAJORS,BG_FF_SWORDS,BG_FF_SPECOPS}};
+    return roster[bg_ff.round][(bg_ff.wave*2+packet)%8];
+#else
     if(bg_ff.wave==4){
         if(bg_ff.round==0)return packet%2?BG_FF_MIXED:BG_FF_ELITES;
         if(packet==0)return BG_FF_HUNTERS;
@@ -220,6 +313,7 @@ static unsigned ff_packet_kind(unsigned packet){
         {BG_FF_MIXED,BG_FF_SHIELDS,BG_FF_NEEDLERS,BG_FF_ELITES,BG_FF_PATROL,BG_FF_MIXED,BG_FF_GRUNTS,BG_FF_SHIELDS},
         {BG_FF_ELITES,BG_FF_MIXED,BG_FF_SHIELDS,BG_FF_NEEDLERS,BG_FF_HUNTER_ESCORT,BG_FF_MIXED,BG_FF_ELITES,BG_FF_PATROL}};
     return sequence[bg_ff.round][(bg_ff.wave*2+packet)%8];
+#endif
 }
 static void ff_begin_wave(void){
     bg_ff.phase=BG_FF_WAVE;bg_ff.packet=0;bg_ff.packet_delay=1;bg_ff.spawned=bg_ff.killed=bg_ff.total=0;
@@ -277,7 +371,7 @@ void bg_ff_tick(float dt){
     }
     /* Re-home a genuinely stranded actor only while its old and new location
      * are concealed. The kill ledger is untouched. */
-    for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&!bg_pve_actors[i].arrival){
+    for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&bg_players[BG_PLAYERS+i].vehicle<0&&!bg_pve_actors[i].arrival){
         bg_pve_actor*a=&bg_pve_actors[i];if(a->stuck_time<20||!ff_hidden(bg_players[BG_PLAYERS+i].pos,bg_pve_definitions[a->kind].height))continue;
         float recovery[8][3],landing[3];
         for(unsigned z=0;z<FF_ZONES;z++)if(ff_zone_points(z,BG_FF_HUNTERS,true,recovery,landing)){
@@ -330,7 +424,22 @@ void bg_ff_qa_stage(unsigned players,unsigned fixture){
     bg_ff_start(players);
     if(fixture==3||fixture==6)return;
     bg_ff.phase=BG_FF_RECOVER;bg_ff.timer=9999;
-    if(fixture==4){
+#ifdef BG_ENEMY_VEHICLES
+    if(fixture==8||fixture==9){
+        for(unsigned h=0;h<active_players;h++){bg_player*p=&bg_players[h];p->pos[0]=-8.f-(h%2)*2.f;p->pos[2]=2+(h/2)*3;p->pos[1]=bg_floor(p->pos[0],p->pos[2],12)+.015f;p->yaw=0;bg_give_weapon(h,BG_W_ROCKET);}
+        static const unsigned kinds[]={BG_V_GHOST,BG_V_BANSHEE,BG_V_WRAITH,BG_V_SHADE};
+        unsigned vehicles=fixture==9?1:4;
+        for(unsigned n=0;n<vehicles;n++){
+            float pos[3]={8+(n%2)*12,0,-12.f+(n/2)*16.f};pos[1]=bg_floor(pos[0],pos[2],12)+.05f;
+            int vi=bg_add_vehicle(kinds[n],pos,3.14159265f);assert(vi>=0);bg_vehicles[vi].encounter_owned=true;
+            if(kinds[n]==BG_V_BANSHEE)bg_vehicles[vi].pos[1]+=5;
+            pve_spawn_actor(n,BG_PVE_ELITE,BG_W_PLASMA_RIFLE,BG_FF_PATROL,pos,3.14159265f);pve_vehicle_mount(n,vi,true);ff_awaken(n);
+        }
+        for(unsigned n=vehicles;n<bg_ff.cap;n++){float pos[3]={4+(n%3)*1.4f,0,2+(n/3)*1.6f};pos[1]=bg_floor(pos[0],pos[2],12)+.015f;pve_spawn_actor(n,BG_PVE_GRUNT,BG_W_PLASMA_PISTOL,BG_FF_PATROL,pos,3.14f);ff_awaken(n);}
+        return;
+    }
+#endif
+    if(fixture==4||fixture==7){
         for(unsigned h=0;h<active_players;h++){
             bg_player*p=&bg_players[h];p->pos[0]=-2-(h%2)*1.5f;p->pos[2]=1.5f+(h/2)*1.5f;p->pos[1]=bg_floor(p->pos[0],p->pos[2],12)+.015f;p->yaw=0;bg_give_weapon(h,BG_W_PISTOL);
         }
@@ -338,6 +447,12 @@ void bg_ff_qa_stage(unsigned players,unsigned fixture){
             unsigned kind=i<2?BG_PVE_HUNTER:i%4==2?BG_PVE_JACKAL:i%4==3?BG_PVE_ELITE:BG_PVE_GRUNT;
             float pos[3]={5+(i%3)*1.4f,0,-2+(i/3)*1.5f};pos[1]=bg_floor(pos[0],pos[2],12)+.015f;
             pve_spawn_actor(i,kind,kind==BG_PVE_GRUNT||kind==BG_PVE_JACKAL?BG_W_PLASMA_PISTOL:BG_W_PLASMA_RIFLE,BG_FF_MIXED,pos,3.14159265f);ff_awaken(i);
+#ifdef BG_PVE_ROSTER
+            if(fixture==7){
+                static const unsigned roster[]={PVE_R_GRUNT_FUEL,PVE_R_ZEALOT_SWORD,PVE_R_JACKAL_MAJOR,PVE_R_ELITE_SPECOPS_PR,PVE_R_STEALTH_SWORD,PVE_R_GRUNT_MAJOR_ND,PVE_R_ZEALOT_PR,PVE_R_GRUNT_SPECOPS_ND,PVE_R_ELITE_MAJOR_PR,PVE_R_STEALTH_MAJOR_PR,PVE_R_GRUNT_FUEL,PVE_R_ELITE_SPECOPS_ND};
+                unsigned v=roster[i];pve_spawn_actor(i,bg_pve_variants[v].kind,bg_pve_variants[v].weapon,BG_FF_MIXED,pos,3.14159265f);bg_pve_set_variant(i,v);ff_awaken(i);
+            }
+#endif
         }
     }else {
         bool arrived=ff_arrive(BG_FF_HUNTER_ESCORT,true);assert(arrived);

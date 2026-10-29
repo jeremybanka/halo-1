@@ -1,5 +1,6 @@
 #ifndef BG_ASSET_MODELS_H
 #define BG_ASSET_MODELS_H
+#include "vehicle_kinds.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <t3d/t3d.h>
@@ -13,7 +14,17 @@ enum { BG_M_AR, BG_M_PISTOL, BG_M_PLASMA_PISTOL, BG_M_PLASMA_RIFLE,
        BG_M_NEEDLER, BG_M_SHOTGUN, BG_M_SNIPER, BG_M_ROCKET,
        BG_M_WARTHOG, BG_M_GHOST, BG_M_SCORPION, BG_M_BANSHEE,
        BG_M_FRAG, BG_M_PLASMA_GRENADE, BG_M_FLAMETHROWER, BG_M_SPARTAN,
-       BG_M_HEALTHPACK, BG_M_OVERSHIELD, BG_M_CAMOUFLAGE, BG_M_COUNT };
+       BG_M_HEALTHPACK, BG_M_OVERSHIELD, BG_M_CAMOUFLAGE,
+#ifdef BG_ENEMY_VEHICLES
+       BG_M_WRAITH, BG_M_SHADE,
+#endif
+       BG_M_COUNT };
+static inline unsigned bg_vehicle_model_id(unsigned kind){
+#ifdef BG_ENEMY_VEHICLES
+ if(kind>=BG_V_WRAITH)return BG_M_WRAITH+kind-BG_V_WRAITH;
+#endif
+ return BG_M_WARTHOG+kind;
+}
 /* Each batch fits both transformed vertices and restart-marked triangle
  * indices in Tiny3D's shared DMEM. Indices are converted once at startup. */
 typedef struct { uint16_t first,count,index_first,index_count; } bg_mesh_batch;
@@ -26,7 +37,7 @@ extern const bg_model_asset bg_model_assets[BG_M_COUNT];
  * same projected-size rule; first-person and zoomed weapons stay detailed. */
 extern const bg_model_asset bg_pickup_lods[BG_M_COUNT];
 /* Same Warthog/Ghost/Scorpion/Banshee order as the vehicle game enum. */
-extern const bg_model_asset bg_vehicle_lods[4];
+extern const bg_model_asset bg_vehicle_lods[BG_VEHICLE_COUNT];
 enum { BG_PART_BODY, BG_PART_WHEEL, BG_PART_TURRET, BG_PART_BARREL, BG_PART_HATCH };
 /* first/count retain logical triangle-corner ranges for the corresponding
  * whole vehicle. batch_first/batch_count address its packed indexed batches.
@@ -38,10 +49,10 @@ enum { BG_PART_BODY, BG_PART_WHEEL, BG_PART_TURRET, BG_PART_BARREL, BG_PART_HATC
 typedef struct { uint16_t first,count; uint8_t kind; float pivot[3];
                  uint16_t batch_first,batch_count; bg_bounds bounds; } bg_vehicle_part;
 typedef struct { const bg_vehicle_part *parts; uint8_t count; float turret_pivot[3]; } bg_vehicle_rig;
-extern const bg_vehicle_rig bg_vehicle_rigs[4];
+extern const bg_vehicle_rig bg_vehicle_rigs[BG_VEHICLE_COUNT];
 /* Exact quantized near/far unions. Part boxes are transformed with the same
  * current matrices as rendered wheels, turrets and barrels. */
-extern const bg_bounds bg_model_cull_bounds[BG_M_COUNT],bg_vehicle_lod_bounds[4];
+extern const bg_bounds bg_model_cull_bounds[BG_M_COUNT],bg_vehicle_lod_bounds[BG_VEHICLE_COUNT];
 extern const float bg_model_cull_radii[BG_M_COUNT];
 enum { BG_A_IDLE, BG_A_RUN, BG_A_FIRE, BG_A_RELOAD, BG_A_DEATH,
        BG_A_JUMP, BG_A_MELEE, BG_A_THROW, BG_A_DRIVE,

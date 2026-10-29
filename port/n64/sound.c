@@ -16,7 +16,14 @@
  * the supplied Xbox ADPCM decoded offline to signed 8-bit PCM, never synthesized.
  * A split-screen listener belongs to the whole couch; pan by viewport column. */
 typedef bg_sound_voice voice;
-static voice voices[17];
+#ifdef BG_ENEMY_VEHICLES
+#define BG_SOUND_VOICES 21
+#elif defined(BG_PVE_ROSTER)
+#define BG_SOUND_VOICES 19
+#else
+#define BG_SOUND_VOICES 17
+#endif
+static voice voices[BG_SOUND_VOICES];
 /* One shared HUD loop per state; four split-screen players never multiply
  * identical warning loops. They cannot be stolen by gunfire channels. */
 static float shield_gain[3];
@@ -35,8 +42,15 @@ static uint32_t announcer_rom;
 static bool announcer_streaming;
 static bg_audio_asset mode_voice;
 static const bg_audio_asset *announcer_source;
+static void play(unsigned channel,unsigned sound,int volume,int pan,bool loop);
 static void announce_mode(void);
 static void announce_file(const char *name);
+#ifdef BG_PVE_ROSTER
+#include "pve_sound.inc"
+#endif
+#ifdef BG_ENEMY_VEHICLES
+#include "enemy_vehicle_sound.inc"
+#endif
 static const int8_t *read_announcer(unsigned at,unsigned bytes) {
     uint32_t address=announcer_rom+at;
     unsigned prefix=address&15,span=(prefix+bytes+15)&~15u;
@@ -162,7 +176,12 @@ static void announce_mode(void){
     const char *name=(r->teams?team:solo)[r->engine];
     if(name)announce_file(name);else bg_sound_announce(BG_S_SLAYER);
 }
-void bg_sound_begin_match(void) { announce_mode(); }
+void bg_sound_begin_match(void) {
+#ifdef BG_PVE_ROSTER
+    pve_sound_reset();
+#endif
+    announce_mode();
+}
 void bg_sound_init(void) {
     audio_init(22050, 6);
     rate = audio_get_frequency();
@@ -184,6 +203,12 @@ void bg_sound_update(void) {
     shield_loops();
     for (unsigned i = 0; i < bg_event_count; i++) {
         const bg_event *e = &bg_events[i];
+#ifdef BG_PVE_ROSTER
+        if(e->kind==BG_EVENT_COVENANT){pve_sound_event(e);continue;}
+        /* NPC deaths use their own CE vocalizations, never the Spartan grunt. */
+        if(e->kind==BG_EVENT_DIE&&e->player>=BG_PLAYERS)continue;
+        if(e->kind==BG_EVENT_FIRE&&e->player>=BG_PLAYERS&&bg_pve_actors[e->player-BG_PLAYERS].armament==PVE_ARM_FUEL)continue;
+#endif
         if(e->kind==BG_EVENT_OBJECTIVE&&e->weapon==BG_OBJECTIVE_FLAG&&e->player>=0){
             static const char *const names[2][3]={
                 {"mode_red_team_has_the_flag.s8","mode_red_team_flag_returned.s8","mode_red_team_score.s8"},
@@ -212,10 +237,16 @@ void bg_sound_update(void) {
             volume = 112;
             break;
         case BG_EVENT_FIRE:
+#ifdef BG_ENEMY_VEHICLES
+            if(e->player>=0&&e->player<(int)bg_unit_count()&&bg_players[e->player].vehicle>=0){
+                unsigned kind=bg_vehicles[bg_players[e->player].vehicle].kind;
+                if(kind==BG_V_WRAITH||kind==BG_V_SHADE){enemy_sound_fire(kind,e->pos);continue;}
+            }
+#endif
             sound = e->weapon < BG_WEAPON_COUNT ? (unsigned)e->weapon : BG_S_AR;
-            if (bg_players[p].vehicle >= 0) {
-                bg_vehicle *v = &bg_vehicles[bg_players[p].vehicle];
-                int seat = bg_players[p].seat;
+            if (e->player>=0 && e->player<(int)bg_unit_count() && bg_players[e->player].vehicle >= 0) {
+                bg_vehicle *v = &bg_vehicles[bg_players[e->player].vehicle];
+                int seat = bg_players[e->player].seat;
                 if (v->kind == BG_V_WARTHOG && seat == 1)
                     sound = BG_S_WARTHOG_GUN;
                 else if (v->kind == BG_V_SCORPION && seat == 0)
@@ -285,12 +316,16 @@ void bg_sound_update(void) {
         }
         if (player->gait < footsteps[p])
             footsteps[p] = player->gait;
+#ifndef BG_ENEMY_VEHICLES
         if (p >= bg_player_count() || player->health <= 0 || player->vehicle < 0 ||
             player->seat != 0) {
             voices[8 + p].asset = NULL;
             continue;
         }
         bg_vehicle *v = &bg_vehicles[player->vehicle];
+#ifdef BG_ENEMY_VEHICLES
+        if(v->kind==BG_V_SHADE){voices[8+p].asset=NULL;continue;}
+#endif
         unsigned sample = v->kind == BG_V_WARTHOG    ? BG_S_WARTHOG
                           : v->kind == BG_V_SCORPION ? BG_S_SCORPION
                           : v->kind == BG_V_BANSHEE  ? BG_S_BANSHEE
@@ -301,7 +336,11 @@ void bg_sound_update(void) {
             continue;
         voices[8 + p].step = (uint32_t)((float)((uint32_t)voices[8 + p].asset->rate << 16) / rate *
                                         (.75f + fabsf(v->speed) * .065f));
+#endif
     }
+#ifdef BG_ENEMY_VEHICLES
+    enemy_engines_update();
+#endif
 }
 static void shield_loops(void) {
     unsigned listeners[3] = {0}, pan_sum[3] = {0};
@@ -338,7 +377,13 @@ void bg_sound_pump(void) {
         if(announcer_streaming)
             announcer_streaming=bg_sound_stream_refill(&announcer_stream,&voices[12],
                 announcer_source,(unsigned)count,read_announcer);
-        bg_sound_mix(voices, 17, out, (unsigned)count);
+#ifdef BG_PVE_ROSTER
+        pve_sound_refill((unsigned)count);
+#endif
+#ifdef BG_ENEMY_VEHICLES
+        enemy_sound_refill((unsigned)count);enemy_engines_refill((unsigned)count);
+#endif
+        bg_sound_mix(voices, BG_SOUND_VOICES, out, (unsigned)count);
         mix_title(out, (unsigned)count);
         audio_write_end();
     }

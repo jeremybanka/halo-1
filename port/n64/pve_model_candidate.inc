@@ -28,12 +28,15 @@ static void pve_prepare_ship_candidate(void){
 #endif
         pve_ship_lod[v]=lod;wanted|=1u<<lod;
     }
+    #ifdef BG_ENEMY_VEHICLES
+    pve_trim_actor(i,wanted);
+#endif
     if(!wanted)return;
     matrix(&pve_matrices[slot][i],BG_SCALE/BG_PVE_SCALE,bg_ff_dropship.yaw,0,bg_ff_dropship.pos);
     for(unsigned lod=0;lod<2;lod++)if(wanted&(1u<<lod)){
         const bg_model_asset*m=&bg_pve_models[BG_PVE_SPIRIT][lod];
         if(!pve_vertices[slot][i][lod]){
-            pve_vertices[slot][i][lod]=malloc_uncached(m->vertex_count*16);assertf(pve_vertices[slot][i][lod],"Spirit vertices");
+            pve_vertices[slot][i][lod]=pve_allocate(i,m->vertex_count*16);assertf(pve_vertices[slot][i][lod],"Spirit vertices");
             memcpy(pve_vertices[slot][i][lod],m->vertices,m->vertex_count*16);
             pve_blocks[slot][i][lod]=pve_record_surface(BG_PVE_SPIRIT,lod,pve_vertices[slot][i][lod],false);
             pve_alpha_blocks[slot][i][lod]=pve_record_surface(BG_PVE_SPIRIT,lod,pve_vertices[slot][i][lod],true);
@@ -68,7 +71,18 @@ static void pve_draw_alpha(unsigned view){
         owner=pve_pose_owner[i][lod];
 #endif
         rspq_block_t*block=pve_alpha_blocks[slot][owner][lod];
-        if(block){t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(block);}
+        if(block){
+#ifdef BG_PVE_ROSTER
+            float opacity=pve_opacity(i);if(opacity<1)pve_camo_mode(opacity);
+#endif
+            t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(block);
+#ifdef BG_PVE_ROSTER
+            if(opacity<1)pve_camo_mode(1);
+#endif
+        }
     }
+#ifdef BG_PVE_JACKAL_SHIELDS
+    jackal_shield_draw(view);
+#endif
     rdpq_mode_blender(0);rdpq_mode_zbuf(true,true);
 }

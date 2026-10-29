@@ -44,10 +44,10 @@ static const real_plane3d depths_of_hell={.n={.n={0,0,1}},.d=-256};
 static const boolean debug_physics_disable_penetration_freeze=FALSE;
 static struct vehicle_datum *vehicle_datum_get(int32_t i){assert(i>=0&&i<(int32_t)bg_vehicle_count);return &native[i];}
 static struct object_datum *object_get(int32_t i){return (struct object_datum*)vehicle_datum_get(i);}
-static struct vehicle_definition *vehicle_specific_definition_get(int32_t i){assert(i>=0&&i<4);return (struct vehicle_definition*)&bg_vehicle_drive_defs[i];}
+static struct vehicle_definition *vehicle_specific_definition_get(int32_t i){assert(i>=0&&i<BG_VEHICLE_COUNT);return (struct vehicle_definition*)&bg_vehicle_drive_defs[i];}
 static struct unit_definition *vehicle_definition_get(int32_t i){return &vehicle_specific_definition_get(i)->unit;}
 static struct object_definition *object_definition_get(int32_t i){return (struct object_definition*)vehicle_definition_get(i);}
-static struct physics_definition *physics_definition_get(int32_t i){assert(i>=0&&i<4);return (struct physics_definition*)&bg_vehicle_physics_defs[i];}
+static struct physics_definition *physics_definition_get(int32_t i){assert(i>=0&&i<BG_VEHICLE_COUNT);return (struct physics_definition*)&bg_vehicle_physics_defs[i];}
 static void object_get_origin(int32_t i,real_point3d*p){*p=native[i].object.position;}
 static void object_get_orientation(int32_t i,real_vector3d*f,real_vector3d*u){*f=native[i].object.forward;*u=native[i].object.up;}
 static void object_set_position(int32_t i,const real_point3d*p,const real_vector3d*f,const real_vector3d*u){native[i].object.position=*p;native[i].object.forward=*f;native[i].object.up=*u;}
@@ -58,7 +58,13 @@ static const struct material_definition *scenario_material_definition_get(int i)
 static int16_t get_material_type(int32_t object,int16_t material){(void)object;return material;}
 static int object_get_type(int32_t i){(void)i;return 0;}
 static void object_deplete_shield(int32_t i){(void)i;/* static world contacts never have an object handle */}
-static boolean unit_driven_by_ai(int32_t i){(void)i;return FALSE;}
+static boolean unit_driven_by_ai(int32_t i){
+#ifdef BG_ENEMY_VEHICLES
+ return bg_vehicles[i].occupants[0]>=BG_PLAYERS;
+#else
+ (void)i;return FALSE;
+#endif
+}
 static void create_ghost_effect(int32_t i){(void)i;/* rendering/audio stays in the demake event layer */}
 static boolean collision_get_features_in_sphere(uint32_t flags,const real_point3d*p,real radius,real height,real width,int32_t ignore,struct collision_feature_list*out);
 static boolean collision_test_vector(uint32_t flags,const real_point3d*p,const real_vector3d*d,int32_t ignore,struct collision_result*out);
@@ -549,8 +555,14 @@ void bg_vehicle_physics_step(unsigned i,const bg_input*input){
   memset(vehicle_workspace->power,0,sizeof(vehicle_workspace->power));
   switch(v->kind){
    case BG_V_WARTHOG:update_human_jeep_physics(i,vehicle_workspace->contact,vehicle_workspace->power);break;
+   #ifdef BG_ENEMY_VEHICLES
+   case BG_V_WRAITH:
+#endif
    case BG_V_GHOST:update_alien_scout_physics(i,vehicle_steering[i],vehicle_workspace->power,vehicle_workspace->contact);break;
    case BG_V_SCORPION:update_human_tank_physics(i,vehicle_workspace->contact,vehicle_workspace->power);break;
+#ifdef BG_ENEMY_VEHICLES
+   case BG_V_SHADE:update_turret_physics(i,vehicle_workspace->contact);break;
+#endif
    case BG_V_BANSHEE:update_alien_fighter_physics_new(i,vehicle_workspace->power,vehicle_workspace->contact);break;
   }
   suspension_update(i);compute_airborne_ticks(i,vehicle_workspace->contact,vehicle_workspace->power);

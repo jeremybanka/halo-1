@@ -32,7 +32,10 @@ def parse_args(argv=None):
     parser.add_argument("--firefight-qa",type=int,choices=range(1,5),help="Exercise Firefight menus with 1–4 controllers")
     parser.add_argument("--pve-players",type=int,choices=(1,2,3,4),default=4)
     parser.add_argument("--pve-count",type=int,choices=(0,5,8),default=5)
-    parser.add_argument("--pve-qa",type=int,choices=(0,1,2,3,4,5,6),default=0)
+    parser.add_argument("--pve-qa",type=int,choices=(0,1,2,3,4,5,6,7,8,9),default=0)
+    parser.add_argument("--pve-roster",action="store_true",help="Appraisal CE ranks, NPC weapons, camouflage and source dialogue")
+    parser.add_argument("--pve-jackal-shields",action="store_true",help="Restore source Jackal shield attachment at every LOD")
+    parser.add_argument("--jackal-shield-qa",action="store_true",help="Native shield strength, recharge, gaps and depth photos")
     parser.add_argument("--pve-photo-tick",type=int)
     parser.add_argument("--pve-model-qa",action="store_true",help="Native four-angle Covenant model audit")
     parser.add_argument("--pve-model-bank",type=Path,help="Isolated Covenant visual-bank candidate; simulation assets stay canonical")
@@ -317,12 +320,25 @@ def parse_args(argv=None):
     parser.add_argument("--objective-photo",type=int,choices=range(10),
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
+    parser.add_argument('--enemy-vehicle-bank',type=Path,help='Owned CE enemy vehicle prototype bank')
+    parser.add_argument('--enemy-vehicle-qa',action='store_true',help='Native vehicle/seat/hatch multi-angle inspection')
     args = parser.parse_args(argv)
+    if args.enemy_vehicle_qa:
+        if not args.enemy_vehicle_bank:parser.error('--enemy-vehicle-qa requires --enemy-vehicle-bank')
+        args.pve_model_qa=True
+    if args.enemy_vehicle_bank and not (args.pve_roster and (args.firefight or args.pve_squad)):parser.error('--enemy-vehicle-bank requires roster and PvE')
     if args.pve_crunch_baseline and not args.pve_crunch:parser.error('--pve-crunch-baseline requires --pve-crunch')
     if args.pve_crunch and not args.pve_model_bank:parser.error('--pve-crunch requires a three-tier --pve-model-bank')
     if args.pve_model_bank:
         report=json.loads((args.pve_model_bank/'pve-report.json').read_text())
         if report.get('lod_count',2)!=(3 if args.pve_crunch else 2):parser.error('PvE bank tier count does not match --pve-crunch')
+        if bool(report.get('roster'))!=args.pve_roster:parser.error('Roster runtime and visual bank must match')
+    if args.pve_roster and not (args.pve_model_bank and args.pve_crunch):parser.error('--pve-roster requires its three-tier --pve-model-bank')
+    if args.jackal_shield_qa:
+        if not args.pve_roster:parser.error('--jackal-shield-qa requires --pve-roster')
+        args.pve_model_qa=True
+    if args.pve_jackal_shields and not (args.pve_roster and (args.pve_model_bank/'pve_jackal_shield.c').is_file()):parser.error('--pve-jackal-shields requires the private shield bank and roster')
+    if args.pve_qa==7 and not args.pve_roster:parser.error('--pve-qa 7 requires --pve-roster')
     if args.collision_profile and not (args.profile and args.pve_squad):parser.error('--collision-profile requires --profile --pve-squad')
     if args.collision_baseline and not args.collision_profile:parser.error('--collision-baseline requires --collision-profile')
     if args.pve_prep_profile and not (args.profile and args.pve_squad):parser.error('--pve-prep-profile requires --profile --pve-squad')
@@ -496,6 +512,11 @@ def compile_options(args, sdk, tiny, out, source):
     return [
         *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
         *(["-DBG_PVE_MODEL_CANDIDATE"] if args.pve_model_bank else []),
+        *(["-DBG_PVE_ROSTER"] if args.pve_roster else []),
+        *(["-DBG_ENEMY_VEHICLE_QA"] if args.enemy_vehicle_qa else []),
+        *(["-DBG_ENEMY_VEHICLES", "-I"+str(args.enemy_vehicle_bank.resolve())] if args.enemy_vehicle_bank else []),
+        *(["-DBG_PVE_JACKAL_SHIELDS"] if args.pve_jackal_shields else []),
+        *(["-DBG_JACKAL_SHIELD_QA"] if args.jackal_shield_qa else []),
         *(["-DBG_PVE_CRUNCH"] if args.pve_crunch else []),
         *(["-DBG_PVE_CRUNCH_BASELINE"] if args.pve_crunch_baseline else []),
         *(["-DBG_PVE_MODEL_QA"] if args.pve_model_qa else []),
@@ -1045,6 +1066,7 @@ def main():
         [
             sys.executable,
             ROOT / "port/n64/blam/export_vehicle.py",
+            *(["--enemy-vehicles"] if args.enemy_vehicle_bank else []),
             "--output",
             out / "generated",
             "--rom-files",
@@ -1158,6 +1180,11 @@ def main():
     ]
     if args.pve_squad or args.firefight:
         runtime_sources.extend((args.pve_model_bank.resolve() if name=="pve_data.c" and args.pve_model_bank else ROOT/"halo64-assets/generated/pve")/name for name in ("pve_data.c","pve_defs.c","pve_nav.c","pve_collision.c"))
+    if args.pve_roster:
+        runtime_sources.extend(args.pve_model_bank.resolve()/name for name in ('pve_roster.c','pve_roster_colors.c','pve_roster_weapons.c'))
+    if args.enemy_vehicle_bank:
+        runtime_sources.extend([ROOT/'port/n64/vehicle_ai.c',args.enemy_vehicle_bank.resolve()/'enemy_vehicle_data.c',args.enemy_vehicle_bank.resolve()/'enemy_pilot_data.c',args.enemy_vehicle_bank.resolve()/'enemy_pilot_hits.c'])
+    if args.pve_jackal_shields:runtime_sources.append(args.pve_model_bank.resolve()/'pve_jackal_shield.c')
     if args.photo_tour:
         from photo_tour_source import photo_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
@@ -1191,10 +1218,13 @@ def main():
         candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_text(candidate_source(original.read_text(), args.feature_cache_slots))
         runtime_sources[runtime_sources.index(original)] = candidate
+    def generated_path(name):
+        if args.enemy_vehicle_bank and (args.enemy_vehicle_bank/name).is_file():return args.enemy_vehicle_bank.resolve()/name
+        return (out if name=="vehicle_data.c" else asset_root)/"generated"/name
     for source in [
         *runtime_sources,
         *(
-            (out if name == "vehicle_data.c" else asset_root) / "generated" / name
+            generated_path(name)
             for name in generated
         ),
         *sdk_extra_sources,
@@ -1267,6 +1297,15 @@ def main():
         target=out/'frontend-files/pve-motion.bin'
         if target.is_symlink():target.unlink()
         shutil.copy2(motion,target)
+        if args.pve_roster:
+            target=out/'frontend-files/pve-voices.bin'
+            if target.is_symlink():target.unlink()
+            shutil.copy2(args.pve_model_bank/'pve-voices.bin',target)
+    if args.enemy_vehicle_bank:
+        for name in ('interactions.bin','player-hits.bin','enemy-wraith.s8','enemy-shade.s8','enemy-wraith-engine.s8','enemy-shade-engine.s8'):
+            target=out/'frontend-files'/name
+            if target.is_symlink():target.unlink()
+            shutil.copy2(args.enemy_vehicle_bank/name,target)
     maps_directory = out / "frontend-files/maps"
     assert not maps_directory.is_symlink(),'Refuse shared map-bank output directory'
     maps_directory.mkdir(parents=True, exist_ok=True)
@@ -1370,7 +1409,8 @@ def main():
         "included_data": {
             str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
             for suffix in ("*.inc", "*.def")
-            for path in (ROOT / "port/n64").rglob(suffix)
+            for path in [*(ROOT / "port/n64").rglob(suffix),
+                         *(args.enemy_vehicle_bank.resolve().glob(suffix) if args.enemy_vehicle_bank else [])]
         },
         "generated_adapters": {
             str(path): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -1419,7 +1459,7 @@ def main():
             for source in [
                 *runtime_sources,
                 *(
-                    (out if name == "vehicle_data.c" else asset_root) / "generated" / name
+                    generated_path(name)
                     for name in generated
                 ),
                 *sdk_extra_sources,

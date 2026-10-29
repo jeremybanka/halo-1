@@ -5,13 +5,22 @@
 #define PVE_CELLS (PVE_GRID*PVE_GRID)
 #define PVE_NODES (PVE_CELLS*2)
 #define PVE_ORIGIN 64
+#if !defined(BG_ENEMY_VEHICLES) || defined(BG_PVE_NAV_BUILD)
 static float pve_nav_height[PVE_NODES];
 static uint8_t pve_nav_edges[PVE_NODES],pve_nav_layers[PVE_NODES];
+#endif
 static void pve_routes_reset(bool initialize);
 static const int pve_dx[8]={1,-1,0,0,1,1,-1,-1},pve_dz[8]={0,0,1,-1,1,-1,1,-1};
 #ifndef BG_PVE_NAV_BUILD
 extern const float bg_pve_nav_heights[PVE_NODES];
 extern const uint8_t bg_pve_nav_links[PVE_NODES],bg_pve_nav_layers[PVE_NODES];
+#ifdef BG_ENEMY_VEHICLES
+/* These baked arrays are immutable at runtime. A second resident copy buys no
+ * cache locality: both used the same native layout and cached RDRAM access. */
+#define pve_nav_height bg_pve_nav_heights
+#define pve_nav_edges bg_pve_nav_links
+#define pve_nav_layers bg_pve_nav_layers
+#endif
 #endif
 static void pve_node_pos(int node,float out[3]){
     int cell=node%PVE_CELLS;out[0]=cell%PVE_GRID-PVE_ORIGIN;out[1]=pve_nav_height[node];out[2]=cell/PVE_GRID-PVE_ORIGIN;
@@ -69,7 +78,7 @@ static void pve_nav_init(void){
             int next=pve_neighbor(n,k);unsigned r=reverse[k];
             if(!(pve_nav_edges[next]&(1u<<r))||pve_neighbor(next,r)!=n)pve_nav_edges[n]&=~(1u<<k);
         }
-#else
+#elif !defined(BG_ENEMY_VEHICLES)
         memcpy(pve_nav_height,bg_pve_nav_heights,sizeof(pve_nav_height));memcpy(pve_nav_edges,bg_pve_nav_links,sizeof(pve_nav_edges));memcpy(pve_nav_layers,bg_pve_nav_layers,sizeof(pve_nav_layers));
 #endif
         pve_routes_reset(true);loaded=true;

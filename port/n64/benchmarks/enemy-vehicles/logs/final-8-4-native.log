@@ -1,0 +1,579 @@
+2026-10-29 05:44:46.358 ares[32621:14852449] Resizing output buffers to 768, 576
+Loaded halo-64-render-candidate-pve-model-candidate-profile
+Vulkan Enabled: using paraLLEl-RDP
+PVE_START views=4 count=12 tick=0 seed=505645
+PVE_POSE unit=0 pos=-8.000000,0.564973,2.000000 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=100.000 shield=100.000
+PVE_POSE unit=1 pos=-10.000000,1.106027,2.000000 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=100.000 shield=100.000
+PVE_POSE unit=2 pos=-8.000000,0.289598,5.000000 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=100.000 shield=100.000
+PVE_POSE unit=3 pos=-10.000000,0.289967,5.000000 yaw=0.000000 pitch=0.000000 crouch=0.000000 hp=100.000 shield=100.000
+PVE_POSE unit=4 pos=8.135715,3.667315,-12.000000 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000
+PVE_POSE unit=5 pos=20.091139,7.306874,-12.000000 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000
+PVE_POSE unit=6 pos=8.011052,0.678222,4.001530 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000
+PVE_POSE unit=7 pos=20.057911,2.094025,4.000000 yaw=3.141593 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000
+PVE_POSE unit=8 pos=5.400000,0.089581,3.600000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=9 pos=6.800000,0.151143,3.600000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=10 pos=4.000000,0.430589,5.200000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=11 pos=5.400000,0.366776,5.200000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=12 pos=6.800000,0.276278,5.200000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=13 pos=4.000000,0.713381,6.800000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=14 pos=5.400000,0.827657,6.800000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=15 pos=6.800000,0.634491,6.800000 yaw=3.140000 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+HALO N64 world=5468 textures=17 RAM=8388608 free=1033096
+[WARN]: Stalled compile (compute, 07455c1fc10ed781): thread 0 - 13752.792 us (mode: sync, success: yes).
+COVENANT_VOICE actor=7 generation=1 kind=0 event=1 sample=4 bytes=26399
+PHASE camera=14546 anim=4405 matrix=285 world=6688 objects=2976 fp=1137 hud=4829 audio=26413 overlay=1390 present=22 queue=0 tracks=2393 corners=4988 frame_avg=276649 frame_min=120041 frame_p95=398473 frame_max=398473 samples=4
+PVE tick=24 count=12 ai_us=24082 move_us=25297 pve_render_us=10322
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=12 arriving=0 ship=0 projectiles=6 lives=10 score=0
+NAV tick=24 us=11669 total_us=40071 max_us=7650 requests=22 ready=14 shared=32 fields=4 evictions=0 searches=77 expanded=1039 committed=372 work=1488 max_work=256 completed=21 wait_ticks=53 max_wait=4
+PVE_PHASE sim=326450 prep=14904 draw=46720 rsp_wait=0 rdp_wait=0 vertices=43738
+NPC_PREP visibility_us=3765 buffers_us=1306 matrices_us=586 motion_us=676 decode_us=1313 scatter_us=1332 writeback_us=521 grip_us=527 ship_us=2 pose_requests=10 pose_hits=0 shared_poses=3 pair_requests=7 pair_hits=5 dma_bytes=2848
+PERF views=4 fps=4 triangles=33793 free=582224 audio=1 p1=(-7.21 0.27 2.22)
+COLLISION tick=30 ticks=30 tick_us=1449827 max_tick_us=74237 director_us=492 humans_us=506339 vehicle_ai_us=172271 vehicles_us=340351 actors_us=304915 projectiles_us=123272 after_us=876 terrain_us=162664 terrain_queries=750 terrain_hits=609 terrain_misses=141 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2949 hit_us=45018 hit_queries=1400 hit_pose_builds=51 hit_available=10374 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=63
+ENEMY_VEHICLE tick=30 actor=0 kind=1 shots=0 pos=8.526,3.660,-12.038 health=400.00
+ENEMY_VEHICLE tick=30 actor=1 kind=3 shots=2 pos=19.661,5.082,-11.870 health=400.00
+ENEMY_VEHICLE tick=30 actor=2 kind=4 shots=0 pos=8.080,0.448,3.917 health=600.00
+ENEMY_VEHICLE tick=30 actor=3 kind=5 shots=0 pos=19.977,1.515,4.019 health=400.00
+COVENANT_VOICE actor=9 generation=1 kind=0 event=3 sample=12 bytes=23359
+COVENANT_VOICE actor=6 generation=1 kind=0 event=3 sample=13 bytes=19167
+COVENANT_VOICE actor=4 generation=1 kind=0 event=5 sample=20 bytes=21759
+COVENANT_VOICE actor=6 generation=1 kind=0 event=5 sample=21 bytes=11359
+PHASE camera=15084 anim=4611 matrix=414 world=6071 objects=3426 fp=1075 hud=4975 audio=27321 overlay=1482 present=23 queue=0 tracks=2427 corners=5036 frame_avg=345831 frame_min=120041 frame_p95=461497 frame_max=461497 samples=7
+PVE tick=45 count=12 ai_us=23457 move_us=20497 pve_render_us=10406
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=10 lives=10 score=198
+NAV tick=45 us=8788 total_us=53316 max_us=7650 requests=32 ready=36 shared=62 fields=6 evictions=0 searches=106 expanded=1434 committed=477 work=2017 max_work=256 completed=28 wait_ticks=64 max_wait=4
+PVE_PHASE sim=366099 prep=15572 draw=47726 rsp_wait=0 rdp_wait=0 vertices=41280
+NPC_PREP visibility_us=4160 buffers_us=605 matrices_us=658 motion_us=1138 decode_us=1290 scatter_us=1228 writeback_us=542 grip_us=512 ship_us=2 pose_requests=11 pose_hits=0 shared_poses=4 pair_requests=7 pair_hits=4 dma_bytes=5024
+PERF views=4 fps=2 triangles=32442 free=570384 audio=1 p1=(-6.44 0.23 2.35)
+COLLISION tick=60 ticks=30 tick_us=1399153 max_tick_us=72093 director_us=481 humans_us=473764 vehicle_ai_us=173099 vehicles_us=281032 actors_us=210076 projectiles_us=258529 after_us=813 terrain_us=133255 terrain_queries=582 terrain_hits=534 terrain_misses=48 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2501 hit_us=113299 hit_queries=2753 hit_pose_builds=145 hit_available=66594 hit_triangles=238 hit_groups=100 hit_rejected=85 hit_root_rejected=388
+ENEMY_VEHICLE tick=60 actor=0 kind=1 shots=0 pos=8.524,3.679,-11.063 health=400.00
+ENEMY_VEHICLE tick=60 actor=1 kind=3 shots=4 pos=16.071,3.184,-9.951 health=400.00
+ENEMY_VEHICLE tick=60 actor=2 kind=4 shots=0 pos=8.874,0.574,3.567 health=493.33
+ENEMY_VEHICLE tick=60 actor=3 kind=5 shots=1 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=15766 anim=4325 matrix=347 world=5972 objects=4397 fp=1062 hud=5289 audio=26842 overlay=1520 present=23 queue=0 tracks=2543 corners=5340 frame_avg=356554 frame_min=120041 frame_p95=461497 frame_max=461497 samples=10
+PVE tick=66 count=12 ai_us=14307 move_us=13663 pve_render_us=11197
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=8 lives=10 score=198
+NAV tick=66 us=3388 total_us=59235 max_us=7650 requests=38 ready=42 shared=74 fields=6 evictions=0 searches=127 expanded=1590 committed=524 work=2241 max_work=256 completed=34 wait_ticks=70 max_wait=4
+PVE_PHASE sim=265390 prep=16180 draw=48139 rsp_wait=0 rdp_wait=0 vertices=40674
+NPC_PREP visibility_us=4139 buffers_us=566 matrices_us=729 motion_us=1274 decode_us=1521 scatter_us=1515 writeback_us=611 grip_us=548 ship_us=4 pose_requests=11 pose_hits=0 shared_poses=3 pair_requests=8 pair_hits=4 dma_bytes=5680
+PERF views=4 fps=2 triangles=31986 free=570384 audio=1 p1=(-5.65 0.22 2.35)
+PHASE camera=15010 anim=9363 matrix=409 world=6433 objects=6724 fp=1091 hud=5032 audio=26075 overlay=1430 present=23 queue=0 tracks=1013 corners=2272 frame_avg=357849 frame_min=120041 frame_p95=461497 frame_max=461497 samples=13
+PVE tick=87 count=12 ai_us=14576 move_us=25025 pve_render_us=10418
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=10 lives=10 score=198
+NAV tick=87 us=1907 total_us=72910 max_us=7650 requests=47 ready=49 shared=88 fields=8 evictions=0 searches=166 expanded=1970 committed=676 work=2812 max_work=256 completed=43 wait_ticks=83 max_wait=4
+PVE_PHASE sim=274605 prep=15489 draw=54981 rsp_wait=0 rdp_wait=0 vertices=44452
+NPC_PREP visibility_us=3921 buffers_us=145 matrices_us=653 motion_us=1722 decode_us=1358 scatter_us=1309 writeback_us=544 grip_us=516 ship_us=3 pose_requests=11 pose_hits=0 shared_poses=4 pair_requests=7 pair_hits=2 dma_bytes=7856
+PERF views=4 fps=2 triangles=34624 free=575536 audio=1 p1=(-4.88 0.20 2.43)
+COLLISION tick=90 ticks=30 tick_us=1200777 max_tick_us=56853 director_us=485 humans_us=375989 vehicle_ai_us=171821 vehicles_us=242523 actors_us=178440 projectiles_us=229314 after_us=855 terrain_us=118521 terrain_queries=465 terrain_hits=416 terrain_misses=49 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1998 hit_us=64689 hit_queries=2350 hit_pose_builds=45 hit_available=15666 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=77
+ENEMY_VEHICLE tick=90 actor=0 kind=1 shots=1 pos=6.238,3.413,-7.891 health=400.00
+ENEMY_VEHICLE tick=90 actor=1 kind=3 shots=9 pos=10.329,3.217,-6.710 health=400.00
+ENEMY_VEHICLE tick=90 actor=2 kind=4 shots=0 pos=10.761,0.496,2.853 health=493.33
+ENEMY_VEHICLE tick=90 actor=3 kind=5 shots=3 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=14999 anim=9479 matrix=374 world=6352 objects=4067 fp=1097 hud=4918 audio=20323 overlay=1412 present=23 queue=0 tracks=898 corners=1968 frame_avg=363183 frame_min=120041 frame_p95=461497 frame_max=461497 samples=16
+PVE tick=108 count=12 ai_us=14665 move_us=18026 pve_render_us=10367
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=9 lives=10 score=198
+NAV tick=108 us=1951 total_us=77796 max_us=7650 requests=50 ready=58 shared=98 fields=10 evictions=0 searches=183 expanded=2056 committed=762 work=3001 max_work=256 completed=46 wait_ticks=86 max_wait=4
+PVE_PHASE sim=287606 prep=15444 draw=46485 rsp_wait=0 rdp_wait=0 vertices=43832
+NPC_PREP visibility_us=3930 buffers_us=558 matrices_us=666 motion_us=1580 decode_us=1221 scatter_us=1207 writeback_us=452 grip_us=481 ship_us=3 pose_requests=11 pose_hits=1 shared_poses=4 pair_requests=6 pair_hits=2 dma_bytes=7248
+PERF views=4 fps=2 triangles=34197 free=575536 audio=0 p1=(-4.12 0.18 2.62)
+COVENANT_VOICE actor=2 generation=1 kind=1 event=4 sample=43 bytes=7071
+COLLISION tick=120 ticks=30 tick_us=1245519 max_tick_us=59571 director_us=510 humans_us=406208 vehicle_ai_us=159151 vehicles_us=237284 actors_us=188635 projectiles_us=251519 after_us=896 terrain_us=151330 terrain_queries=441 terrain_hits=370 terrain_misses=71 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1956 hit_us=77344 hit_queries=2254 hit_pose_builds=88 hit_available=29904 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=168
+ENEMY_VEHICLE tick=120 actor=0 kind=1 shots=2 pos=2.653,2.059,-3.772 health=400.00
+ENEMY_VEHICLE tick=120 actor=1 kind=3 shots=9 pos=4.715,3.326,-3.273 health=400.00
+ENEMY_VEHICLE tick=120 actor=2 kind=4 shots=0 pos=13.678,0.644,2.720 health=289.53
+ENEMY_VEHICLE tick=120 actor=3 kind=5 shots=4 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=17964 anim=9374 matrix=159 world=6085 objects=5728 fp=1133 hud=4920 audio=21036 overlay=1422 present=23 queue=0 tracks=1473 corners=3680 frame_avg=361631 frame_min=120041 frame_p95=461497 frame_max=461497 samples=19
+PVE tick=129 count=12 ai_us=14716 move_us=15870 pve_render_us=13341
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=2 lives=10 score=198
+NAV tick=129 us=5870 total_us=88508 max_us=7650 requests=58 ready=66 shared=111 fields=13 evictions=0 searches=223 expanded=2262 committed=956 work=3441 max_work=256 completed=54 wait_ticks=94 max_wait=4
+PVE_PHASE sim=257826 prep=18197 draw=48523 rsp_wait=0 rdp_wait=0 vertices=43994
+NPC_PREP visibility_us=4127 buffers_us=1230 matrices_us=660 motion_us=1688 decode_us=1924 scatter_us=2173 writeback_us=740 grip_us=505 ship_us=3 pose_requests=13 pose_hits=1 shared_poses=4 pair_requests=8 pair_hits=4 dma_bytes=7744
+PERF views=4 fps=2 triangles=34250 free=532024 audio=0 p1=(-3.34 0.18 2.76)
+COVENANT_VOICE actor=11 generation=1 kind=0 event=1 sample=5 bytes=34175
+COLLISION tick=150 ticks=30 tick_us=1016107 max_tick_us=48624 director_us=483 humans_us=405715 vehicle_ai_us=161122 vehicles_us=231106 actors_us=146550 projectiles_us=68910 after_us=879 terrain_us=111833 terrain_queries=451 terrain_hits=413 terrain_misses=38 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2045 hit_us=6760 hit_queries=624 hit_pose_builds=3 hit_available=1754 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=8
+ENEMY_VEHICLE tick=150 actor=0 kind=1 shots=3 pos=1.773,1.788,-2.191 health=400.00
+ENEMY_VEHICLE tick=150 actor=1 kind=3 shots=9 pos=-0.644,3.536,0.632 health=400.00
+ENEMY_VEHICLE tick=150 actor=2 kind=4 shots=0 pos=16.878,1.090,3.000 health=44.27
+ENEMY_VEHICLE tick=150 actor=3 kind=5 shots=4 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=19081 anim=6178 matrix=190 world=5367 objects=3167 fp=1097 hud=4855 audio=20244 overlay=1435 present=22 queue=0 tracks=1963 corners=5572 frame_avg=352631 frame_min=120041 frame_p95=461473 frame_max=461497 samples=23
+PVE tick=157 count=12 ai_us=24828 move_us=16240 pve_render_us=14718
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=3 lives=10 score=198
+NAV tick=157 us=929 total_us=91686 max_us=7650 requests=64 ready=80 shared=131 fields=13 evictions=0 searches=233 expanded=2299 committed=992 work=3524 max_work=256 completed=58 wait_ticks=98 max_wait=4
+PVE_PHASE sim=208970 prep=19340 draw=41157 rsp_wait=0 rdp_wait=0 vertices=29380
+NPC_PREP visibility_us=2589 buffers_us=2101 matrices_us=648 motion_us=1628 decode_us=2455 scatter_us=3345 writeback_us=1054 grip_us=546 ship_us=2 pose_requests=18 pose_hits=1 shared_poses=6 pair_requests=11 pair_hits=7 dma_bytes=7280
+PERF views=4 fps=3 triangles=20954 free=453168 audio=0 p1=(-2.77 0.17 2.82)
+COVENANT_VOICE actor=10 generation=1 kind=0 event=1 sample=6 bytes=27647
+COLLISION tick=180 ticks=30 tick_us=774012 max_tick_us=39508 director_us=497 humans_us=98263 vehicle_ai_us=169306 vehicles_us=247910 actors_us=142118 projectiles_us=113741 after_us=837 terrain_us=104568 terrain_queries=480 terrain_hits=464 terrain_misses=16 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2394 hit_us=3183 hit_queries=725 hit_pose_builds=0 hit_available=0 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=0
+ENEMY_VEHICLE tick=180 actor=0 kind=1 shots=4 pos=2.580,1.280,-1.860 health=400.00
+ENEMY_VEHICLE tick=180 actor=1 kind=3 shots=9 pos=-5.738,5.022,4.662 health=400.00
+ENEMY_VEHICLE tick=180 actor=2 kind=4 shots=0 pos=18.442,1.468,2.273 health=44.27
+ENEMY_VEHICLE tick=180 actor=3 kind=5 shots=4 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=14648 anim=15966 matrix=158 world=5980 objects=2477 fp=1183 hud=4292 audio=21886 overlay=1430 present=22 queue=0 tracks=1119 corners=2776 frame_avg=332686 frame_min=120041 frame_p95=461473 frame_max=461497 samples=28
+PVE tick=190 count=12 ai_us=12508 move_us=15873 pve_render_us=10278
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=2 lives=10 score=198
+NAV tick=190 us=1084 total_us=96233 max_us=7650 requests=67 ready=97 shared=151 fields=13 evictions=0 searches=246 expanded=2355 committed=1043 work=3644 max_work=256 completed=63 wait_ticks=103 max_wait=4
+PVE_PHASE sim=169990 prep=14879 draw=52062 rsp_wait=0 rdp_wait=0 vertices=40964
+NPC_PREP visibility_us=3786 buffers_us=147 matrices_us=587 motion_us=1109 decode_us=1584 scatter_us=1659 writeback_us=569 grip_us=533 ship_us=3 pose_requests=11 pose_hits=1 shared_poses=3 pair_requests=7 pair_hits=4 dma_bytes=5008
+PERF views=4 fps=4 triangles=31847 free=542144 audio=0 p1=(-2.77 0.17 2.82)
+COVENANT_VOICE actor=8 generation=1 kind=0 event=3 sample=14 bytes=26463
+COLLISION tick=210 ticks=30 tick_us=869806 max_tick_us=46014 director_us=484 humans_us=202627 vehicle_ai_us=168772 vehicles_us=247957 actors_us=142516 projectiles_us=105288 after_us=838 terrain_us=112838 terrain_queries=471 terrain_hits=457 terrain_misses=14 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2478 hit_us=19589 hit_queries=982 hit_pose_builds=20 hit_available=7846 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=47
+ENEMY_VEHICLE tick=210 actor=0 kind=1 shots=5 pos=2.634,1.195,-1.758 health=400.00
+ENEMY_VEHICLE tick=210 actor=1 kind=3 shots=9 pos=-10.921,7.521,8.214 health=400.00
+ENEMY_VEHICLE tick=210 actor=2 kind=4 shots=0 pos=19.612,1.708,1.202 health=44.27
+ENEMY_VEHICLE tick=210 actor=3 kind=5 shots=6 pos=19.976,1.516,4.019 health=400.00
+COVENANT_VOICE actor=8 generation=1 kind=0 event=5 sample=22 bytes=28447
+PHASE camera=16840 anim=5264 matrix=250 world=5803 objects=5459 fp=1116 hud=4468 audio=29848 overlay=1538 present=21 queue=0 tracks=2725 corners=6592 frame_avg=325593 frame_min=120041 frame_p95=461473 frame_max=461497 samples=32
+PVE tick=218 count=12 ai_us=11064 move_us=11970 pve_render_us=12314
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=5 lives=10 score=210
+NAV tick=218 us=230 total_us=98024 max_us=7650 requests=68 ready=115 shared=170 fields=13 evictions=0 searches=249 expanded=2371 committed=1055 work=3675 max_work=256 completed=64 wait_ticks=104 max_wait=4
+PVE_PHASE sim=207210 prep=17161 draw=52207 rsp_wait=0 rdp_wait=0 vertices=35658
+NPC_PREP visibility_us=3046 buffers_us=1962 matrices_us=583 motion_us=1903 decode_us=1484 scatter_us=1905 writeback_us=627 grip_us=477 ship_us=3 pose_requests=13 pose_hits=1 shared_poses=5 pair_requests=7 pair_hits=2 dma_bytes=8768
+PERF views=4 fps=3 triangles=26091 free=540696 audio=1 p1=(-2.66 0.16 2.73)
+COLLISION tick=240 ticks=30 tick_us=852833 max_tick_us=43298 director_us=526 humans_us=189691 vehicle_ai_us=214107 vehicles_us=232673 actors_us=125958 projectiles_us=87652 after_us=843 terrain_us=111671 terrain_queries=426 terrain_hits=399 terrain_misses=27 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2336 hit_us=24566 hit_queries=778 hit_pose_builds=28 hit_available=8056 hit_triangles=112 hit_groups=40 hit_rejected=33 hit_root_rejected=43
+ENEMY_VEHICLE tick=240 actor=0 kind=1 shots=6 pos=3.533,1.178,-1.972 health=400.00
+ENEMY_VEHICLE tick=240 actor=1 kind=3 shots=9 pos=-14.254,12.178,5.547 health=400.00
+ENEMY_VEHICLE tick=240 actor=2 kind=4 shots=0 pos=19.586,1.735,-0.219 health=44.27
+ENEMY_VEHICLE tick=240 actor=3 kind=5 shots=7 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=19281 anim=5050 matrix=129 world=5595 objects=4805 fp=1078 hud=4624 audio=24182 overlay=1441 present=21 queue=0 tracks=3092 corners=8134 frame_avg=319723 frame_min=120041 frame_p95=461473 frame_max=461497 samples=36
+PVE tick=246 count=12 ai_us=10675 move_us=13657 pve_render_us=14762
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=1 lives=10 score=210
+NAV tick=246 us=1209 total_us=106740 max_us=7650 requests=72 ready=123 shared=180 fields=15 evictions=0 searches=269 expanded=2523 committed=1184 work=3976 max_work=256 completed=68 wait_ticks=108 max_wait=4
+PVE_PHASE sim=172798 prep=19485 draw=45586 rsp_wait=0 rdp_wait=0 vertices=36974
+NPC_PREP visibility_us=2843 buffers_us=2701 matrices_us=545 motion_us=2097 decode_us=1903 scatter_us=3019 writeback_us=857 grip_us=467 ship_us=3 pose_requests=14 pose_hits=1 shared_poses=5 pair_requests=8 pair_hits=4 dma_bytes=9888
+PERF views=4 fps=3 triangles=26307 free=507568 audio=1 p1=(-1.83 0.11 2.09)
+COLLISION tick=270 ticks=30 tick_us=863206 max_tick_us=44736 director_us=533 humans_us=172202 vehicle_ai_us=200457 vehicles_us=221656 actors_us=138796 projectiles_us=127288 after_us=895 terrain_us=110763 terrain_queries=406 terrain_hits=369 terrain_misses=37 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1964 hit_us=11534 hit_queries=646 hit_pose_builds=7 hit_available=2456 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=12
+ENEMY_VEHICLE tick=270 actor=0 kind=1 shots=8 pos=4.673,1.068,-2.078 health=400.00
+ENEMY_VEHICLE tick=270 actor=1 kind=3 shots=9 pos=-12.309,12.571,-0.296 health=400.00
+ENEMY_VEHICLE tick=270 actor=2 kind=4 shots=0 pos=19.110,1.603,0.225 health=44.27
+ENEMY_VEHICLE tick=270 actor=3 kind=5 shots=8 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=12682 anim=15573 matrix=344 world=5650 objects=3501 fp=1105 hud=4656 audio=27627 overlay=4324 present=21 queue=2648 tracks=997 corners=2854 frame_avg=314481 frame_min=120041 frame_p95=432649 frame_max=461497 samples=40
+PVE tick=274 count=12 ai_us=10903 move_us=14315 pve_render_us=8113
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=8 lives=10 score=210
+NAV tick=274 us=1330 total_us=119529 max_us=7650 requests=80 ready=130 shared=192 fields=18 evictions=2 searches=307 expanded=2753 committed=1397 work=4457 max_work=256 completed=76 wait_ticks=116 max_wait=4
+PVE_PHASE sim=240156 prep=13098 draw=58359 rsp_wait=0 rdp_wait=0 vertices=41464
+NPC_PREP visibility_us=2589 buffers_us=165 matrices_us=566 motion_us=357 decode_us=1347 scatter_us=1943 writeback_us=466 grip_us=423 ship_us=2 pose_requests=12 pose_hits=2 shared_poses=5 pair_requests=5 pair_hits=4 dma_bytes=1408
+PERF views=4 fps=3 triangles=28730 free=519136 audio=1 p1=(-0.96 0.12 1.52)
+COLLISION tick=300 ticks=30 tick_us=1024507 max_tick_us=48287 director_us=492 humans_us=166275 vehicle_ai_us=197646 vehicles_us=230443 actors_us=148912 projectiles_us=278462 after_us=910 terrain_us=112698 terrain_queries=403 terrain_hits=366 terrain_misses=37 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1647 hit_us=82039 hit_queries=1524 hit_pose_builds=54 hit_available=27924 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=128
+ENEMY_VEHICLE tick=300 actor=0 kind=1 shots=10 pos=5.961,0.972,-2.232 health=400.00
+ENEMY_VEHICLE tick=300 actor=1 kind=3 shots=9 pos=-6.807,9.031,-0.617 health=400.00
+ENEMY_VEHICLE tick=300 actor=2 kind=4 shots=1 pos=18.396,1.440,0.291 health=44.27
+ENEMY_VEHICLE tick=300 actor=3 kind=5 shots=9 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=17145 anim=13244 matrix=339 world=5881 objects=3113 fp=1439 hud=5014 audio=30245 overlay=1441 present=22 queue=0 tracks=1300 corners=3952 frame_avg=315128 frame_min=120041 frame_p95=432649 frame_max=461497 samples=44
+PVE tick=302 count=12 ai_us=10730 move_us=14489 pve_render_us=12705
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=8 lives=10 score=210
+NAV tick=302 us=2773 total_us=128942 max_us=7650 requests=86 ready=139 shared=204 fields=21 evictions=5 searches=333 expanded=2918 committed=1546 work=4797 max_work=256 completed=82 wait_ticks=122 max_wait=4
+PVE_PHASE sim=228973 prep=17555 draw=59178 rsp_wait=0 rdp_wait=0 vertices=48564
+NPC_PREP visibility_us=2770 buffers_us=2229 matrices_us=618 motion_us=1282 decode_us=1661 scatter_us=2660 writeback_us=661 grip_us=512 ship_us=2 pose_requests=16 pose_hits=2 shared_poses=7 pair_requests=7 pair_hits=4 dma_bytes=5840
+PERF views=4 fps=3 triangles=34062 free=486960 audio=0 p1=(-0.04 0.15 1.01)
+COVENANT_VOICE actor=5 generation=1 kind=0 event=1 sample=7 bytes=23807
+COLLISION tick=330 ticks=30 tick_us=938452 max_tick_us=42302 director_us=490 humans_us=153995 vehicle_ai_us=194019 vehicles_us=234573 actors_us=130050 projectiles_us=223074 after_us=886 terrain_us=97041 terrain_queries=401 terrain_hits=366 terrain_misses=35 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1441 hit_us=41191 hit_queries=1470 hit_pose_builds=35 hit_available=6862 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=39
+ENEMY_VEHICLE tick=330 actor=0 kind=1 shots=10 pos=7.166,0.870,-2.298 health=400.00
+ENEMY_VEHICLE tick=330 actor=1 kind=3 shots=9 pos=-6.282,6.374,5.582 health=400.00
+ENEMY_VEHICLE tick=330 actor=2 kind=4 shots=1 pos=17.537,1.345,-1.031 health=44.27
+ENEMY_VEHICLE tick=330 actor=3 kind=5 shots=9 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=11979 anim=15029 matrix=344 world=6454 objects=4178 fp=1218 hud=4667 audio=24427 overlay=1476 present=22 queue=0 tracks=821 corners=2120 frame_avg=314225 frame_min=120041 frame_p95=432649 frame_max=461497 samples=48
+PVE tick=330 count=12 ai_us=10841 move_us=13828 pve_render_us=7417
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=8 lives=10 score=210
+NAV tick=330 us=2227 total_us=132198 max_us=7650 requests=88 ready=149 shared=215 fields=22 evictions=6 searches=341 expanded=2965 committed=1592 work=4898 max_work=256 completed=84 wait_ticks=124 max_wait=4
+PVE_PHASE sim=206263 prep=12393 draw=56217 rsp_wait=0 rdp_wait=0 vertices=56366
+NPC_PREP visibility_us=2977 buffers_us=138 matrices_us=625 motion_us=69 decode_us=1133 scatter_us=1307 writeback_us=445 grip_us=468 ship_us=2 pose_requests=13 pose_hits=2 shared_poses=6 pair_requests=5 pair_hits=5 dma_bytes=0
+PERF views=4 fps=3 triangles=39959 free=518688 audio=1 p1=(0.61 0.13 1.13)
+PHASE camera=12262 anim=15627 matrix=158 world=6352 objects=7890 fp=1077 hud=3965 audio=33222 overlay=1550 present=21 queue=0 tracks=1002 corners=2472 frame_avg=312477 frame_min=120041 frame_p95=432649 frame_max=461497 samples=52
+PVE tick=358 count=12 ai_us=9789 move_us=14909 pve_render_us=7854
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=2 lives=10 score=210
+NAV tick=358 us=168 total_us=133933 max_us=7650 requests=90 ready=162 shared=230 fields=22 evictions=6 searches=343 expanded=2977 committed=1604 work=4924 max_work=256 completed=86 wait_ticks=126 max_wait=4
+PVE_PHASE sim=165925 prep=12488 draw=68383 rsp_wait=0 rdp_wait=0 vertices=55656
+NPC_PREP visibility_us=2878 buffers_us=139 matrices_us=585 motion_us=72 decode_us=1390 scatter_us=1536 writeback_us=515 grip_us=467 ship_us=2 pose_requests=13 pose_hits=2 shared_poses=5 pair_requests=6 pair_hits=6 dma_bytes=0
+PERF views=4 fps=3 triangles=38556 free=506848 audio=0 p1=(1.05 0.13 1.05)
+COLLISION tick=360 ticks=30 tick_us=794327 max_tick_us=40238 director_us=492 humans_us=71826 vehicle_ai_us=195839 vehicles_us=230384 actors_us=113746 projectiles_us=179818 after_us=862 terrain_us=77490 terrain_queries=350 terrain_hits=329 terrain_misses=21 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1159 hit_us=12172 hit_queries=1260 hit_pose_builds=10 hit_available=1580 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=10
+ENEMY_VEHICLE tick=360 actor=0 kind=1 shots=12 pos=7.215,0.846,-2.281 health=400.00
+ENEMY_VEHICLE tick=360 actor=1 kind=3 shots=9 pos=-12.342,6.141,8.573 health=400.00
+ENEMY_VEHICLE tick=360 actor=2 kind=4 shots=1 pos=16.625,1.319,-3.438 health=44.27
+ENEMY_VEHICLE tick=360 actor=3 kind=5 shots=9 pos=19.976,1.516,4.019 health=400.00
+COVENANT_VOICE actor=11 generation=1 kind=0 event=1 sample=4 bytes=26399
+PHASE camera=12531 anim=14495 matrix=187 world=6150 objects=10360 fp=1280 hud=3933 audio=33259 overlay=1546 present=22 queue=0 tracks=1002 corners=2472 frame_avg=308074 frame_min=120041 frame_p95=432649 frame_max=461497 samples=56
+PVE tick=386 count=12 ai_us=10142 move_us=11074 pve_render_us=8071
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=3 lives=10 score=210
+NAV tick=386 us=644 total_us=135604 max_us=7650 requests=92 ready=175 shared=245 fields=22 evictions=6 searches=345 expanded=2988 committed=1615 work=4948 max_work=256 completed=88 wait_ticks=128 max_wait=4
+PVE_PHASE sim=164497 prep=12785 draw=69724 rsp_wait=0 rdp_wait=0 vertices=55876
+NPC_PREP visibility_us=2880 buffers_us=141 matrices_us=586 motion_us=382 decode_us=1325 scatter_us=1507 writeback_us=517 grip_us=460 ship_us=2 pose_requests=13 pose_hits=2 shared_poses=5 pair_requests=6 pair_hits=5 dma_bytes=1424
+PERF views=4 fps=3 triangles=38628 free=506848 audio=0 p1=(1.05 0.13 1.05)
+COLLISION tick=390 ticks=30 tick_us=709697 max_tick_us=33528 director_us=493 humans_us=78988 vehicle_ai_us=155707 vehicles_us=224456 actors_us=105606 projectiles_us=142191 after_us=882 terrain_us=75923 terrain_queries=415 terrain_hits=408 terrain_misses=7 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1683 hit_us=21379 hit_queries=607 hit_pose_builds=28 hit_available=4740 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=30
+ENEMY_VEHICLE tick=390 actor=0 kind=1 shots=14 pos=7.225,0.847,-2.246 health=400.00
+ENEMY_VEHICLE tick=390 actor=1 kind=3 shots=9 pos=-16.639,7.277,3.520 health=400.00
+ENEMY_VEHICLE tick=390 actor=2 kind=4 shots=1 pos=16.034,1.270,-6.047 health=44.27
+ENEMY_VEHICLE tick=390 actor=3 kind=5 shots=10 pos=19.976,1.516,4.019 health=400.00
+COVENANT_VOICE actor=10 generation=1 kind=0 event=3 sample=15 bytes=25183
+COVENANT_VOICE actor=10 generation=1 kind=0 event=5 sample=23 bytes=26047
+COVENANT_VOICE actor=11 generation=1 kind=0 event=5 sample=20 bytes=21759
+PHASE camera=19408 anim=4728 matrix=186 world=5719 objects=7853 fp=817 hud=4599 audio=25924 overlay=1484 present=22 queue=0 tracks=2790 corners=7452 frame_avg=301216 frame_min=120041 frame_p95=419342 frame_max=461497 samples=61
+PVE tick=418 count=12 ai_us=5482 move_us=3051 pve_render_us=14330
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=3 lives=9 score=259
+NAV tick=418 us=144 total_us=136889 max_us=7650 requests=93 ready=183 shared=254 fields=22 evictions=6 searches=346 expanded=2993 committed=1620 work=4959 max_work=256 completed=89 wait_ticks=129 max_wait=4
+PVE_PHASE sim=126968 prep=19666 draw=49885 rsp_wait=0 rdp_wait=0 vertices=54148
+NPC_PREP visibility_us=2650 buffers_us=2729 matrices_us=564 motion_us=2101 decode_us=1820 scatter_us=2914 writeback_us=723 grip_us=534 ship_us=3 pose_requests=17 pose_hits=2 shared_poses=8 pair_requests=7 pair_hits=3 dma_bytes=9920
+PERF views=4 fps=4 triangles=35047 free=466352 audio=0 p1=(1.05 0.13 1.05)
+COLLISION tick=420 ticks=30 tick_us=651215 max_tick_us=38640 director_us=483 humans_us=123196 vehicle_ai_us=74706 vehicles_us=218999 actors_us=69022 projectiles_us=162568 after_us=889 terrain_us=55930 terrain_queries=292 terrain_hits=283 terrain_misses=9 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1178 hit_us=39086 hit_queries=778 hit_pose_builds=51 hit_available=16274 hit_triangles=142 hit_groups=30 hit_rejected=21 hit_root_rejected=100
+ENEMY_VEHICLE tick=420 actor=0 kind=1 shots=16 pos=7.234,0.842,-2.210 health=400.00
+ENEMY_VEHICLE tick=420 actor=1 kind=3 shots=9 pos=-13.230,7.467,-1.460 health=400.00
+ENEMY_VEHICLE tick=420 actor=2 kind=4 shots=1 pos=16.822,1.408,-7.880 health=44.27
+ENEMY_VEHICLE tick=420 actor=3 kind=5 shots=13 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=17251 anim=5606 matrix=194 world=5279 objects=4318 fp=805 hud=4893 audio=26304 overlay=1487 present=23 queue=0 tracks=2867 corners=7470 frame_avg=294220 frame_min=120041 frame_p95=419342 frame_max=461497 samples=66
+PVE tick=449 count=12 ai_us=5480 move_us=4364 pve_render_us=12301
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=3 lives=9 score=259
+NAV tick=449 us=208 total_us=139219 max_us=7650 requests=94 ready=187 shared=258 fields=23 evictions=7 searches=353 expanded=3023 committed=1650 work=5026 max_work=256 completed=90 wait_ticks=130 max_wait=4
+PVE_PHASE sim=156434 prep=17514 draw=47452 rsp_wait=0 rdp_wait=0 vertices=54766
+NPC_PREP visibility_us=2401 buffers_us=1876 matrices_us=585 motion_us=2091 decode_us=1542 scatter_us=2398 writeback_us=624 grip_us=493 ship_us=3 pose_requests=17 pose_hits=3 shared_poses=8 pair_requests=6 pair_hits=2 dma_bytes=9888
+PERF views=4 fps=4 triangles=34318 free=440592 audio=1 p1=(1.97 0.12 1.12)
+COLLISION tick=450 ticks=30 tick_us=654396 max_tick_us=29093 director_us=484 humans_us=215090 vehicle_ai_us=104629 vehicles_us=215929 actors_us=56019 projectiles_us=60032 after_us=875 terrain_us=73911 terrain_queries=375 terrain_hits=348 terrain_misses=27 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1316 hit_us=14700 hit_queries=308 hit_pose_builds=19 hit_available=3318 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=21
+ENEMY_VEHICLE tick=450 actor=0 kind=1 shots=18 pos=7.965,0.855,-2.434 health=400.00
+ENEMY_VEHICLE tick=450 actor=1 kind=3 shots=10 pos=-6.842,5.791,-0.935 health=400.00
+ENEMY_VEHICLE tick=450 actor=2 kind=4 shots=1 pos=18.769,1.647,-9.413 health=44.27
+ENEMY_VEHICLE tick=450 actor=3 kind=5 shots=14 pos=19.976,1.516,4.019 health=400.00
+COLLISION tick=480 ticks=30 tick_us=754159 max_tick_us=33027 director_us=476 humans_us=214600 vehicle_ai_us=154834 vehicles_us=217695 actors_us=52420 projectiles_us=111918 after_us=843 terrain_us=51599 terrain_queries=380 terrain_hits=355 terrain_misses=25 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=786 hit_us=25818 hit_queries=630 hit_pose_builds=30 hit_available=12324 hit_triangles=96 hit_groups=40 hit_rejected=34 hit_root_rejected=74
+ENEMY_VEHICLE tick=480 actor=0 kind=1 shots=20 pos=8.834,0.889,-2.912 health=400.00
+ENEMY_VEHICLE tick=480 actor=1 kind=3 shots=10 pos=-0.629,4.148,0.683 health=400.00
+ENEMY_VEHICLE tick=480 actor=2 kind=4 shots=1 pos=20.035,1.805,-11.166 health=44.27
+ENEMY_VEHICLE tick=480 actor=3 kind=5 shots=14 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=10673 anim=5774 matrix=86 world=5089 objects=3813 fp=809 hud=5317 audio=16061 overlay=1432 present=23 queue=0 tracks=2160 corners=4830 frame_avg=290641 frame_min=120041 frame_p95=419342 frame_max=461497 samples=71
+PVE tick=483 count=12 ai_us=5587 move_us=3999 pve_render_us=5892
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=0 lives=9 score=259
+NAV tick=483 us=144 total_us=142660 max_us=7650 requests=97 ready=190 shared=263 fields=24 evictions=8 searches=368 expanded=3069 committed=1696 work=5133 max_work=256 completed=93 wait_ticks=133 max_wait=4
+PVE_PHASE sim=128034 prep=10829 draw=37107 rsp_wait=0 rdp_wait=0 vertices=40652
+NPC_PREP visibility_us=1702 buffers_us=640 matrices_us=565 motion_us=791 decode_us=683 scatter_us=550 writeback_us=259 grip_us=454 ship_us=2 pose_requests=15 pose_hits=2 shared_poses=10 pair_requests=3 pair_hits=1 dma_bytes=3584
+PERF views=4 fps=4 triangles=24180 free=550544 audio=0 p1=(3.00 0.12 1.24)
+COLLISION tick=510 ticks=30 tick_us=530197 max_tick_us=25438 director_us=500 humans_us=75295 vehicle_ai_us=139210 vehicles_us=218237 actors_us=53694 projectiles_us=41100 after_us=859 terrain_us=37950 terrain_queries=250 terrain_hits=243 terrain_misses=7 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=662 hit_us=1192 hit_queries=216 hit_pose_builds=0 hit_available=0 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=0
+ENEMY_VEHICLE tick=510 actor=0 kind=1 shots=23 pos=8.945,0.892,-2.945 health=400.00
+ENEMY_VEHICLE tick=510 actor=1 kind=3 shots=10 pos=5.974,4.867,1.982 health=400.00
+ENEMY_VEHICLE tick=510 actor=2 kind=4 shots=2 pos=20.486,1.873,-13.049 health=44.27
+ENEMY_VEHICLE tick=510 actor=3 kind=5 shots=14 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=9605 anim=5633 matrix=127 world=4965 objects=3393 fp=809 hud=4807 audio=17036 overlay=1535 present=23 queue=0 tracks=2449 corners=5686 frame_avg=270998 frame_min=90364 frame_p95=398473 frame_max=461497 samples=80
+PVE tick=515 count=12 ai_us=49 move_us=3102 pve_render_us=4893
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=1 lives=9 score=259
+NAV tick=515 us=96 total_us=144134 max_us=7650 requests=98 ready=194 shared=268 fields=24 evictions=8 searches=371 expanded=3079 committed=1706 work=5156 max_work=256 completed=94 wait_ticks=134 max_wait=4
+PVE_PHASE sim=84613 prep=9800 draw=36895 rsp_wait=0 rdp_wait=0 vertices=26648
+NPC_PREP visibility_us=1377 buffers_us=124 matrices_us=370 motion_us=59 decode_us=999 scatter_us=1121 writeback_us=362 grip_us=238 ship_us=3 pose_requests=10 pose_hits=3 shared_poses=3 pair_requests=4 pair_hits=4 dma_bytes=0
+PERF views=4 fps=8 triangles=16548 free=500432 audio=0 p1=(3.17 0.11 1.27)
+COLLISION tick=540 ticks=30 tick_us=736462 max_tick_us=34114 director_us=500 humans_us=153848 vehicle_ai_us=212896 vehicles_us=220856 actors_us=58731 projectiles_us=87334 after_us=946 terrain_us=49534 terrain_queries=280 terrain_hits=263 terrain_misses=17 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=832 hit_us=44267 hit_queries=292 hit_pose_builds=34 hit_available=6562 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=34
+ENEMY_VEHICLE tick=540 actor=0 kind=1 shots=24 pos=9.701,0.929,-3.391 health=400.00
+ENEMY_VEHICLE tick=540 actor=1 kind=3 shots=10 pos=12.316,6.913,3.178 health=400.00
+ENEMY_VEHICLE tick=540 actor=2 kind=4 shots=2 pos=21.770,2.029,-14.870 health=44.27
+ENEMY_VEHICLE tick=540 actor=3 kind=5 shots=16 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=10538 anim=5718 matrix=220 world=5424 objects=1870 fp=864 hud=4640 audio=17519 overlay=1431 present=22 queue=0 tracks=2453 corners=5686 frame_avg=262020 frame_min=90364 frame_p95=398473 frame_max=461497 samples=87
+PVE tick=548 count=12 ai_us=5890 move_us=3652 pve_render_us=5624
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=4 lives=9 score=259
+NAV tick=548 us=144 total_us=150386 max_us=7650 requests=102 ready=196 shared=272 fields=26 evictions=10 searches=391 expanded=3174 committed=1801 work=5366 max_work=256 completed=98 wait_ticks=138 max_wait=4
+PVE_PHASE sim=158517 prep=10829 draw=36273 rsp_wait=0 rdp_wait=0 vertices=26462
+NPC_PREP visibility_us=1572 buffers_us=104 matrices_us=465 motion_us=512 decode_us=1005 scatter_us=1119 writeback_us=369 grip_us=249 ship_us=3 pose_requests=8 pose_hits=2 shared_poses=2 pair_requests=4 pair_hits=3 dma_bytes=2208
+PERF views=4 fps=6 triangles=18502 free=527456 audio=1 p1=(4.19 0.15 0.65)
+COVENANT_VOICE actor=5 generation=1 kind=0 event=1 sample=5 bytes=34175
+COLLISION tick=570 ticks=30 tick_us=736521 max_tick_us=33938 director_us=497 humans_us=100319 vehicle_ai_us=264625 vehicles_us=218291 actors_us=57126 projectiles_us=93397 after_us=902 terrain_us=30528 terrain_queries=185 terrain_hits=171 terrain_misses=14 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=514 hit_us=24004 hit_queries=292 hit_pose_builds=21 hit_available=3808 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=21
+ENEMY_VEHICLE tick=570 actor=0 kind=1 shots=26 pos=10.836,0.983,-3.917 health=400.00
+ENEMY_VEHICLE tick=570 actor=1 kind=3 shots=10 pos=14.675,11.729,1.356 health=400.00
+ENEMY_VEHICLE tick=570 actor=2 kind=4 shots=2 pos=21.323,1.995,-16.736 health=44.27
+ENEMY_VEHICLE tick=570 actor=3 kind=5 shots=17 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=9622 anim=2444 matrix=130 world=5116 objects=3361 fp=301 hud=4155 audio=11157 overlay=1402 present=22 queue=0 tracks=1170 corners=2574 frame_avg=258855 frame_min=90364 frame_p95=398473 frame_max=461497 samples=92
+PVE tick=579 count=12 ai_us=2088 move_us=3233 pve_render_us=3990
+FF_STATE phase=3 round=1 wave=1 living=1 enemies=5 arriving=0 ship=0 projectiles=1 lives=7 score=259
+NAV tick=579 us=732 total_us=160322 max_us=7650 requests=107 ready=204 shared=283 fields=28 evictions=12 searches=416 expanded=3335 committed=1962 work=5713 max_work=256 completed=103 wait_ticks=143 max_wait=4
+PVE_PHASE sim=76334 prep=9826 draw=26785 rsp_wait=0 rdp_wait=0 vertices=21820
+NPC_PREP visibility_us=1447 buffers_us=110 matrices_us=394 motion_us=49 decode_us=655 scatter_us=642 writeback_us=223 grip_us=238 ship_us=2 pose_requests=9 pose_hits=3 shared_poses=3 pair_requests=3 pair_hits=3 dma_bytes=0
+PERF views=4 fps=4 triangles=14437 free=529440 audio=0 p1=(5.31 0.21 -0.41)
+COLLISION tick=600 ticks=30 tick_us=445278 max_tick_us=20872 director_us=513 humans_us=55070 vehicle_ai_us=106828 vehicles_us=219921 actors_us=41815 projectiles_us=18911 after_us=873 terrain_us=23348 terrain_queries=118 terrain_hits=108 terrain_misses=10 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=334 hit_us=527 hit_queries=96 hit_pose_builds=0 hit_available=0 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=0
+ENEMY_VEHICLE tick=600 actor=0 kind=1 shots=28 pos=12.039,1.086,-4.430 health=400.00
+ENEMY_VEHICLE tick=600 actor=1 kind=3 shots=10 pos=11.729,13.444,-2.551 health=400.00
+ENEMY_VEHICLE tick=600 actor=2 kind=4 shots=2 pos=20.200,1.889,-17.880 health=44.27
+ENEMY_VEHICLE tick=600 actor=3 kind=5 shots=17 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=13511 anim=7288 matrix=221 world=6642 objects=3143 fp=1148 hud=23822 audio=19862 overlay=1443 present=22 queue=18318 tracks=2084 corners=4184 frame_avg=242295 frame_min=45624 frame_p95=398473 frame_max=461497 samples=104
+PVE tick=15 count=12 ai_us=22677 move_us=33732 pve_render_us=9495
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=12 arriving=0 ship=0 projectiles=4 lives=10 score=0
+NAV tick=15 us=1024 total_us=28217 max_us=7568 requests=14 ready=14 shared=26 fields=2 evictions=0 searches=50 expanded=695 committed=262 work=1007 max_work=256 completed=13 wait_ticks=39 max_wait=4
+PVE_PHASE sim=340863 prep=13808 draw=62148 rsp_wait=0 rdp_wait=0 vertices=45238
+NPC_PREP visibility_us=3863 buffers_us=1228 matrices_us=582 motion_us=361 decode_us=1083 scatter_us=1112 writeback_us=448 grip_us=501 ship_us=2 pose_requests=10 pose_hits=0 shared_poses=4 pair_requests=6 pair_hits=5 dma_bytes=1408
+PERF views=4 fps=8 triangles=35533 free=597680 audio=1 p1=(-7.52 0.40 2.14)
+COVENANT_VOICE actor=7 generation=1 kind=0 event=1 sample=6 bytes=27647
+COLLISION tick=30 ticks=30 tick_us=1442381 max_tick_us=70589 director_us=495 humans_us=499323 vehicle_ai_us=171945 vehicles_us=340643 actors_us=304185 projectiles_us=123603 after_us=868 terrain_us=162257 terrain_queries=750 terrain_hits=609 terrain_misses=141 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2949 hit_us=45113 hit_queries=1400 hit_pose_builds=51 hit_available=10374 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=63
+ENEMY_VEHICLE tick=30 actor=0 kind=1 shots=0 pos=8.526,3.660,-12.038 health=400.00
+ENEMY_VEHICLE tick=30 actor=1 kind=3 shots=2 pos=19.661,5.082,-11.870 health=400.00
+ENEMY_VEHICLE tick=30 actor=2 kind=4 shots=0 pos=8.080,0.448,3.917 health=600.00
+ENEMY_VEHICLE tick=30 actor=3 kind=5 shots=0 pos=19.977,1.515,4.019 health=400.00
+COVENANT_VOICE actor=9 generation=1 kind=0 event=3 sample=12 bytes=23359
+PHASE camera=15781 anim=4421 matrix=442 world=6167 objects=2816 fp=1132 hud=36317 audio=25854 overlay=1541 present=22 queue=30756 tracks=2808 corners=5948 frame_avg=247221 frame_min=45624 frame_p95=419342 frame_max=461497 samples=107
+PVE tick=36 count=12 ai_us=23406 move_us=31694 pve_render_us=11740
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=12 arriving=0 ship=0 projectiles=11 lives=10 score=0
+NAV tick=36 us=170 total_us=43673 max_us=7568 requests=23 ready=29 shared=48 fields=4 evictions=0 searches=81 expanded=1181 committed=380 work=1642 max_work=256 completed=22 wait_ticks=54 max_wait=4
+PVE_PHASE sim=363774 prep=16294 draw=76946 rsp_wait=0 rdp_wait=0 vertices=42856
+NPC_PREP visibility_us=4092 buffers_us=1066 matrices_us=660 motion_us=705 decode_us=1755 scatter_us=1846 writeback_us=744 grip_us=560 ship_us=3 pose_requests=11 pose_hits=0 shared_poses=1 pair_requests=10 pair_hits=8 dma_bytes=2832
+PERF views=4 fps=2 triangles=33127 free=549776 audio=1 p1=(-6.78 0.24 2.32)
+COVENANT_VOICE actor=6 generation=1 kind=0 event=3 sample=13 bytes=19167
+COVENANT_VOICE actor=4 generation=1 kind=0 event=5 sample=21 bytes=11359
+COVENANT_VOICE actor=6 generation=1 kind=0 event=5 sample=22 bytes=28447
+PHASE camera=15230 anim=4577 matrix=345 world=6028 objects=4858 fp=1066 hud=36239 audio=31874 overlay=1450 present=23 queue=30523 tracks=2427 corners=5036 frame_avg=252780 frame_min=45624 frame_p95=422575 frame_max=485706 samples=110
+PVE tick=57 count=12 ai_us=14400 move_us=19429 pve_render_us=10692
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=8 lives=10 score=198
+NAV tick=57 us=2318 total_us=55169 max_us=7568 requests=35 ready=41 shared=70 fields=6 evictions=0 searches=118 expanded=1482 committed=504 work=2104 max_work=256 completed=31 wait_ticks=67 max_wait=4
+PVE_PHASE sim=284167 prep=15643 draw=84891 rsp_wait=0 rdp_wait=0 vertices=41092
+NPC_PREP visibility_us=4114 buffers_us=600 matrices_us=700 motion_us=1141 decode_us=1389 scatter_us=1437 writeback_us=523 grip_us=501 ship_us=3 pose_requests=11 pose_hits=0 shared_poses=4 pair_requests=7 pair_hits=4 dma_bytes=5040
+PERF views=4 fps=2 triangles=32368 free=575536 audio=1 p1=(-5.99 0.23 2.36)
+COLLISION tick=60 ticks=30 tick_us=1398193 max_tick_us=72241 director_us=477 humans_us=473945 vehicle_ai_us=172519 vehicles_us=281990 actors_us=209662 projectiles_us=257439 after_us=811 terrain_us=133070 terrain_queries=582 terrain_hits=534 terrain_misses=48 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2501 hit_us=112511 hit_queries=2753 hit_pose_builds=144 hit_available=66594 hit_triangles=238 hit_groups=100 hit_rejected=85 hit_root_rejected=388
+ENEMY_VEHICLE tick=60 actor=0 kind=1 shots=0 pos=8.524,3.679,-11.063 health=400.00
+ENEMY_VEHICLE tick=60 actor=1 kind=3 shots=4 pos=16.071,3.184,-9.951 health=400.00
+ENEMY_VEHICLE tick=60 actor=2 kind=4 shots=0 pos=8.874,0.574,3.567 health=493.33
+ENEMY_VEHICLE tick=60 actor=3 kind=5 shots=1 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=15852 anim=9174 matrix=480 world=6246 objects=4072 fp=1102 hud=7224 audio=36566 overlay=1517 present=23 queue=1565 tracks=1013 corners=2272 frame_avg=255965 frame_min=45624 frame_p95=422575 frame_max=485706 samples=113
+PVE tick=78 count=12 ai_us=16672 move_us=15388 pve_render_us=11330
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=12 lives=10 score=198
+NAV tick=78 us=9304 total_us=68772 max_us=7568 requests=43 ready=45 shared=80 fields=8 evictions=0 searches=152 expanded=1872 committed=636 work=2660 max_work=256 completed=39 wait_ticks=79 max_wait=4
+PVE_PHASE sim=311136 prep=16402 draw=64655 rsp_wait=0 rdp_wait=0 vertices=42294
+NPC_PREP visibility_us=4105 buffers_us=566 matrices_us=655 motion_us=1881 decode_us=1378 scatter_us=1390 writeback_us=521 grip_us=511 ship_us=3 pose_requests=11 pose_hits=0 shared_poses=4 pair_requests=7 pair_hits=2 dma_bytes=8624
+PERF views=4 fps=2 triangles=32960 free=570384 audio=0 p1=(-5.20 0.21 2.33)
+COLLISION tick=90 ticks=30 tick_us=1200375 max_tick_us=57061 director_us=486 humans_us=375316 vehicle_ai_us=172140 vehicles_us=242293 actors_us=178196 projectiles_us=229672 after_us=885 terrain_us=118376 terrain_queries=465 terrain_hits=416 terrain_misses=49 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1998 hit_us=64601 hit_queries=2350 hit_pose_builds=45 hit_available=15666 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=77
+ENEMY_VEHICLE tick=90 actor=0 kind=1 shots=1 pos=6.238,3.413,-7.891 health=400.00
+ENEMY_VEHICLE tick=90 actor=1 kind=3 shots=9 pos=10.329,3.217,-6.710 health=400.00
+ENEMY_VEHICLE tick=90 actor=2 kind=4 shots=0 pos=10.761,0.496,2.853 health=493.33
+ENEMY_VEHICLE tick=90 actor=3 kind=5 shots=3 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=14030 anim=9391 matrix=498 world=6508 objects=5656 fp=1115 hud=5553 audio=26086 overlay=54674 present=22 queue=52960 tracks=1014 corners=2272 frame_avg=258980 frame_min=45624 frame_p95=422575 frame_max=485706 samples=116
+PVE tick=99 count=12 ai_us=15394 move_us=34016 pve_render_us=9535
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=13 lives=10 score=198
+NAV tick=99 us=2675 total_us=75033 max_us=7568 requests=49 ready=55 shared=95 fields=9 evictions=0 searches=176 expanded=2020 committed=726 work=2922 max_work=256 completed=45 wait_ticks=85 max_wait=4
+PVE_PHASE sim=313229 prep=14596 draw=54562 rsp_wait=0 rdp_wait=0 vertices=44622
+NPC_PREP visibility_us=3934 buffers_us=568 matrices_us=664 motion_us=383 decode_us=1349 scatter_us=1340 writeback_us=533 grip_us=484 ship_us=3 pose_requests=11 pose_hits=0 shared_poses=4 pair_requests=7 pair_hits=6 dma_bytes=1424
+PERF views=4 fps=2 triangles=34724 free=575536 audio=1 p1=(-4.44 0.19 2.54)
+COVENANT_VOICE actor=2 generation=1 kind=1 event=4 sample=44 bytes=11295
+COLLISION tick=120 ticks=30 tick_us=1245124 max_tick_us=59402 director_us=477 humans_us=405926 vehicle_ai_us=159673 vehicles_us=237250 actors_us=188345 projectiles_us=251238 after_us=894 terrain_us=151325 terrain_queries=441 terrain_hits=370 terrain_misses=71 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1956 hit_us=77303 hit_queries=2254 hit_pose_builds=88 hit_available=29904 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=168
+ENEMY_VEHICLE tick=120 actor=0 kind=1 shots=2 pos=2.653,2.059,-3.772 health=400.00
+ENEMY_VEHICLE tick=120 actor=1 kind=3 shots=9 pos=4.715,3.326,-3.273 health=400.00
+ENEMY_VEHICLE tick=120 actor=2 kind=4 shots=0 pos=13.678,0.644,2.720 health=289.53
+ENEMY_VEHICLE tick=120 actor=3 kind=5 shots=4 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=16191 anim=9431 matrix=260 world=6099 objects=4764 fp=1129 hud=37553 audio=25996 overlay=1448 present=22 queue=31832 tracks=1185 corners=2824 frame_avg=262750 frame_min=45624 frame_p95=432649 frame_max=485706 samples=119
+PVE tick=120 count=12 ai_us=13803 move_us=17375 pve_render_us=11665
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=5 lives=10 score=198
+NAV tick=120 us=4224 total_us=81704 max_us=7568 requests=54 ready=62 shared=105 fields=11 evictions=0 searches=203 expanded=2149 committed=845 work=3197 max_work=256 completed=50 wait_ticks=90 max_wait=4
+PVE_PHASE sim=278037 prep=16522 draw=85216 rsp_wait=0 rdp_wait=0 vertices=44056
+NPC_PREP visibility_us=4181 buffers_us=1186 matrices_us=662 motion_us=998 decode_us=1569 scatter_us=1697 writeback_us=585 grip_us=516 ship_us=3 pose_requests=12 pose_hits=1 shared_poses=4 pair_requests=7 pair_hits=4 dma_bytes=4288
+PERF views=4 fps=2 triangles=34414 free=546528 audio=1 p1=(-3.67 0.18 2.71)
+COVENANT_VOICE actor=11 generation=1 kind=0 event=1 sample=7 bytes=23807
+PHASE camera=17500 anim=9313 matrix=159 world=5714 objects=4347 fp=1107 hud=5191 audio=23166 overlay=1424 present=23 queue=0 tracks=1589 corners=3984 frame_avg=266541 frame_min=45624 frame_p95=422575 frame_max=485706 samples=120
+PVE tick=141 count=12 ai_us=12186 move_us=15751 pve_render_us=12998
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=2 lives=10 score=198
+NAV tick=141 us=1915 total_us=89611 max_us=7568 requests=61 ready=71 shared=119 fields=13 evictions=0 searches=230 expanded=2288 committed=982 work=3500 max_work=256 completed=57 wait_ticks=97 max_wait=4
+PVE_PHASE sim=253439 prep=17732 draw=49087 rsp_wait=0 rdp_wait=0 vertices=40638
+NPC_PREP visibility_us=4039 buffers_us=585 matrices_us=680 motion_us=1684 decode_us=2037 scatter_us=2363 writeback_us=785 grip_us=495 ship_us=3 pose_requests=13 pose_hits=1 shared_poses=3 pair_requests=9 pair_hits=5 dma_bytes=7680
+PERF views=4 fps=2 triangles=31663 free=512368 audio=1 p1=(-2.89 0.17 2.81)
+COLLISION tick=150 ticks=30 tick_us=1016400 max_tick_us=48911 director_us=489 humans_us=406081 vehicle_ai_us=160922 vehicles_us=232433 actors_us=146648 projectiles_us=67638 after_us=849 terrain_us=112066 terrain_queries=451 terrain_hits=413 terrain_misses=38 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2045 hit_us=6759 hit_queries=624 hit_pose_builds=3 hit_available=1754 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=8
+ENEMY_VEHICLE tick=150 actor=0 kind=1 shots=3 pos=1.773,1.788,-2.191 health=400.00
+ENEMY_VEHICLE tick=150 actor=1 kind=3 shots=9 pos=-0.644,3.536,0.632 health=400.00
+ENEMY_VEHICLE tick=150 actor=2 kind=4 shots=0 pos=16.878,1.090,3.000 health=44.27
+ENEMY_VEHICLE tick=150 actor=3 kind=5 shots=4 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=17234 anim=6158 matrix=190 world=5281 objects=2849 fp=1096 hud=3954 audio=25214 overlay=1426 present=22 queue=0 tracks=1674 corners=4716 frame_avg=262502 frame_min=45624 frame_p95=420473 frame_max=485706 samples=120
+PVE tick=169 count=12 ai_us=25166 move_us=17315 pve_render_us=13171
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=3 lives=10 score=198
+NAV tick=169 us=168 total_us=92120 max_us=7568 requests=65 ready=87 shared=139 fields=13 evictions=0 searches=237 expanded=2315 committed=1008 work=3560 max_work=256 completed=60 wait_ticks=100 max_wait=4
+PVE_PHASE sim=196728 prep=17493 draw=44801 rsp_wait=0 rdp_wait=0 vertices=25534
+NPC_PREP visibility_us=2654 buffers_us=1116 matrices_us=723 motion_us=1862 decode_us=2136 scatter_us=2837 writeback_us=974 grip_us=519 ship_us=3 pose_requests=14 pose_hits=1 shared_poses=3 pair_requests=10 pair_hits=6 dma_bytes=8544
+PERF views=4 fps=3 triangles=20166 free=482176 audio=0 p1=(-2.77 0.17 2.82)
+COVENANT_VOICE actor=10 generation=1 kind=0 event=1 sample=4 bytes=26399
+COLLISION tick=180 ticks=30 tick_us=773560 max_tick_us=38806 director_us=497 humans_us=98492 vehicle_ai_us=169108 vehicles_us=247710 actors_us=141996 projectiles_us=113566 after_us=835 terrain_us=104386 terrain_queries=480 terrain_hits=464 terrain_misses=16 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2394 hit_us=3192 hit_queries=725 hit_pose_builds=0 hit_available=0 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=0
+ENEMY_VEHICLE tick=180 actor=0 kind=1 shots=4 pos=2.580,1.280,-1.860 health=400.00
+ENEMY_VEHICLE tick=180 actor=1 kind=3 shots=9 pos=-5.738,5.022,4.662 health=400.00
+ENEMY_VEHICLE tick=180 actor=2 kind=4 shots=0 pos=18.442,1.468,2.273 health=44.27
+ENEMY_VEHICLE tick=180 actor=3 kind=5 shots=4 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=15194 anim=14610 matrix=376 world=5703 objects=2991 fp=1163 hud=4565 audio=27218 overlay=1442 present=21 queue=223 tracks=2370 corners=5040 frame_avg=256534 frame_min=45624 frame_p95=410883 frame_max=485706 samples=120
+PVE tick=204 count=12 ai_us=12807 move_us=14879 pve_render_us=10938
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=8 arriving=0 ship=0 projectiles=9 lives=10 score=198
+NAV tick=204 us=168 total_us=95686 max_us=7568 requests=67 ready=105 shared=159 fields=13 evictions=0 searches=246 expanded=2355 committed=1043 work=3644 max_work=256 completed=63 wait_ticks=103 max_wait=4
+PVE_PHASE sim=224362 prep=15640 draw=56487 rsp_wait=0 rdp_wait=0 vertices=41922
+NPC_PREP visibility_us=3826 buffers_us=152 matrices_us=576 motion_us=1816 decode_us=1505 scatter_us=1707 writeback_us=571 grip_us=517 ship_us=2 pose_requests=11 pose_hits=1 shared_poses=3 pair_requests=7 pair_hits=3 dma_bytes=8464
+PERF views=4 fps=4 triangles=32445 free=548064 audio=1 p1=(-2.77 0.17 2.82)
+COVENANT_VOICE actor=8 generation=1 kind=0 event=3 sample=14 bytes=26463
+COLLISION tick=210 ticks=30 tick_us=869174 max_tick_us=46186 director_us=544 humans_us=202702 vehicle_ai_us=169265 vehicles_us=246497 actors_us=142308 projectiles_us=105724 after_us=812 terrain_us=113087 terrain_queries=471 terrain_hits=457 terrain_misses=14 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2478 hit_us=19640 hit_queries=982 hit_pose_builds=20 hit_available=7846 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=47
+ENEMY_VEHICLE tick=210 actor=0 kind=1 shots=5 pos=2.634,1.195,-1.758 health=400.00
+ENEMY_VEHICLE tick=210 actor=1 kind=3 shots=9 pos=-10.921,7.521,8.214 health=400.00
+ENEMY_VEHICLE tick=210 actor=2 kind=4 shots=0 pos=19.612,1.708,1.202 health=44.27
+ENEMY_VEHICLE tick=210 actor=3 kind=5 shots=6 pos=19.976,1.516,4.019 health=400.00
+COVENANT_VOICE actor=8 generation=1 kind=0 event=5 sample=23 bytes=26047
+PHASE camera=12616 anim=5289 matrix=161 world=5804 objects=5981 fp=1082 hud=4529 audio=28775 overlay=1460 present=22 queue=0 tracks=2506 corners=5798 frame_avg=253822 frame_min=45624 frame_p95=410883 frame_max=485706 samples=120
+PVE tick=232 count=12 ai_us=12902 move_us=12161 pve_render_us=8256
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=2 lives=10 score=210
+NAV tick=232 us=6052 total_us=104299 max_us=7568 requests=71 ready=118 shared=174 fields=15 evictions=0 searches=266 expanded=2505 committed=1171 work=3942 max_work=256 completed=67 wait_ticks=107 max_wait=4
+PVE_PHASE sim=196904 prep=12850 draw=51706 rsp_wait=0 rdp_wait=0 vertices=34292
+NPC_PREP visibility_us=2844 buffers_us=151 matrices_us=524 motion_us=837 decode_us=1222 scatter_us=1455 writeback_us=517 grip_us=447 ship_us=2 pose_requests=12 pose_hits=2 shared_poses=4 pair_requests=6 pair_hits=4 dma_bytes=3680
+PERF views=4 fps=3 triangles=25325 free=533328 audio=1 p1=(-2.25 0.13 2.40)
+COLLISION tick=240 ticks=30 tick_us=853779 max_tick_us=43540 director_us=495 humans_us=190128 vehicle_ai_us=213607 vehicles_us=234195 actors_us=125440 projectiles_us=87663 after_us=880 terrain_us=111687 terrain_queries=426 terrain_hits=399 terrain_misses=27 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2336 hit_us=24508 hit_queries=778 hit_pose_builds=28 hit_available=8056 hit_triangles=112 hit_groups=40 hit_rejected=33 hit_root_rejected=43
+ENEMY_VEHICLE tick=240 actor=0 kind=1 shots=6 pos=3.533,1.178,-1.972 health=400.00
+ENEMY_VEHICLE tick=240 actor=1 kind=3 shots=9 pos=-14.254,12.178,5.547 health=400.00
+ENEMY_VEHICLE tick=240 actor=2 kind=4 shots=0 pos=19.586,1.735,-0.219 health=44.27
+ENEMY_VEHICLE tick=240 actor=3 kind=5 shots=7 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=14546 anim=5092 matrix=189 world=5807 objects=4772 fp=1077 hud=4683 audio=24633 overlay=1439 present=22 queue=0 tracks=2788 corners=7036 frame_avg=249993 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=260 count=12 ai_us=12180 move_us=18443 pve_render_us=10121
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=3 lives=10 score=210
+NAV tick=260 us=6083 total_us=112649 max_us=7568 requests=76 ready=128 shared=187 fields=17 evictions=1 searches=285 expanded=2645 committed=1293 work=4223 max_work=256 completed=72 wait_ticks=112 max_wait=4
+PVE_PHASE sim=184133 prep=14805 draw=46310 rsp_wait=0 rdp_wait=0 vertices=38954
+NPC_PREP visibility_us=2659 buffers_us=159 matrices_us=529 motion_us=1613 decode_us=1532 scatter_us=2367 writeback_us=574 grip_us=428 ship_us=2 pose_requests=13 pose_hits=3 shared_poses=4 pair_requests=6 pair_hits=3 dma_bytes=7648
+PERF views=4 fps=3 triangles=26963 free=481808 audio=1 p1=(-1.40 0.11 1.80)
+COLLISION tick=270 ticks=30 tick_us=862863 max_tick_us=45597 director_us=499 humans_us=172540 vehicle_ai_us=201097 vehicles_us=220224 actors_us=139053 projectiles_us=127150 after_us=867 terrain_us=110710 terrain_queries=406 terrain_hits=369 terrain_misses=37 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1964 hit_us=11587 hit_queries=646 hit_pose_builds=7 hit_available=2456 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=12
+ENEMY_VEHICLE tick=270 actor=0 kind=1 shots=8 pos=4.673,1.068,-2.078 health=400.00
+ENEMY_VEHICLE tick=270 actor=1 kind=3 shots=9 pos=-12.309,12.571,-0.296 health=400.00
+ENEMY_VEHICLE tick=270 actor=2 kind=4 shots=0 pos=19.110,1.603,0.225 health=44.27
+ENEMY_VEHICLE tick=270 actor=3 kind=5 shots=8 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=15845 anim=15450 matrix=347 world=5883 objects=2874 fp=1163 hud=4532 audio=24221 overlay=1452 present=22 queue=0 tracks=1072 corners=2962 frame_avg=249780 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=288 count=12 ai_us=11061 move_us=18505 pve_render_us=11377
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=8 lives=10 score=210
+NAV tick=288 us=762 total_us=122340 max_us=7568 requests=82 ready=134 shared=197 fields=19 evictions=3 searches=315 expanded=2820 committed=1454 work=4589 max_work=256 completed=78 wait_ticks=118 max_wait=4
+PVE_PHASE sim=238952 prep=16261 draw=54364 rsp_wait=0 rdp_wait=0 vertices=49618
+NPC_PREP visibility_us=2748 buffers_us=2166 matrices_us=566 motion_us=1518 decode_us=1307 scatter_us=1755 writeback_us=554 grip_us=477 ship_us=3 pose_requests=16 pose_hits=3 shared_poses=7 pair_requests=6 pair_hits=3 dma_bytes=7136
+PERF views=4 fps=3 triangles=33848 free=477608 audio=1 p1=(-0.50 0.14 1.25)
+COLLISION tick=300 ticks=30 tick_us=1024414 max_tick_us=49041 director_us=527 humans_us=166259 vehicle_ai_us=197440 vehicles_us=230650 actors_us=148770 projectiles_us=278465 after_us=903 terrain_us=112406 terrain_queries=403 terrain_hits=366 terrain_misses=37 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1647 hit_us=82267 hit_queries=1524 hit_pose_builds=54 hit_available=27924 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=128
+ENEMY_VEHICLE tick=300 actor=0 kind=1 shots=10 pos=5.961,0.972,-2.232 health=400.00
+ENEMY_VEHICLE tick=300 actor=1 kind=3 shots=9 pos=-6.807,9.031,-0.617 health=400.00
+ENEMY_VEHICLE tick=300 actor=2 kind=4 shots=1 pos=18.396,1.440,0.291 health=44.27
+ENEMY_VEHICLE tick=300 actor=3 kind=5 shots=9 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=17715 anim=20298 matrix=285 world=6381 objects=3962 fp=1441 hud=4944 audio=22794 overlay=1434 present=22 queue=0 tracks=1219 corners=3662 frame_avg=251989 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=316 count=12 ai_us=10091 move_us=22496 pve_render_us=13223
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=6 lives=10 score=210
+NAV tick=316 us=167 total_us=128193 max_us=7568 requests=86 ready=145 shared=210 fields=21 evictions=5 searches=333 expanded=2918 committed=1546 work=4797 max_work=256 completed=82 wait_ticks=122 max_wait=4
+PVE_PHASE sim=235346 prep=18038 draw=60058 rsp_wait=0 rdp_wait=0 vertices=56110
+NPC_PREP visibility_us=3043 buffers_us=2783 matrices_us=624 motion_us=1352 decode_us=1592 scatter_us=2453 writeback_us=591 grip_us=503 ship_us=2 pose_requests=14 pose_hits=2 shared_poses=6 pair_requests=6 pair_hits=3 dma_bytes=6256
+PERF views=4 fps=3 triangles=39938 free=500248 audio=1 p1=(0.40 0.14 0.95)
+COVENANT_VOICE actor=5 generation=1 kind=0 event=1 sample=5 bytes=34175
+COLLISION tick=330 ticks=30 tick_us=938996 max_tick_us=42254 director_us=489 humans_us=153843 vehicle_ai_us=194564 vehicles_us=234658 actors_us=130057 projectiles_us=223145 after_us=878 terrain_us=97098 terrain_queries=401 terrain_hits=366 terrain_misses=35 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1441 hit_us=41206 hit_queries=1470 hit_pose_builds=35 hit_available=6862 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=39
+ENEMY_VEHICLE tick=330 actor=0 kind=1 shots=10 pos=7.166,0.870,-2.298 health=400.00
+ENEMY_VEHICLE tick=330 actor=1 kind=3 shots=9 pos=-6.282,6.374,5.582 health=400.00
+ENEMY_VEHICLE tick=330 actor=2 kind=4 shots=1 pos=17.537,1.345,-1.031 health=44.27
+ENEMY_VEHICLE tick=330 actor=3 kind=5 shots=9 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=13075 anim=7421 matrix=282 world=6470 objects=9701 fp=1079 hud=4882 audio=34208 overlay=1426 present=22 queue=0 tracks=1478 corners=3846 frame_avg=253557 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=344 count=12 ai_us=9951 move_us=12922 pve_render_us=8802
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=6 lives=10 score=210
+NAV tick=344 us=699 total_us=131985 max_us=7568 requests=89 ready=157 shared=224 fields=22 evictions=6 searches=342 expanded=2971 committed=1598 work=4911 max_work=256 completed=85 wait_ticks=125 max_wait=4
+PVE_PHASE sim=192122 prep=13398 draw=64008 rsp_wait=0 rdp_wait=0 vertices=53474
+NPC_PREP visibility_us=2933 buffers_us=641 matrices_us=567 motion_us=527 decode_us=1371 scatter_us=1514 writeback_us=499 grip_us=483 ship_us=2 pose_requests=14 pose_hits=2 shared_poses=6 pair_requests=6 pair_hits=5 dma_bytes=2192
+PERF views=4 fps=3 triangles=36720 free=506848 audio=0 p1=(0.75 0.20 1.11)
+COLLISION tick=360 ticks=30 tick_us=794442 max_tick_us=40367 director_us=494 humans_us=71779 vehicle_ai_us=196499 vehicles_us=229592 actors_us=113851 projectiles_us=180017 after_us=861 terrain_us=77652 terrain_queries=350 terrain_hits=329 terrain_misses=21 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1159 hit_us=12259 hit_queries=1260 hit_pose_builds=10 hit_available=1580 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=10
+ENEMY_VEHICLE tick=360 actor=0 kind=1 shots=12 pos=7.215,0.846,-2.281 health=400.00
+ENEMY_VEHICLE tick=360 actor=1 kind=3 shots=9 pos=-12.342,6.141,8.573 health=400.00
+ENEMY_VEHICLE tick=360 actor=2 kind=4 shots=1 pos=16.625,1.319,-3.438 health=44.27
+ENEMY_VEHICLE tick=360 actor=3 kind=5 shots=9 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=12510 anim=14351 matrix=161 world=6137 objects=9727 fp=1066 hud=6157 audio=27571 overlay=1462 present=22 queue=2044 tracks=1000 corners=2472 frame_avg=252490 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=372 count=12 ai_us=9801 move_us=10836 pve_render_us=8187
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=7 arriving=0 ship=0 projectiles=2 lives=10 score=210
+NAV tick=372 us=730 total_us=133788 max_us=7568 requests=91 ready=167 shared=236 fields=22 evictions=6 searches=344 expanded=2983 committed=1610 work=4937 max_work=256 completed=87 wait_ticks=127 max_wait=4
+PVE_PHASE sim=156867 prep=12744 draw=65260 rsp_wait=0 rdp_wait=0 vertices=56144
+NPC_PREP visibility_us=2946 buffers_us=151 matrices_us=607 motion_us=372 decode_us=1298 scatter_us=1536 writeback_us=520 grip_us=494 ship_us=3 pose_requests=13 pose_hits=2 shared_poses=5 pair_requests=6 pair_hits=5 dma_bytes=1424
+PERF views=4 fps=3 triangles=38858 free=506848 audio=0 p1=(1.05 0.13 1.05)
+COVENANT_VOICE actor=11 generation=1 kind=0 event=1 sample=6 bytes=27647
+COLLISION tick=390 ticks=30 tick_us=709702 max_tick_us=33665 director_us=493 humans_us=79011 vehicle_ai_us=155083 vehicles_us=225077 actors_us=105611 projectiles_us=142235 after_us=836 terrain_us=75726 terrain_queries=415 terrain_hits=408 terrain_misses=7 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1683 hit_us=21481 hit_queries=607 hit_pose_builds=28 hit_available=4740 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=30
+ENEMY_VEHICLE tick=390 actor=0 kind=1 shots=14 pos=7.225,0.847,-2.246 health=400.00
+ENEMY_VEHICLE tick=390 actor=1 kind=3 shots=9 pos=-16.639,7.277,3.520 health=400.00
+ENEMY_VEHICLE tick=390 actor=2 kind=4 shots=1 pos=16.034,1.270,-6.047 health=44.27
+ENEMY_VEHICLE tick=390 actor=3 kind=5 shots=10 pos=19.976,1.516,4.019 health=400.00
+COVENANT_VOICE actor=10 generation=1 kind=0 event=3 sample=15 bytes=25183
+PHASE camera=12425 anim=4996 matrix=283 world=5842 objects=9167 fp=781 hud=12847 audio=24901 overlay=1446 present=22 queue=7860 tracks=2398 corners=5428 frame_avg=252778 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=400 count=12 ai_us=8531 move_us=10088 pve_render_us=7579
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=7 arriving=0 ship=0 projectiles=6 lives=9 score=210
+NAV tick=400 us=167 total_us=134934 max_us=7568 requests=92 ready=181 shared=251 fields=22 evictions=6 searches=345 expanded=2988 committed=1615 work=4948 max_work=256 completed=88 wait_ticks=128 max_wait=4
+PVE_PHASE sim=151679 prep=12748 draw=58779 rsp_wait=0 rdp_wait=0 vertices=48848
+NPC_PREP visibility_us=2804 buffers_us=165 matrices_us=568 motion_us=356 decode_us=1209 scatter_us=1345 writeback_us=422 grip_us=470 ship_us=3 pose_requests=13 pose_hits=2 shared_poses=6 pair_requests=5 pair_hits=4 dma_bytes=1424
+PERF views=4 fps=3 triangles=32863 free=512000 audio=1 p1=(1.05 0.13 1.05)
+COVENANT_VOICE actor=10 generation=1 kind=0 event=5 sample=20 bytes=21759
+COVENANT_VOICE actor=11 generation=1 kind=0 event=5 sample=21 bytes=11359
+COLLISION tick=420 ticks=30 tick_us=651189 max_tick_us=38673 director_us=483 humans_us=123602 vehicle_ai_us=74514 vehicles_us=218570 actors_us=68794 projectiles_us=162971 after_us=892 terrain_us=55853 terrain_queries=292 terrain_hits=283 terrain_misses=9 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1178 hit_us=39189 hit_queries=778 hit_pose_builds=51 hit_available=16274 hit_triangles=142 hit_groups=30 hit_rejected=21 hit_root_rejected=100
+ENEMY_VEHICLE tick=420 actor=0 kind=1 shots=16 pos=7.234,0.842,-2.210 health=400.00
+ENEMY_VEHICLE tick=420 actor=1 kind=3 shots=9 pos=-13.230,7.467,-1.460 health=400.00
+ENEMY_VEHICLE tick=420 actor=2 kind=4 shots=1 pos=16.822,1.408,-7.880 health=44.27
+ENEMY_VEHICLE tick=420 actor=3 kind=5 shots=13 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=16310 anim=5802 matrix=125 world=5335 objects=5878 fp=798 hud=34884 audio=30981 overlay=1487 present=22 queue=29929 tracks=2867 corners=7470 frame_avg=248011 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=431 count=12 ai_us=5625 move_us=5314 pve_render_us=11226
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=1 lives=9 score=259
+NAV tick=431 us=168 total_us=136158 max_us=7568 requests=93 ready=185 shared=256 fields=22 evictions=6 searches=346 expanded=2993 committed=1620 work=4959 max_work=256 completed=89 wait_ticks=129 max_wait=4
+PVE_PHASE sim=161821 prep=16508 draw=83927 rsp_wait=0 rdp_wait=0 vertices=53520
+NPC_PREP visibility_us=2627 buffers_us=203 matrices_us=584 motion_us=2523 decode_us=1592 scatter_us=2317 writeback_us=616 grip_us=479 ship_us=2 pose_requests=17 pose_hits=3 shared_poses=8 pair_requests=6 pair_hits=1 dma_bytes=12048
+PERF views=4 fps=4 triangles=34011 free=440592 audio=1 p1=(1.30 0.12 1.06)
+COLLISION tick=450 ticks=30 tick_us=653845 max_tick_us=29118 director_us=568 humans_us=214733 vehicle_ai_us=104722 vehicles_us=215222 actors_us=56329 projectiles_us=60054 after_us=868 terrain_us=73991 terrain_queries=375 terrain_hits=348 terrain_misses=27 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=1316 hit_us=14617 hit_queries=308 hit_pose_builds=19 hit_available=3318 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=21
+ENEMY_VEHICLE tick=450 actor=0 kind=1 shots=18 pos=7.965,0.855,-2.434 health=400.00
+ENEMY_VEHICLE tick=450 actor=1 kind=3 shots=10 pos=-6.842,5.791,-0.935 health=400.00
+ENEMY_VEHICLE tick=450 actor=2 kind=4 shots=1 pos=18.769,1.647,-9.413 health=44.27
+ENEMY_VEHICLE tick=450 actor=3 kind=5 shots=14 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=10942 anim=5736 matrix=223 world=5462 objects=2157 fp=865 hud=5119 audio=26291 overlay=1421 present=23 queue=0 tracks=2188 corners=4830 frame_avg=244766 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=463 count=12 ai_us=11306 move_us=3902 pve_render_us=6015
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=4 lives=9 score=259
+NAV tick=463 us=760 total_us=139065 max_us=7568 requests=95 ready=189 shared=261 fields=23 evictions=7 searches=356 expanded=3032 committed=1659 work=5047 max_work=256 completed=91 wait_ticks=131 max_wait=4
+PVE_PHASE sim=181241 prep=11249 draw=45860 rsp_wait=0 rdp_wait=0 vertices=55690
+NPC_PREP visibility_us=2246 buffers_us=241 matrices_us=558 motion_us=790 decode_us=657 scatter_us=633 writeback_us=216 grip_us=451 ship_us=3 pose_requests=18 pose_hits=3 shared_poses=12 pair_requests=3 pair_hits=1 dma_bytes=3600
+PERF views=4 fps=4 triangles=34548 free=529440 audio=1 p1=(2.49 0.12 1.17)
+COLLISION tick=480 ticks=30 tick_us=755177 max_tick_us=33047 director_us=480 humans_us=215022 vehicle_ai_us=154695 vehicles_us=218042 actors_us=52488 projectiles_us=112276 after_us=845 terrain_us=51752 terrain_queries=380 terrain_hits=355 terrain_misses=25 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=786 hit_us=25874 hit_queries=630 hit_pose_builds=30 hit_available=12324 hit_triangles=96 hit_groups=40 hit_rejected=34 hit_root_rejected=74
+ENEMY_VEHICLE tick=480 actor=0 kind=1 shots=20 pos=8.834,0.889,-2.912 health=400.00
+ENEMY_VEHICLE tick=480 actor=1 kind=3 shots=10 pos=-0.629,4.148,0.683 health=400.00
+ENEMY_VEHICLE tick=480 actor=2 kind=4 shots=1 pos=20.035,1.805,-11.166 health=44.27
+ENEMY_VEHICLE tick=480 actor=3 kind=5 shots=14 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=15588 anim=5635 matrix=161 world=4905 objects=5473 fp=798 hud=5251 audio=14310 overlay=1416 present=23 queue=0 tracks=2862 corners=7470 frame_avg=241970 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=494 count=12 ai_us=5612 move_us=2408 pve_render_us=10751
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=2 lives=9 score=259
+NAV tick=494 us=95 total_us=141798 max_us=7568 requests=97 ready=192 shared=265 fields=24 evictions=8 searches=368 expanded=3069 committed=1696 work=5133 max_work=256 completed=93 wait_ticks=133 max_wait=4
+PVE_PHASE sim=74333 prep=15817 draw=36621 rsp_wait=0 rdp_wait=0 vertices=23986
+NPC_PREP visibility_us=1349 buffers_us=2972 matrices_us=378 motion_us=999 decode_us=1588 scatter_us=2247 writeback_us=623 grip_us=301 ship_us=2 pose_requests=9 pose_hits=0 shared_poses=3 pair_requests=6 pair_hits=4 dma_bytes=4448
+PERF views=4 fps=4 triangles=15146 free=542952 audio=0 p1=(3.00 0.12 1.24)
+COLLISION tick=510 ticks=30 tick_us=529616 max_tick_us=25311 director_us=501 humans_us=76026 vehicle_ai_us=139334 vehicles_us=217249 actors_us=53323 projectiles_us=41022 after_us=853 terrain_us=37911 terrain_queries=250 terrain_hits=243 terrain_misses=7 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=662 hit_us=1189 hit_queries=216 hit_pose_builds=0 hit_available=0 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=0
+ENEMY_VEHICLE tick=510 actor=0 kind=1 shots=23 pos=8.945,0.892,-2.945 health=400.00
+ENEMY_VEHICLE tick=510 actor=1 kind=3 shots=10 pos=5.974,4.867,1.982 health=400.00
+ENEMY_VEHICLE tick=510 actor=2 kind=4 shots=2 pos=20.486,1.873,-13.049 health=44.27
+ENEMY_VEHICLE tick=510 actor=3 kind=5 shots=14 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=13742 anim=5001 matrix=160 world=5088 objects=3702 fp=813 hud=4362 audio=15785 overlay=1423 present=23 queue=0 tracks=2729 corners=6332 frame_avg=233529 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=525 count=12 ai_us=6447 move_us=2698 pve_render_us=8704
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=2 lives=9 score=259
+NAV tick=525 us=1975 total_us=145773 max_us=7568 requests=100 ready=194 shared=269 fields=25 evictions=9 searches=381 expanded=3124 committed=1751 work=5256 max_work=256 completed=96 wait_ticks=136 max_wait=4
+PVE_PHASE sim=99097 prep=13975 draw=35000 rsp_wait=0 rdp_wait=0 vertices=27422
+NPC_PREP visibility_us=1699 buffers_us=1548 matrices_us=494 motion_us=363 decode_us=1621 scatter_us=1905 writeback_us=552 grip_us=248 ship_us=2 pose_requests=11 pose_hits=2 shared_poses=3 pair_requests=6 pair_hits=5 dma_bytes=1408
+PERF views=4 fps=8 triangles=18467 free=486608 audio=0 p1=(3.50 0.12 1.16)
+COLLISION tick=540 ticks=30 tick_us=736346 max_tick_us=34327 director_us=560 humans_us=153548 vehicle_ai_us=213070 vehicles_us=220658 actors_us=58974 projectiles_us=87273 after_us=898 terrain_us=49514 terrain_queries=280 terrain_hits=263 terrain_misses=17 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=832 hit_us=44116 hit_queries=292 hit_pose_builds=34 hit_available=6562 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=34
+ENEMY_VEHICLE tick=540 actor=0 kind=1 shots=24 pos=9.701,0.929,-3.391 health=400.00
+ENEMY_VEHICLE tick=540 actor=1 kind=3 shots=10 pos=12.316,6.913,3.178 health=400.00
+ENEMY_VEHICLE tick=540 actor=2 kind=4 shots=2 pos=21.770,2.029,-14.870 health=44.27
+ENEMY_VEHICLE tick=540 actor=3 kind=5 shots=16 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=10009 anim=5754 matrix=189 world=5348 objects=1760 fp=864 hud=4367 audio=20776 overlay=1424 present=23 queue=0 tracks=2453 corners=5686 frame_avg=231256 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=557 count=12 ai_us=5727 move_us=2758 pve_render_us=5198
+FF_STATE phase=3 round=1 wave=1 living=3 enemies=5 arriving=0 ship=0 projectiles=3 lives=9 score=259
+NAV tick=557 us=942 total_us=150186 max_us=7568 requests=103 ready=196 shared=273 fields=26 evictions=10 searches=394 expanded=3185 committed=1812 work=5391 max_work=256 completed=99 wait_ticks=139 max_wait=4
+PVE_PHASE sim=167402 prep=10264 draw=39105 rsp_wait=0 rdp_wait=0 vertices=21574
+NPC_PREP visibility_us=1554 buffers_us=95 matrices_us=464 motion_us=56 decode_us=1055 scatter_us=1153 writeback_us=358 grip_us=244 ship_us=3 pose_requests=7 pose_hits=2 shared_poses=1 pair_requests=4 pair_hits=4 dma_bytes=0
+PERF views=4 fps=5 triangles=15906 free=527456 audio=0 p1=(4.47 0.16 0.45)
+COVENANT_VOICE actor=5 generation=1 kind=0 event=1 sample=7 bytes=23807
+COLLISION tick=570 ticks=30 tick_us=737143 max_tick_us=33975 director_us=493 humans_us=99905 vehicle_ai_us=264231 vehicles_us=219339 actors_us=57034 projectiles_us=93888 after_us=874 terrain_us=30463 terrain_queries=185 terrain_hits=171 terrain_misses=14 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=514 hit_us=24093 hit_queries=292 hit_pose_builds=21 hit_available=3808 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=21
+ENEMY_VEHICLE tick=570 actor=0 kind=1 shots=26 pos=10.836,0.983,-3.917 health=400.00
+ENEMY_VEHICLE tick=570 actor=1 kind=3 shots=10 pos=14.675,11.729,1.356 health=400.00
+ENEMY_VEHICLE tick=570 actor=2 kind=4 shots=2 pos=21.323,1.995,-16.736 health=44.27
+ENEMY_VEHICLE tick=570 actor=3 kind=5 shots=17 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=9548 anim=2349 matrix=134 world=5032 objects=3338 fp=293 hud=4262 audio=3421 overlay=1391 present=23 queue=0 tracks=1170 corners=2574 frame_avg=230311 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=588 count=12 ai_us=24 move_us=969 pve_render_us=3823
+FF_STATE phase=3 round=1 wave=1 living=1 enemies=5 arriving=0 ship=0 projectiles=1 lives=7 score=259
+NAV tick=588 us=48 total_us=161351 max_us=7568 requests=109 ready=212 shared=293 fields=28 evictions=12 searches=422 expanded=3369 committed=1990 work=5781 max_work=256 completed=105 wait_ticks=145 max_wait=4
+PVE_PHASE sim=29243 prep=9757 draw=18939 rsp_wait=0 rdp_wait=0 vertices=21434
+NPC_PREP visibility_us=1382 buffers_us=117 matrices_us=396 motion_us=42 decode_us=616 scatter_us=542 writeback_us=254 grip_us=241 ship_us=2 pose_requests=9 pose_hits=3 shared_poses=3 pair_requests=3 pair_hits=3 dma_bytes=0
+PERF views=4 fps=6 triangles=14133 free=529440 audio=1 p1=(5.60 0.22 -0.58)
+COLLISION tick=600 ticks=30 tick_us=444673 max_tick_us=20860 director_us=520 humans_us=55094 vehicle_ai_us=107352 vehicles_us=218671 actors_us=41829 projectiles_us=18987 after_us=856 terrain_us=23245 terrain_queries=118 terrain_hits=108 terrain_misses=10 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=334 hit_us=526 hit_queries=96 hit_pose_builds=0 hit_available=0 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=0
+ENEMY_VEHICLE tick=600 actor=0 kind=1 shots=28 pos=12.039,1.086,-4.430 health=400.00
+ENEMY_VEHICLE tick=600 actor=1 kind=3 shots=10 pos=11.729,13.444,-2.551 health=400.00
+ENEMY_VEHICLE tick=600 actor=2 kind=4 shots=2 pos=20.200,1.889,-17.880 health=44.27
+ENEMY_VEHICLE tick=600 actor=3 kind=5 shots=17 pos=19.976,1.516,4.019 health=400.00
+PHASE camera=15267 anim=4395 matrix=282 world=6613 objects=3099 fp=1138 hud=5506 audio=26079 overlay=1480 present=23 queue=0 tracks=2509 corners=5292 frame_avg=230901 frame_min=45624 frame_p95=406600 frame_max=485706 samples=120
+PVE tick=21 count=12 ai_us=24093 move_us=26581 pve_render_us=11433
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=12 arriving=0 ship=0 projectiles=6 lives=10 score=0
+NAV tick=21 us=11674 total_us=39771 max_us=7568 requests=22 ready=14 shared=32 fields=4 evictions=0 searches=77 expanded=1039 committed=372 work=1488 max_work=256 completed=21 wait_ticks=53 max_wait=4
+PVE_PHASE sim=334328 prep=15620 draw=47075 rsp_wait=0 rdp_wait=0 vertices=44144
+NPC_PREP visibility_us=3895 buffers_us=1602 matrices_us=592 motion_us=1013 decode_us=1376 scatter_us=1463 writeback_us=604 grip_us=541 ship_us=3 pose_requests=10 pose_hits=0 shared_poses=2 pair_requests=8 pair_hits=5 dma_bytes=4240
+PERF views=4 fps=7 triangles=34285 free=582224 audio=1 p1=(-7.31 0.32 2.19)
+COVENANT_VOICE actor=7 generation=1 kind=0 event=1 sample=4 bytes=26399
+COLLISION tick=30 ticks=30 tick_us=1443194 max_tick_us=70552 director_us=498 humans_us=499576 vehicle_ai_us=172173 vehicles_us=340591 actors_us=304586 projectiles_us=123522 after_us=929 terrain_us=162271 terrain_queries=750 terrain_hits=609 terrain_misses=141 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=2949 hit_us=44838 hit_queries=1400 hit_pose_builds=51 hit_available=10374 hit_triangles=0 hit_groups=0 hit_rejected=0 hit_root_rejected=63
+ENEMY_VEHICLE tick=30 actor=0 kind=1 shots=0 pos=8.526,3.660,-12.038 health=400.00
+ENEMY_VEHICLE tick=30 actor=1 kind=3 shots=2 pos=19.661,5.082,-11.870 health=400.00
+ENEMY_VEHICLE tick=30 actor=2 kind=4 shots=0 pos=8.080,0.448,3.917 health=600.00
+ENEMY_VEHICLE tick=30 actor=3 kind=5 shots=0 pos=19.977,1.515,4.019 health=400.00
+COVENANT_VOICE actor=9 generation=1 kind=0 event=3 sample=12 bytes=23359
+COVENANT_VOICE actor=6 generation=1 kind=0 event=3 sample=13 bytes=19167
+PHASE camera=16039 anim=4458 matrix=443 world=6132 objects=2595 fp=1148 hud=16209 audio=28876 overlay=1456 present=23 queue=10636 tracks=2543 corners=5340 frame_avg=235761 frame_min=45624 frame_p95=410883 frame_max=485706 samples=120
+PVE tick=42 count=12 ai_us=23381 move_us=23857 pve_render_us=11988
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=12 arriving=0 ship=0 projectiles=11 lives=10 score=0
+NAV tick=42 us=548 total_us=44416 max_us=7568 requests=24 ready=36 shared=56 fields=4 evictions=0 searches=82 expanded=1185 committed=384 work=1651 max_work=256 completed=23 wait_ticks=55 max_wait=4
+PVE_PHASE sim=363002 prep=16555 draw=59661 rsp_wait=0 rdp_wait=0 vertices=41782
+NPC_PREP visibility_us=4033 buffers_us=979 matrices_us=715 motion_us=1741 decode_us=1550 scatter_us=1523 writeback_us=603 grip_us=548 ship_us=2 pose_requests=11 pose_hits=0 shared_poses=3 pair_requests=8 pair_hits=3 dma_bytes=7888
+PERF views=4 fps=2 triangles=32484 free=554928 audio=1 p1=(-6.55 0.24 2.34)
+COVENANT_VOICE actor=4 generation=1 kind=0 event=5 sample=22 bytes=28447
+COVENANT_VOICE actor=6 generation=1 kind=0 event=5 sample=23 bytes=26047

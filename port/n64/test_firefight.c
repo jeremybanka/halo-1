@@ -3,6 +3,9 @@
 #include "game.c"
 static void advance(unsigned ticks){bg_input in[4]={0};for(unsigned n=0;n<ticks;n++)bg_tick(in,1.f/30);}
 static void clear_enemies(void){for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[4+i].health>0&&bg_pve_actors[i].arrival!=1)damage_player_profile(4+i,0,100000,false,false,0,false,false,1);}
+#ifdef BG_PVE_ROSTER
+#include "test_pve_roster.inc"
+#endif
 int main(void){
     assert(bg_map_load(9));
     for(unsigned players=1;players<=4;players++){
@@ -94,5 +97,8 @@ int main(void){
     puts("PASS authored shield/weak-point damage, exactly-once score, ordnance-safe recycling and CE grenade decision/release");
     bg_pve_stop();bg_configure_mode(BG_MODE_CTF,NULL);bg_reset();assert(!bg_ff.active&&!bg_pve_is_active()&&bg_objective_count>0);
     puts("PASS finite sets 1-4P, all formation routes, bounded actor recycling, shared reserves, last-death clear, bonus death, restart and PvP return");
+#ifdef BG_PVE_ROSTER
+    roster_acceptance();
+#endif
     return 0;
 }

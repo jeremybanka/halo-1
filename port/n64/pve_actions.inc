@@ -11,10 +11,10 @@ static bool pve_friendly_line(unsigned i,const float origin[3],const float targe
     }
     return false;
 }
-static bool pve_ballistic(const float origin[3],const float target[3],float speed,float gravity,float direction[3]){
+static bool pve_ballistic_arc(const float origin[3],const float target[3],float speed,float gravity,bool high,float direction[3]){
     float dx=target[0]-origin[0],dz=target[2]-origin[2],height=target[1]-origin[1],range=hypotf(dx,dz),v2=speed*speed;
     float disc=v2*v2-gravity*(gravity*range*range+2*height*v2);if(range<.1f||disc<0||speed<.1f)return false;
-    float tangent=(v2-sqrtf(disc))/(gravity*range),co=1/sqrtf(1+tangent*tangent);
+    float tangent=(v2+(high?1:-1)*sqrtf(disc))/(gravity*range),co=1/sqrtf(1+tangent*tangent);
     direction[0]=dx/range*co;direction[1]=tangent*co;direction[2]=dz/range*co;
     float previous[3];memcpy(previous,origin,12);float duration=range/(speed*co);
     for(unsigned step=1;step<=12;step++){
@@ -23,8 +23,9 @@ static bool pve_ballistic(const float origin[3],const float target[3],float spee
     }
     return true;
 }
+static bool pve_ballistic(const float origin[3],const float target[3],float speed,float gravity,float direction[3]){return pve_ballistic_arc(origin,target,speed,gravity,false,direction);}
 static bool actor_action_test_grenade(long i){
-    bg_pve_actor*a=&bg_pve_actors[i];bg_player*p=&bg_players[BG_PLAYERS+i];const bg_pve_definition*d=pve_definition_for(a->kind,bg_players[BG_PLAYERS+i].weapon);
+    bg_pve_actor*a=&bg_pve_actors[i];bg_player*p=&bg_players[BG_PLAYERS+i];const bg_pve_definition*d=pve_definition(i);
     if(!a->grenades||a->target<0||!a->visible||a->arrival||a->evade_time>0||a->melee_pending||a->grenade_time>0||pve_encounter_grenade_time>0)return false;
     float distance=sqrtf(distance2(p->pos,bg_players[a->target].pos));if(distance<d->grenade_range[0]||distance>d->grenade_range[1])return false;
     unsigned enemies=0;for(unsigned h=0;h<active_players;h++)if(bg_players[h].health>0&&distance2(bg_players[h].pos,bg_players[a->target].pos)<=d->grenade_radius*d->grenade_radius+.01f)enemies++;
@@ -39,7 +40,7 @@ static bool actor_action_try_to_throw_grenade(long i,bool first){
     a->throw_pending=true;a->clip=PVE_THROW;a->time=0;return true;
 }
 static bool pve_try_evade(unsigned i){
-    bg_pve_actor*a=&bg_pve_actors[i];const bg_pve_definition*d=pve_definition_for(a->kind,bg_players[BG_PLAYERS+i].weapon);bg_player*p=&bg_players[BG_PLAYERS+i];
+    bg_pve_actor*a=&bg_pve_actors[i];const bg_pve_definition*d=pve_definition(i);bg_player*p=&bg_players[BG_PLAYERS+i];
     if(a->arrival||a->evade_time>0||a->melee_pending||a->throw_pending||a->evade_cooldown>0||a->kind==BG_PVE_HUNTER)return false;
     float threat[3];bool danger=false;
     for(unsigned j=0;j<BG_MAX_PROJECTILES;j++){

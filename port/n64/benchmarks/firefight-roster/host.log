@@ -1,0 +1,98 @@
+Retained 96 functions/blocks
+[
+  {
+    "path": "vehicles\\warthog\\warthog",
+    "cache": "bloodgulch",
+    "mass_points": 15,
+    "powered": 2,
+    "mass": 5000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\ghost\\ghost_mp",
+    "cache": "bloodgulch",
+    "mass_points": 5,
+    "powered": 2,
+    "mass": 2000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\scorpion\\scorpion_mp",
+    "cache": "bloodgulch",
+    "mass_points": 18,
+    "powered": 2,
+    "mass": 20000.0,
+    "radius": -1.0
+  },
+  {
+    "path": "vehicles\\banshee\\banshee",
+    "cache": "a30",
+    "mass_points": 22,
+    "powered": 2,
+    "mass": 4000.0,
+    "radius": -1.0
+  }
+]
+1P formation 0 ground 5 ship 5
+1P formation 1 ground 5 ship 5
+1P formation 2 ground 5 ship 5
+1P formation 3 ground 5 ship 5
+1P formation 4 ground 5 ship 5
+1P formation 5 ground 4 ship 5
+1P formation 6 ground 5 ship 5
+1P formation 7 ground 4 ship 5
+1P formation 8 ground 5 ship 5
+1P formation 9 ground 5 ship 5
+1P formation 10 ground 4 ship 5
+1P formation 11 ground 4 ship 5
+1P formation 12 ground 4 ship 5
+1P formation 13 ground 4 ship 5
+1P phases 15 state 5 score 24639 ticks 13374 maxlive 5 ground 61 ships 7 failures 0
+2P formation 0 ground 5 ship 5
+2P formation 1 ground 5 ship 5
+2P formation 2 ground 5 ship 5
+2P formation 3 ground 4 ship 5
+2P formation 4 ground 4 ship 5
+2P formation 5 ground 4 ship 5
+2P formation 6 ground 5 ship 5
+2P formation 7 ground 4 ship 5
+2P formation 8 ground 5 ship 5
+2P formation 9 ground 5 ship 5
+2P formation 10 ground 4 ship 5
+2P formation 11 ground 4 ship 5
+2P formation 12 ground 4 ship 5
+2P formation 13 ground 4 ship 5
+2P phases 15 state 5 score 29925 ticks 12489 maxlive 5 ground 76 ships 7 failures 0
+3P formation 0 ground 5 ship 5
+3P formation 1 ground 5 ship 5
+3P formation 2 ground 5 ship 5
+3P formation 3 ground 4 ship 5
+3P formation 4 ground 4 ship 5
+3P formation 5 ground 4 ship 5
+3P formation 6 ground 5 ship 5
+3P formation 7 ground 4 ship 5
+3P formation 8 ground 5 ship 5
+3P formation 9 ground 5 ship 5
+3P formation 10 ground 4 ship 5
+3P formation 11 ground 4 ship 5
+3P formation 12 ground 4 ship 5
+3P formation 13 ground 4 ship 5
+3P phases 15 state 5 score 34487 ticks 14304 maxlive 5 ground 91 ships 7 failures 0
+4P formation 0 ground 5 ship 5
+4P formation 1 ground 5 ship 5
+4P formation 2 ground 5 ship 5
+4P formation 3 ground 4 ship 5
+4P formation 4 ground 4 ship 5
+4P formation 5 ground 4 ship 5
+4P formation 6 ground 5 ship 5
+4P formation 7 ground 4 ship 5
+4P formation 8 ground 5 ship 5
+4P formation 9 ground 5 ship 5
+4P formation 10 ground 4 ship 5
+4P formation 11 ground 4 ship 5
+4P formation 12 ground 4 ship 5
+4P formation 13 ground 4 ship 5
+4P phases 15 state 5 score 39534 ticks 16119 maxlive 5 ground 106 ships 7 failures 0
+PASS authored shield/weak-point damage, exactly-once score, ordnance-safe recycling and CE grenade decision/release
+PASS finite sets 1-4P, all formation routes, bounded actor recycling, shared reserves, last-death clear, bonus death, restart and PvP return
+PASS 14 CE variants, all wave schedules, actor-specific rules, source camouflage, sword pursuit/keyframe/reach, fuel-rod death detonation and isolated speech RNG

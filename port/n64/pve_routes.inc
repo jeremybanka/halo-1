@@ -22,7 +22,11 @@ typedef struct {
     unsigned used;
     bool valid;
 } pve_route_field;
+#ifdef BG_ENEMY_VEHICLES
+static pve_route_field *pve_route_fields;
+#else
 static pve_route_field pve_route_fields[PVE_ROUTE_FIELDS];
+#endif
 typedef struct {
     uint16_t node,generation;
     int field,target;
@@ -42,6 +46,12 @@ bg_pve_navigation_profile bg_pve_navigation;
 uint32_t bg_pve_nav_us;
 
 static void pve_routes_reset(bool initialize){
+#ifdef BG_ENEMY_VEHICLES
+    if(!pve_route_fields){
+        pve_route_fields=malloc(PVE_ROUTE_FIELDS*sizeof(*pve_route_fields));
+        assert(pve_route_fields);
+    }
+#endif
     if(initialize){
         memset(pve_route_id,255,sizeof(pve_route_id));pve_route_count=0;
         for(unsigned n=0;n<PVE_NODES;n++)if(pve_nav_height[n]>-999&&pve_nav_edges[n]){
@@ -89,6 +99,13 @@ static void pve_routes_reset(bool initialize){
     memset(pve_route_requests,0,sizeof(pve_route_requests));memset(&pve_route_job,0,sizeof(pve_route_job));
     memset(&bg_pve_navigation,0,sizeof(bg_pve_navigation));bg_pve_nav_us=0;pve_route_clock=pve_route_next_actor=0;
 }
+#ifdef BG_ENEMY_VEHICLES
+static void pve_routes_release(void){
+    if(!pve_route_fields)return;
+    pve_routes_reset(false);
+    free(pve_route_fields);pve_route_fields=NULL;
+}
+#endif
 static bool pve_reachable(int a,int b){
     if(a<0||b<0)return false;
     unsigned x=pve_route_id[a],y=pve_route_id[b];

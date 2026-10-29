@@ -1,0 +1,46 @@
+{
+  "source_shield_triangles_preserved": 76,
+  "all_source_uvs_weights_and_vertices_preserved": true,
+  "original_pre_reduction_source_mesh_and_skeleton_identical": true,
+  "original_extraction_sha256": "18fbe58a9c8cd859038bb75f85ce95f48c0daf7f8bf0218d2de08ba2bbc87d17",
+  "source_rigid_bone": 26,
+  "source_attachment_poses_verified": 230,
+  "max_quantized_attachment_error_world_units": 0.0007021108139179241,
+  "nondegenerate_triangles": 76,
+  "boundary_edges": 44,
+  "nonmanifold_edges": 0,
+  "unchanged_roster_bank_files": [
+    "pve-report.json",
+    "pve_data.c",
+    "pve_roster.c",
+    "pve_roster_colors.c",
+    "pve-motion.bin",
+    "pve-voices.bin",
+    "pve_roster_weapons.c"
+  ],
+  "shield_asset_sha256": "08e878721a9073d54b1d2c933953c7d5f1105c5d63c3868cea86023dafbfc287",
+  "visible_mesh_ray_check": {
+    "clip": "idle",
+    "phase": 0.35,
+    "direction": [
+      -1,
+      0,
+      0
+    ],
+    "shield_origin_actor_local": [
+      2,
+      0.56,
+      0.08
+    ],
+    "shield_distances": [
+      1.904177080089439
+    ],
+    "body_gap_origin_actor_local": [
+      2,
+      0.44,
+      -0.04
+    ],
+    "body_gap_distances": []
+  },
+  "note": "Sampled source poses verified; intermediate rotations use normalized quaternion interpolation, as CE-style rigid attachments do. Collision remains canonical."
+}

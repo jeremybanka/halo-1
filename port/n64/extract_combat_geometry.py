@@ -9,14 +9,14 @@ from vehicle_parts import _layout,node_positions
 from pack_fp_ammo import globals_for,rotate
 from extract_extended import MODEL_PATHS
 
-def vehicle_meshes(h,campaign,root):
- raw=json.loads((root/'build/n64/assets/extended-raw.json').read_text())
+def vehicle_meshes(h,campaign,root,raw=None,names=None,paths=None,hatches=True):
+ raw=raw if raw is not None else json.loads((root/'build/n64/assets/extended-raw.json').read_text())
  lines=['#include "combat_geometry.h"'];rows=[];report={}
- for name in ['warthog','ghost','scorpion','banshee']:
+ for name in (names or ['warthog','ghost','scorpion','banshee']):
   cache=campaign if name=='banshee' else h;es=cache.tag_index.tag_index
-  path=MODEL_PATHS[name]
+  path=(paths or MODEL_PATHS)[name]
   candidates=[i for i,e in enumerate(es) if e.class_1.enum_name=='vehicle' and e.path.startswith('vehicles\\'+name+'\\')]
-  if not any(es[i].path==path for i in candidates):path=es[candidates[0]].path
+  if not any(e.path==path and e.class_1.enum_name=='vehicle' for e in es):path=es[candidates[0]].path
   obj=cache.get_meta(next(i for i,e in enumerate(es) if e.path==path and e.class_1.enum_name=='vehicle'))
   collision=cache.get_meta(obj.obje_attrs.collision_model.id)
   model=raw['models'][name];nodes=model.get('bind_nodes',model['nodes']);transforms=globals_for(model['nodes'],model['nodes'])
@@ -68,7 +68,8 @@ def vehicle_meshes(h,campaign,root):
   lines.append('static const uint8_t hit_'+name+'_materials[]={'+','.join(str(materials[t]) for t in triangles)+'};')
   rows.append('{hit_'+name+'_vertices,hit_'+name+'_triangles,hit_'+name+'_nodes,hit_'+name+'_materials,'+str(len(vertices))+','+str(len(triangles))+',{'+','.join(map(str,bounds))+'},hit_'+name+'_groups,hit_'+name+'_parts,'+str(len(roots))+','+str(len(tree))+','+str(roots.index(turret) if turret in roots else 0)+'},')
   report[name]={'vertices':len(vertices),'triangles':len(triangles),'bytes':(len(vertices)+len(triangles))*6+len(tree)*18,'bvh_nodes':len(tree),'source':obj.obje_attrs.collision_model.filepath,'pose':'authored collision nodes; live turret, barrel, hatch and hull transforms'}
- lines+=['const bg_hit_mesh bg_vehicle_hit_meshes[4]={',*rows,'};']
+ lines+=['const bg_hit_mesh bg_vehicle_hit_meshes['+str(len(rows))+']={',*rows,'};']
+ if not hatches:return lines,report
  # Match the renderer's authored opening/closing node transforms exactly.
  from reclaimer.animation.animation_decompilation import extract_animation
  rows=[]

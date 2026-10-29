@@ -5,7 +5,7 @@
  * are nested. Emit each 30 actual ticks, independently of rendered frames. */
 #ifdef BG_COLLISION_PROFILE
 typedef struct {
-    unsigned ticks,tick_us,max_tick_us,director_us,humans_us,vehicles_us,actors_us,projectiles_us,after_us;
+    unsigned ticks,tick_us,max_tick_us,director_us,humans_us,vehicle_ai_us,vehicles_us,actors_us,projectiles_us,after_us;
     unsigned terrain_us,terrain_queries,terrain_hits,terrain_misses,terrain_overflows,terrain_actor_overflows,terrain_candidates;
     unsigned hit_us,hit_queries,hit_pose_builds,hit_available,hit_triangles,hit_groups,hit_rejected,hit_root_rejected;
 } bg_collision_profile_data;

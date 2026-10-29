@@ -1,0 +1,181 @@
+{
+  "additive_tables": [
+    {
+      "array": "bg_model_assets",
+      "unchanged_rows": 19,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_pickup_lods",
+      "unchanged_rows": 19,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_vehicle_lods",
+      "unchanged_rows": 4,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_vehicle_rigs",
+      "unchanged_rows": 4,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_vehicle_hit_meshes",
+      "unchanged_rows": 4,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_damage_profiles",
+      "unchanged_rows": 24,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_mounted_profiles",
+      "unchanged_rows": 6,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_player_hit_clips",
+      "unchanged_rows": 107,
+      "added_rows": 3
+    },
+    {
+      "array": "bg_hit_hatches",
+      "unchanged_rows": 2,
+      "added_rows": 1
+    },
+    {
+      "array": "bg_seat_counts",
+      "unchanged_rows": 4,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_seat_definitions",
+      "unchanged_rows": 4,
+      "added_rows": 2
+    },
+    {
+      "array": "bg_seat_poses",
+      "unchanged_rows": 7,
+      "added_rows": 1
+    },
+    {
+      "array": "bg_seat_grips",
+      "unchanged_rows": 7,
+      "added_rows": 1
+    }
+  ],
+  "existing_covenant_geometry_unchanged": true,
+  "existing_covenant_motion_prefix_unchanged": true,
+  "native_host_hit_streams_exact": [
+    {
+      "clip": "enemy_pilot_1_0_0_hit",
+      "coordinates": 1824,
+      "rom_offset": 3362480,
+      "bytes": 3648
+    },
+    {
+      "clip": "enemy_pilot_1_0_1_hit",
+      "coordinates": 13680,
+      "rom_offset": 3427360,
+      "bytes": 27360
+    },
+    {
+      "clip": "enemy_pilot_1_0_2_hit",
+      "coordinates": 6840,
+      "rom_offset": 3484816,
+      "bytes": 13680
+    },
+    {
+      "clip": "enemy_pilot_3_0_0_hit",
+      "coordinates": 1824,
+      "rom_offset": 3652048,
+      "bytes": 3648
+    },
+    {
+      "clip": "enemy_pilot_3_0_1_hit",
+      "coordinates": 18240,
+      "rom_offset": 3737328,
+      "bytes": 36480
+    },
+    {
+      "clip": "enemy_pilot_3_0_2_hit",
+      "coordinates": 10488,
+      "rom_offset": 3820080,
+      "bytes": 20976
+    },
+    {
+      "clip": "enemy_pilot_4_0_0_hit",
+      "coordinates": 456,
+      "rom_offset": 4042000,
+      "bytes": 912
+    },
+    {
+      "clip": "enemy_pilot_4_0_1_hit",
+      "coordinates": 27360,
+      "rom_offset": 4166432,
+      "bytes": 54720
+    },
+    {
+      "clip": "enemy_pilot_4_0_2_hit",
+      "coordinates": 27360,
+      "rom_offset": 4344672,
+      "bytes": 54720
+    },
+    {
+      "clip": "enemy_pilot_5_0_0_hit",
+      "coordinates": 1824,
+      "rom_offset": 4769184,
+      "bytes": 3648
+    },
+    {
+      "clip": "enemy_pilot_5_0_1_hit",
+      "coordinates": 15960,
+      "rom_offset": 4844064,
+      "bytes": 31920
+    },
+    {
+      "clip": "enemy_pilot_5_0_2_hit",
+      "coordinates": 12768,
+      "rom_offset": 4932976,
+      "bytes": 25536
+    }
+  ],
+  "original_functions_verified": 21,
+  "bank_files": {
+    "ai-source-manifest.json": "7a6b223bc0b1d5782f9dcf1bd50b393f295be290ede7e3f25157cd128747041b",
+    "audio-report.json": "aeea7d64932121026d3f78f2b3666daaba2f92ce43ed4955689b7cd4501fbed7",
+    "camera_data.c": "1a176a9ee9816a9667f02a7b12baae11aa93364a15dcf2023833ad84c53ad055",
+    "combat_data.c": "53e4c42f01c4c698b2cf54b4ffd7447ec91303cfd37805df92d466b616f42e5a",
+    "enemy-shade-engine.s8": "239e363e58c16e26d380b0b0740bc714449214452ca62148f3aa1eb96c5a0cec",
+    "enemy-shade.s8": "bbb4e9f43d3a3a27dc808f8d4e814d9d4578f4c2167eb015c004957afa904cef",
+    "enemy-wraith-engine.s8": "43b901d43ccf2aa72cd121231a0ccca138cd2a4f110fa36cabd662703ac699ef",
+    "enemy-wraith.s8": "df13f5f13bef9392952ee2e731f15203aaf7eff90a23a976549391ab2133da75",
+    "enemy_pilot_data.c": "448cf6bbacac61c31a8183762605f63f6d8c09963acbf1c4102cd234d2d51338",
+    "enemy_pilot_hits.c": "69a3dadb0a9d4656942e9ff945a28a3ba3efca08feb2430f6b50fe15ab31ee2f",
+    "enemy_vehicle_ai_original.inc": "9bfdacc5a2b09b2264b80b5216514dc01476073726dcdb0191261f430de93bb3",
+    "enemy_vehicle_data.c": "adf5c3f47be4381f34b7a18ae797cb7bd202739dc80943d10609164408894fad",
+    "hud-report.json": "7d858a860b8ad2efa567b15ac403662340bb0c7acce3ec4c231a222576fc9d19",
+    "interaction_assets.c": "8c241a00b26eab27c14c3890cc286524e0518ff59577964d1a65f7a0d6a3448c",
+    "interaction_defs.c": "c2b87aed89638d0f5c63e85b6c23325b67d44c2420b959c7dd415f77b5fd4636",
+    "interactions.bin": "1943e6688a62ba605f6755eee3d692703120e85fd23670854fd41e2db82869d0",
+    "jackal-shield-report.json": "6ce4820b1cd9aa602422dddc7fbf59c44ce604a9a54af2d357ebd6b731451024",
+    "micro_data.c": "7b0a22ded50cd5daef6aa94949db44c8af8c961783afdff608a092e6fd7e3634",
+    "models_data.c": "b9b7ab6fa6fd5e570bb880943a60cfa08669439b7bc29df371de775e76e0e95a",
+    "pack.log": "4c721aa6ce3cce5280b6470fcef4be1f2a59234f1a6a0903170940ffd04e0463",
+    "pilot-report.json": "eaa0b0c439316de6afe324fe6d59ee0d00af23f6abb32901c7e08824b19dc658",
+    "player-hits.bin": "6b912dc14e91d1602d769f2acf0d0087272590a57d8230e9286484c959a3addf",
+    "pve-motion.bin": "661fbe2e2be44df0fd1acac3be4d098d2c0c2c6183dfca9b4952750130b6b2af",
+    "pve-report.json": "8c7e2d576c8a0e5c56c44ba058feadc3849c0d834fdb4834a8bee27986e11dc8",
+    "pve-voices.bin": "17936b6b71c34c0307cdb4cdaa04e0faedfed2e62741c8d718b9fa2e0470b021",
+    "pve_data.c": "cb82000f3756fe2bdcad6a60799782f8eca30c737603d529dd2e24cde2a17010",
+    "pve_jackal_shield.c": "08e878721a9073d54b1d2c933953c7d5f1105c5d63c3868cea86023dafbfc287",
+    "pve_roster.c": "c8e98a59ad0d0097417ceef59061d472403150ab0321423fe131c76f92a48f70",
+    "pve_roster_colors.c": "33b3ff7ae4ad69035096a033a317298e5ae85e9bf7428ca426331f53f5115a5b",
+    "pve_roster_weapons.c": "da66869cfcedb0f19d736d4ece38703c7931b39e42a1e3127bf86bfd032f936d",
+    "report.json": "3c06cae9b1b4246bf31a57c58efd7bcf90a82d30751fe72b0c14e0009227041a",
+    "seat-detail-report.json": "96ec5f9c635e044e5aa410edc3e6b302e391df0bd38ff477e98a27bec4ff2a9f",
+    "shade-seat.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

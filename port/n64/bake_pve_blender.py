@@ -48,7 +48,7 @@ def bake(source,output,model_names=None):
             corners=[i for face in geometry['faces'] for i in face]
             clips={};grips={};hit_clips={}
             for key,clip in actor['clips'].items():
-                frames=[];hands=[];hit_frames=[];limit={'idle':8,'run':10,'fire':10,'death':12,'flee':10,'melee':12,'throw':12,'evade_left':10,'evade_right':10,'ride':4,'exit':16,'crouch':4}[key]
+                frames=[];hands=[];hit_frames=[];limit={'idle':8,'run':10,'fire':10,'death':12,'flee':10,'melee':12,'throw':12,'evade_left':10,'evade_right':10,'ride':4,'exit':16,'crouch':4}[key.removeprefix('alt_')]
                 count=min(limit,len(clip['frames']))
                 for f in range(count):
                     states=clip['frames'][round(f*(len(clip['frames'])-1)/max(1,count-1))]

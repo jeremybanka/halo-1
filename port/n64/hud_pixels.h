@@ -4,6 +4,9 @@
  * 4,096 bytes, immutable after init: safe with queued, multi-buffered frames.
  * No runtime resampling, per-frame bitmap writes, or glyph allocations. */
 #include "hud_reticles.h"
+#ifdef BG_ENEMY_VEHICLES
+extern const uint16_t bg_enemy_shade_reticle[2][12];
+#endif
 enum { HUD_PIXEL_W=64, HUD_PIXEL_H=128 };
 static uint8_t hud_pixels[HUD_PIXEL_W*HUD_PIXEL_H/2] __attribute__((aligned(16)));
 static const uint8_t hud_font[][6]={
@@ -76,5 +79,9 @@ static void hud_pixels_init(void){
     for(unsigned q=0;q<15;q++)for(unsigned y=0;y<12;y++)for(unsigned x=0;x<12;x++)
         if(hud_reticle_quadrants[q][y]&(1u<<(11-x)))
             hud_ink((q%5)*12+x,80+(q/5)*12+y);
+#ifdef BG_ENEMY_VEHICLES
+    for(unsigned half=0;half<2;half++)for(unsigned y=0;y<12;y++)for(unsigned x=0;x<12;x++)
+        if(bg_enemy_shade_reticle[half][y]&(1u<<(11-x)))hud_ink(half*12+x,116+y);
+#endif
 }
 #endif

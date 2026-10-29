@@ -5,7 +5,13 @@
 #include "firefight.h"
 #define BG_PVE_MAX 12
 enum { BG_PVE_GRUNT, BG_PVE_ELITE, BG_PVE_JACKAL, BG_PVE_HUNTER, BG_PVE_KINDS, BG_PVE_SPIRIT=BG_PVE_KINDS, BG_PVE_MODELS };
-enum { PVE_IDLE, PVE_RUN, PVE_FIRE, PVE_DEATH, PVE_FLEE, PVE_MELEE, PVE_THROW, PVE_EVADE_LEFT, PVE_EVADE_RIGHT, PVE_RIDE, PVE_EXIT, PVE_CROUCH, PVE_CLIPS };
+enum { PVE_IDLE, PVE_RUN, PVE_FIRE, PVE_DEATH, PVE_FLEE, PVE_MELEE, PVE_THROW, PVE_EVADE_LEFT, PVE_EVADE_RIGHT, PVE_RIDE, PVE_EXIT, PVE_CROUCH,
+#ifdef BG_PVE_ROSTER
+ PVE_CLIPS=24
+#else
+ PVE_CLIPS=12
+#endif
+};
 typedef struct { const uint16_t *positions,*indices; unsigned frames,vertices,tracks;float duration;int16_t origin[3]; } bg_pve_animation;
 typedef struct {uint8_t material,head;float leak,shield_scale,body_scale;float damage[26];} bg_pve_hit_material;
 typedef struct {const uint16_t (*triangles)[3];const uint8_t *materials;unsigned triangles_count;const bg_pve_animation *clips;const bg_pve_hit_material *rules;unsigned material_count;} bg_pve_hit_mesh;
@@ -33,6 +39,11 @@ extern const uint8_t bg_pve_needle_reflect[33];
 extern const float bg_pve_needle_noise[33],bg_pve_needle_friction[33];
 typedef struct {
     uint8_t kind,clip,action; int8_t target;
+#ifdef BG_ENEMY_VEHICLES
+    int8_t desired_vehicle;
+    uint8_t vehicle_mode,vehicle_special_denials;
+    float vehicle_cooldown,vehicle_timer,vehicle_special_delay,vehicle_target_time,oversteer,avoidance[3],vehicle_goal[3];
+#endif
     float time,decision_time,notice_time,burst_time,burst_pause,shot_time,panic_time,cover_time;
     float last_seen[3],destination[3],previous[3],stuck_time,melee_time,recent_damage;
     unsigned shots,decisions,los_tests,path_queries,kills;
@@ -41,7 +52,18 @@ typedef struct {
     float evade_time,evade_cooldown,evade_dir[3],grenade_time,throw_target[3],fire_time,death_time;
     float contribution[4],entry_goal[3];unsigned grenades;
     bool throw_pending,fire_pending,occupied,last_headshot;uint8_t last_profile;
+#ifdef BG_PVE_ROSTER
+    uint8_t variant,armament;float camouflage,super_camouflage,speech_delay,death_weapon_time;
+    uint32_t speech_sequence;bool weapon_detonated;
+#endif
 } bg_pve_actor;
+static inline unsigned bg_pve_render_clip(const bg_pve_actor *a){
+#ifdef BG_PVE_ROSTER
+ return a->clip+(a->armament?12:0);
+#else
+ return a->clip;
+#endif
+}
 extern bg_pve_actor bg_pve_actors[BG_PVE_MAX];
 extern unsigned bg_pve_count,bg_pve_tick_number;
 extern uint32_t bg_pve_ai_us,bg_pve_move_us,bg_pve_nav_us;

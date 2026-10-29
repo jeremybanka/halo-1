@@ -3,7 +3,15 @@
 #include <t3d/t3d.h>
 #include "game.h"
 #ifdef BG_PVE_MODEL_QA
+#ifdef BG_ENEMY_VEHICLE_QA
+#define BG_PVE_MODEL_QA_FRAMES 42
+#elif defined(BG_JACKAL_SHIELD_QA)
+#define BG_PVE_MODEL_QA_FRAMES 72
+#elif defined(BG_PVE_ROSTER)
+#define BG_PVE_MODEL_QA_FRAMES 46
+#else
 #define BG_PVE_MODEL_QA_FRAMES 71
+#endif
 extern unsigned bg_pve_vehicle_qa_lod;
 #endif
 /* QA can change only the explicitly bound application clock/view count and

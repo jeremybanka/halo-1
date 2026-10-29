@@ -215,3 +215,8 @@ and fresh paired 1–4P CPU profiles plus separate graphics-drain diagnostics.
 The [NPC preparation appraisal](FIREFIGHT_PREPARATION.md) adds shared motion
 samples, exact pose sharing and packed position writes, with matched native
 photos and another paired 1–4P performance matrix.
+
+The [drawing audit](FIREFIGHT_DRAWING.md) breaks down per-camera submissions,
+native omission pixels, full-motion vertex sharing and serialized graphics
+controls. It proposes a screen-size Covenant LOD tier; no rendering reduction
+is adopted by that audit.

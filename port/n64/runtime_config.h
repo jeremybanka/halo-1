@@ -1,7 +1,10 @@
 #ifndef BG_RUNTIME_CONFIG_H
 #define BG_RUNTIME_CONFIG_H
-#if defined(BG_GPU_EMPTY_SCISSOR) && (!defined(BG_GPU_DIAGNOSTIC) || !defined(BG_BENCHMARK))
+#if defined(BG_GPU_EMPTY_SCISSOR) && (!defined(BG_GPU_DIAGNOSTIC) || (!defined(BG_BENCHMARK) && !defined(BG_PVE_DRAW_AUDIT)))
 #error "Empty-scissor control is restricted to serialized benchmark diagnostics"
+#endif
+#if defined(BG_PVE_DRAW_AUDIT) && (!defined(BG_PROFILE) || !defined(BG_PVE_PHOTO_TICK) || !defined(BG_PVE) || BG_PVE_PLAYERS != 4)
+#error "Drawing audit requires frozen four-camera PvE profiling"
 #endif
 #if defined(BG_GPU_MINIMAL_ATTRIBUTES) && !defined(BG_GPU_EMPTY_SCISSOR)
 #error "Minimal-attribute control requires empty scissoring"

@@ -84,6 +84,8 @@ def main():
         ["--benchmark", "--gpu-diagnostic", "--gpu-minimal-attributes"],
         ["--vi-benchmark", "--gpu-empty-scissor"],
         ["--pve-model-qa"],
+        ["--pve-draw-audit"],
+        ["--pve-draw-audit", "--pve-squad", "--profile", "--pve-photo-tick", "60"],
         ["--firefight", "--pve-model-bank", "build/covenant-models/bank"],
         ["--pve-model-bank", "build/covenant-models/bank", "--output-dir", "build/covenant-models/config"],
     ):

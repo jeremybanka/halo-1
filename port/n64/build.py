@@ -40,6 +40,7 @@ def parse_args(argv=None):
     parser.add_argument("--collision-baseline",action="store_true",help="Profiling-only pre-acceleration collision control")
     parser.add_argument("--pve-prep-profile",action="store_true",help="NPC preparation service and reuse counters")
     parser.add_argument("--pve-prep-baseline",action="store_true",help="Diagnostic pre-reuse NPC preparation control")
+    parser.add_argument("--pve-draw-audit",action="store_true",help="Frozen per-camera submission and omission-pixel audit; never a performance build")
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
@@ -319,6 +320,7 @@ def parse_args(argv=None):
     if args.collision_baseline and not args.collision_profile:parser.error('--collision-baseline requires --collision-profile')
     if args.pve_prep_profile and not (args.profile and args.pve_squad):parser.error('--pve-prep-profile requires --profile --pve-squad')
     if args.pve_prep_baseline and not (args.pve_squad and (args.pve_prep_profile or args.pve_model_qa)):parser.error('--pve-prep-baseline requires NPC preparation profiling or model QA')
+    if args.pve_draw_audit and not (args.profile and args.pve_squad and args.pve_photo_tick is not None and args.pve_photo_tick>0 and args.pve_players==4 and args.output_dir and args.pve_qa in (3,4,5) and not (args.scene_source or args.pve_model_qa or args.spartan_motion_qa or args.spartan_reload_qa or args.photo_tour or args.benchmark or args.vi_benchmark)):parser.error('--pve-draw-audit requires an isolated output, --profile --pve-squad --pve-players 4 --pve-qa 3/4/5, a positive --pve-photo-tick and no competing scene fixture')
     if args.firefight_photo and not args.firefight_qa:parser.error("--firefight-photo requires --firefight-qa")
     if args.firefight_qa:
         args.firefight=True;args.frontend_qa=args.firefight_qa
@@ -328,7 +330,7 @@ def parse_args(argv=None):
         parser.error('--pve-model-bank requires an isolated PvE output directory')
     if (args.pve_qa or args.pve_photo_tick is not None) and not args.pve_squad:parser.error("PvE QA requires --pve-squad")
     if args.pve_squad and args.initial_map!="bloodgulch":parser.error("The first squad navigation fixture is Blood Gulch only")
-    if args.pve_photo_tick is not None and not 0<=args.pve_photo_tick<450:parser.error("PvE photo tick must be in the 0..449 route")
+    if args.pve_photo_tick is not None and not 0<=args.pve_photo_tick<(1801 if args.pve_draw_audit else 450):parser.error("PvE photo tick outside the selected diagnostic route")
     if args.objective_photo is not None and args.modes_preview is None:
         parser.error('--objective-photo requires --modes-preview')
     if args.flag_cloth_qa and args.modes_preview!=17:parser.error("--flag-cloth-qa requires --modes-preview 17")
@@ -447,8 +449,8 @@ def parse_args(argv=None):
             )
     if args.gpu_diagnostic and not (args.benchmark or args.collision_profile):
         parser.error("--gpu-diagnostic requires --benchmark or --collision-profile")
-    if args.gpu_empty_scissor and not (args.gpu_diagnostic and args.benchmark):
-        parser.error("--gpu-empty-scissor requires --benchmark --gpu-diagnostic")
+    if args.gpu_empty_scissor and not (args.gpu_diagnostic and (args.benchmark or args.pve_draw_audit)):
+        parser.error("--gpu-empty-scissor requires --gpu-diagnostic and benchmark or frozen drawing audit")
     if args.gpu_minimal_attributes and not args.gpu_empty_scissor:
         parser.error("--gpu-minimal-attributes requires --gpu-empty-scissor")
     if (
@@ -488,6 +490,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
         *(["-DBG_PVE_MODEL_CANDIDATE"] if args.pve_model_bank else []),
         *(["-DBG_PVE_MODEL_QA"] if args.pve_model_qa else []),
+        *(["-DBG_PVE_DRAW_AUDIT"] if args.pve_draw_audit else []),
         *(["-DBG_FIREFIGHT"] if args.firefight else []),
         *(["-DBG_FIREFIGHT_QA"] if args.firefight_qa else []),
         *(["-DBG_FIREFIGHT_QA_PHOTO="+str({"main":2,"join":5,"map":9}[args.firefight_photo])] if args.firefight_photo else []),
@@ -1151,6 +1154,12 @@ def main():
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
         photo_main.write_text(photo_source(original.read_text()))
         runtime_sources[runtime_sources.index(original)]=photo_main
+    if args.pve_draw_audit:
+        from pve_draw_audit_source import generate
+        for name,source in generate(ROOT/'port/n64').items():
+            target=out/name;target.write_text(source)
+            original=ROOT/'port/n64'/name
+            if original in runtime_sources:runtime_sources[runtime_sources.index(original)]=target
     if args.photo_walk_benchmark:
         from photo_tour_source import walking_benchmark_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'

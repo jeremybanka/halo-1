@@ -1434,7 +1434,7 @@ int main(void) {
         static unsigned photo_exported;
         if(photo_exported<
 #ifdef BG_PVE_MODEL_QA
-            52
+            BG_PVE_MODEL_QA_FRAMES
 #elif defined(BG_SPARTAN_RELOAD_QA)
             72
 #elif defined(BG_SPARTAN_MOTION_QA)

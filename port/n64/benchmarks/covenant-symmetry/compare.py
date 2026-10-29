@@ -1,0 +1,41 @@
+"""Native photo route, exact control pixels and source silhouette appraisal."""
+import sys,importlib.util,json,re,hashlib,shutil
+from pathlib import Path
+import numpy as np
+from PIL import Image
+ROOT=Path(__file__).resolve().parents[4];HERE=Path(__file__).resolve().parent;cap=ROOT/'build/covenant-symmetry';out=Path(sys.argv[1]) if len(sys.argv)>1 else cap/'photos';out.mkdir(exist_ok=True,parents=True)
+spec=importlib.util.spec_from_file_location('photos',HERE.parent/'covenant-models/compare.py');photos=importlib.util.module_from_spec(spec);spec.loader.exec_module(photos)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+data={};states={};proof={}
+for v in ['baseline','candidate']:
+ log=cap/('photo-'+v+'-native.log');text=log.read_text();data[v]=photos.decode(log,out/v,expected=71);states[v]=re.findall(r'^MODEL_PHOTO .*$',text,re.M)[:71]
+ assert not any(s in text.lower() for s in ['assertion failed','assertf','rdpq error','rdpq warning'])
+ proof[v]={'log_sha256':sha(log),'rom_sha256':sha(next((cap/('photo-'+v)).glob('*.z64'))),'manifest':json.loads(next((cap/('photo-'+v)).glob('*.build.json')).read_text())}
+assert states['baseline']==states['candidate'] and len(states['baseline'])==71
+(out/'diff').mkdir(exist_ok=True);entries=[];checks=[]
+for i,(a,b) in enumerate(zip(data['baseline'],data['candidate'])):
+ line=states['baseline'][i];kind=int(re.search('kind=(\\d+)',line)[1]);lod=int(re.search('lod=(\\d+)',line)[1]);clip=int(re.search('clip=(\\d+)',line)[1]);phase=re.search('phase=([^ ]+)',line)[1]
+ delta=np.abs(a.astype(int)-b.astype(int));changed=int(np.any(delta,axis=2).sum());control=kind==4 or i==70
+ if control:assert changed==0,(i,changed)
+ Image.fromarray(np.minimum(delta*4,255).astype('uint8')).save(out/'diff'/f'{i:02}.png')
+ label=f'{["Grunt","Elite","Jackal","Hunter","Spirit","Warthog"][kind]} | LOD {lod} | {["idle","run","fire","death","flee","melee","throw","evade left","evade right","ride","exit","crouch"][clip]} {float(phase):g}'
+ entries.append({'label':label,'before':f'baseline/{i:02}.png','after':f'candidate/{i:02}.png','diff':f'diff/{i:02}.png'});checks.append({'page':i,'state':line,'changed_pixels':changed,'identical_control':control})
+(cap/'pixel-checks.json').write_text(json.dumps(checks,indent=2)+'\n');(cap/'photo-provenance.json').write_text(json.dumps(proof,indent=2)+'\n')
+shutil.copytree(cap/'silhouettes',out/'silhouettes',dirs_exist_ok=True)
+for name in ['silhouette-summary.json','animated-silhouettes.json','bind-silhouettes.json','asset-checks.json','pixel-checks.json','part-silhouettes.json','results.json']:
+ if (cap/name).exists():shutil.copyfile(cap/name,out/name)
+html='''<!doctype html><meta charset="utf-8"><title>Covenant symmetry and silhouette appraisal</title><style>body{max-width:1250px;margin:32px auto;padding:0 20px;background:#111922;color:#edf1f5;font:16px system-ui;line-height:1.5}button,select{padding:9px;background:#253c50;color:white;border:1px solid #526c80;font:inherit;margin:4px}a{color:#8bdcff}.pair{display:flex;gap:12px}figure{margin:0;flex:1}img{width:100%;image-rendering:pixelated}[hidden]{display:none!important}table{border-collapse:collapse}td,th{padding:8px 12px;border-bottom:1px solid #4c6478;text-align:left}</style>
+<h1>Covenant symmetry & silhouette appraisal</h1><p>The Grunt, Elite and Jackal use mirrored anatomy, colors and skin weights at all three tiers. The Hunter uses symmetry-aware reduction of its complete connected body, plus mirrored back spines; its deliberately different source arms and shield/cannon equipment remain connected. The coarse Grunt skull, limb volume and Hunter arm volume were rebuilt after the first symmetry pass failed visual review.</p>
+<h2>Native photos</h2><p>71 matched 320×240 frames, four angles per frame. Near, middle and coarse tiers; idle, run and articulated poses. Enlarged coarse models expose defects that are hard to see during combat. Nine controls remain pixel-identical: eight Spirit frames and the Warthog micro mesh, which already omits the small fixture.</p><select id="page"></select><button id="prev">Previous</button><button id="next">Next</button><div><button data-mode="pair">Side by side</button><button data-mode="before">Previous</button><button data-mode="after">Corrected</button><button data-mode="diff">Diff ×4</button><button id="blink">Blink</button></div><h3 id="title"></h3><div class="pair" id="pair"><figure>Previous<img id="before"></figure><figure>Corrected<img id="after"></figure></div><img id="single" hidden>
+<h2>Silhouettes against the source</h2><p>Select a species and pose. Columns: source far, previous crunchy, corrected, source/corrected mask difference. Red is lost area; cyan is added. Each sheet includes front, back, both sides and two oblique angles. These CPU diagnostic renders supplement the native photos; they are not hardware screenshots.</p><select id="sil"></select><img id="sheet"><p><a href="silhouette-summary.json">192-, 28- and 16-pixel overlap measurements</a> · <a href="asset-checks.json">Animation, hit-mesh and symmetry checks</a> · <a href="pixel-checks.json">Native camera states and pixel checks</a></p>
+<h2>Performance tradeoff</h2><div id="perf">Native matched 1–4 player crowded checks are in progress.</div><p>The correction restores geometry to fix proportions and limbs. Simulation, source hit meshes, animation timing and LOD selection rules are unchanged. These are uncapped Ares v148 results with 8 MiB and audio enabled, not new cartridge measurements. This appraisal does not claim four-player 30 FPS.</p>
+<script>const entries=__ENTRIES__,perf=__PERF__;let index=42,mode='pair',timer;const $=x=>document.getElementById(x);entries.forEach((r,i)=>{let o=document.createElement('option');o.value=i;o.textContent=i+': '+r.label;$('page').append(o)});function show(){let r=entries[index];$('page').value=index;$('title').textContent=r.label;for(let k of ['before','after'])$(k).src=r[k];$('pair').hidden=mode!=='pair';$('single').hidden=mode==='pair';if(mode!=='pair')$('single').src=r[mode]}function stop(){clearInterval(timer);timer=null}document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{stop();mode=b.dataset.mode;show()});$('page').onchange=e=>{index=+e.target.value;show()};$('prev').onclick=()=>{index=(index+entries.length-1)%entries.length;show()};$('next').onclick=()=>{index=(index+1)%entries.length;show()};$('blink').onclick=()=>{if(timer){stop();return}mode='before';show();timer=setInterval(()=>{mode=mode==='before'?'after':'before';show()},600)};for(let n of ['grunt','elite','jackal','hunter'])for(let p of ['bind','idle-0','run-0.25','run-0.75','fire-0.5','melee-0.5','death-0.75','flee-0.5','evade_left-0.5']){let o=document.createElement('option');o.value=n+'-'+p;o.textContent=n+' '+p;$('sil').append(o)}for(let name of ['grunt-head','hunter-l-arm','hunter-r-arm']){let o=document.createElement('option');o.value=name;o.textContent=name+' close-up';$('sil').append(o)}$('sil').onchange=()=>{$('sheet').src='silhouettes/'+$('sil').value+'.png'};$('sil').onchange();if(perf){let t=document.createElement('table');t.innerHTML='<tr><th>Players</th><th>Previous FPS</th><th>Corrected FPS</th><th>Change</th></tr>';for(let n=1;n<=4;n++){let a=perf.cases['baseline-perf-'+n].living_players_and_landed_enemies.fps_mean,b=perf.cases['candidate-perf-'+n].living_players_and_landed_enemies.fps_mean;let r=document.createElement('tr');r.innerHTML='<td>'+n+'</td><td>'+a.toFixed(2)+'</td><td>'+b.toFixed(2)+'</td><td>'+((b/a-1)*100).toFixed(1)+'%</td>';t.append(r)}$('perf').replaceChildren(t)}show();</script>'''
+perf=json.loads((cap/'results.json').read_text()) if (cap/'results.json').exists() else None
+(out/'comparison.html').write_text(html.replace('__ENTRIES__',json.dumps(entries)).replace('__PERF__',json.dumps(perf)))
+print(out/'comparison.html')
+from PIL import ImageDraw
+for name,page in [('grunt',42),('hunter',12),('warthog',68),('jackal',36)]:
+ im=Image.new('RGB',(640,260),(16,24,32));draw=ImageDraw.Draw(im)
+ for col,v in enumerate(['baseline','candidate']):
+  draw.text((col*320+5,3),'Previous' if col==0 else 'Corrected',fill='white');im.paste(Image.open(out/v/f'{page:02}.png'),(col*320,20))
+ im.resize((1280,520),Image.Resampling.NEAREST).save(out/(name+'-native-pair.png'))

@@ -5,8 +5,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-def decode(log,output):
-    text=log.read_text();blocks=re.findall(r'FF_PHOTO_BEGIN.*?FF_PHOTO_END',text,re.S);assert len(blocks)==52
+def decode(log,output,expected=52):
+    text=log.read_text();blocks=re.findall(r'FF_PHOTO_BEGIN.*?FF_PHOTO_END',text,re.S);assert len(blocks)==expected
     output.mkdir(parents=True,exist_ok=True);frames=[]
     for index,block in enumerate(blocks):
         assert int(re.search(r'tick=(\d+)',block)[1])==index

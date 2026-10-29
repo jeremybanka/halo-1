@@ -33,6 +33,8 @@ def pack_audio(data,out,pc_extras=False):
 
 def pack(source,out,pc_extras=False):
  data=json.loads(source.read_text());out.mkdir(parents=True,exist_ok=True)
+ from center_warthog import center_fixture
+ for model in (data['models']['warthog'],data['vehicle_lods']['warthog']):center_fixture(model)
  raw=json.loads((source.parent/'extended-raw.json').read_text());rigs={}
  # Original low/superlow Spartan LODs merge the visor into the armor shader.
  # Recover those broad face panels using the highest source visor's bounds.

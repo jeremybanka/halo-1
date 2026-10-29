@@ -1542,6 +1542,10 @@ static void prepare_view(unsigned p) {
                                vp->size[0], vp->size[1], 1.4f, BG_MICRO_PIXELS, true,
                                player->zoom != 0, views))
             lod = 2;
+#ifdef BG_PVE_MODEL_QA
+        extern unsigned bg_pve_vehicle_qa_lod;
+        if(bg_pve_vehicle_qa_lod)lod=bg_pve_vehicle_qa_lod-1;
+#endif
         vehicle_view_lods[p][i] = lod + 1;
     }
     for (unsigned i = 0; i < bg_pickup_count; i++) {

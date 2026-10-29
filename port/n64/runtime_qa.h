@@ -2,6 +2,10 @@
 #define BG_RUNTIME_QA_H
 #include <t3d/t3d.h>
 #include "game.h"
+#ifdef BG_PVE_MODEL_QA
+#define BG_PVE_MODEL_QA_FRAMES 71
+extern unsigned bg_pve_vehicle_qa_lod;
+#endif
 /* QA can change only the explicitly bound application clock/view count and
  * production game APIs. It never reaches into renderer buffers or fences. */
 #if defined(BG_MODEL_QA) || defined(BG_INTERACTION_QA) || defined(BG_SHIELD_QA) ||                 \

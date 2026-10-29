@@ -3,11 +3,13 @@ import collections,itertools,json,math
 from pathlib import Path
 import bpy
 
-def reduce(source,colors_path,output,blend):
+def reduce(source,colors_path,output,blend,model_names=None,protect_heads=False,ratios=None,protect_arm_supports=False,protect_body_supports=False):
     data=json.loads(Path(source).read_text());colors=json.loads(Path(colors_path).read_text());report={}
     scene=bpy.data.scenes.new('Covenant crunchy miniatures');bpy.context.window.scene=scene
     for row,(name,ratio) in enumerate((('grunt',.25),('elite',.48),('jackal',.44),('hunter',.23))):
-        model=data['models'][name];lods=model.get('n64_lods') or ['base00 low','base00 superlow'];original=model['source_geometry_lods'][lods[1]]
+        if model_names and name not in model_names:continue
+        ratio=(ratios or {}).get(name,ratio)
+        model=data['models'][name];lods=(model.get('n64_lods') or ['base00 low','base00 superlow'])[:2];original=model['source_geometry_lods'][lods[1]]
         verts=[];weights=[];ids={};remap=[]
         for i,p in enumerate(original['vertices']):
             if 'skin_weights' in original:skin=tuple((int(b),float(w)) for b,w in original['skin_weights'][i])
@@ -40,9 +42,32 @@ def reduce(source,colors_path,output,blend):
             if any(word in node['name'] for word in ('spike','head','hand','foot','forearm')):
                 for d in ((0,0,1),(1,0,0),(-1,0,0)):
                     locked.add(max(domain,key=lambda i:sum(a*b for a,b in zip(verts[i],d))))
+        if protect_heads:
+            head_bones={i for i,n in enumerate(model['nodes']) if 'head' in n['name']}
+            # Preserve the whole skull/mask and its attachment, including the
+            # lateral supports omitted by the original three-axis tip pins.
+            locked.update(i for i,skin in enumerate(weights)
+                          if any(b in head_bones and w>.01 for b,w in skin))
+        if protect_arm_supports and name=='hunter':
+            for bone,node in enumerate(model['nodes']):
+                if not any(s in node['name'] for s in ('upperarm','forearm','hand')):continue
+                domain=[i for i in range(len(verts)) if dominant(i)==bone]
+                if domain:
+                    locked.update(max(domain,key=lambda i:sum(a*b for a,b in zip(verts[i],d))) for d in directions)
+            # Keep the complete, differently proportioned source arms attached.
+            # Freezing their boundary vertices preserves the joined torso shell.
+            arm_bones={i for i,n in enumerate(model['nodes']) if any(s in n['name'] for s in ('clavicle','upperarm','forearm','hand'))}
+            locked.update(i for i,skin in enumerate(weights) if any(b in arm_bones and w>.01 for b,w in skin))
+        if protect_body_supports:
+            axes=[tuple(sign if a==axis else 0 for a in range(3)) for axis in range(3) for sign in (-1,1)]
+            for bone,node in enumerate(model['nodes']):
+                domain=[i for i in range(len(verts)) if dominant(i)==bone]
+                if domain:
+                    locked.update(max(domain,key=lambda i:sum(a*b for a,b in zip(verts[i],d))) for d in axes)
         allow=obj.vertex_groups.new(name='Allow crunch');allow.add([i for i in range(len(verts)) if i not in locked],1,'REPLACE')
         bpy.context.view_layer.objects.active=obj;obj.select_set(True)
         mod=obj.modifiers.new('Crunch at small screen size','DECIMATE');mod.decimate_type='COLLAPSE';mod.ratio=ratio;mod.use_collapse_triangulate=True;mod.vertex_group=allow.name;mod.vertex_group_factor=1
+        if protect_arm_supports and name=='hunter':mod.use_symmetry=True;mod.symmetry_axis='Y'
         bpy.ops.object.modifier_apply(modifier=mod.name);mesh=obj.data;mesh.calc_loop_triangles();uv=mesh.uv_layers.active;color=mesh.color_attributes['Source colors']
         skins=[]
         for v in mesh.vertices:

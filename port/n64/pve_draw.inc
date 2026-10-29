@@ -7,14 +7,14 @@ bg_pve_prepare_profile_data bg_pve_prepare_profile;
 #ifdef BG_PVE_MODEL_QA
 extern unsigned bg_pve_model_qa_lod;
 #endif
-static T3DVertPacked *pve_vertices[BG_FRAME_SLOTS][BG_PVE_MAX+1][2];
-static rspq_block_t *pve_blocks[BG_FRAME_SLOTS][BG_PVE_MAX+1][2];
+static T3DVertPacked *pve_vertices[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
+static rspq_block_t *pve_blocks[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
 static T3DMat4FP pve_matrices[BG_FRAME_SLOTS][BG_PVE_MAX+1],pve_guns[BG_FRAME_SLOTS][BG_PVE_MAX+1];
 static uint8_t pve_lods[4][BG_PVE_MAX+1];
 static bool pve_initialized;
-static uint8_t pve_buffer_kind[BG_FRAME_SLOTS][BG_PVE_MAX+1][2];
+static uint8_t pve_buffer_kind[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
 static bool pve_ship_visible[4];
-static uint32_t pve_pose_keys[BG_FRAME_SLOTS][BG_PVE_MAX+1][2];
+static uint32_t pve_pose_keys[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
 #ifdef BG_PVE_PREP_BASELINE
 static int16_t pve_decoded[8192][3];
 #else
@@ -26,8 +26,8 @@ static bg_motion_track pve_decoded[8192];
 static bg_pve_motion_cache pve_motion_cache;
 /* Aliases only borrow an earlier actor's prepared geometry in the SAME fenced
  * frame slot. Matrices/attachments remain per actor. No quantized-time changes. */
-static uint8_t pve_pose_owner[BG_PVE_MAX+1][2];
-static uint32_t pve_frame_keys[BG_PVE_MAX][2];
+static uint8_t pve_pose_owner[BG_PVE_MAX+1][BG_PVE_LODS];
+static uint32_t pve_frame_keys[BG_PVE_MAX][BG_PVE_LODS];
 static unsigned pve_shared_pose(unsigned i,unsigned lod,uint32_t key){
     unsigned owner=i;
     for(unsigned j=0;j<i;j++)if(pve_frame_keys[j][lod]==key&&bg_pve_actors[j].kind==bg_pve_actors[i].kind){owner=pve_pose_owner[j][lod];break;}
@@ -36,17 +36,24 @@ static unsigned pve_shared_pose(unsigned i,unsigned lod,uint32_t key){
 #endif
 unsigned bg_pve_animation_us;
 #ifdef BG_PVE_MODEL_CANDIDATE
-static rspq_block_t *pve_alpha_blocks[BG_FRAME_SLOTS][BG_PVE_MAX+1][2];
+static rspq_block_t *pve_alpha_blocks[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
+#endif
+#if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
+#include "pve_crunch_lod.h"
+static bg_pve_crunch_state pve_crunch_states[4][BG_PVE_MAX];
 #endif
 static void pve_release(void){
     rspq_wait();
-    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned i=0;i<=BG_PVE_MAX;i++)for(unsigned l=0;l<2;l++){
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned i=0;i<=BG_PVE_MAX;i++)for(unsigned l=0;l<BG_PVE_LODS;l++){
         if(pve_blocks[s][i][l])rspq_block_free(pve_blocks[s][i][l]);
 #ifdef BG_PVE_MODEL_CANDIDATE
         if(pve_alpha_blocks[s][i][l])rspq_block_free(pve_alpha_blocks[s][i][l]);
 #endif
         if(pve_vertices[s][i][l])free_uncached(pve_vertices[s][i][l]);
     }
+#if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
+    memset(pve_crunch_states,0,sizeof(pve_crunch_states));
+#endif
     memset(pve_blocks,0,sizeof(pve_blocks));memset(pve_vertices,0,sizeof(pve_vertices));
     memset(pve_pose_keys,0,sizeof(pve_pose_keys));memset(pve_lods,0,sizeof(pve_lods));
 #ifndef BG_PVE_PREP_BASELINE
@@ -88,12 +95,12 @@ static void pve_prepare(void){
     memset(pve_lods,0,sizeof(pve_lods));memset(pve_ship_visible,0,sizeof(pve_ship_visible));
 #ifndef BG_PVE_PREP_BASELINE
     memset(pve_frame_keys,0,sizeof(pve_frame_keys));
-    for(unsigned i=0;i<=BG_PVE_MAX;i++)for(unsigned l=0;l<2;l++)pve_pose_owner[i][l]=i;
+    for(unsigned i=0;i<=BG_PVE_MAX;i++)for(unsigned l=0;l<BG_PVE_LODS;l++)pve_pose_owner[i][l]=i;
 #endif
     if(!bg_pve_is_active())return;
     uint32_t begin=get_ticks_us();
     if(!pve_initialized){
-        for(unsigned kind=0;kind<BG_PVE_MODELS;kind++)for(unsigned lod=0;lod<2;lod++)prepare_model(&bg_pve_models[kind][lod]);
+        for(unsigned kind=0;kind<BG_PVE_MODELS;kind++)for(unsigned lod=0;lod<BG_PVE_LODS;lod++)prepare_model(&bg_pve_models[kind][lod]);
         pve_initialized=true;
     }
     memset(pve_lods,0,sizeof(pve_lods));memset(pve_ship_visible,0,sizeof(pve_ship_visible));
@@ -103,10 +110,24 @@ static void pve_prepare(void){
         if(!a->occupied||(p->health<=0&&a->death_time>15))continue;
         if(a->arrival==1&&bg_ff_dropship.door<.05f)continue;
         bg_cull_bounds bounds;float center[3]={p->pos[0],p->pos[1]+.4f,p->pos[2]};prepare_effect_bounds(&bounds,center,2.f);
+#if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
+        /* Whole-clip, all-tier bounds: animation cannot make LOD flicker.
+         * Only used for representation choice; gameplay/hit meshes stay exact. */
+        T3DMat4 body_lod;bg_bounds world_lod;bg_cull_bounds lod_bounds;
+        t3d_mat4_from_srt_euler(&body_lod,(float[]){1,1,1},(float[]){0,-p->yaw,0},
+            (float[]){p->pos[0]*BG_SCALE,p->pos[1]*BG_SCALE,p->pos[2]*BG_SCALE});
+        bg_bounds_transform(&world_lod,&bg_pve_crunch_bounds[a->kind][a->clip],body_lod.m,BG_SCALE);
+        bg_bounds_quantize(&lod_bounds,&world_lod);
+#endif
         for(unsigned v=0;v<views;v++){
             T3DViewport*vp=&viewports[slot][v];if(!visible_bounds(vp,&bounds,cull_selected[v]))continue;
             float dx=p->pos[0]-bg_players[v].pos[0],dy=p->pos[1]-bg_players[v].pos[1],dz=p->pos[2]-bg_players[v].pos[2];
             unsigned lod=dx*dx+dy*dy+dz*dz>(views==1?36:16)&&!bg_players[v].zoom;
+#if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
+            float near,far;bg_camera_depth(bg_players[v].zoom!=0,&near,&far);
+            if(bg_pve_crunch_select(&pve_crunch_states[v][i],a->generation,a->kind,&lod_bounds,
+                vp->matCamera.m,vp->matProj.m,vp->size[0],vp->size[1],near,lod!=0,bg_players[v].zoom!=0))lod=2;
+#endif
 #ifdef BG_PVE_MODEL_QA
             lod=bg_pve_model_qa_lod;
 #endif
@@ -116,7 +137,7 @@ static void pve_prepare(void){
         if(!wanted)continue;
         matrix(&pve_matrices[slot][i],BG_SCALE/BG_PVE_SCALE,p->yaw,0,p->pos);
         PVE_PREP_COUNT(matrices_us,PVE_PREP_NOW()-section);
-        for(unsigned lod=0;lod<2;lod++)if(wanted&(1u<<lod)){
+        for(unsigned lod=0;lod<BG_PVE_LODS;lod++)if(wanted&(1u<<lod)){
             section=PVE_PREP_NOW();PVE_PREP_COUNT(pose_requests,1);
             const bg_model_asset*m=&bg_pve_models[a->kind][lod];
             const bg_pve_animation*clip=&bg_pve_animations[a->kind][lod][a->clip];
@@ -241,6 +262,13 @@ static void pve_draw(unsigned view){
 #ifdef BG_PROFILE
         submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);
 #endif
-        if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER)instance(weapon_model(bg_players[BG_PLAYERS+i].weapon),&pve_guns[slot][i]);
+        if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER){
+#if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
+            small_model_instance(weapon_model(bg_players[BG_PLAYERS+i].weapon),&pve_guns[slot][i],
+                &viewports[slot][view],&view_eyes[view],bg_players[view].zoom,NULL);
+#else
+            instance(weapon_model(bg_players[BG_PLAYERS+i].weapon),&pve_guns[slot][i]);
+#endif
+        }
     }
 }

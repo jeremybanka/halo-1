@@ -33,7 +33,7 @@ def prepare_model(w,model_candidate=False):
             if previous is not None and mode!=previous:segments.append((start*3,(i-start)*3));modes.append(previous);start=i
             previous=mode
         segments.append((start*3,len(points)-start*3));modes.append(previous)
-    tolerance=24 if model_candidate and w['source_lod'].startswith('n64 ') else 8
+    tolerance=48 if w.get('crunch_palette') else 24 if model_candidate and w['source_lod'].startswith('n64 ') else 8
     mesh=indexed_mesh(points,colors,tints,trajectory_keys(w['clips'],128,16),segments=segments,color_tolerance=tolerance,material_keys=materials)
     mesh['batch_modes']=[mode for mode,(_,count) in zip(modes,mesh['segments']) for _ in range(count)] if model_candidate else [0]*len(mesh['batches'])
     mesh['alphas']=[160 if model_candidate and material_mode(metadata[materials[s]])&2 else 255 for s in mesh['sources']]
@@ -47,19 +47,23 @@ def emit_rom_clip(lines,name,clip,motion):
     lines.append('static const uint16_t '+name+'_indices[]='+braces(packed['indices'])+';')
     return packed
 
-def pack(source,out,model_candidate=False):
+def pack(source,out,model_candidate=False,visual_only=False):
     motion=bytearray();needler_rows=[];needler_sources={}
     source=source.resolve();out=out.resolve();out.mkdir(parents=True,exist_ok=True)
     baked=source/'squad-baked.json.gz'
     if not baked.exists():baked=source/'squad-baked.json'
     data=json.loads(gzip.decompress(baked.read_bytes()) if baked.suffix=='.gz' else baked.read_bytes());raw=json.loads((source/'squad-source.json').read_text())
+    lod_count=len(data['grunt']);assert lod_count in (2,3) and all(len(data[n])==lod_count for n in (*NAMES,'spirit'))
     lines=['/* Private original CE geometry and animation. */','#include "asset_pve.h"'];models=[];anims=[];grips=[];report={}
     shield_arrays=[];mode_rows=[]
     for name in (*NAMES,'spirit'):
         model_rows=[];anim_rows=[];grip_rows=[];surface_rows=[];report[name]=[]
         for lod,w in enumerate(data[name]):
-            if lod and w['source_lod']==data[name][0]['source_lod']:
-                model_rows.append(model_rows[0]);anim_rows.append(anim_rows[0]);surface_rows.append(surface_rows[0]);report[name].append({**report[name][0],'shared_with_lod':0});continue
+            shared=next((i for i in range(lod) if w['source_lod']==data[name][i]['source_lod']),None)
+            if shared is not None:
+                model_rows.append(model_rows[shared]);anim_rows.append(anim_rows[shared]);surface_rows.append(surface_rows[shared]);report[name].append({**report[name][shared],'shared_with_lod':shared})
+                if name=='jackal':shield_arrays.append(shield_arrays[shared])
+                continue
             symbol=f'pve_{name}_{lod}';mesh,clips=prepare_model(w,model_candidate)
             verts=mesh['vertices'];colors=raw['actors'][name]['variant']['change_colors'] if name!='spirit' else []
             if not colors and name!='spirit':
@@ -92,14 +96,22 @@ def pack(source,out,model_candidate=False):
                     grip_rows.append(braces([hs,len(hand['poses']),f(hand['duration'])]))
             anim_rows.append(braces(clip_rows));report[name].append({'lod':w['source_lod'],'triangles':len(w['triangles']),'vertices':len(verts),'batches':len(mesh['batches']),'animation_bytes':motion_bytes,'batch_modes':mesh['batch_modes']})
         models.append(braces(model_rows));anims.append(braces(anim_rows));grips.append(braces(grip_rows));mode_rows.append(braces(surface_rows))
-    lines+=['const bg_model_asset bg_pve_models[BG_PVE_MODELS][2]='+braces(models)+';',
-        'const bg_pve_animation bg_pve_animations[BG_PVE_MODELS][2][PVE_CLIPS]='+braces(anims)+';',
+    lines+=['const bg_model_asset bg_pve_models[BG_PVE_MODELS][BG_PVE_LODS]='+braces(models)+';',
+        'const bg_pve_animation bg_pve_animations[BG_PVE_MODELS][BG_PVE_LODS][PVE_CLIPS]='+braces(anims)+';',
         'const bg_attachment_clip bg_pve_grips[BG_PVE_MODELS][PVE_CLIPS]='+braces(grips)+';',
-        'const uint8_t *const bg_pve_shield_vertices[2]='+braces(shield_arrays)+';',
-        'const uint8_t *const bg_pve_batch_modes[BG_PVE_MODELS][2]='+braces(mode_rows)+';'
+        'const uint8_t *const bg_pve_shield_vertices[BG_PVE_LODS]='+braces(shield_arrays)+';',
+        'const uint8_t *const bg_pve_batch_modes[BG_PVE_MODELS][BG_PVE_LODS]='+braces(mode_rows)+';'
     ]
     (out/'pve-motion.bin').write_bytes(motion)
+    if lod_count==3:
+        from pack_crunch import bounds_source
+        lines.extend(bounds_source(data))
     (out/'pve_data.c').write_text('\n'.join(lines)+'\n')
+    if visual_only:
+        report['lod_count']=lod_count
+        report['motion']={'bytes':len(motion),'sha256':hashlib.sha256(motion).hexdigest(),'layout':'16-bit big-endian pose tracks; original frame timing and interpolation'}
+        (out/'pve-report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2));return
+
     # Extract actual original selector bodies; compact platform adapters live
     # in pve_source.inc. Unsupported campaign/vehicle actions are explicit there.
     source_functions=[('actor_type_grunt.c','grunt_decide_action','static void grunt_decide_action(long actor_index)'),('actor_type_elite.c','elite_decide_action','static void elite_decide_action(long actor_index)'),('actions.c','actor_action_handle_panic_transition','static boolean actor_action_handle_panic_transition(long actor_index,short minimum_panic_type,boolean communicate_failure,short force_panic_type)')]
@@ -189,7 +201,8 @@ def pack(source,out,model_candidate=False):
     (source/'needler-variants.json').write_text(json.dumps(needler_sources,indent=2)+'\n')
     report['motion']={'bytes':len(motion),'sha256':hashlib.sha256(motion).hexdigest(),'layout':'16-bit big-endian pose tracks; ROM offsets in render clips, 16-byte alignment/padding'}
     report['rules']=rules;report['inputs']={str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path(__file__),ROOT/'port/n64/extract_pve.py',ROOT/'port/n64/bake_pve_blender.py',source/'squad-source.json',baked,*(ROOT/'source/ai'/p for p,_,_ in source_functions)]}
+    report['lod_count']=lod_count
     (out/'pve-report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k in NAMES},indent=2))
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('source',type=Path);p.add_argument('--output',type=Path,required=True);p.add_argument('--model-candidate',action='store_true');a=p.parse_args();pack(a.source,a.output,a.model_candidate)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('source',type=Path);p.add_argument('--output',type=Path,required=True);p.add_argument('--model-candidate',action='store_true');p.add_argument('--visual-only',action='store_true');a=p.parse_args();pack(a.source,a.output,a.model_candidate,a.visual_only)

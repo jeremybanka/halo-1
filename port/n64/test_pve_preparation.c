@@ -5,8 +5,8 @@
 #include "pve_prepare_math.h"
 #include "pve_preparation_reference.inc"
 bg_pve_actor bg_pve_actors[BG_PVE_MAX];
-static uint8_t pve_pose_owner[BG_PVE_MAX+1][2];
-static uint32_t pve_frame_keys[BG_PVE_MAX][2];
+static uint8_t pve_pose_owner[BG_PVE_MAX+1][BG_PVE_LODS];
+static uint32_t pve_frame_keys[BG_PVE_MAX][BG_PVE_LODS];
 #include "pve_preparation_share.inc"
 static bg_pve_motion_cache cache;
 static bg_motion_track decoded[8192];
@@ -32,14 +32,14 @@ static void cache_churn(void){
     bg_pve_motion_cache_reset(&cache);
 }
 static void aliases(void){
-    unsigned stored[2][BG_PVE_MAX][2]={0},shares=0,distinct=0;
+    unsigned stored[2][BG_PVE_MAX][BG_PVE_LODS]={0},shares=0,distinct=0;
     for(unsigned frame=0;frame<4000;frame++){
-        unsigned slot=frame%2,other[BG_PVE_MAX][2];memcpy(other,stored[slot^1],sizeof(other));
+        unsigned slot=frame%2,other[BG_PVE_MAX][BG_PVE_LODS];memcpy(other,stored[slot^1],sizeof(other));
         memset(pve_frame_keys,0,sizeof(pve_frame_keys));
-        for(unsigned i=0;i<BG_PVE_MAX;i++)for(unsigned l=0;l<2;l++)pve_pose_owner[i][l]=i;
+        for(unsigned i=0;i<BG_PVE_MAX;i++)for(unsigned l=0;l<BG_PVE_LODS;l++)pve_pose_owner[i][l]=i;
         for(unsigned i=0;i<BG_PVE_MAX;i++){
             bg_pve_actors[i].kind=((frame/5)+(i/3))%BG_PVE_KINDS;
-            for(unsigned lod=0;lod<2;lod++){
+            for(unsigned lod=0;lod<BG_PVE_LODS;lod++){
                 if(random_u()%5==0)continue; // visibility/LOD changes
                 unsigned clip=(frame/3)%PVE_CLIPS,mix=frame%256;
                 uint32_t key=1+(clip<<24)+(2u<<16)+(3u<<8)+mix;
@@ -55,7 +55,7 @@ static void aliases(void){
         }
         /* Other in-flight slot is read-only. All four cameras consume only
          * current-frame owners, without changing any shared vertex data. */
-        for(unsigned view=0;view<4;view++)for(unsigned i=0;i<BG_PVE_MAX;i++)for(unsigned l=0;l<2;l++)
+        for(unsigned view=0;view<4;view++)for(unsigned i=0;i<BG_PVE_MAX;i++)for(unsigned l=0;l<BG_PVE_LODS;l++)
             if(pve_frame_keys[i][l])assert(stored[slot][pve_pose_owner[i][l]][l]>frame*64);
         assert(!memcmp(other,stored[slot^1],sizeof(other)));
     }
@@ -69,7 +69,7 @@ int main(int argc,char**argv){
     for(size_t i=0;i<size;i+=2){uint8_t v=rom[i];rom[i]=rom[i+1];rom[i+1]=v;}
 #endif
     cache_churn();aliases();unsigned poses=0,hits=0;uint64_t vertices=0;
-    for(unsigned kind=0;kind<BG_PVE_MODELS;kind++)for(unsigned lod=0;lod<2;lod++){
+    for(unsigned kind=0;kind<BG_PVE_MODELS;kind++)for(unsigned lod=0;lod<BG_PVE_LODS;lod++){
         const bg_model_asset*m=&bg_pve_models[kind][lod];size_t bytes=m->vertex_count*16;
         T3DVertPacked*before=malloc(bytes),*after=malloc(bytes);assert(before&&after);
         for(unsigned c=0;c<PVE_CLIPS;c++){

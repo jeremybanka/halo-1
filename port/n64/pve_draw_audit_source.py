@@ -46,6 +46,9 @@ static void audit_actor(unsigned view,unsigned actor,unsigned lod,unsigned owner
         float pos[3],distance2=0;for(unsigned c=0;c<3;c++){pos[c]=t3d_mat4fp_get_float(&pve_guns[slot][actor],3,c);float d=(pos[c]-view_eyes[view].v[c])/BG_SCALE;distance2+=d*d;}
         float depth=-(pos[0]*vp->matCamera.m[0][2]+pos[1]*vp->matCamera.m[1][2]+pos[2]*vp->matCamera.m[2][2]+vp->matCamera.m[3][2])/BG_SCALE;
         gun_far=!bg_players[view].zoom&&bg_lod_diameter_below(bg_model_assets[w].radius,vp->size[1]*fabsf(vp->matProj.m[1][1]),depth,distance2,12.f);
+#if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
+        if(gun_far)gun=far_loads;
+#endif
     }
     debugf("DRAW_ACTOR view=%u actor=%u kind=%u lod=%u body=%u gun=%u batches=%u body_in=%u gun_in=%u gun_far=%u far_gun=%u hp=%.3f clip=%u phase=%.6f pos=%.6f,%.6f,%.6f yaw=%.6f\n",view,actor,a->kind,lod,model_load_count(m,m->vertex_count,0,m->batch_count),gun,m->batch_count,body_in,gun_in,gun_far,far_loads,p->health,a->clip,a->time,p->pos[0],p->pos[1],p->pos[2],p->yaw);
 }
@@ -75,7 +78,7 @@ def generate(directory):
     draw=replace(draw,'if(pve_ship_visible[view]){','if(pve_ship_visible[view]&&!audit_skip(BG_PVE_MAX)){')
     draw=replace(draw,'for(unsigned i=0;i<bg_pve_count;i++)if(pve_lods[view][i]){','for(unsigned i=0;i<bg_pve_count;i++)if(pve_lods[view][i]&&!audit_skip(i)){')
     draw=replace(draw,'        t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(pve_blocks[slot][owner][lod]);','        audit_actor(view,i,lod,owner);\n        t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(pve_blocks[slot][owner][lod]);')
-    draw=replace(draw,'if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER)instance','if(bg_draw_audit_frame!=15&&bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER)instance')
+    draw=replace(draw,'if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER){','if(bg_draw_audit_frame!=15&&bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER){')
     draw=replace(draw,'        submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);\n#endif\n    }','        submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);\n        if(!bg_draw_audit_frame)debugf("DRAW_SHIP view=%u lod=%u body=%u triangles=%u\\n",view,lod,model_load_count(m,m->vertex_count,0,m->batch_count),m->triangle_count);\n#endif\n    }')
     alpha=(directory/'pve_model_candidate.inc').read_text()
     alpha=replace(alpha,'if(pve_ship_visible[view]){','if(pve_ship_visible[view]&&!audit_skip(BG_PVE_MAX)){')

@@ -22,6 +22,9 @@ static void model_qa_stage(uint64_t now){
     else if(page<40){model_qa_page=BG_PVE_JACKAL;bg_pve_model_qa_lod=(page-32)/4;shield=(page%2)==0;clip=(page%4)<2?PVE_IDLE:PVE_FIRE;phase=.35f;}
     else if(page<48){model_qa_page=page<44?BG_PVE_GRUNT:BG_PVE_ELITE;bg_pve_model_qa_lod=(page%4)/2;clip=(page%2)?PVE_RUN:PVE_IDLE;phase=.35f;}
     else{model_qa_page=BG_PVE_JACKAL;bg_pve_model_qa_lod=(page-48)/2;shield=(page%2)==0;phase=.35f;}
+#if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
+    if(bg_pve_model_qa_lod==1&&model_qa_page!=BG_PVE_SPIRIT)bg_pve_model_qa_lod=2;
+#endif
     for(unsigned p=0;p<4;p++){
         bg_player*q=&bg_players[p];q->pos[0]=0;q->pos[1]=model_floor;q->pos[2]=4;
         q->health=100;q->invisibility=1;q->weapon_ready=q->flash=0;q->vehicle=-1;

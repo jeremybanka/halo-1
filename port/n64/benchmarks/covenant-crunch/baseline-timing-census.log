@@ -1,0 +1,203 @@
+2026-10-28 20:25:13.209 ares[4069:13632713] Resizing output buffers to 768, 576
+Loaded halo-64-render-candidate-pve-model-candidate-profile
+Vulkan Enabled: using paraLLEl-RDP
+COLLISION tick=30 ticks=30 tick_us=1188585 max_tick_us=68477 director_us=480 humans_us=601757 vehicles_us=398 actors_us=291370 projectiles_us=293168 after_us=952 terrain_us=194181 terrain_queries=1075 terrain_hits=963 terrain_misses=112 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=4065 hit_us=291417 hit_queries=1848 hit_pose_builds=209 hit_available=190364 hit_triangles=5260 hit_groups=1185 hit_rejected=855 hit_root_rejected=570
+COLLISION tick=60 ticks=30 tick_us=963762 max_tick_us=62541 director_us=475 humans_us=493685 vehicles_us=423 actors_us=268659 projectiles_us=199183 after_us=857 terrain_us=177921 terrain_queries=933 terrain_hits=898 terrain_misses=35 terrain_overflows=0 terrain_actor_overflows=0 terrain_candidates=3766 hit_us=209209 hit_queries=1370 hit_pose_builds=169 hit_available=114230 hit_triangles=2268 hit_groups=762 hit_rejected=620 hit_root_rejected=380
+PVE_START views=4 count=12 tick=60 seed=505645
+PVE_POSE unit=0 pos=-1.027487,0.123128,1.371319 yaw=0.417631 pitch=-0.021653 crouch=0.000000 hp=32.227 shield=0.000
+PVE_POSE unit=1 pos=-1.861751,0.104157,1.353831 yaw=0.366231 pitch=-0.016291 crouch=0.000000 hp=100.000 shield=44.766
+PVE_POSE unit=2 pos=-0.966807,0.077591,2.779621 yaw=0.129278 pitch=-0.029465 crouch=0.000000 hp=96.961 shield=0.000
+PVE_POSE unit=3 pos=-1.473359,0.100488,2.610625 yaw=0.093074 pitch=-0.030939 crouch=0.000000 hp=100.000 shield=76.151
+PVE_POSE unit=4 pos=5.506175,0.281595,-1.889700 yaw=3.604529 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000
+PVE_POSE unit=5 pos=5.990159,0.285603,-1.925606 yaw=3.580794 pitch=0.000000 crouch=0.000000 hp=270.000 shield=0.000
+PVE_POSE unit=6 pos=6.793937,0.285569,-1.756818 yaw=3.522052 pitch=0.000000 crouch=0.000000 hp=60.000 shield=240.000
+PVE_POSE unit=7 pos=5.692625,0.211351,-0.454360 yaw=6.977153 pitch=0.000000 crouch=0.000000 hp=120.000 shield=50.000
+PVE_POSE unit=8 pos=4.247070,0.231515,-0.996238 yaw=3.508841 pitch=0.000000 crouch=0.000000 hp=28.000 shield=0.000
+PVE_POSE unit=9 pos=6.600137,0.240761,-0.247115 yaw=3.350673 pitch=0.000000 crouch=0.000000 hp=28.000 shield=0.000
+PVE_POSE unit=10 pos=7.403184,0.267567,-0.869581 yaw=0.213353 pitch=0.000000 crouch=0.000000 hp=0.000 shield=227.188
+PVE_POSE unit=11 pos=6.028472,0.178670,1.162192 yaw=3.171222 pitch=0.000000 crouch=0.000000 hp=120.000 shield=92.000
+PVE_POSE unit=12 pos=5.755589,0.139669,2.241008 yaw=3.221544 pitch=0.000000 crouch=0.000000 hp=36.000 shield=0.000
+PVE_POSE unit=13 pos=4.893593,0.090287,2.446948 yaw=3.221635 pitch=0.000000 crouch=0.000000 hp=0.000 shield=0.000
+PVE_POSE unit=14 pos=4.932094,0.102265,2.012452 yaw=3.560443 pitch=0.000000 crouch=0.000000 hp=30.000 shield=240.000
+PVE_POSE unit=15 pos=6.466862,0.152953,3.262306 yaw=3.076751 pitch=0.000000 crouch=0.000000 hp=120.000 shield=120.000
+HALO N64 world=5468 textures=17 RAM=8388608 free=1382720
+[WARN]: Stalled compile (compute, 07455c1fc10ed781): thread 0 - 15131.417 us (mode: sync, success: yes).
+DRAW_STATE tick=60 time=1.999999 alive=4
+DRAW_CAMERA view=0 x=0 y=0 width=160 height=120 eye=-1.027487,0.743128,1.371319 yaw=0.417631 pitch=-0.021653 hp=32.227
+DRAW_CATEGORY view=0 category=world vertices=1422 triangles=1103
+DRAW_CATEGORY view=0 category=vehicles vertices=0 triangles=0
+DRAW_ACTOR view=0 actor=0 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=2 phase=1.166667 pos=5.506175,0.281595,-1.889700 yaw=3.604529
+DRAW_ACTOR view=0 actor=1 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=0 phase=0.766667 pos=5.990159,0.285603,-1.925606 yaw=3.580794
+DRAW_ACTOR view=0 actor=2 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=60.000 clip=1 phase=0.300000 pos=6.793937,0.285569,-1.756818 yaw=3.522052
+DRAW_ACTOR view=0 actor=3 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=4 phase=0.366667 pos=5.692625,0.211351,-0.454360 yaw=6.977153
+DRAW_ACTOR view=0 actor=4 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.700000 pos=4.247070,0.231515,-0.996238 yaw=3.508841
+DRAW_ACTOR view=0 actor=5 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.366667 pos=6.600137,0.240761,-0.247115 yaw=3.350673
+DRAW_ACTOR view=0 actor=6 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=0.000 clip=4 phase=1.766666 pos=7.403184,0.267567,-0.869581 yaw=0.213353
+DRAW_ACTOR view=0 actor=7 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=2 phase=0.166667 pos=6.028472,0.178670,1.162192 yaw=3.171222
+DRAW_ACTOR view=0 actor=8 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=36.000 clip=1 phase=0.366667 pos=5.755589,0.139669,2.241008 yaw=3.221544
+DRAW_ACTOR view=0 actor=9 kind=0 lod=1 body=784 gun=0 batches=14 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=0.000 clip=3 phase=1.933333 pos=4.893593,0.090287,2.446948 yaw=3.221635
+DRAW_ACTOR view=0 actor=10 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=30.000 clip=0 phase=0.433333 pos=4.932094,0.102265,2.012452 yaw=3.560443
+DRAW_ACTOR view=0 actor=11 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=0 gun_far=1 far_gun=72 hp=120.000 clip=0 phase=0.800000 pos=6.466862,0.152953,3.262306 yaw=3.076751
+DRAW_CATEGORY view=0 category=covenant vertices=12340 triangles=7388
+DRAW_CATEGORY view=0 category=players vertices=294 triangles=420
+DRAW_CATEGORY view=0 category=pickups vertices=112 triangles=104
+DRAW_CATEGORY view=0 category=effects vertices=28 triangles=14
+DRAW_CATEGORY view=0 category=firstperson vertices=516 triangles=408
+DRAW_CAMERA view=1 x=160 y=0 width=160 height=120 eye=-1.861751,0.724157,1.353831 yaw=0.366231 pitch=-0.016291 hp=100.000
+DRAW_CATEGORY view=1 category=world vertices=1470 triangles=1207
+DRAW_CATEGORY view=1 category=vehicles vertices=0 triangles=0
+DRAW_ACTOR view=1 actor=0 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=2 phase=1.166667 pos=5.506175,0.281595,-1.889700 yaw=3.604529
+DRAW_ACTOR view=1 actor=1 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=0 phase=0.766667 pos=5.990159,0.285603,-1.925606 yaw=3.580794
+DRAW_ACTOR view=1 actor=2 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=60.000 clip=1 phase=0.300000 pos=6.793937,0.285569,-1.756818 yaw=3.522052
+DRAW_ACTOR view=1 actor=3 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=4 phase=0.366667 pos=5.692625,0.211351,-0.454360 yaw=6.977153
+DRAW_ACTOR view=1 actor=4 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.700000 pos=4.247070,0.231515,-0.996238 yaw=3.508841
+DRAW_ACTOR view=1 actor=5 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.366667 pos=6.600137,0.240761,-0.247115 yaw=3.350673
+DRAW_ACTOR view=1 actor=6 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=0.000 clip=4 phase=1.766666 pos=7.403184,0.267567,-0.869581 yaw=0.213353
+DRAW_ACTOR view=1 actor=7 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=2 phase=0.166667 pos=6.028472,0.178670,1.162192 yaw=3.171222
+DRAW_ACTOR view=1 actor=8 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=36.000 clip=1 phase=0.366667 pos=5.755589,0.139669,2.241008 yaw=3.221544
+DRAW_ACTOR view=1 actor=9 kind=0 lod=1 body=784 gun=0 batches=14 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=0.000 clip=3 phase=1.933333 pos=4.893593,0.090287,2.446948 yaw=3.221635
+DRAW_ACTOR view=1 actor=10 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=30.000 clip=0 phase=0.433333 pos=4.932094,0.102265,2.012452 yaw=3.560443
+DRAW_ACTOR view=1 actor=11 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=0 phase=0.800000 pos=6.466862,0.152953,3.262306 yaw=3.076751
+DRAW_CATEGORY view=1 category=covenant vertices=12340 triangles=7388
+DRAW_CATEGORY view=1 category=players vertices=856 triangles=748
+DRAW_CATEGORY view=1 category=pickups vertices=112 triangles=104
+DRAW_CATEGORY view=1 category=effects vertices=44 triangles=22
+DRAW_CATEGORY view=1 category=firstperson vertices=516 triangles=408
+DRAW_CAMERA view=2 x=0 y=120 width=160 height=120 eye=-0.966807,0.697591,2.779621 yaw=0.129278 pitch=-0.029465 hp=96.961
+DRAW_CATEGORY view=2 category=world vertices=1432 triangles=1198
+DRAW_CATEGORY view=2 category=vehicles vertices=0 triangles=0
+DRAW_ACTOR view=2 actor=0 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=2 phase=1.166667 pos=5.506175,0.281595,-1.889700 yaw=3.604529
+DRAW_ACTOR view=2 actor=1 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=0 phase=0.766667 pos=5.990159,0.285603,-1.925606 yaw=3.580794
+DRAW_ACTOR view=2 actor=2 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=60.000 clip=1 phase=0.300000 pos=6.793937,0.285569,-1.756818 yaw=3.522052
+DRAW_ACTOR view=2 actor=3 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=4 phase=0.366667 pos=5.692625,0.211351,-0.454360 yaw=6.977153
+DRAW_ACTOR view=2 actor=4 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.700000 pos=4.247070,0.231515,-0.996238 yaw=3.508841
+DRAW_ACTOR view=2 actor=5 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.366667 pos=6.600137,0.240761,-0.247115 yaw=3.350673
+DRAW_ACTOR view=2 actor=6 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=0.000 clip=4 phase=1.766666 pos=7.403184,0.267567,-0.869581 yaw=0.213353
+DRAW_ACTOR view=2 actor=7 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=2 phase=0.166667 pos=6.028472,0.178670,1.162192 yaw=3.171222
+DRAW_ACTOR view=2 actor=8 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=36.000 clip=1 phase=0.366667 pos=5.755589,0.139669,2.241008 yaw=3.221544
+DRAW_ACTOR view=2 actor=9 kind=0 lod=1 body=784 gun=0 batches=14 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=0.000 clip=3 phase=1.933333 pos=4.893593,0.090287,2.446948 yaw=3.221635
+DRAW_ACTOR view=2 actor=10 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=30.000 clip=0 phase=0.433333 pos=4.932094,0.102265,2.012452 yaw=3.560443
+DRAW_ACTOR view=2 actor=11 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=0 phase=0.800000 pos=6.466862,0.152953,3.262306 yaw=3.076751
+DRAW_CATEGORY view=2 category=covenant vertices=12340 triangles=7388
+DRAW_CATEGORY view=2 category=players vertices=294 triangles=420
+DRAW_CATEGORY view=2 category=pickups vertices=112 triangles=104
+DRAW_CATEGORY view=2 category=effects vertices=28 triangles=14
+DRAW_CATEGORY view=2 category=firstperson vertices=516 triangles=408
+DRAW_CAMERA view=3 x=160 y=120 width=160 height=120 eye=-1.473359,0.720488,2.610625 yaw=0.093074 pitch=-0.030939 hp=100.000
+DRAW_CATEGORY view=3 category=world vertices=1498 triangles=1254
+DRAW_CATEGORY view=3 category=vehicles vertices=0 triangles=0
+DRAW_ACTOR view=3 actor=0 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=2 phase=1.166667 pos=5.506175,0.281595,-1.889700 yaw=3.604529
+DRAW_ACTOR view=3 actor=1 kind=3 lod=1 body=1464 gun=0 batches=29 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=270.000 clip=0 phase=0.766667 pos=5.990159,0.285603,-1.925606 yaw=3.580794
+DRAW_ACTOR view=3 actor=2 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=60.000 clip=1 phase=0.300000 pos=6.793937,0.285569,-1.756818 yaw=3.522052
+DRAW_ACTOR view=3 actor=3 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=4 phase=0.366667 pos=5.692625,0.211351,-0.454360 yaw=6.977153
+DRAW_ACTOR view=3 actor=4 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.700000 pos=4.247070,0.231515,-0.996238 yaw=3.508841
+DRAW_ACTOR view=3 actor=5 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=28.000 clip=1 phase=0.366667 pos=6.600137,0.240761,-0.247115 yaw=3.350673
+DRAW_ACTOR view=3 actor=6 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=0.000 clip=4 phase=1.766666 pos=7.403184,0.267567,-0.869581 yaw=0.213353
+DRAW_ACTOR view=3 actor=7 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=2 phase=0.166667 pos=6.028472,0.178670,1.162192 yaw=3.171222
+DRAW_ACTOR view=3 actor=8 kind=0 lod=1 body=784 gun=136 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=36.000 clip=1 phase=0.366667 pos=5.755589,0.139669,2.241008 yaw=3.221544
+DRAW_ACTOR view=3 actor=9 kind=0 lod=1 body=784 gun=0 batches=14 body_in=1 gun_in=0 gun_far=0 far_gun=0 hp=0.000 clip=3 phase=1.933333 pos=4.893593,0.090287,2.446948 yaw=3.221635
+DRAW_ACTOR view=3 actor=10 kind=2 lod=1 body=920 gun=136 batches=17 body_in=1 gun_in=1 gun_far=1 far_gun=82 hp=30.000 clip=0 phase=0.433333 pos=4.932094,0.102265,2.012452 yaw=3.560443
+DRAW_ACTOR view=3 actor=11 kind=1 lod=1 body=776 gun=124 batches=14 body_in=1 gun_in=1 gun_far=1 far_gun=72 hp=120.000 clip=0 phase=0.800000 pos=6.466862,0.152953,3.262306 yaw=3.076751
+DRAW_CATEGORY view=3 category=covenant vertices=12340 triangles=7388
+DRAW_CATEGORY view=3 category=players vertices=856 triangles=748
+DRAW_CATEGORY view=3 category=pickups vertices=112 triangles=104
+DRAW_CATEGORY view=3 category=effects vertices=44 triangles=22
+DRAW_CATEGORY view=3 category=firstperson vertices=516 triangles=408
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+DRAW_TIMING view=0 category=world submit_us=1721 remaining_rsp_us=3019 span_us=4740
+DRAW_TIMING view=0 category=vehicles submit_us=6 remaining_rsp_us=23 span_us=29
+DRAW_TIMING view=0 category=covenant submit_us=131 remaining_rsp_us=21189 span_us=21320
+DRAW_TIMING view=0 category=players submit_us=2682 remaining_rsp_us=592 span_us=3274
+DRAW_TIMING view=0 category=pickups submit_us=118 remaining_rsp_us=361 span_us=479
+DRAW_TIMING view=0 category=effects submit_us=924 remaining_rsp_us=889 span_us=1813
+DRAW_TIMING view=0 category=firstperson submit_us=2837 remaining_rsp_us=1241 span_us=4078
+DRAW_TIMING view=1 category=world submit_us=1428 remaining_rsp_us=3634 span_us=5062
+DRAW_TIMING view=1 category=vehicles submit_us=5 remaining_rsp_us=23 span_us=28
+DRAW_TIMING view=1 category=covenant submit_us=129 remaining_rsp_us=21815 span_us=21944
+DRAW_TIMING view=1 category=players submit_us=2477 remaining_rsp_us=1698 span_us=4175
+DRAW_TIMING view=1 category=pickups submit_us=113 remaining_rsp_us=442 span_us=555
+DRAW_TIMING view=1 category=effects submit_us=1047 remaining_rsp_us=940 span_us=1987
+DRAW_TIMING view=1 category=firstperson submit_us=2888 remaining_rsp_us=1426 span_us=4314
+DRAW_TIMING view=2 category=world submit_us=1496 remaining_rsp_us=3441 span_us=4937
+DRAW_TIMING view=2 category=vehicles submit_us=6 remaining_rsp_us=22 span_us=28
+DRAW_TIMING view=2 category=covenant submit_us=130 remaining_rsp_us=21887 span_us=22017
+DRAW_TIMING view=2 category=players submit_us=61 remaining_rsp_us=583 span_us=644
+DRAW_TIMING view=2 category=pickups submit_us=114 remaining_rsp_us=445 span_us=559
+DRAW_TIMING view=2 category=effects submit_us=852 remaining_rsp_us=893 span_us=1745
+DRAW_TIMING view=2 category=firstperson submit_us=2667 remaining_rsp_us=1405 span_us=4072
+DRAW_TIMING view=3 category=world submit_us=1514 remaining_rsp_us=3626 span_us=5140
+DRAW_TIMING view=3 category=vehicles submit_us=5 remaining_rsp_us=23 span_us=28
+DRAW_TIMING view=3 category=covenant submit_us=372 remaining_rsp_us=21778 span_us=22150
+DRAW_TIMING view=3 category=players submit_us=65 remaining_rsp_us=1677 span_us=1742
+DRAW_TIMING view=3 category=pickups submit_us=113 remaining_rsp_us=443 span_us=556
+DRAW_TIMING view=3 category=effects submit_us=1045 remaining_rsp_us=931 span_us=1976
+DRAW_TIMING view=3 category=firstperson submit_us=2820 remaining_rsp_us=1472 span_us=4292
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+PHASE camera=4636 anim=8424 matrix=91 world=6103 objects=5180 fp=1722 hud=4947 audio=46096 overlay=4 present=240908 queue=0 tracks=1104 corners=2016 frame_avg=583245 frame_min=429324 frame_p95=737166 frame_max=737166 samples=2
+PVE tick=60 count=12 ai_us=0 move_us=0 pve_render_us=1659
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=11 arriving=0 ship=0 projectiles=0 lives=10 score=18
+NAV tick=60 us=0 total_us=17273 max_us=5794 requests=32 ready=301 shared=328 fields=5 evictions=0 searches=89 expanded=275 committed=262 work=626 max_work=256 completed=31 wait_ticks=33 max_wait=2
+PVE_PHASE sim=112 prep=4764 draw=109357 rsp_wait=78233 rdp_wait=32 vertices=54282
+PERF views=4 fps=2 triangles=34218 free=911856 audio=1 p1=(-1.03 0.12 1.37)
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+PHASE camera=4516 anim=8440 matrix=100 world=6007 objects=4873 fp=1729 hud=5220 audio=49373 overlay=3 present=239599 queue=0 tracks=1104 corners=2016 frame_avg=447630 frame_min=355223 frame_p95=737166 frame_max=737166 samples=5
+PVE tick=60 count=12 ai_us=0 move_us=0 pve_render_us=1570
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=11 arriving=0 ship=0 projectiles=0 lives=10 score=18
+NAV tick=60 us=0 total_us=17273 max_us=5794 requests=32 ready=301 shared=328 fields=5 evictions=0 searches=89 expanded=275 committed=262 work=626 max_work=256 completed=31 wait_ticks=33 max_wait=2
+PVE_PHASE sim=112 prep=4652 draw=116020 rsp_wait=85796 rdp_wait=33 vertices=56538
+PERF views=4 fps=2 triangles=36726 free=911856 audio=1 p1=(-1.03 0.12 1.37)
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+PHASE camera=4705 anim=8491 matrix=91 world=6079 objects=4931 fp=1722 hud=5278 audio=48552 overlay=4 present=239149 queue=0 tracks=1104 corners=2016 frame_avg=414982 frame_min=355223 frame_p95=737166 frame_max=737166 samples=8
+PVE tick=60 count=12 ai_us=0 move_us=0 pve_render_us=1694
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=11 arriving=0 ship=0 projectiles=0 lives=10 score=18
+NAV tick=60 us=0 total_us=17273 max_us=5794 requests=32 ready=301 shared=328 fields=5 evictions=0 searches=89 expanded=275 committed=262 work=626 max_work=256 completed=31 wait_ticks=33 max_wait=2
+PVE_PHASE sim=112 prep=4833 draw=114975 rsp_wait=84501 rdp_wait=31 vertices=55914
+PERF views=4 fps=2 triangles=36398 free=911856 audio=1 p1=(-1.03 0.12 1.37)
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+PHASE camera=4516 anim=8525 matrix=100 world=6093 objects=4896 fp=1733 hud=5190 audio=49868 overlay=4 present=240768 queue=0 tracks=1104 corners=2016 frame_avg=400212 frame_min=355223 frame_p95=737166 frame_max=737166 samples=11
+PVE tick=60 count=12 ai_us=0 move_us=0 pve_render_us=1570
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=11 arriving=0 ship=0 projectiles=0 lives=10 score=18
+NAV tick=60 us=0 total_us=17273 max_us=5794 requests=32 ready=301 shared=328 fields=5 evictions=0 searches=89 expanded=275 committed=262 work=626 max_work=256 completed=31 wait_ticks=33 max_wait=2
+PVE_PHASE sim=113 prep=4651 draw=117546 rsp_wait=87266 rdp_wait=31 vertices=57002
+PERF views=4 fps=2 triangles=37402 free=911856 audio=1 p1=(-1.03 0.12 1.37)
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+PHASE camera=4605 anim=8460 matrix=90 world=6133 objects=4951 fp=2042 hud=5069 audio=51979 overlay=4 present=240920 queue=0 tracks=1104 corners=2016 frame_avg=392113 frame_min=355223 frame_p95=737166 frame_max=737166 samples=14
+PVE tick=60 count=12 ai_us=0 move_us=0 pve_render_us=1658
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=11 arriving=0 ship=0 projectiles=0 lives=10 score=18
+NAV tick=60 us=0 total_us=17273 max_us=5794 requests=32 ready=301 shared=328 fields=5 evictions=0 searches=89 expanded=275 committed=262 work=626 max_work=256 completed=31 wait_ticks=33 max_wait=2
+PVE_PHASE sim=113 prep=4732 draw=121461 rsp_wait=90818 rdp_wait=31 vertices=60138
+PERF views=4 fps=2 triangles=38770 free=911856 audio=1 p1=(-1.03 0.12 1.37)
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+FF_PHOTO_BEGIN tick=60 width=320 height=240 format=RGBA5551
+FF_PHOTO_END
+PHASE camera=4600 anim=8536 matrix=99 world=5983 objects=4914 fp=1728 hud=5195 audio=52359 overlay=3 present=746 queue=0 tracks=1104 corners=2016 frame_avg=387101 frame_min=355223 frame_p95=737166 frame_max=737166 samples=17
+PVE tick=60 count=12 ai_us=0 move_us=0 pve_render_us=1560
+FF_STATE phase=3 round=1 wave=1 living=4 enemies=11 arriving=0 ship=0 projectiles=0 lives=10 score=18
+NAV tick=60 us=0 total_us=17273 max_us=5794 requests=32 ready=301 shared=328 fields=5 evictions=0 searches=89 expanded=275 committed=262 work=626 max_work=256 completed=31 wait_ticks=33 max_wait=2
+PVE_PHASE sim=113 prep=4735 draw=122029 rsp_wait=91801 rdp_wait=31 vertices=60138
+PERF views=4 fps=2 triangles=38770 free=911856 audio=0 p1=(-1.03 0.12 1.37)

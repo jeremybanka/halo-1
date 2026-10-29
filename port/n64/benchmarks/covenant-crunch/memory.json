@@ -1,0 +1,66 @@
+{
+  "previous": {
+    "elf": "build/firefight-preparation/matrix/candidate-perf-4/halo-64-render-candidate-pve-model-candidate-profile.elf",
+    "sections": {
+      ".text": 591536,
+      ".data": 554968,
+      ".bss": 1403848
+    },
+    "symbols": {
+      "pve_pose_owner": 26,
+      "pve_frame_keys": 96,
+      "pve_alpha_blocks": 208,
+      "pve_blocks": 208,
+      "pve_vertices": 208
+    }
+  },
+  "baseline": {
+    "elf": "build/covenant-crunch/perf/baseline-perf-4/halo-64-render-candidate-pve-model-candidate-profile.elf",
+    "sections": {
+      ".text": 591344,
+      ".data": 573704,
+      ".bss": 1404344
+    },
+    "symbols": {
+      "pve_pose_owner": 39,
+      "pve_frame_keys": 144,
+      "pve_alpha_blocks": 312,
+      "pve_blocks": 312,
+      "pve_vertices": 312
+    }
+  },
+  "candidate": {
+    "elf": "build/covenant-crunch/perf/candidate-perf-4/halo-64-render-candidate-pve-model-candidate-profile.elf",
+    "sections": {
+      ".text": 593072,
+      ".data": 573704,
+      ".bss": 1404536
+    },
+    "symbols": {
+      "pve_pose_owner": 39,
+      "pve_frame_keys": 144,
+      "pve_crunch_states": 192,
+      "pve_alpha_blocks": 312,
+      "pve_blocks": 312,
+      "pve_vertices": 312,
+      "bg_pve_crunch_bounds": 1152
+    }
+  },
+  "playable": {
+    "elf": "build/covenant-crunch/playable/halo-64-render-candidate-pve-model-candidate-firefight-paced30-rspq32k.elf",
+    "sections": {
+      ".text": 584816,
+      ".data": 573712,
+      ".bss": 1404648
+    },
+    "symbols": {
+      "pve_pose_owner": 39,
+      "pve_frame_keys": 144,
+      "pve_crunch_states": 192,
+      "pve_alpha_blocks": 312,
+      "pve_blocks": 312,
+      "pve_vertices": 312,
+      "bg_pve_crunch_bounds": 1152
+    }
+  }
+}

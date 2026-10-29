@@ -40,6 +40,8 @@ def parse_args(argv=None):
     parser.add_argument("--collision-baseline",action="store_true",help="Profiling-only pre-acceleration collision control")
     parser.add_argument("--pve-prep-profile",action="store_true",help="NPC preparation service and reuse counters")
     parser.add_argument("--pve-prep-baseline",action="store_true",help="Diagnostic pre-reuse NPC preparation control")
+    parser.add_argument("--pve-crunch",action="store_true",help="Opt-in three-tier small-screen Covenant bank")
+    parser.add_argument("--pve-crunch-baseline",action="store_true",help="With --pve-crunch, retain original body/gun LOD selection for matched checks")
     parser.add_argument("--pve-draw-audit",action="store_true",help="Frozen per-camera submission and omission-pixel audit; never a performance build")
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
@@ -316,6 +318,11 @@ def parse_args(argv=None):
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
     args = parser.parse_args(argv)
+    if args.pve_crunch_baseline and not args.pve_crunch:parser.error('--pve-crunch-baseline requires --pve-crunch')
+    if args.pve_crunch and not args.pve_model_bank:parser.error('--pve-crunch requires a three-tier --pve-model-bank')
+    if args.pve_model_bank:
+        report=json.loads((args.pve_model_bank/'pve-report.json').read_text())
+        if report.get('lod_count',2)!=(3 if args.pve_crunch else 2):parser.error('PvE bank tier count does not match --pve-crunch')
     if args.collision_profile and not (args.profile and args.pve_squad):parser.error('--collision-profile requires --profile --pve-squad')
     if args.collision_baseline and not args.collision_profile:parser.error('--collision-baseline requires --collision-profile')
     if args.pve_prep_profile and not (args.profile and args.pve_squad):parser.error('--pve-prep-profile requires --profile --pve-squad')
@@ -489,6 +496,8 @@ def compile_options(args, sdk, tiny, out, source):
     return [
         *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
         *(["-DBG_PVE_MODEL_CANDIDATE"] if args.pve_model_bank else []),
+        *(["-DBG_PVE_CRUNCH"] if args.pve_crunch else []),
+        *(["-DBG_PVE_CRUNCH_BASELINE"] if args.pve_crunch_baseline else []),
         *(["-DBG_PVE_MODEL_QA"] if args.pve_model_qa else []),
         *(["-DBG_PVE_DRAW_AUDIT"] if args.pve_draw_audit else []),
         *(["-DBG_FIREFIGHT"] if args.firefight else []),

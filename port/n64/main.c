@@ -36,6 +36,7 @@
 #include "destruction_qa.h"
 #endif
 #include "scene.h"
+#include "pve_prepare_profile.h"
 #include "presentation.h"
 #include "residency.h"
 #include "asset_interaction.h"
@@ -1578,6 +1579,9 @@ int main(void) {
             }
             debugf("NAV tick=%u us=%u total_us=%u max_us=%u requests=%u ready=%u shared=%u fields=%u evictions=%u searches=%u expanded=%u committed=%u work=%u max_work=%u completed=%u wait_ticks=%u max_wait=%u\n",bg_pve_tick_number,(unsigned)bg_pve_nav_us,bg_pve_navigation.service_us,bg_pve_navigation.max_us,bg_pve_navigation.requests,bg_pve_navigation.ready,bg_pve_navigation.shared,bg_pve_navigation.fields,bg_pve_navigation.evictions,bg_pve_navigation.searches,bg_pve_navigation.expanded,bg_pve_navigation.committed,bg_pve_navigation.work,bg_pve_navigation.max_work,bg_pve_navigation.completed,bg_pve_navigation.wait_ticks,bg_pve_navigation.max_wait);
             debugf("PVE_PHASE sim=%u prep=%u draw=%u rsp_wait=%u rdp_wait=%u vertices=%u\n",sim_us,prep_us,draw_us,geometry_rsp_us,geometry_rdp_us,bg_scene_profile.submitted_vertices);
+#ifdef BG_PVE_PREP_PROFILE
+            debugf("NPC_PREP visibility_us=%u buffers_us=%u matrices_us=%u motion_us=%u decode_us=%u scatter_us=%u writeback_us=%u grip_us=%u ship_us=%u pose_requests=%u pose_hits=%u shared_poses=%u pair_requests=%u pair_hits=%u dma_bytes=%u\n",bg_pve_prepare_profile.visibility_us,bg_pve_prepare_profile.buffers_us,bg_pve_prepare_profile.matrices_us,bg_pve_prepare_profile.motion_us,bg_pve_prepare_profile.decode_us,bg_pve_prepare_profile.scatter_us,bg_pve_prepare_profile.writeback_us,bg_pve_prepare_profile.grip_us,bg_pve_prepare_profile.ship_us,bg_pve_prepare_profile.pose_requests,bg_pve_prepare_profile.pose_hits,bg_pve_prepare_profile.shared_poses,bg_pve_prepare_profile.pair_requests,bg_pve_prepare_profile.pair_hits,bg_pve_prepare_profile.dma_bytes);
+#endif
 #endif
             debugf("PERF views=%u fps=%u triangles=%u free=%d audio=%d p1=(%.2f %.2f %.2f)\n",
                    views, fps, triangles, heap.total - heap.used, audio_can_write(),

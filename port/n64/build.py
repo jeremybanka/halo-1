@@ -38,6 +38,8 @@ def parse_args(argv=None):
     parser.add_argument("--pve-model-bank",type=Path,help="Isolated Covenant visual-bank candidate; simulation assets stay canonical")
     parser.add_argument("--collision-profile",action="store_true",help="Per-tick Firefight collision/service diagnostics")
     parser.add_argument("--collision-baseline",action="store_true",help="Profiling-only pre-acceleration collision control")
+    parser.add_argument("--pve-prep-profile",action="store_true",help="NPC preparation service and reuse counters")
+    parser.add_argument("--pve-prep-baseline",action="store_true",help="Diagnostic pre-reuse NPC preparation control")
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
@@ -315,6 +317,8 @@ def parse_args(argv=None):
     args = parser.parse_args(argv)
     if args.collision_profile and not (args.profile and args.pve_squad):parser.error('--collision-profile requires --profile --pve-squad')
     if args.collision_baseline and not args.collision_profile:parser.error('--collision-baseline requires --collision-profile')
+    if args.pve_prep_profile and not (args.profile and args.pve_squad):parser.error('--pve-prep-profile requires --profile --pve-squad')
+    if args.pve_prep_baseline and not (args.pve_squad and (args.pve_prep_profile or args.pve_model_qa)):parser.error('--pve-prep-baseline requires NPC preparation profiling or model QA')
     if args.firefight_photo and not args.firefight_qa:parser.error("--firefight-photo requires --firefight-qa")
     if args.firefight_qa:
         args.firefight=True;args.frontend_qa=args.firefight_qa
@@ -587,6 +591,8 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_SPARTAN_MOTION_QA"] if args.spartan_motion_qa else []),
         *(["-DBG_COLLISION_PROFILE"] if args.collision_profile else []),
         *(["-DBG_COLLISION_BASELINE"] if args.collision_baseline else []),
+        *(["-DBG_PVE_PREP_PROFILE"] if args.pve_prep_profile else []),
+        *(["-DBG_PVE_PREP_BASELINE"] if args.pve_prep_baseline else []),
         *(["-DBG_SPARTAN_RELOAD_QA"] if args.spartan_reload_qa else []),
         *(["-DBG_ENVIRONMENT_QA"] if args.environment_qa else []),
         *(["-DBG_GROUND_QA"] if args.ground_qa else []),

@@ -44,7 +44,12 @@ static void pve_prepare_ship_candidate(void){
         if(pve_pose_keys[slot][i][lod]==key)continue;
         pve_pose_keys[slot][i][lod]=key;
         const uint16_t*samples=pve_motion_pair(c,f0,f1);T3DVertPacked*out=CachedAddr(pve_vertices[slot][i][lod]);
+#ifdef BG_PVE_PREP_BASELINE
         for(unsigned v=0;v<c->vertices;v++){int16_t*pos=v&1?out[v/2].posB:out[v/2].posA;unsigned track=c->indices[v];for(unsigned axis=0;axis<3;axis++){int a=samples[track*3+axis],b=samples[((f1-f0)*c->tracks+track)*3+axis];pos[axis]=c->origin[axis]+a+((b-a)*mix>>8);}}
+#else
+        bg_pve_motion_decode(pve_decoded,c->tracks,samples,samples+(f1-f0)*c->tracks*3,c->origin,mix);
+        bg_motion_scatter(out,c->vertices,c->indices,pve_decoded);
+#endif
         data_cache_hit_writeback(out,m->vertex_count*16);
     }
 }
@@ -58,7 +63,11 @@ static void pve_draw_alpha(unsigned view){
         if(block){t3d_matrix_set(&pve_matrices[slot][BG_PVE_MAX],true);rspq_block_run(block);}
     }
     for(unsigned i=0;i<bg_pve_count;i++)if(pve_lods[view][i]){
-        rspq_block_t*block=pve_alpha_blocks[slot][i][pve_lods[view][i]-1];
+        unsigned lod=pve_lods[view][i]-1,owner=i;
+#ifndef BG_PVE_PREP_BASELINE
+        owner=pve_pose_owner[i][lod];
+#endif
+        rspq_block_t*block=pve_alpha_blocks[slot][owner][lod];
         if(block){t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(block);}
     }
     rdpq_mode_blender(0);rdpq_mode_zbuf(true,true);

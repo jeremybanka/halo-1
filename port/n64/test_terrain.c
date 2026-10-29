@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+bg_player bg_players[BG_UNITS];
 static float floor_p[3][3]={{-10,0,-10},{10,0,-10},{0,0,10}};
 static float roof_p[3][3]={{-10,3,-10},{10,3,-10},{0,3,10}};
 static float wall_p[3][3]={{1,-10,-10},{1,10,-10},{1,0,10}};

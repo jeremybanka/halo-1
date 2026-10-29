@@ -33,6 +33,8 @@ VARIANTS = {
     ],
     "body-flat": ["--preset", "release", "--no-vehicle-body-candidates"],
     "profile": ["--profile"],
+    "collision": ["--profile", "--pve-squad", "--collision-profile"],
+    "collision-baseline": ["--profile", "--pve-squad", "--collision-profile", "--collision-baseline"],
     "benchmark": ["--benchmark", "--paced30"],
     "quiet": ["--vi-benchmark", "--preset", "release"],
     "buffers4": ["--vi-benchmark", "--paced30", "--paced30-buffers", "4"],

@@ -36,6 +36,8 @@ def parse_args(argv=None):
     parser.add_argument("--pve-photo-tick",type=int)
     parser.add_argument("--pve-model-qa",action="store_true",help="Native four-angle Covenant model audit")
     parser.add_argument("--pve-model-bank",type=Path,help="Isolated Covenant visual-bank candidate; simulation assets stay canonical")
+    parser.add_argument("--collision-profile",action="store_true",help="Per-tick Firefight collision/service diagnostics")
+    parser.add_argument("--collision-baseline",action="store_true",help="Profiling-only pre-acceleration collision control")
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
@@ -311,6 +313,8 @@ def parse_args(argv=None):
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
     args = parser.parse_args(argv)
+    if args.collision_profile and not (args.profile and args.pve_squad):parser.error('--collision-profile requires --profile --pve-squad')
+    if args.collision_baseline and not args.collision_profile:parser.error('--collision-baseline requires --collision-profile')
     if args.firefight_photo and not args.firefight_qa:parser.error("--firefight-photo requires --firefight-qa")
     if args.firefight_qa:
         args.firefight=True;args.frontend_qa=args.firefight_qa
@@ -437,8 +441,8 @@ def parse_args(argv=None):
             parser.error(
                 "--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds"
             )
-    if args.gpu_diagnostic and not args.benchmark:
-        parser.error("--gpu-diagnostic requires --benchmark")
+    if args.gpu_diagnostic and not (args.benchmark or args.collision_profile):
+        parser.error("--gpu-diagnostic requires --benchmark or --collision-profile")
     if args.gpu_empty_scissor and not (args.gpu_diagnostic and args.benchmark):
         parser.error("--gpu-empty-scissor requires --benchmark --gpu-diagnostic")
     if args.gpu_minimal_attributes and not args.gpu_empty_scissor:
@@ -581,6 +585,8 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_PLASMA_QA=" + str(args.plasma_qa)] if args.plasma_qa is not None else []),
         *(["-DBG_WEAPON_QA"] if args.weapon_qa else []),
         *(["-DBG_SPARTAN_MOTION_QA"] if args.spartan_motion_qa else []),
+        *(["-DBG_COLLISION_PROFILE"] if args.collision_profile else []),
+        *(["-DBG_COLLISION_BASELINE"] if args.collision_baseline else []),
         *(["-DBG_SPARTAN_RELOAD_QA"] if args.spartan_reload_qa else []),
         *(["-DBG_ENVIRONMENT_QA"] if args.environment_qa else []),
         *(["-DBG_GROUND_QA"] if args.ground_qa else []),

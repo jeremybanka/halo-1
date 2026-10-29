@@ -1,4 +1,5 @@
 #include "telemetry.h"
+#include "collision_profile.h"
 #include "blam/vehicle_physics.h"
 #include "blam/vehicle_profile.h"
 #include "game.h"
@@ -33,6 +34,9 @@ const bg_teleporter bg_teleporters[2] = {
     {{-27.943108f, 1.814917f, -35.083984f}, {-24.204594f, .241005f, 8.231079f}, -.162618f},
 };
 const unsigned bg_teleporter_count = 2;
+#endif
+#ifdef BG_COLLISION_PROFILE
+bg_collision_profile_data bg_collision_profile;
 #endif
 bg_player bg_players[BG_UNITS];
 static bg_shot_trace sniper_traces[BG_PLAYERS];
@@ -2621,6 +2625,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     dt = clamp(dt, 0, 1.0f / 30);
     if (dt <= 0 || bg_match_finished())
         return;
+    uint32_t collision_begin=BG_COLLISION_NOW(),collision_section=collision_begin;
     match_time += dt;
 #if defined(N64) && defined(BG_PROFILE)
     uint32_t tick_begin = get_ticks_us();
@@ -2628,6 +2633,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
 #ifdef BG_PVE
     bg_ff_tick(dt);
 #endif
+    BG_COLLISION_COUNT(director_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
     update_pickups(dt);
     for (unsigned i = 0; i < active_players; i++) {
         bg_player *p = &bg_players[i];
@@ -2657,7 +2663,9 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
         bg_tick_profile[0] += get_ticks_us() - tick_begin;
         tick_begin = get_ticks_us();
 #endif
+        BG_COLLISION_COUNT(humans_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
         update_vehicles(inputs, dt);
+        BG_COLLISION_COUNT(vehicles_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
 #if defined(N64) && defined(BG_PROFILE)
         bg_tick_profile[1] += get_ticks_us() - tick_begin;
         tick_begin = get_ticks_us();
@@ -2665,7 +2673,9 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
 #ifdef BG_PVE
         bg_pve_tick(dt);
 #endif
+        BG_COLLISION_COUNT(actors_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
         update_projectiles(dt);
+        BG_COLLISION_COUNT(projectiles_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
         mode_tick(dt);
 #ifdef BG_PVE
         bg_ff_after_tick(dt);
@@ -2676,4 +2686,15 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     }
     /* game_time_update increments its tick counter after game_tick returns. */
     mode_advance_spawn_clock(dt);
+    BG_COLLISION_COUNT(after_us,BG_COLLISION_NOW()-collision_section);
+#if defined(BG_COLLISION_PROFILE) && defined(N64) && defined(BG_PVE)
+    uint32_t elapsed=BG_COLLISION_NOW()-collision_begin;
+    bg_collision_profile.tick_us+=elapsed;
+    if(elapsed>bg_collision_profile.max_tick_us)bg_collision_profile.max_tick_us=elapsed;
+    if(++bg_collision_profile.ticks==30){
+        debugf("COLLISION tick=%u ticks=%u tick_us=%u max_tick_us=%u director_us=%u humans_us=%u vehicles_us=%u actors_us=%u projectiles_us=%u after_us=%u terrain_us=%u terrain_queries=%u terrain_hits=%u terrain_misses=%u terrain_overflows=%u terrain_actor_overflows=%u terrain_candidates=%u hit_us=%u hit_queries=%u hit_pose_builds=%u hit_available=%u hit_triangles=%u hit_groups=%u hit_rejected=%u hit_root_rejected=%u\n",bg_pve_tick_number,bg_collision_profile.ticks,bg_collision_profile.tick_us,bg_collision_profile.max_tick_us,bg_collision_profile.director_us,bg_collision_profile.humans_us,bg_collision_profile.vehicles_us,bg_collision_profile.actors_us,bg_collision_profile.projectiles_us,bg_collision_profile.after_us,bg_collision_profile.terrain_us,bg_collision_profile.terrain_queries,bg_collision_profile.terrain_hits,bg_collision_profile.terrain_misses,bg_collision_profile.terrain_overflows,bg_collision_profile.terrain_actor_overflows,bg_collision_profile.terrain_candidates,bg_collision_profile.hit_us,bg_collision_profile.hit_queries,bg_collision_profile.hit_pose_builds,bg_collision_profile.hit_available,bg_collision_profile.hit_triangles,bg_collision_profile.hit_groups,bg_collision_profile.hit_rejected,bg_collision_profile.hit_root_rejected);
+        memset(&bg_collision_profile,0,sizeof(bg_collision_profile));
+    }
+#endif
+    (void)collision_begin;(void)collision_section;
 }

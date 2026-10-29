@@ -207,3 +207,7 @@ CE behavior fidelity audit.
 
 The [navigation appraisal](FIREFIGHT_NAVIGATION.md) records the subsequent shared,
 budgeted route implementation and fresh paired ordinary/crowded 1–4P captures.
+
+The subsequent [collision appraisal](FIREFIGHT_COLLISION.md) adds per-actor
+terrain caches and conservative animated hit bounds, exact movement/hit oracles,
+and fresh paired 1–4P CPU profiles plus separate graphics-drain diagnostics.

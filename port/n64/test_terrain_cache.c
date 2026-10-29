@@ -3,6 +3,7 @@
 #include "terrain.c"
 #include <assert.h>
 #include <stdio.h>
+bg_player bg_players[BG_UNITS];
 static uint32_t seed=1234567;
 static float rand01(void){seed=seed*1664525u+1013904223u;return (seed>>8)*(1.f/16777216);}
 int main(void){

@@ -322,11 +322,13 @@ def parse_args(argv=None):
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
     parser.add_argument('--enemy-vehicle-bank',type=Path,help='Owned CE enemy vehicle prototype bank')
     parser.add_argument('--enemy-vehicle-qa',action='store_true',help='Native vehicle/seat/hatch multi-angle inspection')
+    parser.add_argument('--vehicle-cost-audit',action='store_true',help='Isolated vehicle cost instrumentation; never a playable build')
     args = parser.parse_args(argv)
     if args.enemy_vehicle_qa:
         if not args.enemy_vehicle_bank:parser.error('--enemy-vehicle-qa requires --enemy-vehicle-bank')
         args.pve_model_qa=True
     if args.enemy_vehicle_bank and not (args.pve_roster and (args.firefight or args.pve_squad)):parser.error('--enemy-vehicle-bank requires roster and PvE')
+    if args.vehicle_cost_audit and not (args.enemy_vehicle_bank and args.pve_squad and args.profile and args.collision_profile and args.output_dir and args.pve_qa in (8,9) and not (args.pve_draw_audit or args.scene_source or args.game_source or args.feature_cache_slots or args.pve_model_qa or args.benchmark or args.vi_benchmark)):parser.error('--vehicle-cost-audit requires isolated enemy-vehicle QA8/9, --profile --collision-profile and no competing source/scene experiment')
     if args.pve_crunch_baseline and not args.pve_crunch:parser.error('--pve-crunch-baseline requires --pve-crunch')
     if args.pve_crunch and not args.pve_model_bank:parser.error('--pve-crunch requires a three-tier --pve-model-bank')
     if args.pve_model_bank:
@@ -472,7 +474,7 @@ def parse_args(argv=None):
             )
     if args.gpu_diagnostic and not (args.benchmark or args.collision_profile):
         parser.error("--gpu-diagnostic requires --benchmark or --collision-profile")
-    if args.gpu_empty_scissor and not (args.gpu_diagnostic and (args.benchmark or args.pve_draw_audit)):
+    if args.gpu_empty_scissor and not (args.gpu_diagnostic and (args.benchmark or args.pve_draw_audit or (args.vehicle_cost_audit and args.pve_photo_tick is not None))):
         parser.error("--gpu-empty-scissor requires --gpu-diagnostic and benchmark or frozen drawing audit")
     if args.gpu_minimal_attributes and not args.gpu_empty_scissor:
         parser.error("--gpu-minimal-attributes requires --gpu-empty-scissor")
@@ -521,6 +523,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_PVE_CRUNCH_BASELINE"] if args.pve_crunch_baseline else []),
         *(["-DBG_PVE_MODEL_QA"] if args.pve_model_qa else []),
         *(["-DBG_PVE_DRAW_AUDIT"] if args.pve_draw_audit else []),
+        *(["-DBG_VEHICLE_COST_AUDIT"] if args.vehicle_cost_audit else []),
         *(["-DBG_FIREFIGHT"] if args.firefight else []),
         *(["-DBG_FIREFIGHT_QA"] if args.firefight_qa else []),
         *(["-DBG_FIREFIGHT_QA_PHOTO="+str({"main":2,"join":5,"map":9}[args.firefight_photo])] if args.firefight_photo else []),
@@ -553,7 +556,7 @@ def compile_options(args, sdk, tiny, out, source):
         "-I" + str(tiny / "src"),
         "-I" + str(ROOT / "port/n64"),
         *(['-I' + str(ROOT / 'port/n64/blam')]
-          if args.feature_cache_slots and source.name == 'vehicle_physics.c' else []),
+          if (args.feature_cache_slots or args.vehicle_cost_audit) and source.name == 'vehicle_physics.c' else []),
         "-I" + str(out / "blam-core"),
         "-I" + str(out / "blam-vehicle"),
         *(
@@ -1196,6 +1199,13 @@ def main():
             target=out/name;target.write_text(source)
             original=ROOT/'port/n64'/name
             if original in runtime_sources:runtime_sources[runtime_sources.index(original)]=target
+    if args.vehicle_cost_audit:
+        from vehicle_cost_audit_source import generate
+        vehicle_audit_sources=generate(ROOT/'port/n64',args.pve_photo_tick is not None)
+        for name,source in vehicle_audit_sources.items():
+            target=out/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(source)
+            original=ROOT/'port/n64'/name
+            if original in runtime_sources:runtime_sources[runtime_sources.index(original)]=target
     if args.photo_walk_benchmark:
         from photo_tour_source import walking_benchmark_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
@@ -1388,6 +1398,9 @@ def main():
         return result.stdout.strip() if result.returncode == 0 else None
 
     manifest = {
+        "vehicle_cost_audit": ({"generator_sha256":hashlib.sha256((ROOT/'port/n64/vehicle_cost_audit_source.py').read_bytes()).hexdigest(),
+            "sources":{str(out/name):hashlib.sha256((out/name).read_bytes()).hexdigest() for name in vehicle_audit_sources}}
+            if args.vehicle_cost_audit else None),
         "preset": args.preset,
         "render_bank_experiment":override_info,
         "firefight": ({"required_ram_mib":8,"map_id":9,"players":[1,2,3,4],

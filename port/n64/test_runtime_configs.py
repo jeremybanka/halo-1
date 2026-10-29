@@ -91,6 +91,7 @@ def main():
         ["--pve-crunch", "--pve-squad"],
         ["--pve-crunch", "--pve-squad", "--pve-model-bank", "build/covenant-models/bank", "--output-dir", "build/covenant-crunch/config"],
         ["--pve-draw-audit"],
+        ["--vehicle-cost-audit"],
         ["--pve-draw-audit", "--pve-squad", "--profile", "--pve-photo-tick", "60"],
         ["--firefight", "--pve-model-bank", "build/covenant-models/bank"],
         ["--pve-model-bank", "build/covenant-models/bank", "--output-dir", "build/covenant-models/config"],
@@ -109,11 +110,13 @@ def main():
     parser.add_argument(
         "--prepared", type=Path, default=ROOT / "build/n64-validation/target/release"
     )
+    parser.add_argument("--sdk", type=Path, help="Installed SDK override for an isolated checkout")
+    parser.add_argument("--tiny3d", type=Path, help="Tiny3D override for an isolated checkout")
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     for name, flags in VARIANTS.items():
         options = parse_args(flags)
-        sdk, tiny = options.sdk.resolve(), options.tiny3d.resolve()
+        sdk, tiny = (args.sdk or options.sdk).resolve(), (args.tiny3d or options.tiny3d).resolve()
         for unit in ("main.c", "scene.c", "presentation.c", "runtime_qa.c"):
             source = ROOT / "port/n64" / unit
             subprocess.run(

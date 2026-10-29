@@ -213,3 +213,9 @@ delivers the mechanics; it does not meet four-player 30 FPS. The next
 performance pass should separate per-vehicle clearance/solver costs and
 bound the simultaneous expensive vehicles, alongside vehicle screen-size
 LOD work. Do not interpret lower polygon count as sufficient on its own.
+
+The follow-up [vehicle cost audit](PVE_VEHICLE_COSTS.md) now separates those
+costs with ten native diagnostic captures. It identifies oversized distant
+Wraith/Shade hulls and repeated clearance/firing queries as the strongest next
+targets. Its instrumentation and frozen omission views do not change the
+playable candidate or replace the timing matrix above.

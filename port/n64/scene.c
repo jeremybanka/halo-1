@@ -27,6 +27,7 @@ static void animate_objective(unsigned player,unsigned kind);
 #include "weapon_effects_draw.h"
 #include "vehicle_visuals.h"
 #include "render_animation.h"
+#include "player_aim.h"
 #include "animation_profile.h"
 #include "render_lod.h"
 #ifdef BG_WORLD_LOD
@@ -408,6 +409,9 @@ static void init_scene(void) {
                 motion_capacity = bg_fp_animations[weapon][clip].tracks;
     for(unsigned k=0;k<2;k++)for(unsigned clip=0;clip<BG_FP_CLIPS;clip++)
         if(bg_objective_fp_animations[k][clip].tracks>motion_capacity)motion_capacity=bg_objective_fp_animations[k][clip].tracks;
+    for (unsigned lod = 0; lod < 2; lod++)
+        if (bg_player_skins[lod].count > motion_capacity)
+            motion_capacity = bg_player_skins[lod].count;
     motion_tracks = malloc(motion_capacity * sizeof(*motion_tracks));
     assertf(motion_tracks, "Animation interpolation scratch allocation");
     bg_scene_load_world();
@@ -704,6 +708,8 @@ static void prepare_player_bounds(unsigned p) {
     float size = 1;
     float height_scale =
         !body_reloading[p] && locomotion_clip(player) < 0 ? bg_body_height(player) / bg_movement.height[0] : 1;
+    if (bg_player_uses_node_pose(player))
+        height_scale = 1; /* Crouching is already in the source skeleton. */
     T3DMat4 *body = &body_matrices[p];
     t3d_mat4_from_srt_euler(
         body, (float[]){size, height_scale, size}, (float[]){0, -body_yaw, -body_pitch},
@@ -750,6 +756,8 @@ static void prepare_player_bounds(unsigned p) {
             }
         }
     }
+    if (bg_player_uses_node_pose(player))
+        merged = bg_player_aim_bounds;
     bg_bounds box;
     bg_bounds_transform(&box, &merged, body->m, BG_SCALE);
     bg_bounds_quantize(&body_bounds[p], &box);
@@ -758,6 +766,8 @@ static void prepare_player_bounds(unsigned p) {
     bg_bounds marker = bg_attachment_cull_bounds[clip];
     if (seat || player->weapon_ready > 0 || locomotion >= 0 || body_firing[p] || body_reloading[p])
         marker = (bg_bounds){{-1, -1, -1}, {1, 1, 1}};
+    if (bg_player_uses_node_pose(player))
+        marker = bg_player_aim_bounds;
     bg_bounds_expand(&marker, bg_model_cull_radii[weapon_model(player->weapon)]);
     bg_bounds_transform(&box, &marker, body->m, BG_SCALE);
     bg_bounds_quantize(&held_bounds[p], &box);
@@ -829,10 +839,42 @@ static void animate_layered_player(unsigned p) {
         t3d_mat4_to_fixed_3x4(&held_matrices[slot][p], &world);
     }
 }
+static void animate_aimed_player(unsigned p) {
+    /* Reuse the existing CPU-only interpolation scratch. Frame-slot buffers
+     * still follow ensure_player_animation's single-write/fence contract. */
+    int16_t (*points)[3] = (int16_t (*)[3])motion_tracks;
+    for (unsigned lod = 0; lod < 2; lod++)
+        if (wanted_lods[p] & (1u << lod)) {
+            T3DVertPacked *out = CachedAddr(lod ? armor_lod[slot][p] : armor[slot][p]);
+            unsigned count = bg_player_skins[lod].count;
+            assertf(count <= motion_capacity, "Player skin scratch capacity");
+            bg_player_skin_points(p, lod, points);
+            for (unsigned i = 0; i < count; i++)
+                memcpy(t3d_vertbuffer_get_pos(out, i), points[i], sizeof(points[i]));
+            data_cache_hit_writeback(out, ((count + 1) & ~1u) * 16);
+        }
+    if (wanted_held & (1u << p)) {
+        bg_node_matrix marker;
+        bg_player_hand_transform(p, &marker);
+        T3DMat4 hand, world;
+        t3d_mat4_identity(&hand);
+        for (unsigned a = 0; a < 3; a++) {
+            hand.m[3][a] = marker.m[a][3] * BG_SCALE;
+            for (unsigned c = 0; c < 3; c++)
+                hand.m[c][a] = marker.m[a][c] * (BG_SCALE / BG_OBJECT_SCALE);
+        }
+        t3d_mat4_mul(&world, &body_matrices[p], &hand);
+        t3d_mat4_to_fixed_3x4(&held_matrices[slot][p], &world);
+    }
+}
 static void animate_player(unsigned p) {
     if (!wanted_lods[p] && !(wanted_held & (1u << p)))
         return;
     bg_player *player = &bg_players[p];
+    if (bg_player_uses_node_pose(player)) {
+        animate_aimed_player(p);
+        return;
+    }
     unsigned clip = body_clips[p];
     const bg_seat_definition *seat = bg_player_seat(player);
     bool ready = player->weapon_ready > 0;

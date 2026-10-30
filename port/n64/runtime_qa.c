@@ -24,6 +24,8 @@ static struct {
 #include "pve_model_qa.h"
 #elif defined(BG_SPARTAN_RELOAD_QA)
 #include "spartan_reload_qa.h"
+#elif defined(BG_PLAYER_AIM_QA)
+#include "player_aim_qa.h"
 #elif defined(BG_SPARTAN_MOTION_QA)
 #include "spartan_motion_qa.h"
 #elif defined(BG_MAP_QA)

@@ -1,5 +1,14 @@
 # Aiming, zoom and vehicle camera audit
 
+## Third-person player aim
+
+The on-foot Spartan now uses CE's standing/crouched aiming screens after
+locomotion and weapon action composition. The head, arms, held weapon, and
+animated hit surfaces follow vertical aim. The independent firing/reload/gait
+clocks from main are retained. Source details, native comparisons, performance,
+memory costs, limitations, and reproduction commands are recorded in
+[the player aiming audit](benchmarks/player-aim/README.md).
+
 ## Xbox rocket launcher
 
 The owned USA Rev 2 Blood Gulch cache has zero

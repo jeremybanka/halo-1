@@ -1,0 +1,10 @@
+2026-10-30 15:33:09.396 ares[61463:18929499] Resizing output buffers to 768, 576
+Loaded halo-64-replay-vi-benchmark-paced30-rspq32k
+Vulkan Enabled: using paraLLEl-RDP
+HALO N64 world=5468 textures=17 RAM=8388608 free=3879608
+[WARN]: Stalled compile (compute, 07455c1fc10ed781): thread 0 - 15058.583 us (mode: sync, success: yes).
+BENCH display_buffers=3 held_peak=2 live_heap_free_bytes=3759624 (whole-run peak including warmup; before teardown)
+BENCH vi_fresh group=ALL frames=1792 elapsed_us=75017326 p95_us=66860 max_us=167144 gap1=0 gap2=1360 gap_long=432 max_gap=10 flips=1792 duplicate_poses=0 skipped_poses=458 deadlines=2244 missed=452 sample_latency_avg=75136 sample_latency_max=173684 ready_wait_avg=17412 ready_wait_max=34733
+BENCH vi_fresh group=COMBAT frames=839 elapsed_us=36004309 p95_us=66863 max_us=167144 gap1=0 gap2=611 gap_long=228 max_gap=10 flips=839 duplicate_poses=0 skipped_poses=241 deadlines=1077 missed=238 sample_latency_avg=72396 sample_latency_max=173684 ready_wait_avg=16366 ready_wait_max=33382
+BENCH vi_fresh group=VEHICLES frames=953 elapsed_us=39013017 p95_us=66856 max_us=100316 gap1=0 gap2=749 gap_long=204 max_gap=6 flips=953 duplicate_poses=0 skipped_poses=217 deadlines=1167 missed=214 sample_latency_avg=77547 sample_latency_max=132278 ready_wait_avg=18332 ready_wait_max=34733
+BENCH paced_catchup_dropped_ticks_total=0 (includes warmup; original seven-tick catch-up ceiling)

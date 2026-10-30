@@ -48,6 +48,7 @@ VARIANTS = {
     "frontend": ["--frontend-qa", "4"],
     "menu": ["--menu-qa"],
     "model": ["--model-qa"],
+    "player-aim": ["--player-aim-qa"],
     "spartan-motion": ["--spartan-motion-qa"],
     "spartan-reload": ["--spartan-reload-qa"],
     "covenant-models": ["--pve-squad", "--pve-model-qa"],

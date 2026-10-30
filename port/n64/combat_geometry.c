@@ -3,6 +3,7 @@
 #include <math.h>
 #include "terrain.h"
 #include "movement.h"
+#include "player_aim.h"
 #include <assert.h>
 #include <string.h>
 #if defined(N64) && defined(BG_PROFILE)
@@ -310,7 +311,7 @@ float bg_vehicle_hit_ray(const bg_vehicle*v,const float origin[3],const float di
 #include "player_animation.h"
 #define PLAYER_HIT_VERTICES 160
 #define PLAYER_HIT_GROUPS 16
-typedef struct {bool valid,firing,reloading;unsigned clip,blend_clip;float phase,blend_phase,weight,fire_frame,motion_seconds;int16_t points[PLAYER_HIT_VERTICES][3];int16_t bounds[PLAYER_HIT_GROUPS][6];} player_hit_pose;
+typedef struct {bool valid,firing,reloading;unsigned clip,blend_clip;uint32_t node_revision;float phase,blend_phase,weight,fire_frame,motion_seconds;int16_t points[PLAYER_HIT_VERTICES][3];int16_t bounds[PLAYER_HIT_GROUPS][6];} player_hit_pose;
 static player_hit_pose player_poses[BG_PLAYERS];
 static uint8_t hit_frames[2*PLAYER_HIT_VERTICES*6] __attribute__((aligned(16)));
 static void player_hit_read(uint32_t offset,unsigned bytes){
@@ -345,6 +346,18 @@ static void sample_player_hits(int16_t out[][3],unsigned clip,float phase,float 
 }
 static const player_hit_pose*player_pose(unsigned index){
     const bg_player*p=&bg_players[index];const bg_seat_definition*seat=bg_player_seat(p);
+    if(bg_player_uses_node_pose(p)){
+        player_hit_pose*c=&player_poses[index];uint32_t revision=bg_player_pose_revision(index);
+        if(c->valid&&c->node_revision==revision)return c;
+        assert(bg_player_hit_vertex_count<=PLAYER_HIT_VERTICES&&bg_player_hit_group_count<=PLAYER_HIT_GROUPS);
+        bg_player_animated_hits(index,c->points,bg_player_hit_vertex_count);
+        for(unsigned g=0;g<bg_player_hit_group_count;g++)for(unsigned a=0;a<3;a++){
+            int lo=32767,hi=-32768;unsigned first=bg_player_hit_groups[g][0],count=bg_player_hit_groups[g][1];
+            for(unsigned t=first;t<first+count;t++)for(unsigned j=0;j<3;j++){int value=c->points[bg_player_hit_triangles[t][j]][a];if(value<lo)lo=value;if(value>hi)hi=value;}
+            c->bounds[g][a]=lo;c->bounds[g][a+3]=hi;
+        }
+        c->valid=true;c->node_revision=revision;c->weight=1;c->reloading=false;return c;
+    }
     unsigned clip=0;bool loop=false;float seconds=p->anim_time,weight=0,second=0;unsigned blend_clip=0;
     switch(p->animation){case BG_ANIM_WALK:case BG_ANIM_RUN:clip=1;break;case BG_ANIM_FIRE:clip=2;break;case BG_ANIM_RELOAD:clip=3;break;case BG_ANIM_DIE:clip=4;break;case BG_ANIM_JUMP:clip=5;break;case BG_ANIM_MELEE:clip=6;break;case BG_ANIM_DRIVE:clip=8;break;default:break;}
     if(clip==2&&p->grounded&&!seat&&p->grenade_cooldown<=.55f)clip=hypotf(p->velocity[0],p->velocity[2])>.15f;
@@ -366,7 +379,7 @@ loop=p->seat_state==BG_SEAT_STABLE;}
     float phase=clip_phase(clip,seconds,loop);player_hit_pose*c=&player_poses[index];
     if(reloading)weight=p->crouch_amount;
     bool firing=bg_player_body_firing(p);float fire_frame=reloading?bg_player_body_reload_frame(p):firing?bg_player_body_fire_frame(p):0;
-    if(c->valid&&c->clip==clip&&c->phase==phase&&c->blend_clip==blend_clip&&c->blend_phase==second&&c->weight==weight&&c->firing==firing&&c->reloading==reloading&&(!(firing||reloading)||(c->fire_frame==fire_frame&&c->motion_seconds==p->locomotion_time)))return c;
+    if(c->valid&&!c->node_revision&&c->clip==clip&&c->phase==phase&&c->blend_clip==blend_clip&&c->blend_phase==second&&c->weight==weight&&c->firing==firing&&c->reloading==reloading&&(!(firing||reloading)||(c->fire_frame==fire_frame&&c->motion_seconds==p->locomotion_time)))return c;
     assert(bg_player_hit_vertex_count<=PLAYER_HIT_VERTICES&&bg_player_hit_group_count<=PLAYER_HIT_GROUPS);
     if(firing||reloading){
         unsigned frames=reloading?BG_BODY_RELOAD_FRAMES:BG_BODY_FIRE_FRAMES;
@@ -382,7 +395,7 @@ loop=p->seat_state==BG_SEAT_STABLE;}
         for(unsigned t=first;t<first+count;t++)for(unsigned j=0;j<3;j++){int value=c->points[bg_player_hit_triangles[t][j]][a];if(value<lo)lo=value;if(value>hi)hi=value;}
         c->bounds[g][a]=lo;c->bounds[g][a+3]=hi;
     }
-    c->valid=true;c->clip=clip;c->phase=phase;c->blend_clip=blend_clip;c->blend_phase=second;c->weight=weight;c->firing=firing;c->reloading=reloading;c->fire_frame=fire_frame;c->motion_seconds=p->locomotion_time;return c;
+    c->valid=true;c->node_revision=0;c->clip=clip;c->phase=phase;c->blend_clip=blend_clip;c->blend_phase=second;c->weight=weight;c->firing=firing;c->reloading=reloading;c->fire_frame=fire_frame;c->motion_seconds=p->locomotion_time;return c;
 }
 float bg_player_hit_ray_impl(unsigned index,const float origin[3],const float direction[3],float distance,int *region){
 #ifdef BG_PVE

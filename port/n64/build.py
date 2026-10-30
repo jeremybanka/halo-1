@@ -49,6 +49,7 @@ def parse_args(argv=None):
     parser.add_argument("--pve-crunch-baseline",action="store_true",help="With --pve-crunch, retain original body/gun LOD selection for matched checks")
     parser.add_argument("--pve-draw-audit",action="store_true",help="Frozen per-camera submission and omission-pixel audit; never a performance build")
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
+    parser.add_argument("--player-aim-qa",action="store_true",help="Native four-angle CE aim layers across locomotion/actions")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument(
@@ -330,6 +331,7 @@ def parse_args(argv=None):
     parser.add_argument('--vehicle-cost-audit',action='store_true',help='Isolated vehicle cost instrumentation; never a playable build')
     parser.add_argument("--vehicle-query-verify",action="store_true",help="Diagnostic only: scalar query/trajectory oracles and per-tick state hashes")
     args = parser.parse_args(argv)
+    if args.player_aim_qa: args.spartan_motion_qa = True
     if args.vehicle_lod_qa:args.enemy_vehicle_qa=True
     if args.vehicle_query_verify and not args.vehicle_cost_audit:parser.error("--vehicle-query-verify requires --vehicle-cost-audit")
     if args.vehicle_query_baseline and not (args.enemy_vehicle_bank and args.output_dir):parser.error("--vehicle-query-baseline requires an isolated enemy-vehicle build")
@@ -644,6 +646,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_HUD_QA_PAGE=" + str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
         *(["-DBG_PLASMA_QA=" + str(args.plasma_qa)] if args.plasma_qa is not None else []),
         *(["-DBG_WEAPON_QA"] if args.weapon_qa else []),
+        *(["-DBG_PLAYER_AIM_QA"] if args.player_aim_qa else []),
         *(["-DBG_SPARTAN_MOTION_QA"] if args.spartan_motion_qa else []),
         *(["-DBG_COLLISION_PROFILE"] if args.collision_profile else []),
         *(["-DBG_COLLISION_BASELINE"] if args.collision_baseline else []),
@@ -750,7 +753,7 @@ def rom_name(args):
     if args.model_qa:
         name += "-model-qa"
     if args.spartan_motion_qa:
-        name += "-spartan-motion-qa"
+        name += "-player-aim-qa" if args.player_aim_qa else "-spartan-motion-qa"
     if args.spartan_reload_qa:
         name += "-spartan-reload-qa"
     if args.pve_model_qa:name += "-pve-model-qa"
@@ -1016,6 +1019,14 @@ def main():
         ):
             build_error("Stale interaction bank; rerun port/n64/pack_interactions.py: " + name)
 
+    aim_path = out / "generated/player-animation-report.json"
+    if not aim_path.exists():
+        build_error("Extract CE player aiming first: port/n64/extract_player_aim.py")
+    aim = json.loads(aim_path.read_text())
+    for name, expected in {**aim["inputs"], **aim["files"]}.items():
+        if not (ROOT / name).is_file() or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
+            build_error("Stale player aiming bank; run port/n64/extract_player_aim.py: " + name)
+
     combat_path = out / "generated/combat-report.json"
     if not combat_path.exists():
         build_error("Extract Xbox damage first: port/n64/extract_combat.py")
@@ -1099,6 +1110,7 @@ def main():
     sources = [
         "map.c",
         "combat_geometry.c",
+        "player_aim.c",
         "terrain.c",
         "movement.c",
         "interaction_render.c",
@@ -1160,6 +1172,7 @@ def main():
     generated = [
         "maps/common_data.c",
         "combat_data.c",
+        "player_animation_data.c",
         "movement_data.c",
         "camera_data.c",
         "shield_data.c",

@@ -912,6 +912,7 @@ static void kill(unsigned victim, int owner) {
 static void damage_player_region(unsigned victim, int owner, float damage, bool plasma,
                                   bool headshot, unsigned profile, bool legs, bool behind,
                                   float energy,int region) {
+    (void)region; /* Only the optional PvE damage path consumes this region. */
     bg_player *p = &bg_players[victim];
     if (bg_match_finished() || p->health <= 0 || damage <= 0)
         return;

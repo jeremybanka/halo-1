@@ -1,0 +1,132 @@
+{
+  "baseline": {
+    "phase_us": {
+      "sim": 1197,
+      "camera": 1432,
+      "animation": 11345,
+      "matrix": 93,
+      "world": 5537,
+      "objects": 881,
+      "firstperson": 981,
+      "hud": 2644,
+      "audio": 2879,
+      "wait": 8252,
+      "geometry_rsp_wait": 0,
+      "geometry_rdp_wait": 0,
+      "queue_stall": 0,
+      "overflow": 0
+    },
+    "groups": {
+      "ALL FRAMES": {
+        "frames": 2244,
+        "elapsed_us": 75017363,
+        "avg_us": 33430,
+        "min_us": 29170,
+        "p95_us": 33508,
+        "max_us": 46327,
+        "over_33333": 2161,
+        "triangles_avg": 7768,
+        "triangles_max": 8588,
+        "vertices_avg": 10622,
+        "vertices_max": 12062,
+        "fps": 29.913074923734655
+      },
+      "COMBAT": {
+        "frames": 1078,
+        "elapsed_us": 36037787,
+        "avg_us": 33430,
+        "min_us": 29170,
+        "p95_us": 33516,
+        "max_us": 46327,
+        "over_33333": 1033,
+        "triangles_avg": 7770,
+        "triangles_max": 8588,
+        "vertices_avg": 10622,
+        "vertices_max": 12062,
+        "fps": 29.913046547503043
+      },
+      "VEHICLES": {
+        "frames": 1166,
+        "elapsed_us": 38979576,
+        "avg_us": 33430,
+        "min_us": 31604,
+        "p95_us": 33496,
+        "max_us": 35250,
+        "over_33333": 1128,
+        "triangles_avg": 7766,
+        "triangles_max": 8588,
+        "vertices_avg": 10622,
+        "vertices_max": 12062,
+        "fps": 29.91310115841178
+      }
+    },
+    "rom_sha256": "ff24caecdb3b0fe35094fee083bc1b1e5fe79215c0152dd33db5990604cb0207",
+    "rom_bytes": 51806208,
+    "log_sha256": "f66b056873d662b80e09f9347d44067f8969c5dd1a8a1435ad55444da8a50692"
+  },
+  "candidate": {
+    "phase_us": {
+      "sim": 1269,
+      "camera": 1596,
+      "animation": 17089,
+      "matrix": 95,
+      "world": 5329,
+      "objects": 901,
+      "firstperson": 1001,
+      "hud": 2726,
+      "audio": 1551,
+      "wait": 2230,
+      "geometry_rsp_wait": 0,
+      "geometry_rdp_wait": 0,
+      "queue_stall": 0,
+      "overflow": 0
+    },
+    "groups": {
+      "ALL FRAMES": {
+        "frames": 2241,
+        "elapsed_us": 75007027,
+        "avg_us": 33470,
+        "min_us": 31438,
+        "p95_us": 34050,
+        "max_us": 48816,
+        "over_33333": 1960,
+        "triangles_avg": 8020,
+        "triangles_max": 8588,
+        "vertices_avg": 11088,
+        "vertices_max": 12062,
+        "fps": 29.877200705475236
+      },
+      "COMBAT": {
+        "frames": 1076,
+        "elapsed_us": 35994015,
+        "avg_us": 33451,
+        "min_us": 31481,
+        "p95_us": 33828,
+        "max_us": 48816,
+        "over_33333": 951,
+        "triangles_avg": 8033,
+        "triangles_max": 8588,
+        "vertices_avg": 11108,
+        "vertices_max": 12062,
+        "fps": 29.893858742904897
+      },
+      "VEHICLES": {
+        "frames": 1165,
+        "elapsed_us": 39013012,
+        "avg_us": 33487,
+        "min_us": 31438,
+        "p95_us": 34308,
+        "max_us": 42027,
+        "over_33333": 1009,
+        "triangles_avg": 8008,
+        "triangles_max": 8588,
+        "vertices_avg": 11070,
+        "vertices_max": 12062,
+        "fps": 29.861831739625742
+      }
+    },
+    "rom_sha256": "d49e8cfced12b6b75ab7e08f24867a69e0e6a7e9e1a81e7b59ac8680502303a7",
+    "rom_bytes": 51822592,
+    "log_sha256": "0eb42de2d3d570ebf426f5e9f6a1fffab9908cfbcfdc57a1b3d0b7f27a3daab2"
+  }
+}

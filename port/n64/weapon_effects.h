@@ -24,6 +24,13 @@ extern const bg_fx_blast_definition bg_fx_blast_definitions[3];
 extern const unsigned bg_fx_energy_texture;
 typedef struct {float origin[3],age,radius;bg_explosion_kind kind;} bg_fx_blast;
 extern bg_fx_blast bg_fx_blasts[BG_FX_BLASTS];
+/* One pending flash per vehicle survives simulation catch-up, then is shared
+ * by every split view for exactly one prepared frame. No gameplay RNG. */
+void bg_fx_begin_frame(void);
+int bg_fx_warthog_variant(unsigned vehicle);
+extern const uint32_t bg_warthog_flash_textures[3][256];
+extern const float bg_warthog_flash_marker[3], bg_warthog_flash_radius;
+extern const float bg_warthog_flash_extents[3][4];
 void bg_fx_reset(void);
 void bg_fx_update(float dt);
 float bg_fx_flash(unsigned player);

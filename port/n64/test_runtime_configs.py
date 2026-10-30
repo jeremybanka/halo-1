@@ -48,6 +48,7 @@ VARIANTS = {
     "frontend": ["--frontend-qa", "4"],
     "menu": ["--menu-qa"],
     "model": ["--model-qa"],
+    "warthog-flash": ["--warthog-flash-qa"],
     "player-aim": ["--player-aim-qa"],
     "spartan-motion": ["--spartan-motion-qa"],
     "spartan-reload": ["--spartan-reload-qa"],
@@ -123,6 +124,13 @@ def main():
     parser.add_argument("--sdk", type=Path, help="Installed SDK override for an isolated checkout")
     parser.add_argument("--tiny3d", type=Path, help="Tiny3D override for an isolated checkout")
     args = parser.parse_args()
+    # A renderer comparison must retain scene.c's finite-value safeguards
+    # even when its baseline filename differs from the production filename.
+    normal = parse_args(["--profile"])
+    baseline = parse_args(["--profile", "--scene-source", "build/comparison-baseline.c"])
+    sdk, tiny = (args.sdk or normal.sdk).resolve(), (args.tiny3d or normal.tiny3d).resolve()
+    assert compile_options(normal,sdk,tiny,args.prepared,ROOT/"port/n64/scene.c") == \
+           compile_options(baseline,sdk,tiny,args.prepared,baseline.scene_source)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     for name, flags in VARIANTS.items():
         options = parse_args(flags)

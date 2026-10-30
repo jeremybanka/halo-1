@@ -12,15 +12,16 @@
  * never overwrite vertices or matrices still borrowed by the RSP. */
 static T3DVertPacked vertices[2][4][FX_QUADS*2] __attribute__((aligned(16)));
 static T3DMat4FP matrices[2][4];
-static surface_t textures[18];
+static surface_t textures[21];
 static float fp_vents[4][3][3],fp_markers[4][2][3],eye_pos[3],right[3],up[3];
 static unsigned frame_slot,view,used,bound,limit;
 static float pixel_width;
 void bg_fx_draw_init(void){
-    assertf(bg_fx_texture_count+7<=18,"Effect texture table capacity");
+    assertf(bg_fx_texture_count+10<=21,"Effect texture table capacity");
     for(unsigned i=0;i<bg_fx_texture_count;i++)textures[i]=surface_make_linear((void*)bg_fx_textures[i],FMT_RGBA32,16,16);
     for(unsigned i=0;i<5;i++)textures[bg_fx_texture_count+i]=surface_make_linear((void*)bg_vehicle_fx_textures[i],FMT_RGBA32,16,16);
     for(unsigned i=0;i<2;i++)textures[bg_fx_texture_count+5+i]=surface_make_linear((void*)bg_shield_textures[i],FMT_RGBA32,16,16);
+    for(unsigned i=0;i<3;i++)textures[bg_fx_texture_count+7+i]=surface_make_linear((void*)bg_warthog_flash_textures[i],FMT_RGBA32,16,16);
 }
 void bg_fx_pose(unsigned player,unsigned weapon,unsigned clip,unsigned f0,unsigned f1,int fraction){
     const int16_t (*a)[3]=bg_fx_marker_poses[bg_fx_marker_offsets[weapon][clip]+f0];
@@ -119,6 +120,25 @@ unsigned bg_fx_draw_weapon(unsigned player,const T3DMat4FP*matrix,float units,bo
             float radius=.02f+.0125f*phase;
             sprite(center,radius,radius*1.5f,bg_fx_vent_texture,tint(p->weapon==BG_W_PLASMA_RIFLE?(uint8_t[]){0,255,255}:(uint8_t[]){13,255,0},(1-phase)*intensity*.8f),m+time);
         }
+    }
+    limit=FX_QUADS;restore();return (used-before)*2;
+}
+unsigned bg_fx_draw_warthogs(uint16_t mask,const T3DMat4FP*const gun_matrices[BG_MAX_VEHICLES]){
+    if(!mask||used>=FX_QUADS-4)return 0;
+    unsigned before=used;mode();limit=FX_QUADS-4;
+    /* One state setup per viewport; adjacent identical variants share the
+     * texture upload. Each quad still owns its fenced vertex slice. */
+    for(unsigned vehicle=0;vehicle<bg_vehicle_count&&used<limit;vehicle++){
+        if(!(mask&(1u<<vehicle))||!gun_matrices[vehicle])continue;
+        int variant=bg_fx_warthog_variant(vehicle);
+        if(variant<0)continue;
+        float center[3],points[4][3];
+        transform(center,gun_matrices[vehicle],bg_warthog_flash_marker,BG_OBJECT_SCALE);
+        const float*e=bg_warthog_flash_extents[variant];
+        for(unsigned i=0;i<4;i++)for(unsigned a=0;a<3;a++)
+            points[i][a]=center[a]+2*bg_warthog_flash_radius*
+                (right[a]*e[i==1||i==2]+up[a]*e[i>=2?3:2]);
+        quad(points,bg_fx_texture_count+7+variant,0xffffffff);
     }
     limit=FX_QUADS;restore();return (used-before)*2;
 }

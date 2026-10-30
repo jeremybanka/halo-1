@@ -973,6 +973,8 @@ static void pivot_rotation(T3DMat4 *out, const float pivot[3], float yaw, float 
     for (unsigned a = 0; a < 3; a++)
         out->m[3][a] = p.v[a] - rotated.v[a];
 }
+static bg_cull_bounds vehicle_flash_bounds[BG_MAX_VEHICLES];
+static uint16_t vehicle_flash_masks[BG_PLAYERS];
 static void compute_vehicle_pose(unsigned i) {
     bg_vehicle *v = &bg_vehicles[i];
     const bg_vehicle_rig *rig = &bg_vehicle_rigs[v->kind];
@@ -1056,6 +1058,15 @@ static void compute_vehicle_pose(unsigned i) {
         }
         t3d_mat4_to_fixed_3x4(&part_matrices[slot][i][j], &world);
         bg_bounds box;
+        if(v->kind==BG_V_WARTHOG && part->kind==BG_PART_BARREL){
+            bg_bounds flash;
+            for(unsigned a=0;a<3;a++){
+                flash.min[a]=bg_warthog_flash_marker[a]-2*bg_warthog_flash_radius;
+                flash.max[a]=bg_warthog_flash_marker[a]+2*bg_warthog_flash_radius;
+            }
+            bg_bounds_transform(&box,&flash,world.m,BG_OBJECT_SCALE);
+            bg_bounds_quantize(&vehicle_flash_bounds[i],&box);
+        }
         bg_bounds_transform(&box, &part->bounds, world.m, BG_OBJECT_SCALE);
 #ifdef BG_VEHICLE_DISTANCE_LODS
         if(v->kind>=BG_V_WRAITH){
@@ -1623,8 +1634,11 @@ static void prepare_view(unsigned p) {
             wanted_held |= 1u << j;
         }
     }
+    vehicle_flash_masks[p]=0;
     for (unsigned i = 0; i < bg_vehicle_count; i++) {
         const bg_vehicle *v = &bg_vehicles[i];
+        if(bg_fx_warthog_variant(i)>=0 && visible_bounds(vp,&vehicle_flash_bounds[i],cull_selected[p]))
+            vehicle_flash_masks[p]|=1u<<i;
         vehicle_view_lods[p][i] = 0;
         if (!bg_vehicle_body_visible(v) ||
             !visible_bounds(vp, &vehicle_bounds[i], cull_selected[p]))
@@ -2213,6 +2227,14 @@ static void draw_view(unsigned p) {
     t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH);
 #endif
     unsigned fx_triangles = draw_flashlights();
+    if(vehicle_flash_masks[p]){
+        const T3DMat4FP*gun_matrices[BG_MAX_VEHICLES]={0};
+        const bg_vehicle_rig*rig=&bg_vehicle_rigs[BG_V_WARTHOG];
+        for(unsigned i=0;i<bg_vehicle_count;i++)if(vehicle_flash_masks[p]&(1u<<i))
+            for(unsigned j=0;j<rig->count;j++)if(rig->parts[j].kind==BG_PART_BARREL)
+                gun_matrices[i]=&part_matrices[slot][i][j];
+        fx_triangles+=bg_fx_draw_warthogs(vehicle_flash_masks[p],gun_matrices);
+    }
     fx_triangles += bg_fx_draw_blasts();
     fx_triangles += bg_fx_draw_trails(game_time);
     for (unsigned j = 0; j < views; j++)
@@ -2381,6 +2403,7 @@ void bg_scene_prepare(unsigned frame_slot, unsigned view_count, float seconds) {
     slot = frame_slot;
     views = view_count;
     game_time = seconds;
+    bg_fx_begin_frame();
     prepare_frame();
     triangles = 0;
 }

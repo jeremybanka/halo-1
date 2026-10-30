@@ -78,8 +78,9 @@ The matched fixed-state run measures:
 | Wait phase | 8.252 ms | 2.230 ms |
 | Body + held triangles / frame | 3,047 | 3,300 |
 
-Aiming costs **5.744 ms** of animation work in this continuously changing
-four-player fixture; it consumes most of the baseline's spare time. The
+The original run records a **5.744 ms** animation-phase difference in this
+continuously changing four-player fixture. See the compiler-option caveat below
+before attributing that difference solely to aiming. The
 conservative aim bounds also submit more body/weapon geometry. Average paced
 rate changes by −0.12%; this is not a claim of zero overhead. The initial
 implementation took 25.359 ms in animation and missed the frame budget. Seam
@@ -93,6 +94,13 @@ separately in `performance.json`. This is one sequential final pair after the
 warm-up; the improved whole-run average is not evidence that aiming is free,
 because changed collisions alter who survives and which work is visible.
 Minimum sampled free heap is **3,784,168 → 3,759,624 bytes** in that replay.
+
+**Historical comparison note:** the later Warthog muzzle audit corrected
+`--scene-source` so alternate renderer filenames retain `scene.c`'s
+`-fno-finite-math-only` option. The timings above preserve the original runs and
+predate that correction; their baseline did not have identical compiler flags.
+Use them as historical observations, not an isolated cost attribution. The
+[Warthog audit](../warthog-muzzle/README.md) uses the corrected comparison path.
 
 ## Storage
 

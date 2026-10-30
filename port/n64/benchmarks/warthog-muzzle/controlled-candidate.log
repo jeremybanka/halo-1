@@ -1,0 +1,11 @@
+2026-10-30 16:09:28.924 ares[83110:19022962] Resizing output buffers to 768, 576
+Loaded halo-64-replay-benchmark-paced30-rspq32k
+Vulkan Enabled: using paraLLEl-RDP
+HALO N64 world=5468 textures=17 RAM=8388608 free=4005904
+[WARN]: Stalled compile (compute, 07455c1fc10ed781): thread 0 - 15943.458 us (mode: sync, success: yes).
+BENCH display_buffers=3 held_peak=2 live_heap_free_bytes=3888720 (whole-run peak including warmup; before teardown)
+BENCH cpu_acquisition group=ALL FRAMES frames=2043 elapsed_us=75017340 avg_us=36719 min_us=25959 p95_us=66843 max_us=69697 over_33333=1903 triangles_avg=10167 triangles_max=10190 vertices_avg=13893 vertices_max=13920
+BENCH cpu_acquisition group=COMBAT frames=980 elapsed_us=36004319 avg_us=36739 min_us=25959 p95_us=66842 max_us=69697 over_33333=913 triangles_avg=10167 triangles_max=10190 vertices_avg=13893 vertices_max=13920
+BENCH cpu_acquisition group=VEHICLES frames=1063 elapsed_us=39013021 avg_us=36700 min_us=30547 p95_us=66845 max_us=69620 over_33333=990 triangles_avg=10168 triangles_max=10190 vertices_avg=13894 vertices_max=13920
+BENCH phase_us sim=830 camera=7382 animation=1798 matrix=96 world=5541 objects=2371 firstperson=28 hud=1343 audio=5678 wait=15564 geometry_rsp_wait=0 geometry_rdp_wait=0 queue_stall=0 overflow=0
+BENCH triangles world=3557 vehicles=4418 bodies_held=2160 pickups=0 effects=32 firstperson=0

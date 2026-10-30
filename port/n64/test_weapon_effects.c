@@ -18,7 +18,38 @@ static void equip(unsigned weapon){
     for(unsigned i=0;i<40;i++)tick();
 }
 static float length(const float v[3]){return sqrtf(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);}
+static void warthog(void){
+    reset();float pos[3]={-12,bg_floor(-12,5,100)+.2f,5};
+    unsigned vi=bg_add_vehicle(BG_V_WARTHOG,pos,0);bg_vehicle*v=&bg_vehicles[vi];
+    bg_player*p=&bg_players[0];p->vehicle=vi;p->seat=1;p->seat_state=BG_SEAT_STABLE;
+    v->occupants[1]=0;p->yaw=p->pitch=0;p->weapon_ready=0;
+    unsigned shots=0,variants=0;input[0].fire=true;
+    for(unsigned t=0;t<60;t++){
+        tick();bool fired=false;
+        for(unsigned e=0;e<bg_event_count;e++)if(bg_events[e].kind==BG_EVENT_FIRE){fired=true;shots++;}
+        bg_fx_begin_frame();int variant=bg_fx_warthog_variant(vi);
+        assert((variant>=0)==fired);assert(bg_fx_flash(0)==0);
+        if(variant>=0){variants|=1u<<variant;for(unsigned view=0;view<4;view++)assert(bg_fx_warthog_variant(vi)==variant);}
+    }
+    assert(shots>3&&variants==7);
+    input[0].fire=false;tick();bg_fx_begin_frame();assert(bg_fx_warthog_variant(vi)<0);
+    /* A shot cannot disappear during catch-up before any viewport sees it. */
+    bg_event_count=1;bg_events[0]=(bg_event){.kind=BG_EVENT_FIRE,.player=0,.weapon=BG_W_AR};bg_fx_update(0);
+    bg_clear_events();bg_fx_update(.2f);bg_fx_begin_frame();assert(bg_fx_warthog_variant(vi)>=0);
+    bg_fx_begin_frame();assert(bg_fx_warthog_variant(vi)<0);
+    /* Driver/passenger events never impersonate the gunner; inactive/reset
+     * vehicles cannot keep an old flash. */
+    for(int seat=0;seat<=2;seat+=2){
+        p->seat=seat;v->occupants[1]=-1;v->occupants[seat]=0;
+        bg_event_count=1;bg_events[0]=(bg_event){.kind=BG_EVENT_FIRE,.player=0,.weapon=BG_W_AR};
+        bg_fx_update(0);bg_fx_begin_frame();assert(bg_fx_warthog_variant(vi)<0);
+    }
+    p->seat=1;v->occupants[1]=0;bg_fx_update(0);bg_fx_begin_frame();v->active=false;
+    assert(bg_fx_warthog_variant(vi)<0);v->active=true;bg_fx_reset();assert(bg_fx_warthog_variant(vi)<0);
+    printf("PASS Warthog: %u real shots, all three variants, four-view agreement, catch-up latch, release/reset/destruction and seat filtering\n",shots);
+}
 int main(void){
+    warthog();
     for(unsigned w=0;w<8;w++){
         equip(w);assert(bg_fx_flash(0)==0);input[0].fire=true;tick();
         if(w==BG_W_PLASMA_PISTOL){input[0].fire=false;tick();}

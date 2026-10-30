@@ -201,3 +201,12 @@ HUD tiers, production sound selection, PCM provenance and source pose counts.
 Streamed playback also matches resident PCM and cursor progression byte for
 byte over 2.5 million stereo frames, including fractional-rate phase, replacement
 by another announcement and clip completion.
+
+## Warthog mounted muzzle flash — 30 October 2026
+
+The Warthog chaingun now emits CE's three short flash variants at its original
+`primary trigger` marker. It follows the posed gun through turret yaw, elevation
+and hull motion and is visible from the gunner camera and other players' views.
+Mounted events retain their separate path from personal weapon effects.
+See [the Warthog muzzle audit](benchmarks/warthog-muzzle/README.md) for source
+animation details, native comparisons, performance and reproduction commands.

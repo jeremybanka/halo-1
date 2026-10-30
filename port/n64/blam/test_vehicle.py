@@ -17,7 +17,7 @@ def run(args):
     subprocess.run([str(x) for x in args], cwd=ROOT, check=True)
 
 
-def validate(out, regenerate=False):
+def validate(out, regenerate=False, only=None):
     global OUT
     OUT=Path(out)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -72,16 +72,20 @@ def validate(out, regenerate=False):
         'replay': ['port/n64/test_replay.c', 'port/n64/replay.c', *shared],
         'showcase': ['port/n64/test_showcase.c', 'port/n64/showcase.c', *shared],
     }
+    if only:
+        assert only in suites, only
+        suites = {only:suites[only]}
     for name, sources in suites.items():
         exe = OUT / name
         run(['clang', *flags, *sources, '-lm', '-o', exe])
         run([exe])
-    print('PASS: native vehicle, game, replay and showcase sanitizer suites')
+    print('PASS: '+(only+' sanitizer suite' if only else 'native vehicle, game, replay and showcase sanitizer suites'))
 
 
 if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--regenerate',action='store_true',help='Explicitly refresh original-source adapters and the private asset bank')
     parser.add_argument('--output-dir',type=Path,default=ROOT/'build/n64-validation/host')
+    parser.add_argument('--only',help='Run one named sanitizer suite')
     args=parser.parse_args()
-    validate(args.output_dir,args.regenerate)
+    validate(args.output_dir,args.regenerate,args.only)

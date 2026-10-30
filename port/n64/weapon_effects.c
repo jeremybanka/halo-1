@@ -6,7 +6,20 @@ bg_fx_trail bg_fx_trails[BG_FX_TRAILS];
 bg_fx_vehicle_burst bg_fx_vehicle_bursts[4];
 bg_fx_blast bg_fx_blasts[BG_FX_BLASTS];
 static unsigned next_trail,next_burst,next_blast;
+static struct { unsigned sequence; bool pending, visible; } mounted_shots[BG_MAX_VEHICLES];
+void bg_fx_begin_frame(void){
+    for(unsigned i=0;i<BG_MAX_VEHICLES;i++){
+        mounted_shots[i].visible=mounted_shots[i].pending;
+        mounted_shots[i].pending=false;
+    }
+}
+int bg_fx_warthog_variant(unsigned vehicle){
+    if(vehicle>=bg_vehicle_count||!mounted_shots[vehicle].visible||
+       !bg_vehicles[vehicle].active||bg_vehicles[vehicle].kind!=BG_V_WARTHOG)return -1;
+    return mounted_shots[vehicle].sequence%3;
+}
 void bg_fx_reset(void){
+    memset(mounted_shots,0,sizeof(mounted_shots));
     next_blast=0;memset(bg_fx_blasts,0,sizeof(bg_fx_blasts));
     for(unsigned i=0;i<BG_FX_BLASTS;i++)bg_fx_blasts[i].age=100;
     memset(bg_fx_shots,0,sizeof(bg_fx_shots));memset(bg_fx_trails,0,sizeof(bg_fx_trails));next_trail=0;
@@ -38,6 +51,17 @@ void bg_fx_update(float dt){
         if(e->kind==BG_EVENT_VEHICLE_DESTROYED){
             bg_fx_vehicle_burst*b=&bg_fx_vehicle_bursts[next_burst++%4];
             memcpy(b->origin,e->pos,sizeof(b->origin));b->age=0;b->kind=e->weapon;b->vehicle=(int)e->amount;
+        }
+        if(e->kind==BG_EVENT_FIRE && e->player>=0 && e->player<BG_UNITS){
+            const bg_player*p=&bg_players[e->player];int vehicle=p->vehicle;
+            if(vehicle>=0 && vehicle<(int)bg_vehicle_count){
+                const bg_vehicle*v=&bg_vehicles[vehicle];
+                if(v->active && v->kind==BG_V_WARTHOG && p->seat==1 &&
+                   v->occupants[1]==e->player && !bg_player_personal_weapon(p)){
+                    mounted_shots[vehicle].sequence++;
+                    mounted_shots[vehicle].pending=true;
+                }
+            }
         }
         if(e->kind!=BG_EVENT_FIRE||e->player<0||e->player>=4||e->weapon<0||e->weapon>=BG_WEAPON_COUNT)continue;
         /* Mounted guns have their own muzzle rigs; never attach their event to

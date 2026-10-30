@@ -3,7 +3,9 @@
 #include <t3d/t3d.h>
 #include "game.h"
 #ifdef BG_PVE_MODEL_QA
-#ifdef BG_ENEMY_VEHICLE_QA
+#ifdef BG_VEHICLE_LOD_QA
+#define BG_PVE_MODEL_QA_FRAMES 36
+#elif defined(BG_ENEMY_VEHICLE_QA)
 #define BG_PVE_MODEL_QA_FRAMES 42
 #elif defined(BG_JACKAL_SHIELD_QA)
 #define BG_PVE_MODEL_QA_FRAMES 72

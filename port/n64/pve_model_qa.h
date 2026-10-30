@@ -2,7 +2,9 @@
 #define BG_PVE_MODEL_QA_H
 #include "pve.h"
 #include "asset_pve.h"
-#ifdef BG_ENEMY_VEHICLE_QA
+#ifdef BG_VEHICLE_LOD_QA
+#include "vehicle_lod_qa.h"
+#elif defined(BG_ENEMY_VEHICLE_QA)
 #include "enemy_vehicle_qa.h"
 #elif defined(BG_JACKAL_SHIELD_QA)
 #include "jackal_shield_qa.h"

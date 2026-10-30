@@ -12,6 +12,9 @@ float bg_world_raycast_normal(const float origin[3],const float direction[3],flo
 /* Projectile contacts include sub-bias segments and the Xbox material type. */
 float bg_world_projectile_raycast(const float origin[3],const float direction[3],float distance,float normal[3],int *material);
 /* Five short camera rays share a single conservative surface query. */
+/* Five parallel clearance rays share BVH traversal and immutable polygons.
+ * Returns the same distances as five independent bg_world_raycast calls. */
+void bg_world_clearance_rays(const float origins[5][3],const float direction[3],float distance,float hits[5]);
 void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]);
 void bg_vehicle_physics_prepare(void);
 void bg_vehicle_physics_step(unsigned index,const bg_input *input);

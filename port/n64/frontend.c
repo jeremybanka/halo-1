@@ -31,6 +31,12 @@ bool bg_front_available(bg_front_page p, unsigned i) {
         return i < 13 && bg_front_maps[i].available&&!bg_front_map_needs_expansion(i);
     case BG_FRONT_TYPE:
         return i < 26 && bg_front_types[i].available&&(i==BG_MODE_SLAYER||memory_size>=8*1024*1024);
+    case BG_FRONT_FIGHT:
+#ifdef BG_FIREFIGHT
+        return memory_size>=8*1024*1024 && bg_ff_fight_available(i);
+#else
+        return false;
+#endif
     case BG_FRONT_PROFILE:
         return i == 1 || i == 4;
     default:
@@ -38,6 +44,7 @@ bool bg_front_available(bg_front_page p, unsigned i) {
     }
 }
 bool bg_front_session_available(const bg_frontend *f,bg_front_page p,unsigned i) {
+    if(p==BG_FRONT_FIGHT)return f->firefight&&bg_front_available(p,i);
     if(f->firefight && (p==BG_FRONT_MAP || p==BG_FRONT_TYPE))
         return p==BG_FRONT_MAP && i==9 && memory_size>=8*1024*1024;
     return bg_front_available(p,i);
@@ -59,6 +66,7 @@ static void page(bg_frontend *f, bg_front_page p) {
 }
 void bg_front_init(bg_frontend *f) {
     memset(f, 0, sizeof(*f));
+    for(unsigned p=0;p<BG_PLAYERS;p++) f->styles[p]=BG_CONTROLS_DUKE;
     bg_menu_init(&f->navigation, 4);
     f->map = 9;
     f->type = 0;
@@ -193,7 +201,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
                     f->sound=BG_FRONT_CURSOR;
                 }
                 if (in[p].pressed & BG_BUTTON_B) {
-                    page(f, f->firefight ? BG_FRONT_MAP : BG_FRONT_TYPE);
+                    page(f, f->firefight ? BG_FRONT_FIGHT : BG_FRONT_TYPE);
                     f->sound = BG_FRONT_BACK;
                     return BG_FRONT_NONE;
                 }
@@ -213,7 +221,8 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
         if (now >= f->deadline) {
             /* Check capabilities again at launch, independent of earlier navigation. */
             if (!all_ready(f) || !bg_front_session_available(f, BG_FRONT_MAP, f->map) ||
-                (!f->firefight && !bg_front_available(BG_FRONT_TYPE, f->type))) {
+                (f->firefight ? !bg_front_session_available(f,BG_FRONT_FIGHT,f->fight)
+                              : !bg_front_available(BG_FRONT_TYPE, f->type))) {
                 page(f, BG_FRONT_JOIN);
                 return BG_FRONT_NONE;
             }
@@ -240,6 +249,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
             page(f, BG_FRONT_JOIN);
             break;
         case BG_FRONT_TYPE:
+        case BG_FRONT_FIGHT:
             page(f, BG_FRONT_MAP);
             break;
         case BG_FRONT_CONTROLS:
@@ -264,6 +274,13 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
         }
         return BG_FRONT_NONE;
     }
+    if(f->page==BG_FRONT_FIGHT){
+        if(v||h){f->fight=cycle(f->fight,BG_FF_FIGHTS,v?v:h);f->sound=BG_FRONT_CURSOR;}
+        else if(accept&&bg_front_session_available(f,BG_FRONT_FIGHT,f->fight)){
+            page(f,BG_FRONT_PREGAME);f->deadline=now+10999000;f->countdown=10;f->sound=BG_FRONT_ACCEPT;
+        }
+        return BG_FRONT_NONE;
+    }
     if (f->page == BG_FRONT_MAP || f->page == BG_FRONT_TYPE) {
         unsigned *selection = f->page == BG_FRONT_MAP ? &f->map : &f->type,
                  n = f->page == BG_FRONT_MAP ? 13 : 26;
@@ -277,8 +294,8 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
             return BG_FRONT_NONE;
         }
         if (accept && bg_front_session_available(f, f->page, *selection)) {
-            if (f->page == BG_FRONT_MAP && !f->firefight)
-                page(f, BG_FRONT_TYPE);
+            if (f->page == BG_FRONT_MAP)
+                page(f, f->firefight?BG_FRONT_FIGHT:BG_FRONT_TYPE);
             else {
                 page(f, BG_FRONT_PREGAME);
                 f->deadline = now + 10999000;

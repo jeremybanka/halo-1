@@ -50,6 +50,12 @@ typedef struct { uint16_t first,count; uint8_t kind; float pivot[3];
                  uint16_t batch_first,batch_count; bg_bounds bounds; } bg_vehicle_part;
 typedef struct { const bg_vehicle_part *parts; uint8_t count; float turret_pivot[3]; } bg_vehicle_rig;
 extern const bg_vehicle_rig bg_vehicle_rigs[BG_VEHICLE_COUNT];
+#ifdef BG_VEHICLE_DISTANCE_LODS
+/* Wraith/Shade, middle/coarse; identical rigid-part order and pivots to near. */
+extern const bg_model_asset bg_vehicle_distance_assets[2][2];
+extern const bg_vehicle_rig bg_vehicle_distance_rigs[2][2];
+extern const bg_bounds bg_vehicle_distance_part_bounds[2][7];
+#endif
 /* Exact quantized near/far unions. Part boxes are transformed with the same
  * current matrices as rendered wheels, turrets and barrels. */
 extern const bg_bounds bg_model_cull_bounds[BG_M_COUNT],bg_vehicle_lod_bounds[BG_VEHICLE_COUNT];

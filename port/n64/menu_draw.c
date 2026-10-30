@@ -1,3 +1,4 @@
+#include "view_layout.h"
 #include "menu_draw.h"
 #include "asset_menu.h"
 #include "map.h"
@@ -234,26 +235,24 @@ static void controls_page(const bg_menu *m, bool frontend) {
         {"C UP / DOWN", "LOOK UP / DOWN"},           {"A / Z / L", "JUMP / FIRE / GRENADE"},
         {"B / R", "RELOAD + USE / WEAPON"},          {"D UP / DOWN", "ZOOM / MELEE"},
         {"D LEFT / RIGHT", "GRENADE TYPE / CROUCH"}, {"START", "MENU / RESUME"}};
-    static const char *const xbox[][2] = {{"STICK", "AIM"},
-                                          {"D-PAD", "MOVE"},
-                                          {"A / B", "JUMP / MELEE"},
-                                          {"Z / L", "FIRE / GRENADE"},
-                                          {"C LEFT", "RELOAD / USE"},
-                                          {"C UP / RIGHT", "WEAPON / ZOOM"},
-                                          {"C DOWN / R", "CROUCH / SCORES"},
-                                          {"R + C UP", "SWITCH GRENADE"}};
-    bool is_xbox = m->styles[m->owner] == BG_CONTROLS_XBOX;
-    const char *const(*rows)[2] = is_xbox ? xbox : n64;
+    static const char *const duke[][2] = {
+        {"D-PAD / STICK", "MOVE / AIM"}, {"R / L", "FIRE / GRENADE"},
+        {"B / A", "FLASHLIGHT / GRENADE TYPE"}, {"C UP / RIGHT", "WEAPON / MELEE"},
+        {"C DOWN / LEFT", "JUMP / RELOAD + USE"}, {"Z TAP", "TOGGLE ZOOM"},
+        {"Z + C UP", "HOLD SCORES"}, {"Z + C DOWN", "TOGGLE CROUCH"},
+        {"START", "MENU / RESUME"}};
+    bool is_duke = m->styles[m->owner] == BG_CONTROLS_DUKE;
+    const char *const(*rows)[2] = is_duke ? duke : n64;
     selection(55, true);
     text(BG_MENU_FONT_SMALL, 42, 72, .80f, white, "CONTROL STYLE");
-    text(BG_MENU_FONT_LARGE, 212, 72, .83f, white, is_xbox ? "< XBOX >" : "< N64 >");
+    text(BG_MENU_FONT_LARGE, 212, 72, .83f, white, is_duke ? "< DUKE >" : "< BOND >");
     text(BG_MENU_FONT_SMALL, 35, 92, .65f, blue, "BUTTON");
     text(BG_MENU_FONT_SMALL, 133, 92, .65f, blue, "ACTION");
-    for (unsigned i = 0; i < 8; i++) {
-        text(BG_MENU_FONT_SMALL, 35, 105 + 12 * i, .70f, white, rows[i][0]);
-        text(BG_MENU_FONT_SMALL, 133, 105 + 12 * i, .66f, soft, rows[i][1]);
+    for (unsigned i = 0; i < (is_duke ? 9u : 8u); i++) {
+        text(BG_MENU_FONT_SMALL, 35, 103 + 11 * i, .70f, white, rows[i][0]);
+        text(BG_MENU_FONT_SMALL, 133, 103 + 11 * i, .66f, soft, rows[i][1]);
     }
-    text(BG_MENU_FONT_SMALL, 35, 203, .56f, soft, "VEHICLES: L ALT FIRE. AIM TO STEER. A BRAKE");
+    text(BG_MENU_FONT_SMALL, 35, 203, .56f, soft, is_duke ? "VEHICLES: L ALT FIRE. C DOWN BRAKE / RISE" : "VEHICLES: L ALT FIRE. A BRAKE / RISE");
     text(BG_MENU_FONT_SMALL, 35, 217, .64f, white,
          frontend ? "LEFT / RIGHT CHANGE    B BACK"
                   : "LEFT / RIGHT CHANGE    B BACK    START RESUME");
@@ -315,10 +314,8 @@ void bg_menu_draw_init(void) {
      * here, and no first held-R frame allocates or records display commands. */
     for (unsigned count = 1; count <= 4; count++)
         for (unsigned owner = 0; owner < count; owner++) {
-            int w = count >= 3 ? 160 : 320, h = count == 1 ? 240 : 120;
-            int x = count >= 3 ? (int)(owner % 2) * 160 : 0;
-            int y = count == 1 ? 0 : (int)(count >= 3 ? owner / 2 : owner) * 120;
-            prepare_score_layout(count, owner, x, y, w, h);
+            bg_view_rect r=bg_view_area(count,owner);
+            prepare_score_layout(count, owner, r.x, r.y, r.w, r.h);
         }
     letter_count = 0;
     initialized = true;
@@ -447,9 +444,8 @@ void bg_scores_draw(unsigned owner, int x, int y, int width, int height) {
     assert(count >= 1 && count <= 4);
     /* The triangular index maps 1/2/3/4 views to distinct cache slots. Assert the entire
      * viewport key, so a future layout cannot silently reuse wrong commands. */
-    assert(width == (count >= 3 ? 160 : 320) && height == (count == 1 ? 240 : 120));
-    assert(x == (count >= 3 ? (int)(owner % 2) * 160 : 0));
-    assert(y == (count == 1 ? 0 : (int)(count >= 3 ? owner / 2 : owner) * 120));
+    bg_view_rect r=bg_view_area(count,owner);
+    assert(width==r.w && height==r.h && x==r.x && y==r.y);
     score_layout *layout = &score_layouts[count * (count - 1) / 2 + owner];
     /* Original split-screen score text ranks players and brightens the viewer's
      * row. Keep those cues; report actual match score, which includes suicides. */

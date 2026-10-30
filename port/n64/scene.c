@@ -129,6 +129,12 @@ static bool body_firing[4], body_reloading[4];
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
     *particle_blocks[9];
 static rspq_block_t *vehicle_lods[BG_VEHICLE_COUNT];
+#ifdef BG_VEHICLE_DISTANCE_LODS
+static rspq_block_t *vehicle_distance_parts[2][2][7];
+#ifdef BG_PROFILE
+static unsigned vehicle_distance_loads[2][2][7];
+#endif
+#endif
 static rspq_block_t *covenant_wreck_blocks[2];
 static rspq_block_t *pickup_lod_blocks[BG_M_COUNT];
 static rspq_block_t *vehicle_micro_blocks[BG_VEHICLE_COUNT], *pickup_micro_blocks[BG_M_COUNT];
@@ -175,6 +181,7 @@ static bool body_throwing[4];
 /* CPU readiness resets after the geometry-slot fence, before any draw. */
 static unsigned body_animation_ready, fp_animation_ready;
 static void prepare_view(unsigned p);
+static void scope_depth_reset(void);
 
 #ifdef BG_PROFILE
 bg_scene_metrics bg_scene_profile;
@@ -308,6 +315,7 @@ static rspq_block_t *record_texture(unsigned material) {
     return rspq_block_end();
 }
 void bg_scene_release_world(void) {
+    scope_depth_reset();
     rspq_wait();
 #ifdef BG_WORLD_SUBMIT_CACHE
 #ifdef BG_WORLD_HIERARCHY
@@ -439,6 +447,21 @@ static void init_scene(void) {
 #endif
         }
     }
+#ifdef BG_VEHICLE_DISTANCE_LODS
+    for(unsigned kind=0;kind<2;kind++)for(unsigned tier=0;tier<2;tier++){
+        const bg_model_asset *a=&bg_vehicle_distance_assets[kind][tier];
+        const bg_vehicle_rig *rig=&bg_vehicle_distance_rigs[kind][tier];
+        assertf(rig->count==bg_vehicle_rigs[BG_V_WRAITH+kind].count,"Distance part ordering");
+        prepare_model(a);
+        for(unsigned j=0;j<rig->count;j++){
+            const bg_vehicle_part *part=&rig->parts[j];
+            vehicle_distance_parts[kind][tier][j]=record_model_range(a,a->vertices,part->first,part->count,part->batch_first,part->batch_count);
+#ifdef BG_PROFILE
+            vehicle_distance_loads[kind][tier][j]=model_load_count(a,part->count,part->batch_first,part->batch_count);
+#endif
+        }
+    }
+#endif
     /* New tables explicitly alias the existing far asset when absent. */
     for (unsigned m = 0; m < BG_M_COUNT; m++) {
         const bg_model_asset *a = bg_pickup_micro_lods[m], *old = &bg_pickup_lods[m];
@@ -515,6 +538,7 @@ static void init_scene(void) {
     }
 }
 static void reset_view_state(void) {
+    scope_depth_reset();
     for (unsigned p = 0; p < 4; p++)
         fired_at[p] = -100;
     bg_fx_reset();
@@ -991,6 +1015,13 @@ static void compute_vehicle_pose(unsigned i) {
         t3d_mat4_to_fixed_3x4(&part_matrices[slot][i][j], &world);
         bg_bounds box;
         bg_bounds_transform(&box, &part->bounds, world.m, BG_OBJECT_SCALE);
+#ifdef BG_VEHICLE_DISTANCE_LODS
+        if(v->kind>=BG_V_WRAITH){
+            bg_bounds extra;
+            bg_bounds_transform(&extra,&bg_vehicle_distance_part_bounds[v->kind-BG_V_WRAITH][j],world.m,BG_OBJECT_SCALE);
+            bg_bounds_union(&box,&extra);
+        }
+#endif
         /* Reuse the exact current wheel/turret/barrel pose, not a sampled
          * rotation envelope. CPU-only bounds need no geometry-slot lifetime. */
         bg_bounds_quantize(&vehicle_part_bounds[i][j], &box);
@@ -1274,7 +1305,10 @@ static void ensure_firstperson_animation(unsigned p) {
 #ifdef BG_PVE
 #include "pve_draw.inc"
 #endif
+#include "scene_flashlight.inc"
 static void prepare_frame(void) {
+    memset(flashlight_active,0,sizeof(flashlight_active));
+    prepare_flashlights();
     objectives_prepare();
 #ifdef BG_PROFILE
     decode_key_count = 0;
@@ -1303,11 +1337,15 @@ static void prepare_frame(void) {
     bg_scene_profile.pickup_prepare_us = get_ticks_us() - section_begin;
     section_begin = get_ticks_us();
 #endif
-    if (views >= 3) {
         for (unsigned i = 0; i < bg_vehicle_count; i++)
             if (bg_vehicle_body_present(&bg_vehicles[i]) &&
-                vehicle_micro_available[bg_vehicles[i].kind])
+                ((views>=3&&vehicle_micro_available[bg_vehicles[i].kind])
+#ifdef BG_VEHICLE_DISTANCE_LODS
+                 ||bg_vehicles[i].kind>=BG_V_WRAITH
+#endif
+                ))
                 bg_micro_sphere_from_bounds(&vehicle_micro_spheres[i], &vehicle_bounds[i]);
+    if (views >= 3) {
         for (unsigned i = 0; i < bg_pickup_count; i++)
             if (bg_pickups[i].active && pickup_micro_available[pickup_model(bg_pickups[i].weapon)])
                 bg_micro_sphere_from_bounds(&pickup_micro_spheres[i], &pickup_bounds[i]);
@@ -1353,9 +1391,11 @@ static void update_effects(float dt) {
             bg_events[i].player < 4)
             fired_at[bg_events[i].player] = game_time;
 }
+#include "view_layout.h"
+#include "scene_scope_depth.inc"
 static void prepare_view(unsigned p) {
-    int w = views >= 3 ? 160 : 320, h = views == 1 ? 240 : 120, x = views >= 3 ? (p % 2) * 160 : 0,
-        y = views == 1 ? 0 : (views >= 3 ? p / 2 : p) * 120;
+    bg_view_rect area=bg_view_area(views,p);
+    int w=area.w,h=area.h,x=area.x,y=area.y;
     bg_player *player = &bg_players[p];
     float cp = cosf(player->pitch), sy = sinf(player->yaw), cy = cosf(player->yaw);
     float head = bg_eye_height(player);
@@ -1442,21 +1482,28 @@ static void prepare_view(unsigned p) {
      * projection, viewport scissor and full triangle clipping stay active. */
     vp->guardBandScale = views >= 3 ? 4 : 2;
 #endif
-    float fov = views == 2 ? .72f : 1.08f;
+    float fov = w==320&&h==120 ? .72f : 1.08f;
     bool scoped = player->health > 0 && player->zoom;
     unsigned magnification =
         scoped ? (player->weapon == BG_W_SNIPER && player->zoom == 2 ? 10 : 2) : 0;
-    unsigned projection_key = views | (magnification << 3);
+    if (scoped) fov = bg_camera_zoom_fov(fov, magnification);
+#ifdef BG_SCOPE_QA
+    unsigned scope_begin=get_ticks_us();
+#endif
+    bool close_scope = scoped && scope_near_geometry(p,&eye,&target,fov,w,h);
+#ifdef BG_SCOPE_QA
+    debugf("SCOPE_DEPTH p=%u near=%u query_us=%u candidates=%u\n",p,scoped&&!close_scope?32:4,(unsigned)get_ticks_us()-scope_begin,scope_near_candidates[p].count);
+#endif
+    unsigned projection_key = views | (magnification << 3) | (close_scope ? 128 : 0);
     bool projection_changed = projection_keys[slot][p] != projection_key;
     /* Tiny3D rounds viewport scales to integers after W normalization. At
      * far=6200, 160x120 becomes scales 3/-2; changing far changes framing.
      * 1/512 gives exact 20/-15 (40/-30 full screen) and exact 16-bit W/depth
      * factors. Keep it independent of clipping distance and zoom. */
     if (projection_changed) {
-        if (scoped)
-            fov = bg_camera_zoom_fov(fov, magnification);
         float near, far;
         bg_camera_depth(scoped, &near, &far);
+        if (close_scope) near=4.f;
         t3d_viewport_set_projection(vp, fov, near, far);
         t3d_viewport_set_w_normalize(vp, 0, BG_CAMERA_NORMALIZE_SUM);
         bg_hud_aim_projection(vp->matProj.m, views, p);
@@ -1549,6 +1596,17 @@ static void prepare_view(unsigned p) {
         if (v->active && (v->kind == BG_V_BANSHEE || v->kind == BG_V_SCORPION) &&
             v->occupants[0] >= 0 && (!v->hatch_closing || v->hatch < 1))
             lod = 0;
+#ifdef BG_VEHICLE_DISTANCE_LODS
+        if(v->kind>=BG_V_WRAITH){
+            /* Full posed bounds, including offscreen extents. Detailed zoom and
+             * near-plane views; the same pixel limits apply to all split counts. */
+            lod=0;
+            if(!player->zoom&&bg_projected_bounds_below(&vehicle_micro_spheres[i],vp->matCamera.m,vp->matProj.m,vp->size[0],vp->size[1],1.4f,72.f)){
+                lod=1;
+                if(bg_projected_bounds_below(&vehicle_micro_spheres[i],vp->matCamera.m,vp->matProj.m,vp->size[0],vp->size[1],1.4f,28.f))lod=2;
+            }
+        }else
+#endif
         if (lod && vehicle_micro_available[v->kind] &&
             bg_micro_lod_below(&vehicle_micro_spheres[i], vp->matCamera.m, vp->matProj.m,
                                vp->size[0], vp->size[1], 1.4f, BG_MICRO_PIXELS, true,
@@ -1953,6 +2011,21 @@ static void draw_view(unsigned p) {
                                      bg_covenant_wrecks[m].batch_count);
 #endif
             } else if (vehicle_view_lods[p][i] >= 2) {
+#ifdef BG_VEHICLE_DISTANCE_LODS
+                if(v->kind>=BG_V_WRAITH){
+                    unsigned kind=v->kind-BG_V_WRAITH,tier=vehicle_view_lods[p][i]-2;
+                    const bg_vehicle_rig *rig=&bg_vehicle_distance_rigs[kind][tier];
+                    for(unsigned j=0;j<rig->count;j++){
+                        if(!visible_bounds(vp,&vehicle_part_bounds[i][j],cull_selected[p]))continue;
+                        t3d_matrix_set(&part_matrices[slot][i][j],true);
+                        rspq_block_run(vehicle_distance_parts[kind][tier][j]);
+                        triangles+=rig->parts[j].count/3;
+#ifdef BG_PROFILE
+                        submitted_vertices+=vehicle_distance_loads[kind][tier][j];
+#endif
+                    }
+                }else{
+#endif
                 bool micro = vehicle_view_lods[p][i] == 3;
                 t3d_matrix_set(&vehicle_matrices[slot][i], true);
                 rspq_block_run(micro ? vehicle_micro_blocks[v->kind] : vehicle_lods[v->kind]);
@@ -1961,6 +2034,9 @@ static void draw_view(unsigned p) {
 #ifdef BG_PROFILE
                 submitted_vertices +=
                     micro ? vehicle_micro_vertex_loads[v->kind] : vehicle_vertex_loads[v->kind];
+#endif
+#ifdef BG_VEHICLE_DISTANCE_LODS
+                }
 #endif
             } else {
                 const bg_vehicle_rig *rig = &bg_vehicle_rigs[v->kind];
@@ -2094,7 +2170,8 @@ static void draw_view(unsigned p) {
     if(bg_pve_is_active())pve_draw_alpha(p);
     t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH);
 #endif
-    unsigned fx_triangles = bg_fx_draw_blasts();
+    unsigned fx_triangles = draw_flashlights();
+    fx_triangles += bg_fx_draw_blasts();
     fx_triangles += bg_fx_draw_trails(game_time);
     for (unsigned j = 0; j < views; j++)
         if ((held_masks[p] & (1u << j)) && objective_kind(j)<0)

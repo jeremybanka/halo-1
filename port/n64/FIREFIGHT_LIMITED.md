@@ -58,6 +58,12 @@ The fifteen-wave totals are 285 / 353 / 419 / 488 enemies for one through
 four humans, before bonus reinforcements. These counts are initial challenge tuning. Automated completion tests use fixture
 kills and **do not establish fair difficulty or human completion time**.
 
+The latest roster/vehicle candidate offers [selectable fights](FIREFIGHT_FIGHTS.md):
+Onslaught preserves that candidate's existing rules; Gauntlet keeps its solo
+wave quantities and promotes source enemy ranks/loadouts for larger parties.
+The linked report contains current counts; the numbers above describe this
+original base-roster checkpoint.
+
 ## Authored arrivals
 
 Every supported formation has both concealed ground placement and a Spirit
@@ -225,3 +231,11 @@ The [drawing audit](FIREFIGHT_DRAWING.md) breaks down per-camera submissions,
 native omission pixels, full-motion vertex sharing and serialized graphics
 controls. It proposes a screen-size Covenant LOD tier; no rendering reduction
 is adopted by that audit.
+
+## Published playtest checkpoint
+
+[FIREFIGHT_CHECKPOINT.md](FIREFIGHT_CHECKPOINT.md) indexes the vehicle
+optimizations, selectable fights, M64 controls/layout/damage feedback, final
+scope fixes, their benchmarks and the private comparison galleries packaged
+with the 2026-10-30 update. Earlier measurements retain their original inputs
+and are not relabeled as current whole-match or hardware FPS.

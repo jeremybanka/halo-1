@@ -10,7 +10,7 @@ void bg_menu_init(bg_menu *m, unsigned count) {
     memset(m, 0, sizeof(*m));
     m->player_count = (count >= 1 && count <= 4) ? count : 4;
     for (unsigned p = 0; p < BG_PLAYERS; p++)
-        m->styles[p] = BG_CONTROLS_N64;
+        m->styles[p] = BG_CONTROLS_DUKE;
 }
 
 static int8_t axis_edge(float value, bool *ready) {
@@ -139,7 +139,7 @@ bg_menu_result bg_menu_update(bg_menu *m, const bg_menu_input in[BG_PLAYERS], un
     } else if (horizontal || select) {
         unsigned style = (unsigned)m->styles[m->owner];
         if (style >= BG_CONTROLS_COUNT)
-            style = BG_CONTROLS_N64;
+            style = BG_CONTROLS_DUKE;
         m->styles[m->owner] =
             (bg_control_style)((style + (horizontal < 0 ? BG_CONTROLS_COUNT - 1 : 1)) %
                                BG_CONTROLS_COUNT);

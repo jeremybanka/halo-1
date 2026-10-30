@@ -181,6 +181,45 @@ static void ff_reclaim_vehicles(void){
     }
 }
 #endif
+/* Gauntlet keeps the solo encounter schedule at every party size. Promote
+ * existing roles through real CE variants, without extra actors or invented
+ * vitality scaling. Selection is deterministic; sword/camo/fuel roles persist. */
+#ifdef BG_PVE_ROSTER
+static unsigned ff_member_variant(const bg_ff_formation*f,unsigned member){
+    unsigned variant=f->variant[member];
+    if(bg_ff.fight!=BG_FF_GAUNTLET||active_players==1||bg_ff.phase==BG_FF_BONUS)return variant;
+    unsigned kind=f->kind[member],weapon=f->weapon[member];
+    if(!variant){
+        if(kind==BG_PVE_ELITE)variant=weapon==BG_W_NEEDLER?PVE_R_ELITE_MAJOR_ND:PVE_R_ELITE_MAJOR_PR;
+        else if(kind==BG_PVE_GRUNT)variant=weapon==BG_W_NEEDLER?PVE_R_GRUNT_MAJOR_ND:PVE_R_GRUNT_MAJOR_PP;
+        else if(kind==BG_PVE_JACKAL)variant=PVE_R_JACKAL_MAJOR;
+    }
+    if(active_players>=3){
+        switch(variant){
+        case PVE_R_ELITE_MAJOR_PR:variant=PVE_R_ELITE_SPECOPS_PR;break;
+        case PVE_R_ELITE_MAJOR_ND:variant=PVE_R_ELITE_SPECOPS_ND;break;
+        case PVE_R_GRUNT_MAJOR_ND:variant=PVE_R_GRUNT_SPECOPS_ND;break;
+        case PVE_R_STEALTH_PR:variant=PVE_R_STEALTH_MAJOR_PR;break;
+        default:break;
+        }
+    }
+    if(active_players==4){
+        if(member==0&&variant==PVE_R_ELITE_SPECOPS_PR)variant=PVE_R_ZEALOT_PR;
+        /* One fuel rod at most per squad. Retain plasma pistols, Needlers,
+         * shields and melee specialists around it rather than uniform heavies. */
+        if(variant==PVE_R_GRUNT_MAJOR_PP){
+            bool fuel=false;unsigned first=f->count;
+            for(unsigned j=0;j<f->count;j++){
+                fuel|=f->variant[j]==PVE_R_GRUNT_FUEL;
+                if(first==f->count&&f->kind[j]==BG_PVE_GRUNT&&
+                   (!f->variant[j]||f->variant[j]==PVE_R_GRUNT_MAJOR_PP)&&f->weapon[j]==BG_W_PLASMA_PISTOL)first=j;
+            }
+            if(!fuel&&member==first)variant=PVE_R_GRUNT_FUEL;
+        }
+    }
+    return variant;
+}
+#endif
 static bool ff_arrive(unsigned formation,bool spirit){
     if(bg_ff_dropship.phase)return false;
 #ifdef BG_ENEMY_VEHICLES
@@ -216,7 +255,7 @@ static bool ff_arrive(unsigned formation,bool spirit){
         int slot=ff_free_slot();assert(slot>=0);float point[3];memcpy(point,ff_arrival_points[j],12);if(spirit)ff_ship_seat(j,point);
         pve_spawn_actor(slot,f->kind[j],f->weapon[j],formation,point,ff_zones[chosen].yaw);
 #ifdef BG_PVE_ROSTER
-        if(f->variant[j])bg_pve_set_variant(slot,f->variant[j]);
+        unsigned variant=ff_member_variant(f,j);if(variant)bg_pve_set_variant(slot,variant);
 #endif
         bg_pve_actor*a=&bg_pve_actors[slot];memcpy(a->entry_goal,ff_arrival_points[j],12);
         #ifdef BG_ENEMY_VEHICLES
@@ -225,7 +264,7 @@ static bool ff_arrive(unsigned formation,bool spirit){
         if(spirit){a->arrival=1;a->clip=PVE_RIDE;bg_players[BG_PLAYERS+slot].yaw+=j&1?-1.5707963f:1.5707963f;bg_ff_dropship.actors[j]=slot;}else ff_awaken(slot);
     }
     bg_ff.spawned+=f->count;bg_ff.packet++;if(spirit)bg_ff.ship_arrivals++;else bg_ff.ground_arrivals++;
-    bg_ff.packet_delay=active_players==1?6:4;return true;
+    bg_ff.packet_delay=bg_ff.fight==BG_FF_GAUNTLET||active_players==1?6:4;return true;
 }
 static void ff_ship_tick(float dt){
     bg_ff_ship*s=&bg_ff_dropship;if(!s->phase)return;s->time+=dt;
@@ -317,18 +356,23 @@ static unsigned ff_packet_kind(unsigned packet){
 }
 static void ff_begin_wave(void){
     bg_ff.phase=BG_FF_WAVE;bg_ff.packet=0;bg_ff.packet_delay=1;bg_ff.spawned=bg_ff.killed=bg_ff.total=0;
-    bg_ff.packets=2+active_players+bg_ff.round+(bg_ff.wave==3||bg_ff.wave==4);
+    unsigned party=bg_ff.fight==BG_FF_GAUNTLET?1:active_players;
+    bg_ff.packets=2+party+bg_ff.round+(bg_ff.wave==3||bg_ff.wave==4);
     for(unsigned p=0;p<bg_ff.packets;p++)bg_ff.total+=bg_ff_formations[ff_packet_kind(p)].count;
     snprintf(bg_ff.message,sizeof(bg_ff.message),"Round %u / %s %u",bg_ff.round+1,bg_ff.wave==4?"Boss wave":"Wave",bg_ff.wave+1);bg_ff.message_time=5;
 }
 void bg_ff_start(unsigned players){
+    bg_ff_start_fight(players,BG_FF_ONSLAUGHT);
+}
+void bg_ff_start_fight(unsigned players,unsigned fight){
+    if(!bg_ff_fight_available(fight))fight=BG_FF_ONSLAUGHT;
     bg_pve_stop();bg_configure_mode(BG_MODE_SLAYER,NULL);bg_set_players(players);bg_reset();bg_pve_start(0);
-    bg_ff=(bg_ff_state){.active=true,.phase=BG_FF_READY,.difficulty=2,.cap=4+2*active_players,.lives=10,.timer=6,.seed=0x46464c31,.random=0x46464c31};
+    bg_ff=(bg_ff_state){.active=true,.phase=BG_FF_READY,.difficulty=2,.cap=fight==BG_FF_GAUNTLET?(active_players==1?6:8):4+2*active_players,.fight=fight,.lives=10,.timer=6,.seed=0x46464c31,.random=0x46464c31};
     ff_last_zone=0;match_winner=-1;bg_set_score_limit(100000000);
     /* Supplies are finite within a round. Power weapons return at recovery. */
     for(unsigned i=0;i<bg_pickup_count;i++)if(!bg_pickups[i].dropped)bg_pickups[i].period=bg_pickups[i].respawn=3600;
     for(unsigned h=0;h<active_players;h++){bg_ff.respawn_reserved[h]=true;spawn(h);}
-    ff_message("Firefight - Heroic / 10 lives");
+    snprintf(bg_ff.message,sizeof(bg_ff.message),"%s - Heroic / 10 lives",bg_ff_fight_name(fight));bg_ff.message_time=4;
 }
 void bg_ff_enemy_killed(unsigned i,int owner,bool headshot,unsigned profile){
     if(!bg_ff.active)return;

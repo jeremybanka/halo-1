@@ -9,6 +9,7 @@ HEADER=r'''
 #include "blam/vehicle_profile.h"
 typedef struct {
  unsigned ai,goals,clearance,rays,floors,controller,friendly,arc,arc_pause_us,arc_pause_calls;
+ unsigned aim_us,path_us,path_calls,packet_calls;
  unsigned ai_calls,clearance_calls,ray_calls,floor_calls,controller_calls,friendly_calls,arc_calls;
  unsigned contact_us,contact_calls,contact_hits,resolve_us,resolve_calls,resolve_hits,contact_triangles;
  unsigned physics[BG_VP_COUNT],physics_calls[BG_VP_COUNT],steps,wreck_us,wreck_calls,splatter_us,splatter_calls;
@@ -22,15 +23,20 @@ void vehicle_audit_report(unsigned tick);
 GAME_HELPERS=r'''
 vehicle_audit_kind vehicle_audit[6];
 unsigned vehicle_audit_kind_id,vehicle_audit_frame;
+static bool vehicle_audit_arc_active;
 static void vehicle_audit_report_one(unsigned tick,unsigned kind){
  vehicle_audit_kind*a=&vehicle_audit[kind];
  if(!a->steps&&!a->ai_calls&&!a->contact_calls&&!a->resolve_calls&&!a->wreck_calls)return;
- debugf("VA_AI tick=%u ticks=30 kind=%u total=%u goals=%u clearance=%u rays=%u floors=%u controller=%u friendly=%u arc=%u calls=%u clearance_calls=%u ray_calls=%u floor_calls=%u controller_calls=%u friendly_calls=%u arc_calls=%u arc_pause_us=%u arc_pause_calls=%u\n",tick,kind,a->ai,a->goals,a->clearance,a->rays,a->floors,a->controller,a->friendly,a->arc,a->ai_calls,a->clearance_calls,a->ray_calls,a->floor_calls,a->controller_calls,a->friendly_calls,a->arc_calls,a->arc_pause_us,a->arc_pause_calls);
+ debugf("VA_AI tick=%u ticks=30 kind=%u total=%u goals=%u clearance=%u rays=%u floors=%u controller=%u friendly=%u arc=%u calls=%u clearance_calls=%u ray_calls=%u floor_calls=%u controller_calls=%u friendly_calls=%u arc_calls=%u arc_pause_us=%u arc_pause_calls=%u aim_us=%u path_us=%u path_calls=%u packet_calls=%u\n",tick,kind,a->ai,a->goals,a->clearance,a->rays,a->floors,a->controller,a->friendly,a->arc,a->ai_calls,a->clearance_calls,a->ray_calls,a->floor_calls,a->controller_calls,a->friendly_calls,a->arc_calls,a->arc_pause_us,a->arc_pause_calls,a->aim_us,a->path_us,a->path_calls,a->packet_calls);
  debugf("VA_PHYS tick=%u ticks=30 kind=%u steps=%u step=%u force=%u ground=%u feature_build=%u feature_test=%u integrate=%u sweep=%u pairs=%u control=%u publish=%u suspension=%u ground_calls=%u build_calls=%u test_calls=%u sweep_calls=%u pairs_calls=%u wreck=%u wreck_calls=%u splatter=%u splatter_calls=%u contact=%u contact_calls=%u contact_hits=%u resolve=%u resolve_calls=%u resolve_hits=%u contact_triangles=%u\n",tick,kind,a->steps,a->physics[BG_VP_STEP],a->physics[BG_VP_FORCE],a->physics[BG_VP_GROUND],a->physics[BG_VP_FEATURE_BUILD],a->physics[BG_VP_FEATURE_TEST],a->physics[BG_VP_INTEGRATE],a->physics[BG_VP_SWEEP],a->physics[BG_VP_PAIRS],a->physics[BG_VP_CONTROL],a->physics[BG_VP_PUBLISH],a->physics[BG_VP_SUSPENSION],a->physics_calls[BG_VP_GROUND],a->physics_calls[BG_VP_FEATURE_BUILD],a->physics_calls[BG_VP_FEATURE_TEST],a->physics_calls[BG_VP_SWEEP],a->physics_calls[BG_VP_PAIRS],a->wreck_us,a->wreck_calls,a->splatter_us,a->splatter_calls,a->contact_us,a->contact_calls,a->contact_hits,a->resolve_us,a->resolve_calls,a->resolve_hits,a->contact_triangles);
 }
 void vehicle_audit_report(unsigned tick){for(unsigned kind=0;kind<6;kind++)vehicle_audit_report_one(tick,kind);memset(vehicle_audit,0,sizeof(vehicle_audit));}
 static float audit_floor(float x,float z,float ceiling){uint32_t t=get_ticks_us();float r=bg_floor(x,z,ceiling);vehicle_audit[vehicle_audit_kind_id].floors+=get_ticks_us()-t;vehicle_audit[vehicle_audit_kind_id].floor_calls++;return r;}
 static float audit_ray(const float o[3],const float d[3],float reach){uint32_t t=get_ticks_us();float r=bg_raycast(o,d,reach);vehicle_audit[vehicle_audit_kind_id].rays+=get_ticks_us()-t;vehicle_audit[vehicle_audit_kind_id].ray_calls++;return r;}
+'''
+
+PACKET_HELPER=r'''
+static void __attribute__((unused)) audit_packet(const float o[5][3],const float d[3],float reach,float hits[5]){uint32_t t=get_ticks_us();bg_world_clearance_rays(o,d,reach,hits);vehicle_audit_kind*a=&vehicle_audit[vehicle_audit_kind_id];a->rays+=get_ticks_us()-t;a->ray_calls+=5;a->packet_calls++;}
 '''
 
 DRAW_HELPERS=r'''
@@ -48,11 +54,11 @@ static void va_category(unsigned view,const char*category){
 }
 '''
 
-def generate(directory, frozen):
-    sources={name:(directory/name).read_text() for name in ('main.c','game.c','scene.c','combat_geometry.c','blam/vehicle_physics.c','pve_game.inc','pve_vehicles.inc')}
+def generate(directory, frozen, verify=False):
+    sources={name:(directory/name).read_text() for name in ('main.c','game.c','scene.c','combat_geometry.c','blam/vehicle_physics.c','pve_game.inc','pve_vehicles.inc','pve_actions.inc')}
     sources['vehicle_cost_audit.h']=HEADER
     game='#include "vehicle_cost_audit.h"\n'+sources['game.c']
-    game=replace(game,'#include "pve_game.inc"',GAME_HELPERS+'\n#include "pve_game.inc"')
+    game=replace(game,'#include "pve_game.inc"',GAME_HELPERS+PACKET_HELPER+'\n#include "pve_game.inc"')
     game=replace(game,'        BG_VP_END(BG_VP_PLAYER_CONTACTS);','        BG_VP_END(BG_VP_PLAYER_CONTACTS);\n        vehicle_audit[v->kind].splatter_us+=get_ticks_us()-bg_vp_begin;vehicle_audit[v->kind].splatter_calls++;')
     game=replace(game,'    if(++bg_collision_profile.ticks==30){','    if(++bg_collision_profile.ticks==30){\n        vehicle_audit_report(bg_pve_tick_number);')
     sources['game.c']=game
@@ -62,10 +68,10 @@ def generate(directory, frozen):
     vehicles=replace(vehicles,'static void pve_vehicle_inputs(',r'''
 static float pve_vehicle_clearance(const bg_vehicle*v,const float direction[3],float reach){uint32_t t=get_ticks_us();float r=pve_vehicle_clearance_original(v,direction,reach);vehicle_audit[v->kind].clearance+=get_ticks_us()-t;vehicle_audit[v->kind].clearance_calls++;return r;}
 static bool audit_friendly(unsigned i,const float o[3],const float target[3]){uint32_t t=get_ticks_us();bool r=pve_friendly_line(i,o,target);vehicle_audit[vehicle_audit_kind_id].friendly+=get_ticks_us()-t;vehicle_audit[vehicle_audit_kind_id].friendly_calls++;return r;}
-static bool audit_arc(float pause,const float o[3],const float target[3],float speed,float gravity,bool high,float direction[3]){uint32_t t=get_ticks_us();bool r=pve_ballistic_arc(o,target,speed,gravity,high,direction);unsigned elapsed=get_ticks_us()-t;vehicle_audit[vehicle_audit_kind_id].arc+=elapsed;vehicle_audit[vehicle_audit_kind_id].arc_calls++;if(pause>0){vehicle_audit[vehicle_audit_kind_id].arc_pause_us+=elapsed;vehicle_audit[vehicle_audit_kind_id].arc_pause_calls++;}return r;}
+static bool audit_arc(float pause,const float o[3],const float target[3],float speed,float gravity,bool high,float direction[3],bool check_path){uint32_t t=get_ticks_us();vehicle_audit_arc_active=true;bool r=pve_ballistic_arc_checked(o,target,speed,gravity,high,direction,check_path);vehicle_audit_arc_active=false;unsigned elapsed=get_ticks_us()-t;vehicle_audit[vehicle_audit_kind_id].arc+=elapsed;vehicle_audit[vehicle_audit_kind_id].arc_calls++;if(pause>0){vehicle_audit[vehicle_audit_kind_id].arc_pause_us+=elapsed;vehicle_audit[vehicle_audit_kind_id].arc_pause_calls++;}return r;}
 static void pve_vehicle_inputs(''')
     # Only vehicle movement goal/support rays are replaced by timing wrappers.
-    vehicles=vehicles.replace('bg_floor(','audit_floor(').replace('bg_raycast(','audit_ray(')
+    vehicles=vehicles.replace('bg_floor(','audit_floor(').replace('bg_raycast(','audit_ray(').replace('bg_world_clearance_rays(','audit_packet(')
     vehicles=replace(vehicles,'        a->vehicle_timer+=dt;', '        vehicle_audit_kind_id=v->kind;uint32_t va_start=get_ticks_us(),va_part=va_start;vehicle_audit[v->kind].ai_calls++;\n        a->vehicle_timer+=dt;')
     vehicles=replace(vehicles,'if(a->target<0||bg_players[a->target].health<=0)continue;','if(a->target<0||bg_players[a->target].health<=0){vehicle_audit[v->kind].ai+=get_ticks_us()-va_start;continue;}')
     vehicles=replace(vehicles,'if(distance<.01f)continue;','if(distance<.01f){vehicle_audit[v->kind].ai+=get_ticks_us()-va_start;continue;}')
@@ -73,11 +79,21 @@ static void pve_vehicle_inputs(''')
     vehicles=replace(vehicles,'        bg_vehicle_ai_movement(', '        va_part=get_ticks_us();\n        bg_vehicle_ai_movement(')
     vehicles=replace(vehicles,'        p->yaw=atan2f(outface[1]', '        vehicle_audit[v->kind].controller+=get_ticks_us()-va_part;vehicle_audit[v->kind].controller_calls++;\n        p->yaw=atan2f(outface[1]')
     vehicles=replace(vehicles,'!pve_friendly_line(i,origin,target)','!audit_friendly(i,origin,target)')
-    vehicles=replace(vehicles,'can_fire&&pve_ballistic_arc(', 'can_fire&&audit_arc(a->burst_pause,')
+    vehicles=replace(vehicles,'can_fire&&pve_ballistic_arc_checked(', 'can_fire&&audit_arc(a->burst_pause,')
     vehicles=replace(vehicles,'a->burst_pause=pve_range(d->pause)*scale->pause;continue;', 'a->burst_pause=pve_range(d->pause)*scale->pause;vehicle_audit[v->kind].ai+=get_ticks_us()-va_start;continue;')
     pos=vehicles.rindex('    }\n}')
     vehicles=vehicles[:pos]+'        vehicle_audit[v->kind].ai+=get_ticks_us()-va_start;\n'+vehicles[pos:]
     sources['pve_vehicles.inc']=vehicles
+    actions=sources['pve_actions.inc']
+    from blam.prepare_collision import function
+    for name,args,field in (
+        ('pve_ballistic_aim','origin,target,speed,gravity,high,direction,duration','aim_us'),
+        ('pve_ballistic_path','origin,speed,gravity,direction,duration','path_us')):
+        original=function(actions,name);signature=original.split('{',1)[0]
+        wrapper=signature+'{uint32_t t=get_ticks_us();bool r='+name+'_original('+args+');if(vehicle_audit_arc_active){vehicle_audit[vehicle_audit_kind_id].'+field+'+=get_ticks_us()-t;'+('vehicle_audit[vehicle_audit_kind_id].path_calls++;' if field=='path_us' else '')+'}return r;}\n'
+        actions=replace(actions,original,original.replace(name+'(',name+'_original(',1)+wrapper)
+    sources['pve_actions.inc']=actions
+
     physics='#include "../vehicle_cost_audit.h"\n'+sources['blam/vehicle_physics.c']
     physics=replace(physics,'void bg_vehicle_physics_step(', 'static void vehicle_step_original(')
     physics=replace(physics,'void bg_vehicle_physics_wreck(', 'static void vehicle_wreck_original(')
@@ -113,4 +129,29 @@ void bg_vehicle_physics_wreck(unsigned i){uint32_t t=get_ticks_us();vehicle_wrec
         scene=replace(scene,'        if (vehicle_view_lods[p][i]) {','        if (vehicle_view_lods[p][i] && vehicle_audit_frame!=i+2 && vehicle_audit_frame!=6) {\n            unsigned va_before=submitted_vertices,va_before_tri=triangles;')
         scene=replace(scene,'            if (wreck) {\n                rdpq_sync_pipe();\n                rdpq_mode_combiner(RDPQ_COMBINER_SHADE);\n            }','            if(!vehicle_audit_frame)debugf("VA_HULL view=%u vehicle=%u kind=%u lod=%u vertices=%u triangles=%u pos=%.6f,%.6f,%.6f yaw=%.6f pitch=%.6f health=%.3f\\n",p,i,v->kind,vehicle_view_lods[p][i],submitted_vertices-va_before,triangles-va_before_tri,v->pos[0],v->pos[1],v->pos[2],v->yaw,v->pitch,v->health);\n            if (wreck) {\n                rdpq_sync_pipe();\n                rdpq_mode_combiner(RDPQ_COMBINER_SHADE);\n            }')
         sources['scene.c']=scene
+    if verify:
+        # Verification is deliberately excluded from live performance ROMs.
+        qa=directory/'benchmarks/vehicle-simulation'
+        actions=sources['pve_actions.inc']
+        original=function(actions,'pve_ballistic_arc_checked');signature=original.split('{',1)[0]
+        wrapper=signature+r'''{
+ float expected[3];memcpy(expected,direction,12);
+ bool old=vehicle_query_original_arc(origin,target,speed,gravity,high,expected);
+ bool actual=pve_ballistic_arc_checked_original(origin,target,speed,gravity,high,direction,check_path);
+ assert(!memcmp(expected,direction,12));assert(!check_path||old==actual);return actual;
+}
+'''
+        actions=replace(actions,original,(qa/'original_arc.inc').read_text()+'\n'+original.replace('pve_ballistic_arc_checked(','pve_ballistic_arc_checked_original(',1)+wrapper)
+        sources['pve_actions.inc']=actions
+        physics=sources['blam/vehicle_physics.c']
+        original=function(physics,'bg_world_clearance_rays');signature=original.split('{',1)[0]
+        wrapper=signature+r'''{
+ bg_world_clearance_rays_original(origins,direction,distance,hits);
+ for(unsigned i=0;i<5;i++){float old=bg_world_raycast(origins[i],direction,distance);assert(!memcmp(&old,&hits[i],4));}
+}
+'''
+        sources['blam/vehicle_physics.c']=replace(physics,original,original.replace('bg_world_clearance_rays(','bg_world_clearance_rays_original(',1)+wrapper)
+        game=sources['game.c'];game=replace(game,'void bg_tick(', (qa/'native_trace.inc').read_text()+'\nvoid bg_tick(')
+        game=replace(game,'    mode_advance_spawn_clock(dt);','    mode_advance_spawn_clock(dt);\n    vehicle_query_trace();')
+        sources['game.c']=game
     return sources

@@ -1,3 +1,5 @@
+#include "damage_indicator.h"
+#include "damage_flash.h"
 #include "telemetry.h"
 #include "collision_profile.h"
 #include "blam/vehicle_physics.h"
@@ -611,7 +613,7 @@ void bg_reset(void) {
     for (unsigned i = 0; i < active_players; i++)
         spawn(i);
 #ifdef BG_PVE
-    if(bg_ff.active){bg_ff_start(active_players);return;}
+    if(bg_ff.active){bg_ff_start_fight(active_players,bg_ff.fight);return;}
     if(bg_pve_is_active()){bg_pve_start(bg_pve_count);for(unsigned i=0;i<active_players;i++)pve_place_human(i);}
 #endif
 }
@@ -938,7 +940,7 @@ static void damage_player_region(unsigned victim, int owner, float damage, bool 
     }
     if (owner >= 0 && owner < (int)active_players && owner != (int)victim)
         damage_history[victim][owner] += damage * (profile ? 100.f / bg_combat_body_max : 1);
-    float old_shield = p->shield;
+    float old_shield = p->shield, old_health = p->health;
     p->shield_charging = false;
     if (profile && bg_damage_profiles[profile].stun > 0) {
         const bg_damage_profile *d = &bg_damage_profiles[profile];
@@ -966,6 +968,13 @@ static void damage_player_region(unsigned victim, int owner, float damage, bool 
             damage = 200;
         if (damage > 0)
             p->health = fmaxf(0, p->health - damage);
+    }
+    if(p->shield<old_shield || p->health<old_health)bg_damage_flash_start(p,profile,energy);
+    if(owner>=0 && owner<(int)bg_unit_count() && owner!=(int)victim &&
+       (p->shield<old_shield || p->health<old_health)) {
+        const bg_player *attacker=&bg_players[owner];
+        float delta[3]={attacker->pos[0]-p->pos[0],attacker->pos[1]-p->pos[1],attacker->pos[2]-p->pos[2]};
+        bg_damage_indicator_hit(p->damage_indicator,p->yaw,p->pitch,delta);
     }
     if (p->shield < .0001f)
         p->shield = 0;
@@ -2439,6 +2448,8 @@ static void tick_player_timers(unsigned player_index, float dt) {
     player->cooldown = fmaxf(0, player->cooldown - dt);
     player->flash = fmaxf(0, player->flash - dt);
     player->hurt = fmaxf(0, player->hurt - dt);
+    player->damage_flash_time=fmaxf(0,player->damage_flash_time-dt);
+    for(unsigned d=0;d<4;d++)player->damage_indicator[d]=fmaxf(0,player->damage_indicator[d]-dt);
     player->shield_hit = fmaxf(0, player->shield_hit - dt * .5f);
     player->shield_break = fmaxf(0, player->shield_break - dt);
     player->airborne_time = player->grounded ? 0 : player->airborne_time + dt;
@@ -2471,6 +2482,7 @@ static void tick_player_timers(unsigned player_index, float dt) {
 }
 static void tick_player_resources(unsigned player_index, const bg_input *input, float dt) {
     bg_player *player = &bg_players[player_index];
+    if(input->flashlight)player->flashlight_on=!player->flashlight_on;
     bool was_charging = player->shield_charging;
     player->shield_charging = false;
     if (player->shield_overcharging) {

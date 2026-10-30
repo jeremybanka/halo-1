@@ -55,10 +55,17 @@ static bool pve_vehicle_approach(unsigned i,float dt){
 static float pve_vehicle_clearance(const bg_vehicle*v,const float direction[3],float reach){
     const bg_vehicle_ai_definition*d=&bg_vehicle_ai_defs[v->kind];float best=reach;
     float right[3]={direction[2],0,-direction[0]};normalize(right);
+    float origins[5][3],hits[5];
     for(int side=-2;side<=2;side++){
-        float o[3];for(unsigned k=0;k<3;k++)o[k]=v->pos[k]+right[k]*d->radius*side*.5f;o[1]+=.6f;
-        best=fminf(best,bg_raycast(o,direction,reach));
+        float *o=origins[side+2];for(unsigned k=0;k<3;k++)o[k]=v->pos[k]+right[k]*d->radius*side*.5f;o[1]+=.6f;
     }
+#if defined(BG_VEHICLE_QUERY_BASELINE) || defined(BG_BLAM_BSP)
+    /* The optional source-BSP service retains its own collision semantics. */
+    for(unsigned lane=0;lane<5;lane++)hits[lane]=bg_raycast(origins[lane],direction,reach);
+#else
+    bg_world_clearance_rays(origins,direction,reach,hits);
+#endif
+    for(unsigned lane=0;lane<5;lane++)best=fminf(best,hits[lane]);
     if(v->kind!=BG_V_BANSHEE){
         float ground=bg_floor(v->pos[0],v->pos[2],v->pos[1]+1),end=bg_floor(v->pos[0]+direction[0]*reach,v->pos[2]+direction[2]*reach,v->pos[1]+1);
         if(end<ground-.7f||end>ground+.7f)best=0;
@@ -129,7 +136,13 @@ static void pve_vehicle_inputs(bg_input inputs[BG_UNITS],float dt){
         if(a->visible){float lead=d->leading*distance/fmaxf(weapon->speed_start*30,.01f);for(unsigned k=0;k<3;k++)target[k]+=bg_players[a->target].velocity[k]*lead;}
         sub(aim_dir,target,origin);normalize(aim_dir);
         bool can_fire=a->aware&&a->visible&&distance<d->range&&!pve_friendly_line(i,origin,target);
-        if(v->kind==BG_V_WRAITH){can_fire=can_fire&&pve_ballistic_arc(origin,target,weapon->speed_start*30,bg_movement.gravity*weapon->gravity,d->superballistic>0&&distance>d->superballistic,aim_dir);}
+        if(v->kind==BG_V_WRAITH){
+            bool check_path=a->burst_pause<=0||d->special_mode==2;
+#ifdef BG_VEHICLE_QUERY_BASELINE
+            check_path=true;
+#endif
+            can_fire=can_fire&&pve_ballistic_arc_checked(origin,target,weapon->speed_start*30,bg_movement.gravity*weapon->gravity,d->superballistic>0&&distance>d->superballistic,aim_dir,check_path);
+        }
         if(!(d->flags&256)){p->yaw=atan2f(-aim_dir[2],aim_dir[0]);p->pitch=atan2f(aim_dir[1],hypotf(aim_dir[0],aim_dir[2]));}
         else can_fire=can_fire&&dot(aim_dir,v->forward)>.97f;
         /* CE strafe bombs allow vehicle targets, but explicitly reject players

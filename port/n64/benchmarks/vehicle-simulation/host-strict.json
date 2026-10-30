@@ -1,0 +1,32 @@
+{
+  "reference": "031e79f57ba49ab32d507a1c97aee118cbf328d2",
+  "target_math": false,
+  "ticks": 9600,
+  "trace_sha256": "e52045c5ec8bc4239f0da3492e274633ad5cc5b7d89eef65eab227e62231439f",
+  "queries": "PASS 650000 bit-identical clearance rays across all 13 maps (242490 hits), zero/short/axis/oblique rays\nPASS 20000 split trajectory/obstruction results and cooldown aim vectors versus frozen original\nPASS 3000 Wraith gate/burst/cooldown boundary decisions: exact control, aim, timers, actor state and RNG\n",
+  "exact": true,
+  "candidate_sha256": {
+    "port/n64/pve_actions.inc": "bb7b69bf84e8fc5923e99d39e5bef4e51f89b938604ec64ed5d07ad92c709bfb",
+    "port/n64/pve_vehicles.inc": "643415cb18a3bea309c4b77ce2b8eca8f9988edf60b9eebc9504fb88eb9b9393",
+    "port/n64/blam/vehicle_physics.c": "66c4c9527a51baec8cb58e10806d48575cae94d38d5b22b1496aea065ab00897",
+    "port/n64/benchmarks/vehicle-simulation/test.c": "bb1c160a02f56abf71530a1512c41da6777db142be991fdceda81d0e42c764da"
+  },
+  "compiler_flags": [
+    "-std=c17",
+    "-O2",
+    "-g",
+    "-fno-fast-math",
+    "-ffp-contract=off",
+    "-fno-strict-aliasing",
+    "-fwrapv",
+    "-fsanitize=address,undefined",
+    "-Wno-multichar",
+    "-Wno-incompatible-pointer-types",
+    "-DBG_BODY_CANDIDATES",
+    "-DBG_STREAM_MAPS",
+    "-DBG_PVE",
+    "-DBG_PVE_QA=0",
+    "-DBG_PVE_ROSTER",
+    "-DBG_ENEMY_VEHICLES"
+  ]
+}

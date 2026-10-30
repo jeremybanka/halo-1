@@ -7,6 +7,7 @@
 
 int main(void){
     bg_menu menu;bg_menu_init(&menu,4);
+    for(unsigned p=0;p<4;p++)menu.styles[p]=BG_CONTROLS_BOND;
     unsigned views=4,restarts=0,count_changes=0,gameplay_polls=0;
     unsigned visits[40]={0},last_step=0;
     uint64_t first_done=0;
@@ -32,7 +33,7 @@ int main(void){
             /* A game reset has no ownership of menu preferences. */
             assert(!menu.open&&views==4);
             for(unsigned p=0;p<BG_PLAYERS;p++)
-                assert(menu.styles[p]==(p<3?BG_CONTROLS_XBOX:BG_CONTROLS_N64));
+                assert(menu.styles[p]==(p<3?BG_CONTROLS_DUKE:BG_CONTROLS_BOND));
         }
         if(!result.consumed)for(unsigned p=0;p<views;p++)
             bg_controls_map(&in[p],&raw[p],menu.styles[p],false);

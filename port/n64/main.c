@@ -16,6 +16,9 @@
 #include "menu_draw.h"
 #include "frontend.h"
 #include "frontend_draw.h"
+#ifdef BG_FIREFIGHT_QA
+#include "firefight_menu_photo.h"
+#endif
 #ifdef BG_FRONTEND_QA
 #include "frontend_qa.h"
 #endif
@@ -251,6 +254,10 @@ static uint32_t control_buttons(joypad_buttons_t buttons) {
 #undef BUTTON
     return bits;
 }
+#ifdef BG_M64_POLISH_QA
+#include "m64_polish_qa.h"
+#endif
+static bg_control_gesture gestures[4];
 static bool input(bg_input in[4]) {
     bg_control_state raw[4];
     bg_menu_input navigation[4];
@@ -279,7 +286,7 @@ static bool input(bg_input in[4]) {
 #ifdef BG_SCORES_BENCHMARK
     /* A separately named replay measures all four live score overlays. */
     for (unsigned i = 0; i < 4; i++)
-        raw[i] = (bg_control_state){.held = BG_BUTTON_R};
+        raw[i] = (bg_control_state){.held = BG_BUTTON_Z|BG_BUTTON_C_UP};
 #endif
 #ifdef BG_FRONTEND
     if (front_active()) {
@@ -314,9 +321,10 @@ static bool input(bg_input in[4]) {
             views = front.count;
             bg_set_players(views);
 #ifdef BG_FIREFIGHT
-            if(front.firefight)bg_ff_start(views);else
+            if(front.firefight)bg_ff_start_fight(views,front.fight);else
 #endif
             bg_reset();
+            memset(gestures,0,sizeof(gestures));
             bg_hud_messages_reset();
             game_time = 0;
             match_ended = 0;
@@ -335,7 +343,7 @@ static bool input(bg_input in[4]) {
 #endif
             bg_sound_begin_match();
 #ifdef BG_FIREFIGHT
-            debugf("SESSION_START firefight=%u map=%u players=%u npcs=%u\n",front.firefight,front.map,views,bg_pve_count);
+            debugf("SESSION_START firefight=%u map=%u players=%u npcs=%u fight=%u\n",front.firefight,front.map,views,bg_pve_count,front.fight);
 #endif
         } else if (action == BG_FRONT_RESUME_MATCH) {
 #ifdef BG_FRONTEND_QA
@@ -373,6 +381,7 @@ static bool input(bg_input in[4]) {
 #endif
     if (result.action == BG_MENU_ACTION_RESTART) {
         bg_reset();
+        memset(gestures,0,sizeof(gestures));
         bg_hud_messages_reset();
         game_time = 0;
         bg_scene_reset();
@@ -386,11 +395,13 @@ static bool input(bg_input in[4]) {
     }
     memset(in, 0, sizeof(bg_input) * 4);
     memset(scores, 0, sizeof(scores));
-    if (!result.consumed)
-        for (unsigned i = 0; i < views; i++) {
-            bg_controls_map(&in[i], &raw[i], menu.styles[i], bg_players[i].vehicle >= 0);
-            scores[i] = bg_controls_show_scores(&raw[i], menu.styles[i]);
-        }
+    for (unsigned i = 0; i < views; i++) {
+        if(bg_players[i].health<=0) bg_controls_reset(&gestures[i]);
+        bg_controls_update(&in[i], &gestures[i], &raw[i], menu.styles[i],
+            bg_players[i].vehicle >= 0, !result.consumed && bg_players[i].health>0,
+            get_ticks_us());
+        scores[i] = !result.consumed && bg_controls_show_scores(&raw[i], menu.styles[i]);
+    }
 #ifdef BG_MENU_QA
     bg_menu_qa_check(&menu, views, &result, in);
 #endif
@@ -423,6 +434,7 @@ static surface_t *paced_acquire(blam_clock *clock, uint64_t *previous, bg_input 
                 EDGE(switch_grenade);
                 EDGE(melee);
                 EDGE(zoom);
+            EDGE(flashlight);
 #undef EDGE
             }
             bg_presentation_mode(views >= 3 && !front_active());
@@ -869,17 +881,20 @@ int main(void) {
     views=BG_PVE_PLAYERS;
     #endif
     bg_menu_init(&menu, views);
+#ifdef BG_MENU_QA
+    for(unsigned p=0;p<4;p++)menu.styles[p]=BG_CONTROLS_BOND;
+#endif
 #if defined(BG_COMBAT_QA) && BG_COMBAT_QA == 8
-    menu.styles[0] = BG_CONTROLS_XBOX;
-    menu.styles[1] = BG_CONTROLS_N64;
+    menu.styles[0] = BG_CONTROLS_DUKE;
+    menu.styles[1] = BG_CONTROLS_BOND;
 #endif
 #ifdef BG_HUD_QA
     for (unsigned p = 0; p < BG_PLAYERS; p++)
-        menu.styles[p] = p & 1 ? BG_CONTROLS_XBOX : BG_CONTROLS_N64;
+        menu.styles[p] = p & 1 ? BG_CONTROLS_DUKE : BG_CONTROLS_BOND;
 #endif
 #ifdef BG_SCORES_BENCHMARK
     for (unsigned p = 0; p < 4; p++)
-        menu.styles[p] = BG_CONTROLS_XBOX;
+        menu.styles[p] = BG_CONTROLS_DUKE;
 #endif
 #ifndef BG_SNAPSHOT_TICK
     bg_menu_draw_init();
@@ -949,7 +964,7 @@ int main(void) {
 #endif
 #ifdef BG_INTERACTION_QA
     for (unsigned p = 0; p < BG_PLAYERS; p++)
-        menu.styles[p] = p & 1 ? BG_CONTROLS_XBOX : BG_CONTROLS_N64;
+        menu.styles[p] = p & 1 ? BG_CONTROLS_DUKE : BG_CONTROLS_BOND;
     bg_qa_interaction_stage();
 #endif
 #ifdef BG_SHIELD_QA
@@ -1068,11 +1083,12 @@ int main(void) {
             EDGE(switch_grenade);
             EDGE(melee);
             EDGE(zoom);
+            EDGE(flashlight);
 #undef EDGE
         }
         unsigned ticks = blam_clock_update(&clock, dt);
 #endif
-#ifdef BG_PVE_PHOTO_TICK
+#if defined(BG_PVE_PHOTO_TICK) || defined(BG_M64_POLISH_QA)
         ticks=0;
 #endif
         for (unsigned t = 0; t < ticks; t++) {
@@ -1128,6 +1144,7 @@ int main(void) {
                     in[p].jump = false;
                 in[p].reload = in[p].switch_weapon = in[p].grenade = in[p].switch_grenade =
                     in[p].melee = in[p].zoom = false;
+                in[p].flashlight = false;
             }
             memset(latch, 0, sizeof(latch));
         }
@@ -1167,6 +1184,9 @@ int main(void) {
             rdpq_clear_z(ZBUF_MAX);
             bg_front_draw(&front, now);
             pump_audio();
+#ifdef BG_FIREFIGHT_QA
+            firefight_menu_photo(screen,&front);
+#endif
 #ifdef BG_FRONTEND_QA
             sys_get_heap_stats(&heap);
             rdpq_set_mode_standard();
@@ -1205,8 +1225,9 @@ int main(void) {
         uint64_t attach_us = get_ticks_us() - profile_start;
         profile_start = get_ticks_us();
 #endif
-        if (views == 3)
-            rdpq_clear(RGBA32(0, 0, 0, 255));
+#ifdef BG_M64_POLISH_QA
+        m64_polish_stage(&views);
+#endif
         bg_scene_prepare(slot, views, game_time);
 #ifdef BG_PROFILE
         prep_us = get_ticks_us() - profile_start;
@@ -1285,11 +1306,14 @@ int main(void) {
 #ifdef BG_PROFILE
         hud_us = get_ticks_us() - hud_begin;
 #endif
+#ifdef BG_M64_POLISH_QA
+        m64_polish_overlay();
+#endif
         rdpq_set_scissor(0, 0, 320, 240);
         if (views > 1)
             fill(0, 119, 320, 2, RGBA32(0, 0, 0, 255));
         if (views >= 3)
-            fill(159, 0, 2, 240, RGBA32(0, 0, 0, 255));
+            fill(159, 0, 2, views==3?120:240, RGBA32(0, 0, 0, 255));
 #ifdef BG_GEOMETRY_CENSUS
         rdpq_set_mode_standard();fill(0,0,320,240,RGBA32(0,0,0,255));
         rdpq_set_mode_standard();
@@ -1422,6 +1446,9 @@ int main(void) {
         rdpq_text_printf(NULL, 1, 4, 237, "RDP %u ERRORS %u WARNINGS", validation_errors,
                          validation_warnings);
 #endif
+#endif
+#ifdef BG_M64_POLISH_QA
+        m64_polish_photo(screen);
 #endif
 #ifdef BG_PROFILE
         overlay_us = get_ticks_us() - profile_start;

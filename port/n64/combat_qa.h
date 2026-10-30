@@ -23,7 +23,7 @@ static void combat_qa_input(bg_input in[4],float time){
             if(p)raw.stick_y=80;else raw.held=BG_BUTTON_D_UP;
         }
         if(t>=3&&t<4)raw.stick_x=-45;
-        bg_controls_map(&in[p],&raw,p?BG_CONTROLS_N64:BG_CONTROLS_XBOX,true);
+        bg_controls_map(&in[p],&raw,p?BG_CONTROLS_BOND:BG_CONTROLS_DUKE,true);
     }
     return;
 #endif

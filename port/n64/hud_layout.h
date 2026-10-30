@@ -11,6 +11,9 @@
 static inline void bg_hud_aim_point(unsigned views,unsigned player,
     float x,float y,float width,float height,float *aim_x,float *aim_y)
 {
+    /* Three-player P3 owns the full bottom viewport, with the same safe-area
+     * center as the bottom view in two-player mode. */
+    if(views==3&&player==2){views=2;player=1;}
     unsigned columns=views>=3?2:1,rows=views==1?1:2;
     unsigned column=player%columns,row=player/columns;
     unsigned frame_width=544/columns,frame_height=408/rows;

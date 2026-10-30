@@ -12,6 +12,8 @@ import io
 from build import ROOT, parse_args, compile_options
 
 VARIANTS = {
+    "scope-qa": ["--pve-squad", "--scope-qa", "--output-dir", "build/scope-fix/config"],
+    "m64-polish": ["--pve-squad", "--m64-polish-qa", "--output-dir", "build/m64-polish/config"],
     "release": ["--preset", "release"],
     "solver-profile": ["--benchmark", "--benchmark-page", "7"],
     "animation-profile": ["--benchmark", "--benchmark-page", "8"],
@@ -90,8 +92,15 @@ def main():
         ["--pve-crunch-baseline"],
         ["--pve-crunch", "--pve-squad"],
         ["--pve-crunch", "--pve-squad", "--pve-model-bank", "build/covenant-models/bank", "--output-dir", "build/covenant-crunch/config"],
+        ["--scope-qa"],
+        ["--scope-qa", "--pve-squad", "--profile", "--output-dir", "build/scope-fix/config"],
+        ["--m64-polish-qa"],
+        ["--m64-polish-qa", "--firefight", "--output-dir", "build/m64-polish/config"],
+        ["--m64-polish-qa", "--pve-squad", "--profile", "--output-dir", "build/m64-polish/config"],
         ["--pve-draw-audit"],
         ["--vehicle-cost-audit"],
+        ["--vehicle-query-baseline"],
+        ["--vehicle-query-verify"],
         ["--pve-draw-audit", "--pve-squad", "--profile", "--pve-photo-tick", "60"],
         ["--firefight", "--pve-model-bank", "build/covenant-models/bank"],
         ["--pve-model-bank", "build/covenant-models/bank", "--output-dir", "build/covenant-models/config"],

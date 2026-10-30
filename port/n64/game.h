@@ -117,6 +117,10 @@ typedef struct {
 #endif
     int ammo, score;
     bool grounded;
+    bool flashlight_on;
+    float damage_flash_time,damage_flash_strength;
+    uint8_t damage_flash_profile;
+    float damage_indicator[4]; /* Source order: top, left, bottom, right. */
     bool climbing;
     float shield, shield_delay, heat, charge, recoil, gait, anim_time, melee_time, invisibility;
     float locomotion_time; /* Base body cycle; weapon impulses must not restart it. */
@@ -157,7 +161,7 @@ typedef struct {
     float forward, strafe, turn, look;
     /* interact is held use; reload and the other discrete actions are edges. */
     bool jump, fire, reload, switch_weapon, grenade, switch_grenade, interact, melee, zoom, crouch,
-        secondary_fire;
+        secondary_fire, flashlight;
 } bg_input;
 typedef struct {
     float pos[3], yaw, pitch, velocity[3], speed, cooldown, flash, respawn, engine_phase;

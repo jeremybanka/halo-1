@@ -397,6 +397,57 @@ static float world_raycast(const float origin[3],const float direction[3],float 
 float bg_world_raycast_normal(const float o[3],const float d[3],float distance,float normal[3]){return world_raycast(o,d,distance,normal,NULL,.003f);}
 float bg_world_projectile_raycast(const float o[3],const float d[3],float distance,float normal[3],int *material){return world_raycast(o,d,distance,normal,material,0);}
 float bg_world_raycast(const float o[3],const float d[3],float distance){return bg_world_raycast_normal(o,d,distance,NULL);}
+/* One conservative union box traverses the static-world BVH for all five
+ * lanes. Exact per-lane slab, plane and directed-edge tests still decide hits.
+ * Stream candidates directly: no capped list, allocation or persistent cache.
+ * Equal-distance ordering cannot change a distance-only result; queries that
+ * need normals/materials continue to use the scalar service. */
+void bg_world_clearance_rays(const float origins[5][3],const float direction[3],float distance,float hits[5]){
+ const float bias=.003f;
+ if(distance<=bias){for(unsigned i=0;i<5;i++)hits[i]=distance;return;}
+ world_load();
+ real_point3d p[5];
+ real_vector3d d={.n={direction[0]*(distance-bias),-direction[2]*(distance-bias),direction[1]*(distance-bias)}};
+ float lo[3],hi[3],scaled[5][3],inverse[3],nearest[5]={1,1,1,1,1};bool zero[3];
+ for(unsigned k=0;k<3;k++){zero[k]=fabsf(d.n[k])<1e-12f;inverse[k]=zero[k]?0:1/(d.n[k]*64);}
+ for(unsigned i=0;i<5;i++){
+  p[i]=(real_point3d){.n={origins[i][0]+direction[0]*bias+bg_map_origin()[0],-origins[i][2]-direction[2]*bias+bg_map_origin()[1],origins[i][1]+direction[1]*bias+bg_map_origin()[2]}};
+  for(unsigned k=0;k<3;k++){
+   scaled[i][k]=p[i].n[k]*64;
+   float end=p[i].n[k]+d.n[k],lower=MIN(p[i].n[k],end),upper=MAX(p[i].n[k],end);
+   if(!i){lo[k]=lower;hi[k]=upper;}else{lo[k]=MIN(lo[k],lower);hi[k]=MAX(hi[k],upper);}
+  }
+ }
+ struct surface_query query;query_begin_raw(&query,lo,hi);int si;
+ const struct collision_bsp*b=&bg_vehicle_bsp;
+ while((si=query_next_raw(&query))>=0){
+   unsigned mask=0;
+   for(unsigned i=0;i<5;i++){
+    float entry;
+    if(ray_bounds(bg_vehicle_surface_bounds[si],scaled[i],inverse,zero,nearest[i],&entry))mask|=1u<<i;
+   }
+   if(!mask)continue;
+   const struct collision_surface*surface=TAG_BLOCK_GET_ELEMENT(&b->surfaces,si,struct collision_surface);
+   real_plane3d plane;bsp3d_get_plane_from_designator(&b->bsp3d,surface->plane_designator,&plane);
+   float den=dot_product3d(&plane.n,&d);if(fabsf(den)<1e-9f)continue;
+   int axis=projection_from_vector3d(&plane.n);bool sign=projection_sign_from_vector3d(&plane.n,axis);
+   float fractions[5];real_point2d points[5];
+   for(unsigned i=0;i<5;i++)if(mask&(1u<<i)){
+    float t=-plane3d_distance_to_point(&plane,&p[i])/den;
+    if(t<0||t>nearest[i]){mask&=~(1u<<i);continue;}
+    real_point3d hit;point_from_line3d(&p[i],&d,t,&hit);project_point3d(&hit,axis,sign,&points[i]);fractions[i]=t;
+   }
+   const struct collision_prism*polygon=mask?cached_polygon(b,si):NULL;
+   for(int edge=0;mask&&edge<polygon->point_count;edge++){
+    const real_point2d*a=&polygon->points[edge],*c=&polygon->points[edge+1<polygon->point_count?edge+1:0];
+    float dx=c->x-a->x,dy=c->y-a->y;
+    for(unsigned i=0;i<5;i++)if((mask&(1u<<i))&&((points[i].x-a->x)*dy-(points[i].y-a->y)*dx)>0)mask&=~(1u<<i);
+   }
+   for(unsigned i=0;i<5;i++)if(mask&(1u<<i))nearest[i]=fractions[i];
+ }
+ for(unsigned i=0;i<5;i++)hits[i]=bias+nearest[i]*(distance-bias);
+}
+
 void bg_world_camera_rays(const float origin[3],const float rays[5][3],const float reaches[5],float hits[5]){
  BG_VP_BEGIN;
  world_load();real_point3d p[5];real_vector3d d[5];float lo[3],hi[3],nearest[5];

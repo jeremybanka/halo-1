@@ -34,10 +34,8 @@ static inline void bg_camera_depth(bool scoped,float*near,float*far){
     /* 1/8 Halo unit stays inside the on-foot collision radius, while
      * retaining enough RDP depth precision for wall-attached details.
      * First-person arms keep their separate .125 render-unit projection. */
-    /* Scoped cameras have no foreground weapon and resolve thin distant
-     * surfaces at large magnification. A one-unit near plane gives their
-     * depth differences eight times the precision of the unscoped camera.
-     * Keep unscoped close geometry and W/viewport normalization unchanged. */
+    /* The scoped precision default is only used when the near-field probe
+     * is empty. Nearby world/actor geometry selects the ordinary 4-unit plane. */
     *near=scoped?32.f:4.f;*far=scoped?12400.f:6200.f;
 }
 #endif

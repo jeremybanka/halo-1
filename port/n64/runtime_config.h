@@ -1,5 +1,11 @@
 #ifndef BG_RUNTIME_CONFIG_H
 #define BG_RUNTIME_CONFIG_H
+#if defined(BG_VEHICLE_DISTANCE_LODS) && !defined(BG_ENEMY_VEHICLES)
+#error "Distance vehicle assets require the enemy vehicle bank"
+#endif
+#if defined(BG_VEHICLE_LOD_QA) && !defined(BG_ENEMY_VEHICLE_QA)
+#error "Distance vehicle photos require the vehicle inspection configuration"
+#endif
 #if defined(BG_GPU_EMPTY_SCISSOR) && (!defined(BG_GPU_DIAGNOSTIC) || (!defined(BG_BENCHMARK) && !defined(BG_PVE_DRAW_AUDIT) && !(defined(BG_VEHICLE_COST_AUDIT) && defined(BG_PVE_PHOTO_TICK))))
 #error "Empty-scissor control is restricted to serialized benchmark diagnostics"
 #endif

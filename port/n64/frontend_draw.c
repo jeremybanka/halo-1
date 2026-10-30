@@ -387,7 +387,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
     /* Disjoint fields: profile choices may repeat in unjoined slots, so a
      * summed 32-bit key could alias another page and retain stale textures. */
     uint64_t key = f->page | ((uint64_t)f->row << 4) | ((uint64_t)f->map << 7) |
-                   ((uint64_t)f->type << 11) | ((uint64_t)f->settings_profile << 16) | ((uint64_t)f->firefight << 40);
+                   ((uint64_t)f->type << 11) | ((uint64_t)f->settings_profile << 16) | ((uint64_t)f->firefight << 40) | ((uint64_t)f->fight << 41);
     if (f->page == BG_FRONT_JOIN)
         for (unsigned p = 0; p < 4; p++)
             key |= (uint64_t)(f->profile[p] + 4 * f->joined[p] + 8 * f->ready[p]) << (18 + 4 * p);
@@ -472,7 +472,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
                   color(avail, focus));
             const char *description;
             if (map && f->firefight)
-                description = item == 9 ? "One Covenant squad.\n\n1 to 4 players\n\nCooperative"
+                description = item == 9 ? "Hold the valley.\n\n1 to 4 players\n\nChoose your fight next."
                                         : "Unavailable in Firefight";
             else if (map)
                 description = bg_front_map_needs_expansion(item) ? "Expansion Pak required"
@@ -482,6 +482,22 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
             label(tag + 3, 0, 0, description, color(avail, false));
         }
         buttons(bg_front_session_available(f, f->page, selected));
+        break;
+    }
+    case BG_FRONT_FIGHT: {
+        text(0,70,75,500,34,0,white,"FIREFIGHT / BLOOD GULCH");
+        for(unsigned fight=0;fight<BG_FF_FIGHTS;fight++){
+            bool available=bg_front_session_available(f,BG_FRONT_FIGHT,fight);
+            int y=145+110*fight;
+            char title[32];snprintf(title,sizeof(title),"%s%s",fight==f->fight?"> ":"",fight==BG_FF_ONSLAUGHT?"ONSLAUGHT":"GAUNTLET");
+            text(0,70,y,500,30,0,color(available,fight==f->fight),title);
+            const char*description=fight==BG_FF_ONSLAUGHT?
+                "More Spartans. Larger waves.\nSurvive the Covenant onslaught.":
+                "Same waves. Tougher Covenant.\nEnemy ranks rise with your squad.";
+            text(0,70,y+34,500,54,0,available?blue:white,available?description:"Covenant roster required");
+        }
+        text(0,70,380,500,26,0,blue,"3 rounds / 15 waves / 10 shared lives");
+        buttons(bg_front_session_available(f,BG_FRONT_FIGHT,f->fight));
         break;
     }
     case BG_FRONT_PREGAME: {
@@ -506,7 +522,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         }
         label(535, 4, 32, NULL, blue);
         label(528, 330, 257, bg_front_maps[f->map].name, white);
-        label(530, 400, 278, f->firefight?"Firefight":bg_front_types[f->type].name, white);
+        label(530, 400, 278, f->firefight?bg_ff_fight_name(f->fight):bg_front_types[f->type].name, white);
         label(531, 342, 299, f->firefight?"Cooperative":bg_mode_preset(f->type)->teams?"Red vs Blue":"Free-for-all", white);
         snprintf(value, sizeof(value), "%u", f->count);
         label(532, 459, 320, value, white);

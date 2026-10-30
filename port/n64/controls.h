@@ -4,8 +4,8 @@
 #include "game.h"
 
 typedef enum {
-    BG_CONTROLS_N64,
-    BG_CONTROLS_XBOX,
+    BG_CONTROLS_BOND,
+    BG_CONTROLS_DUKE,
     BG_CONTROLS_COUNT
 } bg_control_style;
 
@@ -39,14 +39,20 @@ bool bg_control_style_valid(bg_control_style style);
 const char *bg_control_style_name(bg_control_style style);
 bg_control_style bg_control_style_next(bg_control_style style);
 
-/* Presentation-only held action; call after the menu consumes its input.
- * The Xbox zoom chord keeps scores visible until R is released. */
+/* Gesture state belongs to a local player, never to a physical controller.
+ * Cancel pending taps when menus consume input. Reset on match/death. */
+typedef struct {
+    uint64_t since;
+    uint32_t previous, blocked;
+    bg_control_style style;
+    bool initialized, used, crouched;
+} bg_control_gesture;
+void bg_controls_reset(bg_control_gesture *state);
+void bg_controls_update(bg_input *out, bg_control_gesture *state,
+                        const bg_control_state *raw, bg_control_style style,
+                        bool mounted, bool active, uint64_t now_us);
 bool bg_controls_show_scores(const bg_control_state *raw,bg_control_style style);
-
-/* Stateless, per-player conversion. Preferences, pause/menu handling and
- * edge latching across fixed simulation ticks remain with the caller.
- * Unknown style values safely use the original N64 layout. */
+/* Base mapping; Duke's Z gestures require bg_controls_update. */
 void bg_controls_map(bg_input *out,const bg_control_state *raw,
     bg_control_style style,bool mounted);
-
 #endif

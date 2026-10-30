@@ -26,6 +26,8 @@ SHOWCASES = [
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--scope-qa",action="store_true",help="Native close-ground and distant zoom regression photos")
+    parser.add_argument("--m64-polish-qa",action="store_true",help="Frozen 1–4 viewport, controls, damage and flashlight photos")
     parser.add_argument("--pve-squad",action="store_true",help="Boot directly into the squad diagnostic")
     parser.add_argument("--firefight",action="store_true",help="Enable the Firefight menu and squad encounter (8 MiB)")
     parser.add_argument("--firefight-photo",choices=("main","join","map"),help="Hold a Firefight QA menu for a native photograph")
@@ -314,6 +316,7 @@ def parse_args(argv=None):
         action="store_true",
         help="Script four-angle vehicle destruction, wreck settling, blinking and respawn",
     )
+    parser.add_argument("--vehicle-query-baseline",action="store_true",help="QA: retain scalar clearance and cooldown arc obstruction checks")
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
     parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 26 presets through the real menus")
     parser.add_argument("--modes-preview",type=int,choices=range(26),help="QA: stage one preset and hold it open for objective visual review")
@@ -322,8 +325,15 @@ def parse_args(argv=None):
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
     parser.add_argument('--enemy-vehicle-bank',type=Path,help='Owned CE enemy vehicle prototype bank')
     parser.add_argument('--enemy-vehicle-qa',action='store_true',help='Native vehicle/seat/hatch multi-angle inspection')
+    parser.add_argument('--vehicle-distance-lods',action='store_true',help='Opt-in articulated Wraith/Shade projected-size LOD bank')
+    parser.add_argument('--vehicle-lod-qa',action='store_true',help='Matched multi-angle Wraith/Shade tier/pose photos')
     parser.add_argument('--vehicle-cost-audit',action='store_true',help='Isolated vehicle cost instrumentation; never a playable build')
+    parser.add_argument("--vehicle-query-verify",action="store_true",help="Diagnostic only: scalar query/trajectory oracles and per-tick state hashes")
     args = parser.parse_args(argv)
+    if args.vehicle_lod_qa:args.enemy_vehicle_qa=True
+    if args.vehicle_query_verify and not args.vehicle_cost_audit:parser.error("--vehicle-query-verify requires --vehicle-cost-audit")
+    if args.vehicle_query_baseline and not (args.enemy_vehicle_bank and args.output_dir):parser.error("--vehicle-query-baseline requires an isolated enemy-vehicle build")
+    if args.vehicle_distance_lods and not (args.enemy_vehicle_bank and args.output_dir and (args.enemy_vehicle_bank/'vehicle_distance_data.c').is_file()):parser.error('--vehicle-distance-lods requires an isolated output and a prepared enemy-vehicle LOD bank')
     if args.enemy_vehicle_qa:
         if not args.enemy_vehicle_bank:parser.error('--enemy-vehicle-qa requires --enemy-vehicle-bank')
         args.pve_model_qa=True
@@ -349,13 +359,18 @@ def parse_args(argv=None):
     if args.firefight_photo and not args.firefight_qa:parser.error("--firefight-photo requires --firefight-qa")
     if args.firefight_qa:
         args.firefight=True;args.frontend_qa=args.firefight_qa
+    if args.scope_qa:args.m64_polish_qa=True
+    if args.m64_polish_qa:
+        if not args.pve_squad or not args.output_dir or args.firefight or args.profile or args.validate or args.pve_photo_tick is not None or args.pve_model_qa or args.pve_qa or args.frontend_qa:
+            parser.error('--m64-polish-qa requires isolated direct PvE, without competing QA or profiling')
+        args.pve_count=0;args.pve_players=4
     if args.firefight and args.pve_squad:parser.error("Choose menu Firefight or direct squad diagnostics")
     if args.pve_model_qa and not args.pve_squad:parser.error('--pve-model-qa requires --pve-squad')
     if args.pve_model_bank and (not args.output_dir or not (args.pve_squad or args.firefight)):
         parser.error('--pve-model-bank requires an isolated PvE output directory')
     if (args.pve_qa or args.pve_photo_tick is not None) and not args.pve_squad:parser.error("PvE QA requires --pve-squad")
     if args.pve_squad and args.initial_map!="bloodgulch":parser.error("The first squad navigation fixture is Blood Gulch only")
-    if args.pve_photo_tick is not None and not 0<=args.pve_photo_tick<(1801 if args.pve_draw_audit else 450):parser.error("PvE photo tick outside the selected diagnostic route")
+    if args.pve_photo_tick is not None and not 0<=args.pve_photo_tick<(1801 if args.pve_draw_audit or args.vehicle_query_verify else 450):parser.error("PvE photo tick outside the selected diagnostic route")
     if args.objective_photo is not None and args.modes_preview is None:
         parser.error('--objective-photo requires --modes-preview')
     if args.flag_cloth_qa and args.modes_preview!=17:parser.error("--flag-cloth-qa requires --modes-preview 17")
@@ -517,6 +532,9 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_PVE_ROSTER"] if args.pve_roster else []),
         *(["-DBG_ENEMY_VEHICLE_QA"] if args.enemy_vehicle_qa else []),
         *(["-DBG_ENEMY_VEHICLES", "-I"+str(args.enemy_vehicle_bank.resolve())] if args.enemy_vehicle_bank else []),
+        *(["-DBG_VEHICLE_QUERY_BASELINE"] if args.vehicle_query_baseline else []),
+        *(["-DBG_VEHICLE_DISTANCE_LODS"] if args.vehicle_distance_lods else []),
+        *(["-DBG_VEHICLE_LOD_QA"] if args.vehicle_lod_qa else []),
         *(["-DBG_PVE_JACKAL_SHIELDS"] if args.pve_jackal_shields else []),
         *(["-DBG_JACKAL_SHIELD_QA"] if args.jackal_shield_qa else []),
         *(["-DBG_PVE_CRUNCH"] if args.pve_crunch else []),
@@ -524,6 +542,8 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_PVE_MODEL_QA"] if args.pve_model_qa else []),
         *(["-DBG_PVE_DRAW_AUDIT"] if args.pve_draw_audit else []),
         *(["-DBG_VEHICLE_COST_AUDIT"] if args.vehicle_cost_audit else []),
+        *(["-DBG_SCOPE_QA"] if args.scope_qa else []),
+        *(["-DBG_M64_POLISH_QA"] if args.m64_polish_qa else []),
         *(["-DBG_FIREFIGHT"] if args.firefight else []),
         *(["-DBG_FIREFIGHT_QA"] if args.firefight_qa else []),
         *(["-DBG_FIREFIGHT_QA_PHOTO="+str({"main":2,"join":5,"map":9}[args.firefight_photo])] if args.firefight_photo else []),
@@ -1152,6 +1172,7 @@ def main():
         "objectives_data.c",
         "audio_data.c",
         "hud_data.c",
+        "hud_damage_data.c",
         "prompt-icons/prompt_icons_data.c",
         "menu_data.c",
         "frontend_data.c",
@@ -1187,6 +1208,7 @@ def main():
         runtime_sources.extend(args.pve_model_bank.resolve()/name for name in ('pve_roster.c','pve_roster_colors.c','pve_roster_weapons.c'))
     if args.enemy_vehicle_bank:
         runtime_sources.extend([ROOT/'port/n64/vehicle_ai.c',args.enemy_vehicle_bank.resolve()/'enemy_vehicle_data.c',args.enemy_vehicle_bank.resolve()/'enemy_pilot_data.c',args.enemy_vehicle_bank.resolve()/'enemy_pilot_hits.c'])
+    if args.vehicle_distance_lods:runtime_sources.append(args.enemy_vehicle_bank.resolve()/'vehicle_distance_data.c')
     if args.pve_jackal_shields:runtime_sources.append(args.pve_model_bank.resolve()/'pve_jackal_shield.c')
     if args.photo_tour:
         from photo_tour_source import photo_source
@@ -1201,7 +1223,7 @@ def main():
             if original in runtime_sources:runtime_sources[runtime_sources.index(original)]=target
     if args.vehicle_cost_audit:
         from vehicle_cost_audit_source import generate
-        vehicle_audit_sources=generate(ROOT/'port/n64',args.pve_photo_tick is not None)
+        vehicle_audit_sources=generate(ROOT/'port/n64',args.pve_photo_tick is not None,args.vehicle_query_verify)
         for name,source in vehicle_audit_sources.items():
             target=out/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(source)
             original=ROOT/'port/n64'/name

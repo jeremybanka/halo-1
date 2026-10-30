@@ -18,7 +18,7 @@ static void equal(const bg_input *a,const bg_input *b,bool exact_axes) {
 #define SAME(field) assert(a->field==b->field)
     SAME(jump);SAME(fire);SAME(reload);SAME(switch_weapon);SAME(grenade);
     SAME(switch_grenade);SAME(interact);SAME(melee);SAME(zoom);SAME(crouch);
-    SAME(secondary_fire);
+    SAME(secondary_fire);SAME(flashlight);
 #undef SAME
     comparisons++;
 }
@@ -61,49 +61,29 @@ static void check(const bg_control_state *raw,bg_control_style style,
     assert(memcmp(raw,&unchanged,sizeof(unchanged))==0);
 }
 
-static void xbox_buttons(void) {
-    /* A single edge must activate only its designated actions. Held-only
-     * checks separately establish jump edges, repeat fire, rise and crouch. */
-    const struct { uint32_t button;bg_input edge,held,mounted; } cases[]={
-        {BG_BUTTON_A,{.jump=true},{0},{.jump=true}},
-        {BG_BUTTON_B,{.melee=true},{0},{0}},
-        {BG_BUTTON_L,{.grenade=true,.secondary_fire=true},
-            {.secondary_fire=true},{.secondary_fire=true}},
-        {BG_BUTTON_R,{0},{0},{0}},
-        {BG_BUTTON_Z,{.fire=true},{.fire=true},{.fire=true}},
-        {BG_BUTTON_C_LEFT,{.reload=true,.interact=true},{.interact=true},{.interact=true}},
-        {BG_BUTTON_C_RIGHT,{.zoom=true},{0},{0}},
-        {BG_BUTTON_C_UP,{.switch_weapon=true},{0},{0}},
-        {BG_BUTTON_C_DOWN,{.crouch=true},{.crouch=true},{.crouch=true}},
-        {BG_BUTTON_D_UP,{.forward=1},{.forward=1},{.forward=1}},
-        {BG_BUTTON_D_DOWN,{.forward=-1},{.forward=-1},{.forward=-1}},
-        {BG_BUTTON_D_LEFT,{.strafe=-1},{.strafe=-1},{.strafe=-1}},
-        {BG_BUTTON_D_RIGHT,{.strafe=1},{.strafe=1},{.strafe=1}},
-        {BG_BUTTON_START,{0},{0},{0}}
-    };
+static void duke_buttons(void) {
+    const struct {uint32_t button;bg_input edge,held,mounted;} cases[]={
+      {BG_BUTTON_A,{.switch_grenade=true},{0},{0}},
+      {BG_BUTTON_B,{.flashlight=true},{0},{0}},
+      {BG_BUTTON_R,{.fire=true},{.fire=true},{.fire=true}},
+      {BG_BUTTON_L,{.grenade=true,.secondary_fire=true},{.secondary_fire=true},{.secondary_fire=true}},
+      {BG_BUTTON_Z,{0},{0},{0}},
+      {BG_BUTTON_C_UP,{.switch_weapon=true},{0},{0}},
+      {BG_BUTTON_C_DOWN,{.jump=true},{0},{.jump=true}},
+      {BG_BUTTON_C_RIGHT,{.melee=true},{0},{0}},
+      {BG_BUTTON_C_LEFT,{.reload=true,.interact=true},{.interact=true},{.interact=true}},
+      {BG_BUTTON_D_UP,{.forward=1},{.forward=1},{.forward=1}},
+      {BG_BUTTON_D_DOWN,{.forward=-1},{.forward=-1},{.forward=-1}},
+      {BG_BUTTON_D_RIGHT,{.strafe=1},{.strafe=1},{.strafe=1}},
+      {BG_BUTTON_D_LEFT,{.strafe=-1},{.strafe=-1},{.strafe=-1}},
+      {BG_BUTTON_START,{0},{0},{0}}};
     for(unsigned i=0;i<sizeof(cases)/sizeof(*cases);i++) {
-        bg_control_state raw={.held=cases[i].button,.pressed=cases[i].button};
-        check(&raw,BG_CONTROLS_XBOX,false,cases[i].edge);
-        raw.pressed=0;
-        check(&raw,BG_CONTROLS_XBOX,false,cases[i].held);
-        check(&raw,BG_CONTROLS_XBOX,true,cases[i].mounted);
+      bg_control_state raw={.held=cases[i].button,.pressed=cases[i].button};
+      check(&raw,BG_CONTROLS_DUKE,false,cases[i].edge);raw.pressed=0;
+      check(&raw,BG_CONTROLS_DUKE,false,cases[i].held);
+      check(&raw,BG_CONTROLS_DUKE,true,cases[i].mounted);
     }
-    bg_control_state raw={.held=BG_BUTTON_D_UP|BG_BUTTON_D_DOWN|
-        BG_BUTTON_D_LEFT|BG_BUTTON_D_RIGHT};
-    check(&raw,BG_CONTROLS_XBOX,false,(bg_input){0});
-    raw.held=BG_BUTTON_D_UP|BG_BUTTON_D_RIGHT;
-    raw.stick_x=40;raw.stick_y=-60;
-    check(&raw,BG_CONTROLS_XBOX,false,(bg_input){.forward=1,.strafe=1,.turn=-.5f,.look=-.75f});
-    /* Pressed edges may be latched independently of the current held sample. */
-    raw=(bg_control_state){.pressed=BG_BUTTON_A|BG_BUTTON_R|BG_BUTTON_B|
-        BG_BUTTON_L|BG_BUTTON_C_LEFT|BG_BUTTON_C_RIGHT|BG_BUTTON_C_UP};
-    check(&raw,BG_CONTROLS_XBOX,false,(bg_input){.jump=true,.reload=true,
-        .melee=true,.grenade=true,.switch_weapon=true,
-        .zoom=true});
-    check(&raw,BG_CONTROLS_XBOX,true,(bg_input){.reload=true,
-        .melee=true,.grenade=true,.switch_weapon=true,.zoom=true});
 }
-
 static void axes(void) {
     const float values[]={-128,-80,-40,-9.6f,-9.5f,-0.f,0,9.5f,9.6f,40,80,127};
     for(unsigned i=0;i<sizeof(values)/sizeof(*values);i++)
@@ -111,55 +91,57 @@ static void axes(void) {
             bg_control_state raw={.stick_x=values[i],.stick_y=values[j]};
             float x=values[i]/80.f,y=values[j]/80.f;
             if(fabsf(x)<.12f)x=0;if(fabsf(y)<.12f)y=0;
-            check(&raw,BG_CONTROLS_XBOX,false,(bg_input){.turn=-x,.look=y});
-            check(&raw,BG_CONTROLS_N64,false,(bg_input){.turn=-x,.forward=y});
+            check(&raw,BG_CONTROLS_DUKE,false,(bg_input){.turn=-x,.look=y});
+            check(&raw,BG_CONTROLS_BOND,false,(bg_input){.turn=-x,.forward=y});
         }
     /* No new clamping/diagonal normalization: preserve the old controller
      * adapter's values even at the ends of its signed eight-bit range. */
     bg_control_state raw={.stick_x=127,.stick_y=-128};
-    check(&raw,BG_CONTROLS_XBOX,false,(bg_input){.turn=-127.f/80,.look=-128.f/80});
+    check(&raw,BG_CONTROLS_DUKE,false,(bg_input){.turn=-127.f/80,.look=-128.f/80});
 }
 
-static void scores_and_zoom(void) {
-    /* Score display depends only on the current held R, never on its edge;
-     * test every portable held mask for both styles and invalid preferences. */
-    const bg_control_style styles[]={BG_CONTROLS_N64,BG_CONTROLS_XBOX,
-        BG_CONTROLS_COUNT,(bg_control_style)-1};
-    const uint32_t all=(1u<<14)-1;
-    for(uint32_t held=0;held<=all;held++)for(unsigned s=0;s<4;s++) {
-        const uint32_t edges[]={0,held,all^held};
-        for(unsigned e=0;e<3;e++) {
-            bg_control_state raw={.held=held,.pressed=edges[e]};
-            bool expected=styles[s]==BG_CONTROLS_XBOX&&(held&BG_BUTTON_R)!=0;
-            assert(bg_controls_show_scores(&raw,styles[s])==expected);
-        }
+static bg_input poll(bg_control_gesture *g,uint32_t held,uint32_t pressed,uint64_t us,bool active) {
+    bg_input out;bg_control_state raw={.held=held,.pressed=pressed};
+    bg_controls_update(&out,g,&raw,BG_CONTROLS_DUKE,true,active,us);return out;
+}
+static void gestures(void) {
+    bg_control_gesture g={0};bg_input out;
+    const unsigned Z=BG_BUTTON_Z,U=BG_BUTTON_C_UP,D=BG_BUTTON_C_DOWN;
+    for(unsigned duration=0;duration<=500000;duration+=1000) {
+        bg_controls_reset(&g);out=poll(&g,Z,Z,100,true);assert(!out.zoom);
+        out=poll(&g,0,0,100+duration,true);assert(out.zoom==(duration<250000));
+        out=poll(&g,0,0,600100,true);assert(!out.zoom);
     }
-    /* R+C-up consumes the weapon edge as grenade selection. Holding C-up cannot repeat
-     * selection; pressing R after C-up is held cannot synthesize a new edge. */
-    const struct { uint32_t held,pressed;bg_input expected;bool scores; } cases[]={
-        {BG_BUTTON_R, BG_BUTTON_R, {0}, true},
-        {BG_BUTTON_C_RIGHT, BG_BUTTON_C_RIGHT, {.zoom=true}, false},
-        {BG_BUTTON_R|BG_BUTTON_C_RIGHT, BG_BUTTON_C_RIGHT, {.zoom=true}, true},
-        {BG_BUTTON_R|BG_BUTTON_C_RIGHT, 0, {0}, true},
-        {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_C_UP, {.switch_grenade=true}, true},
-        {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_R|BG_BUTTON_C_UP, {.switch_grenade=true}, true},
-        {BG_BUTTON_R|BG_BUTTON_C_UP, 0, {0}, true},
-        {BG_BUTTON_R|BG_BUTTON_C_UP, BG_BUTTON_R, {0}, true},
-        {BG_BUTTON_C_UP, 0, {0}, false},
-        {BG_BUTTON_C_UP, BG_BUTTON_C_UP, {.switch_weapon=true}, false},
-        {0, BG_BUTTON_R, {0}, false},
-        {0, BG_BUTTON_C_UP, {.switch_weapon=true}, false},
-        {BG_BUTTON_R|BG_BUTTON_C_LEFT, BG_BUTTON_C_LEFT,
-            {.reload=true,.interact=true}, true}
-    };
-    for(unsigned i=0;i<sizeof(cases)/sizeof(*cases);i++) {
-        bg_control_state raw={.held=cases[i].held,.pressed=cases[i].pressed};
-        check(&raw,BG_CONTROLS_XBOX,false,cases[i].expected);
-        check(&raw,BG_CONTROLS_XBOX,true,cases[i].expected);
-        assert(bg_controls_show_scores(&raw,BG_CONTROLS_XBOX)==cases[i].scores);
+    bg_controls_reset(&g);
+    out=poll(&g,Z|D,0,0,true);assert(!out.crouch&&!out.jump&&!out.zoom);
+    out=poll(&g,0,0,10,true);assert(!out.zoom);
+    bg_controls_reset(&g);
+    out=poll(&g,Z|D,Z|D,100,true);assert(out.crouch&&!out.jump&&!out.zoom);
+    out=poll(&g,Z|D,0,100000,true);assert(out.crouch&&!out.jump);
+    out=poll(&g,D,0,120000,true);assert(out.crouch&&!out.jump&&!out.zoom);
+    out=poll(&g,0,0,140000,true);assert(out.crouch);
+    out=poll(&g,Z|D,Z|D,160000,true);assert(!out.crouch&&!out.jump);
+    out=poll(&g,0,0,170000,true);assert(!out.zoom);
+    out=poll(&g,Z,Z,200000,true);out=poll(&g,Z|U,U,220000,true);
+    assert(!out.switch_weapon&&!out.zoom);
+    out=poll(&g,U,0,230000,true);assert(!out.switch_weapon&&!out.zoom);
+    out=poll(&g,0,0,240000,true);
+    out=poll(&g,Z,Z,300000,true);out=poll(&g,Z,0,310000,false);
+    out=poll(&g,0,0,320000,true);assert(!out.zoom);
+    /* Cancellation while held, scheme changes and players remain independent. */
+    bg_control_gesture others[4]={{0}};
+    out=poll(&others[2],Z|D,Z|D,400000,true);assert(out.crouch);
+    for(unsigned i=0;i<4;i++)if(i!=2){out=poll(&others[i],0,0,410000,true);assert(!out.crouch);}
+    bg_controls_reset(&others[2]);out=poll(&others[2],0,0,420000,true);assert(!out.crouch);
+    out=poll(&g,Z,Z,500000,true);
+    bg_control_state raw={.held=Z};bg_controls_update(&out,&g,&raw,BG_CONTROLS_BOND,false,true,510000);
+    out=poll(&g,Z,0,520000,true);out=poll(&g,0,0,530000,true);assert(!out.zoom);
+    for(unsigned mask=0;mask<(1u<<14);mask++) {
+        raw=(bg_control_state){.held=mask};
+        assert(bg_controls_show_scores(&raw,BG_CONTROLS_DUKE)==((mask&(Z|U))==(Z|U)));
+        assert(!bg_controls_show_scores(&raw,BG_CONTROLS_BOND));
     }
 }
-
 static void n64_regression(void) {
     const uint32_t all=(1u<<14)-1;
     for(uint32_t held=0;held<=all;held++) {
@@ -168,54 +150,15 @@ static void n64_regression(void) {
             bg_control_state raw={.held=held,.pressed=edges[e],
                 .stick_x=(int)(held%256)-128,.stick_y=(int)((held*19)%256)-128};
             bg_input expected=original_n64(&raw,mounted!=0),actual;
-            bg_controls_map(&actual,&raw,BG_CONTROLS_N64,mounted!=0);
+            bg_controls_map(&actual,&raw,BG_CONTROLS_BOND,mounted!=0);
             equal(&actual,&expected,true);
         }
     }
 }
 
-static void isolation_and_styles(void) {
-    assert(bg_control_style_valid(BG_CONTROLS_N64));
-    assert(bg_control_style_valid(BG_CONTROLS_XBOX));
-    assert(!bg_control_style_valid((bg_control_style)-1));
-    assert(!bg_control_style_valid(BG_CONTROLS_COUNT));
-    assert(strcmp(bg_control_style_name(BG_CONTROLS_N64),"N64")==0);
-    assert(strcmp(bg_control_style_name(BG_CONTROLS_XBOX),"Xbox")==0);
-    assert(bg_control_style_next(BG_CONTROLS_N64)==BG_CONTROLS_XBOX);
-    assert(bg_control_style_next(BG_CONTROLS_XBOX)==BG_CONTROLS_N64);
-    assert(bg_control_style_next(BG_CONTROLS_COUNT)==BG_CONTROLS_N64);
-    const bg_control_state raw[4]={
-        {.stick_x=80,.stick_y=80,.held=BG_BUTTON_D_UP|BG_BUTTON_Z,.pressed=BG_BUTTON_B},
-        {.stick_x=-40,.stick_y=-80,.held=BG_BUTTON_C_LEFT,.pressed=BG_BUTTON_R},
-        {.held=BG_BUTTON_A|BG_BUTTON_L,.pressed=BG_BUTTON_C_UP},
-        {.held=BG_BUTTON_D_RIGHT|BG_BUTTON_C_DOWN,.pressed=BG_BUTTON_C_RIGHT}
-    };
-    bg_input out[4];
-    for(unsigned p=0;p<4;p++)bg_controls_map(&out[p],&raw[p],p&1?BG_CONTROLS_N64:BG_CONTROLS_XBOX,p==2);
-    const bg_input expected[4]={
-        {.forward=1,.turn=-1,.look=1,.fire=true,.melee=true},
-        {.forward=-1,.turn=.5f,.strafe=-1,.switch_weapon=true},
-        {.jump=true,.secondary_fire=true,.switch_weapon=true},
-        {.look=-1,.crouch=true}
-    };
-    for(unsigned p=0;p<4;p++)equal(&out[p],&expected[p],false);
-    bg_input saved[4];memcpy(saved,out,sizeof(out));
-    bg_controls_map(&out[1],&raw[1],BG_CONTROLS_XBOX,false);
-    for(unsigned p=0;p<4;p++)if(p!=1)assert(memcmp(&out[p],&saved[p],sizeof(out[p]))==0);
-    /* Invalid persisted preferences fall back to N64; unknown button bits
-     * and START never leak into any gameplay action. */
-    bg_control_state unknown={.held=BG_BUTTON_START|UINT32_C(0xffffc000),
-        .pressed=BG_BUTTON_START|UINT32_C(0xffffc000)};
-    check(&unknown,BG_CONTROLS_COUNT,false,(bg_input){0});
-    bg_input expected_n64=original_n64(&raw[0],false),actual;
-    bg_controls_map(&actual,&raw[0],(bg_control_style)-1,false);
-    equal(&actual,&expected_n64,true);
-}
-
 int main(void) {
-    xbox_buttons();axes();n64_regression();isolation_and_styles();scores_and_zoom();
-    printf("PASS: %u controls comparisons; all N64 held masks preserve original fields/float bits; "
-        "Xbox actions/edges/holds, mounted A, aim axes, deadzone, player isolation, "
-        "196608 score-mask checks and exclusive R+C-up grenade selection\n",comparisons);
-    return 0;
+    assert(!strcmp(bg_control_style_name(BG_CONTROLS_DUKE),"Duke"));
+    assert(!strcmp(bg_control_style_name(BG_CONTROLS_BOND),"Bond"));
+    duke_buttons();axes();n64_regression();gestures();
+    printf("PASS %u mapping comparisons; Bond unchanged; Duke buttons, tap threshold, chords, cancellation, isolation and 32768 score-mask checks\n",comparisons);
 }

@@ -25,7 +25,7 @@ static void enter_controls(bg_menu *m,unsigned active){
 static void transitions_test(void){
     bg_menu m;bg_menu_init(&m,4);
     assert(!m.open&&m.player_count==4&&bg_menu_row_count(&m)==3);
-    for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_N64);
+    for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_DUKE);
     assert(!press(&m,4,0,BG_BUTTON_A).consumed);
     open_menu(&m,4,0);
     press(&m,4,0,BG_BUTTON_D_DOWN|BG_BUTTON_A);
@@ -36,7 +36,7 @@ static void transitions_test(void){
     r=press(&m,4,0,BG_BUTTON_B|BG_BUTTON_A);
     assert(m.page==BG_MENU_ROOT&&m.row==BG_MENU_SETUP_ROW&&r.action==BG_MENU_ACTION_NONE);
     press(&m,4,0,BG_BUTTON_D_DOWN);press(&m,4,0,BG_BUTTON_A);
-    assert(m.page==BG_MENU_CONTROLS&&m.styles[0]==BG_CONTROLS_N64);
+    assert(m.page==BG_MENU_CONTROLS&&m.styles[0]==BG_CONTROLS_DUKE);
     press(&m,4,0,BG_BUTTON_B);
     assert(m.page==BG_MENU_ROOT&&m.row==BG_MENU_CONTROLS_ROW);
     r=press(&m,4,0,BG_BUTTON_B|BG_BUTTON_A);
@@ -46,7 +46,7 @@ static void transitions_test(void){
     assert(!m.open&&r.consumed&&r.action==BG_MENU_ACTION_NONE);
     open_menu(&m,4,0);enter_controls(&m,4);
     r=press(&m,4,0,BG_BUTTON_START|BG_BUTTON_A);
-    assert(!m.open&&m.page==BG_MENU_ROOT&&m.styles[0]==BG_CONTROLS_N64&&r.consumed);
+    assert(!m.open&&m.page==BG_MENU_ROOT&&m.styles[0]==BG_CONTROLS_DUKE&&r.consumed);
 }
 
 static void ownership_test(void){
@@ -101,7 +101,7 @@ static void simultaneous_start_test(void){
         assert(r.consumed&&m.page==BG_MENU_ROOT&&m.row==0);
         assert(m.open==!(open&&owner==first));
         if(m.open)assert(m.owner==first);
-        for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_N64);
+        for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_DUKE);
     }
 }
 
@@ -110,9 +110,9 @@ static void count_and_preferences_test(void){
     for(unsigned p=0;p<4;p++){
         open_menu(&m,4,p);enter_controls(&m,4);
         press(&m,4,p,BG_BUTTON_D_RIGHT);
-        for(unsigned q=0;q<4;q++)assert(m.styles[q]==(q<=p?BG_CONTROLS_XBOX:BG_CONTROLS_N64));
-        press(&m,4,p,BG_BUTTON_D_LEFT);assert(m.styles[p]==BG_CONTROLS_N64);
-        press(&m,4,p,BG_BUTTON_A);assert(m.styles[p]==BG_CONTROLS_XBOX);
+        for(unsigned q=0;q<4;q++)assert(m.styles[q]==(q<=p?BG_CONTROLS_BOND:BG_CONTROLS_DUKE));
+        press(&m,4,p,BG_BUTTON_D_LEFT);assert(m.styles[p]==BG_CONTROLS_DUKE);
+        press(&m,4,p,BG_BUTTON_A);assert(m.styles[p]==BG_CONTROLS_BOND);
         press(&m,4,p,BG_BUTTON_START);
     }
     open_menu(&m,4,0);press(&m,4,0,BG_BUTTON_D_DOWN);press(&m,4,0,BG_BUTTON_A);
@@ -122,7 +122,7 @@ static void count_and_preferences_test(void){
         bg_menu_result r=press(&m,active,0,n%2?BG_BUTTON_A:BG_BUTTON_D_RIGHT);
         assert(r.action==BG_MENU_ACTION_PLAYER_COUNT&&r.player_count==right[n]);
         assert(m.player_count==right[n]&&m.open&&m.page==BG_MENU_SETUP);active=r.player_count;
-        for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_XBOX);
+        for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_BOND);
     }
     const unsigned left[]={2,1,4};
     for(unsigned n=0;n<3;n++){
@@ -133,10 +133,10 @@ static void count_and_preferences_test(void){
     assert(press(&m,4,0,BG_BUTTON_D_RIGHT).action==BG_MENU_ACTION_NONE);
     bg_menu_result r=press(&m,4,0,BG_BUTTON_A);
     assert(r.action==BG_MENU_ACTION_RESTART&&r.consumed&&!m.open);
-    for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_XBOX);
+    for(unsigned p=0;p<4;p++)assert(m.styles[p]==BG_CONTROLS_BOND);
     open_menu(&m,1,0);enter_controls(&m,1);press(&m,1,0,BG_BUTTON_A);
-    assert(m.styles[0]==BG_CONTROLS_N64);
-    for(unsigned p=1;p<4;p++)assert(m.styles[p]==BG_CONTROLS_XBOX);
+    assert(m.styles[0]==BG_CONTROLS_DUKE);
+    for(unsigned p=1;p<4;p++)assert(m.styles[p]==BG_CONTROLS_BOND);
     const bg_menu before=m;
     for(unsigned p=1;p<4;p++){
         r=press(&m,1,p,BG_BUTTON_START|BG_BUTTON_A);

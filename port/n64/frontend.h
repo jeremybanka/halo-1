@@ -1,19 +1,22 @@
 #ifndef BG_FRONTEND_H
 #define BG_FRONTEND_H
 #include "menu.h"
+#include "firefight_fights.h"
 /* Availability belongs to the catalog, never to presentation/navigation. */
 typedef struct { const char *name; bool available; } bg_front_entry;
 extern const bg_front_entry bg_front_maps[13],bg_front_types[26];
 typedef enum { BG_FRONT_MAIN, BG_FRONT_MULTIPLAYER, BG_FRONT_JOIN,
  BG_FRONT_MAP, BG_FRONT_TYPE, BG_FRONT_PREGAME, BG_FRONT_PLAY,
- BG_FRONT_RESULTS, BG_FRONT_SETTINGS, BG_FRONT_PROFILE, BG_FRONT_CONTROLS, BG_FRONT_QUIT } bg_front_page;
+ BG_FRONT_RESULTS, BG_FRONT_SETTINGS, BG_FRONT_PROFILE, BG_FRONT_CONTROLS, BG_FRONT_QUIT,
+ BG_FRONT_FIGHT } bg_front_page;
 typedef enum { BG_FRONT_NONE, BG_FRONT_START_MATCH, BG_FRONT_RESUME_MATCH,
  BG_FRONT_LEAVE_MATCH } bg_front_action;
 typedef enum { BG_FRONT_SILENT, BG_FRONT_CURSOR, BG_FRONT_ACCEPT,
  BG_FRONT_BACK, BG_FRONT_BEEP } bg_front_sound;
 typedef struct {
  bg_front_page page,return_page;
- unsigned row,host,map,type,count,settings_profile;
+ unsigned row,host,map,type,count,settings_profile,fight;
+ bool firefight; /* Session kind, separate from competitive mode presets. */
  bool joined[4],ready[4]; unsigned profile[4],ports[4];
  uint8_t teams[4]; /* Physical controller slots; packed at match launch. */
  bg_control_style styles[4];
@@ -26,6 +29,7 @@ typedef struct {
 void bg_front_init(bg_frontend *f);
 bg_front_action bg_front_update(bg_frontend *f,const bg_control_state input[4],uint64_t now);
 bool bg_front_available(bg_front_page page,unsigned item);
+bool bg_front_session_available(const bg_frontend *f,bg_front_page page,unsigned item);
 /* Keep the accepted five-map 4 MiB profile; the full roster uses 8 MiB. */
 unsigned bg_front_map_memory_requirement(unsigned map);
 void bg_front_set_memory_size(unsigned bytes);

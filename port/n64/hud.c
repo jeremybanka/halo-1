@@ -1,3 +1,5 @@
+#include "damage_flash.h"
+#include "scope_mask.h"
 #include "hud.h"
 #include "asset_hud.h"
 #include "asset_prompt_icons.h"
@@ -12,6 +14,10 @@
  * and meters. The immutable IA4 bank is uploaded once per player view. */
 static surface_t images[BG_H_COUNT];
 static surface_t scope_images[BG_SCOPE_COUNT];
+static uint8_t scope_tick_pixels[5][1024] __attribute__((aligned(16)));
+static uint8_t scope_mask_pixels[1][BG_SCOPE_MASK_BYTES] __attribute__((aligned(16)));
+static surface_t native_scope_masks[1][2];
+
 #include "hud_pixels.h"
 #include "hud_buttons.h"
 static surface_t pixel_atlas;
@@ -27,6 +33,8 @@ typedef struct {
     rspq_block_t *block;
 } hud_blit;
 static hud_blit blits[192];
+static hud_blit scope_blits[20];
+static unsigned scope_blit_count;
 static unsigned blit_count;
 /* Slot+1 links keep zero-initialized empty lists and the original append order.
  * Match coordinates only against this image's entries, not every HUD sprite.
@@ -40,8 +48,14 @@ static const unsigned reticles[BG_WEAPON_COUNT] = {
     BG_H_RETICLE_AR,           BG_H_RETICLE_PISTOL,  BG_H_RETICLE_PLASMA_PISTOL,
     BG_H_RETICLE_PLASMA_RIFLE, BG_H_RETICLE_NEEDLER, BG_H_RETICLE_SHOTGUN,
     BG_H_RETICLE_SNIPER,       BG_H_RETICLE_ROCKET,  BG_H_RETICLE_AR};
+/* Virtual Shade ID uses spare atlas quadrants, not bg_hud_images[]. */
+enum { BG_RETICLE_SHADE = BG_H_COUNT };
 static const int vehicle_reticles[BG_VEHICLE_COUNT] = {BG_H_RETICLE_WARTHOG, BG_H_RETICLE_GHOST,
-                                                       BG_H_RETICLE_SCORPION, BG_H_RETICLE_BANSHEE};
+                                                       BG_H_RETICLE_SCORPION, BG_H_RETICLE_BANSHEE
+#ifdef BG_ENEMY_VEHICLES
+                                                       ,BG_H_RETICLE_ROCKET, BG_RETICLE_SHADE
+#endif
+};
 
 static void set_combiner(int kind) {
     if (current_combiner == kind)
@@ -139,6 +153,9 @@ static void hud_sprite(int u, int v, int w, int h, int x, int y, color_t color) 
 static void hud_reticle(unsigned id, int cx, int cy) {
     unsigned q = id >= BG_H_RETICLE_WARTHOG ? 8 + id - BG_H_RETICLE_WARTHOG : id - BG_H_RETICLE_AR;
     unsigned lower = q == 2 ? 12 : q == 11 ? 13 : q == 9 ? 14 : q;
+#ifdef BG_ENEMY_VEHICLES
+    if(id==BG_RETICLE_SHADE){q=15;lower=16;}
+#endif
     set_combiner(1);
     rdpq_set_prim_color(hud_cyan);
     /* Even 24px footprint puts its geometric center exactly on the original
@@ -315,7 +332,7 @@ static void radar(unsigned p, int x, int y, float scale) {
     bg_player *viewer = &bg_players[p];
     const float range = 8.333333f; /* Xbox motion sensor25m; Halo world unit=3m. */
     float sn = sinf(viewer->yaw), cs = cosf(viewer->yaw);
-    for (unsigned j = 0; j < bg_player_count(); j++) {
+    for (unsigned j = 0; j < bg_unit_count(); j++) {
         bg_player *other = &bg_players[j];
         if (j == p || !bg_motion_sensor_visible(other))
             continue;
@@ -331,7 +348,7 @@ static void radar(unsigned p, int x, int y, float scale) {
 }
 
 static void interaction_label(bg_use_target target, char *out, unsigned size) {
-    const char *vehicles[] = {"Warthog", "Ghost", "Scorpion", "Banshee"};
+    const char *vehicles[] = {"Warthog", "Ghost", "Scorpion", "Banshee", "Wraith", "Shade"};
     out[0] = 0;
     if (target.kind == BG_USE_PICKUP)
         snprintf(out, size, "Pick up");
@@ -361,7 +378,7 @@ static int interaction_prompt(const bg_player *p, bg_control_style style, int x,
     interaction_label(target, label, sizeof(label));
     if (!label[0])
         return y;
-    unsigned icon = style == BG_CONTROLS_XBOX ? HUD_BUTTON_C_LEFT : HUD_BUTTON_B;
+    unsigned icon = style == BG_CONTROLS_DUKE ? HUD_BUTTON_C_LEFT : HUD_BUTTON_B;
     bool hold = target.kind == BG_USE_PICKUP;
     unsigned weapon = hold ? bg_pickups[target.object].weapon : 0;
     if (hold) {
@@ -438,48 +455,98 @@ static bool scoped(const bg_player *p) {
            (p->weapon == BG_W_PISTOL || p->weapon == BG_W_SNIPER);
 }
 
+/* Source sniper mask: a wide rounded rectangle, not the pistol circle.
+ * Rasterize its native-pixel exterior without the source's magnified rim. */
+static void scope_sniper_mask(int x,int y,int width,int height,float cx,float cy) {
+    int w=lroundf(width*236.f/256),h=lroundf(height*152.f/256);
+    int left=lroundf(cx-w*.5f),top=lroundf(cy-h*.5f);
+    float rx=width*7.f/256,ry=height*7.f/256;
+    color_t edge=RGBA32(0,0,0,bg_scope_images[BG_SCOPE_SNIPER].pixels[0]);
+    set_combiner(2);rdpq_set_prim_color(edge);
+    unsigned key=2+height/120;
+    for(unsigned i=0;i<scope_blit_count;i++) {
+        hud_blit *b=&scope_blits[i];
+        if(b->id==key&&b->x==cx&&b->y==cy&&b->scale==width){rspq_block_run(b->block);return;}
+    }
+    bool record=scope_blit_count<sizeof(scope_blits)/sizeof(scope_blits[0]);
+    if(record)rspq_block_begin();
+    rdpq_fill_rectangle(x,y,x+width,top);
+    rdpq_fill_rectangle(x,top+h,x+width,y+height);
+    for(int row=0;row<h;) {
+        float dy=fmaxf(0,ry-fminf(row+.5f,h-row-.5f))/ry;
+        int inset=lroundf(rx*(1-sqrtf(fmaxf(0,1-dy*dy))));
+        int end=row+1;
+        while(end<h) {
+            float next_dy=fmaxf(0,ry-fminf(end+.5f,h-end-.5f))/ry;
+            int next=lroundf(rx*(1-sqrtf(fmaxf(0,1-next_dy*next_dy))));
+            if(next!=inset)break;
+            end++;
+        }
+        rdpq_fill_rectangle(x,top+row,left+inset,top+end);
+        rdpq_fill_rectangle(left+w-inset,top+row,x+width,top+end);
+        row=end;
+    }
+    if(record) {
+        hud_blit *b=&scope_blits[scope_blit_count++];
+        *b=(hud_blit){.id=key,.x=cx,.y=cy,.scale=width,.block=rspq_block_end()};
+        rspq_block_run(b->block);
+    }
+}
+
 static void scope_mask(const bg_player *p, int x, int y, int width, int height, float cx,
                        float cy) {
-    unsigned id = p->weapon == BG_W_PISTOL ? BG_SCOPE_PISTOL : BG_SCOPE_SNIPER;
-    /* Original AY8 mask: zero leaves the scope clear, the outer field is
-     * half intensity and the border is full intensity. N64 uses that channel
-     * as darkening opacity; Xbox convolution and night vision are not used. */
-    float left = cx - width * .5f, top = cy - height * .5f;
-    /* Moving the source mask with its aim center exposes a narrow outer
-     * strip. Extend its constant source edge alpha, without darkening the
-     * interior twice. Source mask corners are 132 (pistol), 128 (sniper). */
+    if(p->weapon==BG_W_SNIPER){scope_sniper_mask(x,y,width,height,cx,cy);return;}
+    unsigned id = BG_SCOPE_PISTOL;
+    unsigned small = height < 240, size = bg_scope_mask_size(height);
+    int left = lroundf(cx - size * .5f), top = lroundf(cy - size * .5f);
     color_t edge = RGBA32(0, 0, 0, bg_scope_images[id].pixels[0]);
-    if (top > y)
-        pixel(x, y, width, top - y, edge);
-    if (top + height < y + height)
-        pixel(x, top + height, width, y - top, edge);
-    float inner_top = fmaxf(y, top), inner_bottom = fminf(y + height, top + height);
-    if (left > x)
-        pixel(x, inner_top, left - x, inner_bottom - inner_top, edge);
-    if (left + width < x + width)
-        pixel(left + width, inner_top, x - left, inner_bottom - inner_top, edge);
+    /* Extend the exterior once, with no overlap at the texture edges. The
+     * viewport scissor also protects adjacent split-screen players. */
+    if (top > y) pixel(x, y, width, top - y, edge);
+    if (top + (int)size < y + height)
+        pixel(x, top + size, width, y + height - top - size, edge);
+    int inner_top = top > y ? top : y;
+    int inner_bottom = top + (int)size < y + height ? top + (int)size : y + height;
+    if (left > x) pixel(x, inner_top, left - x, inner_bottom - inner_top, edge);
+    if (left + (int)size < x + width)
+        pixel(left + size, inner_top, x + width - left - size, inner_bottom - inner_top, edge);
     mode(RGBA32(0, 0, 0, 255));
-    rdpq_tex_blit(&scope_images[id], left, top,
-                  &(rdpq_blitparms_t){.scale_x = (float)width / bg_scope_images[id].w,
-                                      .scale_y = (float)height / bg_scope_images[id].h,
-                                      .filtering = true});
+    set_filter(true);
+    unsigned key = id * 2 + small;
+    for (unsigned i = 0; i < scope_blit_count; i++) {
+        hud_blit *b = &scope_blits[i];
+        if (b->id == key && b->x == left && b->y == top) {
+            rspq_block_run(b->block);
+            return;
+        }
+    }
+    /* Record the immutable tiled upload once per weapon and viewport. */
+    bool record = scope_blit_count < sizeof(scope_blits) / sizeof(scope_blits[0]);
+    if (record) rspq_block_begin();
+    rdpq_tex_blit(&native_scope_masks[id][small], left, top, NULL);
+    if (record) {
+        hud_blit *b = &scope_blits[scope_blit_count++];
+        *b = (hud_blit){.id = key, .x = left, .y = top, .block = rspq_block_end()};
+        rspq_block_run(b->block);
+    }
 }
 
 static void scope_marks(const bg_player *p, float cx, float cy, int height) {
     bool split = height < 240;
     if (p->weapon == BG_W_SNIPER) {
-        /* cyborg multiplayer weapon HUD offsets, centered as hud_draw_bitmap
-         * does. The bitmap size is exempt from multiplayer half scaling; its
-         * offset is not. Source artwork was reduced by two in the packer. */
+        /* The source artwork is already packed at half Xbox resolution.
+         * Scale its size and anchor offsets together; the previous extra 2x
+         * enlargement shifted the visible ink away from the aiming point. */
         static const int offsets[5][2] = {{-101, 18}, {115, 18}, {-33, 0}, {33, 0}, {0, 42}};
-        float size = split ? 1.f : 2.f, offset = split ? .25f : .5f;
+        float size = split ? .5f : 1.f, offset = split ? .25f : .5f;
         mode(RGBA32(0, 0, 0, 120));
+        set_filter(true);
         for (unsigned i = 0; i < 5; i++) {
             unsigned id = BG_SCOPE_TICK_0 + i;
             const bg_scope_image *im = &bg_scope_images[id];
-            rdpq_tex_blit(&scope_images[id], cx + offsets[i][0] * offset - im->w * size * .5f,
-                          cy + offsets[i][1] * offset - im->h * size * .5f,
-                          &(rdpq_blitparms_t){.scale_x = size, .scale_y = size, .filtering = true});
+            rdpq_tex_blit(&scope_images[id], lroundf(cx + offsets[i][0] * offset - im->w * size * .5f),
+                          lroundf(cy + offsets[i][1] * offset - im->h * size * .5f),
+                          &(rdpq_blitparms_t){.scale_x = size, .scale_y = size, .filtering = false});
         }
     }
 }
@@ -496,6 +563,20 @@ void bg_hud_init(void) {
         scope_images[i] = surface_make((void *)im->pixels, FMT_I8, im->w, im->h, im->stride);
         data_cache_hit_writeback((void *)im->pixels, im->stride * im->h);
     }
+    for(unsigned i=0;i<5;i++) {
+        const bg_scope_image *im=&bg_scope_images[BG_SCOPE_TICK_0+i];
+        assertf(im->stride*im->h<=sizeof(scope_tick_pixels[i]),"Scope tick buffer");
+        for(unsigned n=0;n<im->stride*im->h;n++)scope_tick_pixels[i][n]=im->pixels[n]>=128?255:0;
+        scope_images[BG_SCOPE_TICK_0+i]=surface_make(scope_tick_pixels[i],FMT_I8,im->w,im->h,im->stride);
+        data_cache_hit_writeback(scope_tick_pixels[i],sizeof(scope_tick_pixels[i]));
+    }
+    for (unsigned id = 0; id < 1; id++) for (unsigned small = 0; small < 2; small++) {
+        unsigned size = small ? BG_SCOPE_SMALL_SIZE : BG_SCOPE_LARGE_SIZE;
+        uint8_t *pixels = scope_mask_pixels[id] + (small ? BG_SCOPE_LARGE_SIZE * BG_SCOPE_LARGE_SIZE : 0);
+        bg_scope_mask_generate(pixels, size, bg_scope_images[id].pixels[0]);
+        native_scope_masks[id][small] = surface_make(pixels, FMT_I8, size, size, size);
+        data_cache_hit_writeback(pixels, size * size);
+    }
     hud_pixels_init();
     pixel_atlas = surface_make(hud_pixels, FMT_IA4, HUD_PIXEL_W, HUD_PIXEL_H, HUD_PIXEL_W / 2);
     data_cache_hit_writeback(hud_pixels, sizeof(hud_pixels));
@@ -506,6 +587,36 @@ void bg_hud_init(void) {
     weapon_icon_atlas = surface_make((void *)bg_prompt_icon_pixels, FMT_IA4,
                                     BG_PROMPT_ICON_W, BG_PROMPT_ICON_H, BG_PROMPT_ICON_W / 2);
     data_cache_hit_writeback((void *)bg_prompt_icon_pixels, sizeof(bg_prompt_icon_pixels));
+}
+
+static void damage_screen_flash(const bg_player *p,int x,int y,int w,int h) {
+    float intensity=bg_damage_flash_intensity(p);
+    if(intensity<=0)return;
+    const bg_damage_flash_definition *d=&bg_damage_flashes[p->damage_flash_profile];
+    /* CE lighten = premultiplied color + destination*(1-source alpha).
+     * RDP additive overflow wraps above 1.5; cap the additive contribution
+     * below .5. The ordinary red bullet flash stays below this limit. */
+    if(d->color[3])pixel(x,y,w,h,RGBA32(0,0,0,(unsigned)(d->color[3]*intensity)));
+    rdpq_mode_blender(RDPQ_BLENDER_ADDITIVE);
+    pixel(x,y,w,h,RGBA32(d->color[0],d->color[1],d->color[2],(unsigned)(255*fminf(.49f,intensity))));
+    rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+}
+
+static void damage_indicators(const bg_player *p,int x,int y,int w,int h,unsigned views) {
+    if(p->health<=0)return;
+    const bg_scope_image *a=&bg_damage_images[views>1];
+    surface_t bitmap=surface_make((void*)a->pixels,FMT_I8,a->w,a->h,a->stride);
+    /* The extracted image points down. RDP blits rotate counter-clockwise;
+     * keep all four tips facing inward (top down, bottom up). */
+    const float angle[4]={0,1.57079633f,3.14159265f,4.71238898f};
+    for(unsigned d=0;d<4;d++)if(p->damage_indicator[d]>0) {
+        float cx=x+w*.5f,cy=y+h*.5f,offset=bg_damage_offsets[d]*.5f;
+        if(d==0)cy=y+offset;else if(d==2)cy=y+h-offset;
+        else if(d==1)cx=x+offset;else cx=x+w-offset;
+        mode(RGBA32(bg_damage_color>>24,(bg_damage_color>>16)&255,(bg_damage_color>>8)&255,bg_damage_color&255));
+        rdpq_tex_blit(&bitmap,cx,cy,&(rdpq_blitparms_t){.cx=a->w*.5f,.cy=a->h*.5f,
+            .scale_x=.5f,.scale_y=.5f,.theta=angle[d],.filtering=true});
+    }
 }
 
 void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control_style style) {
@@ -519,7 +630,7 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     bool carrying=bg_player_objective(index)>=0;
     bool personal = bg_player_personal_weapon(p)&&!carrying;
     float aim_x, aim_y;
-    unsigned views = height >= 240 ? 1 : width < 200 ? 4 : 2;
+    unsigned views = bg_player_count();
     bg_hud_aim_point(views, index, x, y, width, height, &aim_x, &aim_y);
     current_combiner = current_filter = -1;
     rdpq_mode_begin();
@@ -530,9 +641,11 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
     rdpq_mode_end();
     rdpq_set_scissor(x, y, x + width, y + height);
+    damage_screen_flash(p,x,y,width,height);
     if (scoped(p))
         scope_mask(p, x, y, width, height, aim_x, aim_y);
 
+    damage_indicators(p,x,y,width,height,views);
     if (p->health > 0) {
         if (scoped(p))
             scope_marks(p, aim_x, aim_y, height);
@@ -600,21 +713,26 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if (p->health <= 0) {
         int seconds = (int)ceilf(p->respawn);
         char label[32];
+#ifdef BG_PVE
+        if(bg_ff.active){
+            if(bg_ff_can_respawn(index))snprintf(label,sizeof(label),"Respawn: %d",seconds<0?0:seconds);
+            else snprintf(label,sizeof(label),"Waiting for round clear");
+        }else
+#endif
         if(bg_player_eliminated(index))snprintf(label,sizeof(label),"Eliminated");
         else if(bg_player_waiting(index))snprintf(label,sizeof(label),"Waiting for respawn");
         else snprintf(label, sizeof(label), "Rejoin in %d", seconds < 0 ? 0 : seconds);
         hud_text(label, x + (width - hud_text_width(label)) / 2, y + height / 2 + 8, hud_cyan);
     } else {
         notice_bottom = interaction_prompt(p, style, x, status_y, width) - 9;
-        bg_notice pending[BG_NOTICE_SLOTS];
         bg_use_target target = bg_interaction_target(index);
         int swap = personal ? bg_hud_switch_target(p) : -1;
         if(carrying){
-            const char *label=style==BG_CONTROLS_XBOX?"C-UP: Drop objective":"R: Drop objective";
+            const char *label=style==BG_CONTROLS_DUKE?"C-UP: Drop objective":"R: Drop objective";
             hud_text(label,x+(width-hud_text_width(label))/2,status_y,hud_cyan);
         } else if (swap >= 0 && (target.kind == BG_USE_NONE || target.kind == BG_USE_EXIT)) {
             const bg_prompt_icon *wi = &bg_prompt_icons[swap];
-            unsigned icon = style == BG_CONTROLS_XBOX ? HUD_BUTTON_C_UP : HUD_BUTTON_R;
+            unsigned icon = style == BG_CONTROLS_DUKE ? HUD_BUTTON_C_UP : HUD_BUTTON_R;
             int total = hud_button_width[icon] + 3 + hud_text_width("Switch") + 4 + wi->w;
             int start = x + (width - total) / 2;
             hud_text("Switch", start + hud_button_width[icon] + 3, status_y, hud_cyan);
@@ -626,16 +744,6 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
             int wx = start + total - wi->w, wy = status_y - (wi->h - 6) / 2;
             rdpq_texture_rectangle(TILE0, wx, wy, wx + wi->w, wy + wi->h, wi->x, wi->y);
             notice_bottom = (wy < notice_bottom + 9 ? wy : notice_bottom + 9) - 9;
-        } else if (style == BG_CONTROLS_XBOX && bg_match_time() < 15 &&
-            !bg_hud_messages_get(index, pending) &&
-            (target.kind == BG_USE_NONE || target.kind == BG_USE_EXIT)) {
-            const char *label = "Scores";
-            unsigned icon = HUD_BUTTON_R;
-            int start = x + (width - 24 - hud_button_width[icon] - 3 - hud_text_width(label)) / 2;
-            hud_text("Hold", start, status_y, hud_cyan);
-            hud_text(label, start + 24 + hud_button_width[icon] + 3, status_y, hud_cyan);
-            rdpq_tex_upload(TILE0, &button_atlas, NULL);
-            hud_button(icon, start + 24, status_y - 2);
         }
     }
     /* Radar keeps its approved appearance. Receipts occupy the available
@@ -644,6 +752,27 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if (p->health > 0 && !p->zoom && bg_mode_radar())
         notice_left += (int)ceilf(bg_hud_images[BG_H_MOTION_BG].w * scale) + 3;
     pickup_notices(index, notice_left, notice_bottom, right - notice_left, height < 200 ? 2 : 3);
+#ifdef BG_PVE
+    if(bg_ff.active){
+        char state[72];unsigned alive=0;
+        for(unsigned i=0;i<bg_pve_count;i++)alive+=bg_pve_actors[i].occupied&&bg_players[BG_PLAYERS+i].health>0;
+        rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
+        if(bg_ff.phase==BG_FF_BONUS)snprintf(state,sizeof(state),"BONUS %us E%u",(unsigned)ceilf(fmaxf(0,bg_ff.timer)),alive);
+        else snprintf(state,sizeof(state),"R%u W%u L%u E%u",bg_ff.round+1,bg_ff.wave+1,bg_ff.lives,alive);
+        hud_text(state,x+margin,y+height-19,hud_cyan);
+        snprintf(state,sizeof(state),"%u  %02u:%02u",(unsigned)bg_ff.team_score,(unsigned)bg_ff.elapsed/60,(unsigned)bg_ff.elapsed%60);
+        hud_text(state,x+margin,y+height-10,hud_cyan);
+        if(bg_ff.message_time>0&&hud_text_width(bg_ff.message)<width-8)hud_text(bg_ff.message,x+(width-hud_text_width(bg_ff.message))/2,y+25,hud_cyan);
+        if(alive<=3&&bg_ff.packet>=bg_ff.packets&&p->health>0){
+            const T3DViewport*vp=bg_scene_viewport(index);
+            for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].arrival!=1){
+                const float*pos=bg_players[BG_PLAYERS+i].pos;T3DVec3 world={{pos[0]*BG_SCALE,(pos[1]+1)*BG_SCALE,pos[2]*BG_SCALE}},screen={{0}};
+                float depth=-(world.v[0]*vp->matCamera.m[0][2]+world.v[1]*vp->matCamera.m[1][2]+world.v[2]*vp->matCamera.m[2][2]+vp->matCamera.m[3][2]);if(depth<=0)continue;
+                t3d_viewport_calc_viewspace_pos((T3DViewport*)vp,&screen,&world);int px=(int)fmaxf(x+8,fminf(x+width-8,screen.v[0])),py=(int)fmaxf(y+25,fminf(y+height-30,screen.v[1]));hud_text("!",px,py,red);
+            }
+        }
+    }
+#endif
 #ifdef BG_INTERACTION_QA
     if (BG_INTERACTION_QA == 4) {
         const bg_vehicle *v = &bg_vehicles[index];

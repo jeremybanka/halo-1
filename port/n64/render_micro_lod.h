@@ -24,10 +24,10 @@ static inline void bg_micro_sphere_from_bounds(bg_micro_sphere*out,const bg_cull
     out->radius=sqrtf(radius_squared)*1.00001f+.001f;
     out->valid=bg_micro_finite(&out->radius)&&out->radius>0;
 }
-static inline bool bg_micro_lod_below(const bg_micro_sphere*s,const float camera[4][4],
+static inline bool bg_projected_bounds_below(const bg_micro_sphere*s,const float camera[4][4],
         const float projection[4][4],unsigned width,unsigned height,float near_plane,
-        float pixels,bool already_far,bool zoom,unsigned views){
-    if(views!=4||!already_far||zoom||!s||!s->valid||!width||!height)return false;
+        float pixels){
+    if(!s||!s->valid||!width||!height)return false;
     if(!bg_micro_finite(&s->radius)||s->radius<=0||!bg_micro_finite(&near_plane)||near_plane<=0||
        !bg_micro_finite(&pixels)||pixels<=0)return false;
     for(unsigned a=0;a<3;a++){
@@ -70,5 +70,10 @@ static inline bool bg_micro_lod_below(const bg_micro_sphere*s,const float camera
     float extent=fmaxf(maxx-minx,maxy-miny);
     return bg_micro_finite(&extent)&&extent<limit;
 
+}
+static inline bool bg_micro_lod_below(const bg_micro_sphere*s,const float camera[4][4],
+        const float projection[4][4],unsigned width,unsigned height,float near_plane,
+        float pixels,bool already_far,bool zoom,unsigned views){
+    return views==4&&already_far&&!zoom&&bg_projected_bounds_below(s,camera,projection,width,height,near_plane,pixels);
 }
 #endif

@@ -1,0 +1,2702 @@
+{
+  "description": "Available-seat-only revision: no occupied-seat hijacking. Fresh host vehicle/Firefight tests, 42 native pages and one 45-observation four-player overload capture. Original 1\u20134-player matrix and all-map cycle predate this correction and are preserved separately.",
+  "changed_pixels": [
+    1399,
+    1399,
+    1399,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "changed_pixels_outside_removed_hint": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "removed_hint_rectangles_xywh": [
+    [
+      26,
+      107,
+      108,
+      10
+    ],
+    [
+      186,
+      107,
+      108,
+      10
+    ],
+    [
+      26,
+      227,
+      108,
+      10
+    ],
+    [
+      186,
+      227,
+      108,
+      10
+    ]
+  ],
+  "frames": 42,
+  "stress_4": {
+    "living_players_and_landed_enemies": {
+      "observations": 40,
+      "fps_mean": 3.6,
+      "fps_min": 2,
+      "fps_max": 10
+    },
+    "observations": 45,
+    "warmup_discarded": 5,
+    "used": 40,
+    "fps_mean": 3.6,
+    "fps_min": 2,
+    "fps_max": 10,
+    "min_free_bytes": 438336,
+    "living_range": [
+      1,
+      4
+    ],
+    "enemy_range": [
+      5,
+      12
+    ],
+    "cpu_ms": {
+      "sim": 208.914,
+      "prep": 14.353,
+      "draw": 52.822
+    },
+    "ai_ms": 13.136,
+    "movement_combat_ms": 14.117,
+    "npc_prepare_ms": 9.581,
+    "vertex_loads": 42000,
+    "samples": [
+      {
+        "PHASE": {
+          "camera": 14502,
+          "anim": 4556,
+          "matrix": 274,
+          "world": 6468,
+          "objects": 2942,
+          "fp": 1193,
+          "hud": 5070,
+          "audio": 27598,
+          "overlay": 1369,
+          "present": 17,
+          "queue": 0,
+          "tracks": 2393,
+          "corners": 4988,
+          "frame_avg": 280159,
+          "frame_min": 119667,
+          "frame_p95": 404306,
+          "frame_max": 404306,
+          "samples": 4
+        },
+        "PVE": {
+          "tick": 24,
+          "count": 12,
+          "ai_us": 23909,
+          "move_us": 26654,
+          "pve_render_us": 10498
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 12,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 6,
+          "lives": 10,
+          "score": 0
+        },
+        "PVE_PHASE": {
+          "sim": 329116,
+          "prep": 14813,
+          "draw": 48052,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 43738
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 4,
+          "triangles": 33793,
+          "free": 579968,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14979,
+          "anim": 4568,
+          "matrix": 393,
+          "world": 5864,
+          "objects": 3435,
+          "fp": 1110,
+          "hud": 5223,
+          "audio": 28390,
+          "overlay": 1417,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2427,
+          "corners": 5036,
+          "frame_avg": 349689,
+          "frame_min": 119667,
+          "frame_p95": 466160,
+          "frame_max": 466160,
+          "samples": 7
+        },
+        "PVE": {
+          "tick": 45,
+          "count": 12,
+          "ai_us": 23724,
+          "move_us": 21302,
+          "pve_render_us": 10551
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 10,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 368484,
+          "prep": 15408,
+          "draw": 48830,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 41280
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 32442,
+          "free": 568128,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 15678,
+          "anim": 4395,
+          "matrix": 331,
+          "world": 5771,
+          "objects": 4354,
+          "fp": 1146,
+          "hud": 5345,
+          "audio": 28138,
+          "overlay": 1428,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2543,
+          "corners": 5340,
+          "frame_avg": 360302,
+          "frame_min": 119667,
+          "frame_p95": 466160,
+          "frame_max": 466160,
+          "samples": 10
+        },
+        "PVE": {
+          "tick": 66,
+          "count": 12,
+          "ai_us": 14500,
+          "move_us": 14778,
+          "pve_render_us": 11321
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 8,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 268063,
+          "prep": 16046,
+          "draw": 49389,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 40674
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 31986,
+          "free": 568128,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14845,
+          "anim": 9587,
+          "matrix": 387,
+          "world": 6354,
+          "objects": 6663,
+          "fp": 1134,
+          "hud": 5132,
+          "audio": 27785,
+          "overlay": 1377,
+          "present": 18,
+          "queue": 0,
+          "tracks": 1013,
+          "corners": 2272,
+          "frame_avg": 361870,
+          "frame_min": 119667,
+          "frame_p95": 466160,
+          "frame_max": 466160,
+          "samples": 13
+        },
+        "PVE": {
+          "tick": 87,
+          "count": 12,
+          "ai_us": 14547,
+          "move_us": 27229,
+          "pve_render_us": 10415
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 10,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 279983,
+          "prep": 15267,
+          "draw": 56895,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 44452
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 34624,
+          "free": 573280,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14905,
+          "anim": 9501,
+          "matrix": 359,
+          "world": 6190,
+          "objects": 4004,
+          "fp": 1138,
+          "hud": 5174,
+          "audio": 21721,
+          "overlay": 1372,
+          "present": 18,
+          "queue": 0,
+          "tracks": 898,
+          "corners": 1968,
+          "frame_avg": 367723,
+          "frame_min": 119667,
+          "frame_p95": 466160,
+          "frame_max": 466160,
+          "samples": 16
+        },
+        "PVE": {
+          "tick": 108,
+          "count": 12,
+          "ai_us": 14771,
+          "move_us": 18624,
+          "pve_render_us": 10582
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 9,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 292457,
+          "prep": 15297,
+          "draw": 47960,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 43832
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 34197,
+          "free": 573280,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 17858,
+          "anim": 9632,
+          "matrix": 154,
+          "world": 5902,
+          "objects": 5670,
+          "fp": 1133,
+          "hud": 5051,
+          "audio": 22376,
+          "overlay": 1378,
+          "present": 17,
+          "queue": 0,
+          "tracks": 1473,
+          "corners": 3680,
+          "frame_avg": 366235,
+          "frame_min": 119667,
+          "frame_p95": 466160,
+          "frame_max": 466160,
+          "samples": 19
+        },
+        "PVE": {
+          "tick": 129,
+          "count": 12,
+          "ai_us": 14609,
+          "move_us": 16082,
+          "pve_render_us": 13275
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 260708,
+          "prep": 18050,
+          "draw": 50006,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 43994
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 34250,
+          "free": 529768,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 18874,
+          "anim": 6297,
+          "matrix": 184,
+          "world": 5144,
+          "objects": 3217,
+          "fp": 1153,
+          "hud": 4930,
+          "audio": 21274,
+          "overlay": 1390,
+          "present": 18,
+          "queue": 0,
+          "tracks": 1963,
+          "corners": 5572,
+          "frame_avg": 357007,
+          "frame_min": 119667,
+          "frame_p95": 465913,
+          "frame_max": 466160,
+          "samples": 23
+        },
+        "PVE": {
+          "tick": 157,
+          "count": 12,
+          "ai_us": 24447,
+          "move_us": 16464,
+          "pve_render_us": 14756
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 3,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 210959,
+          "prep": 19095,
+          "draw": 42257,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 29380
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 20954,
+          "free": 450912,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14610,
+          "anim": 13409,
+          "matrix": 154,
+          "world": 5488,
+          "objects": 2087,
+          "fp": 1207,
+          "hud": 4089,
+          "audio": 21200,
+          "overlay": 1471,
+          "present": 17,
+          "queue": 0,
+          "tracks": 1300,
+          "corners": 3128,
+          "frame_avg": 341644,
+          "frame_min": 119667,
+          "frame_p95": 465913,
+          "frame_max": 466160,
+          "samples": 27
+        },
+        "PVE": {
+          "tick": 184,
+          "count": 12,
+          "ai_us": 12242,
+          "move_us": 15160,
+          "pve_render_us": 10508
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 142136,
+          "prep": 14801,
+          "draw": 47708,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 32626
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 25613,
+          "free": 533968,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14200,
+          "anim": 5593,
+          "matrix": 330,
+          "world": 5456,
+          "objects": 3780,
+          "fp": 1201,
+          "hud": 4745,
+          "audio": 32639,
+          "overlay": 1392,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2850,
+          "corners": 6414,
+          "frame_avg": 331728,
+          "frame_min": 119667,
+          "frame_p95": 465913,
+          "frame_max": 466160,
+          "samples": 31
+        },
+        "PVE": {
+          "tick": 212,
+          "count": 12,
+          "ai_us": 12595,
+          "move_us": 15174,
+          "pve_render_us": 10021
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 8,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 231075,
+          "prep": 14565,
+          "draw": 53652,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 39294
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 30083,
+          "free": 545808,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14913,
+          "anim": 5358,
+          "matrix": 172,
+          "world": 5602,
+          "objects": 5692,
+          "fp": 1114,
+          "hud": 8111,
+          "audio": 27953,
+          "overlay": 1400,
+          "present": 17,
+          "queue": 3223,
+          "tracks": 2693,
+          "corners": 6592,
+          "frame_avg": 326041,
+          "frame_min": 119667,
+          "frame_p95": 465913,
+          "frame_max": 466160,
+          "samples": 35
+        },
+        "PVE": {
+          "tick": 240,
+          "count": 12,
+          "ai_us": 10751,
+          "move_us": 14056,
+          "pve_render_us": 10693
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 192637,
+          "prep": 15123,
+          "draw": 54104,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 35852
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 25827,
+          "free": 531072,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 12945,
+          "anim": 15604,
+          "matrix": 331,
+          "world": 5481,
+          "objects": 4232,
+          "fp": 1124,
+          "hud": 4693,
+          "audio": 30179,
+          "overlay": 1385,
+          "present": 18,
+          "queue": 0,
+          "tracks": 997,
+          "corners": 2854,
+          "frame_avg": 319152,
+          "frame_min": 119667,
+          "frame_p95": 465913,
+          "frame_max": 466160,
+          "samples": 39
+        },
+        "PVE": {
+          "tick": 268,
+          "count": 12,
+          "ai_us": 11302,
+          "move_us": 15224,
+          "pve_render_us": 8587
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 8,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 254469,
+          "prep": 13313,
+          "draw": 61557,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 41196
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 28780,
+          "free": 498216,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 12742,
+          "anim": 13353,
+          "matrix": 301,
+          "world": 5930,
+          "objects": 3027,
+          "fp": 1207,
+          "hud": 4893,
+          "audio": 26491,
+          "overlay": 10066,
+          "present": 17,
+          "queue": 8435,
+          "tracks": 785,
+          "corners": 2106,
+          "frame_avg": 319905,
+          "frame_min": 119667,
+          "frame_p95": 435904,
+          "frame_max": 466160,
+          "samples": 43
+        },
+        "PVE": {
+          "tick": 296,
+          "count": 12,
+          "ai_us": 10004,
+          "move_us": 28186,
+          "pve_render_us": 8409
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 7,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 241293,
+          "prep": 13080,
+          "draw": 55131,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 48086
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 33897,
+          "free": 475352,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 13843,
+          "anim": 19910,
+          "matrix": 328,
+          "world": 6315,
+          "objects": 4093,
+          "fp": 1203,
+          "hud": 5073,
+          "audio": 25571,
+          "overlay": 1383,
+          "present": 18,
+          "queue": 0,
+          "tracks": 819,
+          "corners": 2120,
+          "frame_avg": 319865,
+          "frame_min": 119667,
+          "frame_p95": 435904,
+          "frame_max": 466160,
+          "samples": 47
+        },
+        "PVE": {
+          "tick": 324,
+          "count": 12,
+          "ai_us": 9643,
+          "move_us": 17246,
+          "pve_render_us": 9419
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 8,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 207457,
+          "prep": 14208,
+          "draw": 62388,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 57340
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 40608,
+          "free": 516432,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 12148,
+          "anim": 7481,
+          "matrix": 301,
+          "world": 6052,
+          "objects": 8031,
+          "fp": 1106,
+          "hud": 4919,
+          "audio": 30592,
+          "overlay": 1407,
+          "present": 17,
+          "queue": 0,
+          "tracks": 1479,
+          "corners": 3846,
+          "frame_avg": 317256,
+          "frame_min": 119667,
+          "frame_p95": 435904,
+          "frame_max": 466160,
+          "samples": 51
+        },
+        "PVE": {
+          "tick": 352,
+          "count": 12,
+          "ai_us": 9478,
+          "move_us": 14609,
+          "pve_render_us": 7913
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 7,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 180062,
+          "prep": 12487,
+          "draw": 58424,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 54092
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 36926,
+          "free": 504592,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 12557,
+          "anim": 15104,
+          "matrix": 214,
+          "world": 5989,
+          "objects": 9387,
+          "fp": 1123,
+          "hud": 3954,
+          "audio": 41402,
+          "overlay": 22615,
+          "present": 16,
+          "queue": 20879,
+          "tracks": 1002,
+          "corners": 2472,
+          "frame_avg": 312768,
+          "frame_min": 119667,
+          "frame_p95": 435904,
+          "frame_max": 466160,
+          "samples": 55
+        },
+        "PVE": {
+          "tick": 380,
+          "count": 12,
+          "ai_us": 9927,
+          "move_us": 11072,
+          "pve_render_us": 8227
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 4,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 193200,
+          "prep": 12808,
+          "draw": 77202,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 55972
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 38648,
+          "free": 504592,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 16583,
+          "anim": 4832,
+          "matrix": 244,
+          "world": 5540,
+          "objects": 7464,
+          "fp": 1067,
+          "hud": 4694,
+          "audio": 37695,
+          "overlay": 35506,
+          "present": 18,
+          "queue": 33773,
+          "tracks": 2391,
+          "corners": 5910,
+          "frame_avg": 310742,
+          "frame_min": 119667,
+          "frame_p95": 435904,
+          "frame_max": 466160,
+          "samples": 59
+        },
+        "PVE": {
+          "tick": 408,
+          "count": 12,
+          "ai_us": 5857,
+          "move_us": 4017,
+          "pve_render_us": 11569
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 5,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 142900,
+          "prep": 16864,
+          "draw": 61526,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 53400
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 34967,
+          "free": 502376,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 16527,
+          "anim": 5723,
+          "matrix": 155,
+          "world": 5150,
+          "objects": 5269,
+          "fp": 849,
+          "hud": 13367,
+          "audio": 30153,
+          "overlay": 1442,
+          "present": 20,
+          "queue": 8145,
+          "tracks": 2867,
+          "corners": 7470,
+          "frame_avg": 304180,
+          "frame_min": 119667,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 64
+        },
+        "PVE": {
+          "tick": 441,
+          "count": 12,
+          "ai_us": 6427,
+          "move_us": 4232,
+          "pve_render_us": 11564
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 155378,
+          "prep": 16721,
+          "draw": 60748,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 53626
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 4,
+          "triangles": 33817,
+          "free": 438336,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 9970,
+          "anim": 5683,
+          "matrix": 186,
+          "world": 5161,
+          "objects": 2235,
+          "fp": 882,
+          "hud": 5563,
+          "audio": 21320,
+          "overlay": 31430,
+          "present": 18,
+          "queue": 29773,
+          "tracks": 2188,
+          "corners": 4830,
+          "frame_avg": 299817,
+          "frame_min": 119667,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 69
+        },
+        "PVE": {
+          "tick": 476,
+          "count": 12,
+          "ai_us": 5318,
+          "move_us": 2889,
+          "pve_render_us": 5137
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 3,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 178453,
+          "prep": 10194,
+          "draw": 41063,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 55848
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 4,
+          "triangles": 34179,
+          "free": 527184,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 11404,
+          "anim": 4824,
+          "matrix": 156,
+          "world": 4847,
+          "objects": 3371,
+          "fp": 840,
+          "hud": 5119,
+          "audio": 8445,
+          "overlay": 5376,
+          "present": 19,
+          "queue": 3754,
+          "tracks": 2254,
+          "corners": 5124,
+          "frame_avg": 286038,
+          "frame_min": 98784,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 76
+        },
+        "PVE": {
+          "tick": 506,
+          "count": 12,
+          "ai_us": 5634,
+          "move_us": 1745,
+          "pve_render_us": 6669
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 55859,
+          "prep": 11599,
+          "draw": 27679,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 24400
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 6,
+          "triangles": 15403,
+          "free": 512680,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 10715,
+          "anim": 5716,
+          "matrix": 212,
+          "world": 5229,
+          "objects": 1973,
+          "fp": 888,
+          "hud": 4835,
+          "audio": 17408,
+          "overlay": 1378,
+          "present": 19,
+          "queue": 0,
+          "tracks": 2453,
+          "corners": 5686,
+          "frame_avg": 271465,
+          "frame_min": 98784,
+          "frame_p95": 404306,
+          "frame_max": 466160,
+          "samples": 84
+        },
+        "PVE": {
+          "tick": 538,
+          "count": 12,
+          "ai_us": 5715,
+          "move_us": 3203,
+          "pve_render_us": 5904
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 4,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 148793,
+          "prep": 10962,
+          "draw": 36291,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 28864
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 7,
+          "triangles": 19787,
+          "free": 525200,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 11414,
+          "anim": 2395,
+          "matrix": 81,
+          "world": 4521,
+          "objects": 3917,
+          "fp": 304,
+          "hud": 11433,
+          "audio": 19775,
+          "overlay": 1395,
+          "present": 19,
+          "queue": 6943,
+          "tracks": 1357,
+          "corners": 3368,
+          "frame_avg": 268734,
+          "frame_min": 98784,
+          "frame_p95": 404306,
+          "frame_max": 466160,
+          "samples": 89
+        },
+        "PVE": {
+          "tick": 572,
+          "count": 12,
+          "ai_us": 2162,
+          "move_us": 3634,
+          "pve_render_us": 5844
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 1,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 0,
+          "lives": 7,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 143165,
+          "prep": 11534,
+          "draw": 42575,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 22056
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 4,
+          "triangles": 14671,
+          "free": 527184,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 13957,
+          "anim": 4548,
+          "matrix": 82,
+          "world": 6189,
+          "objects": 2963,
+          "fp": 1149,
+          "hud": 5711,
+          "audio": 17302,
+          "overlay": 1374,
+          "present": 17,
+          "queue": 0,
+          "tracks": 2191,
+          "corners": 4428,
+          "frame_avg": 248604,
+          "frame_min": 60493,
+          "frame_p95": 397791,
+          "frame_max": 466160,
+          "samples": 101
+        },
+        "PVE": {
+          "tick": 7,
+          "count": 12,
+          "ai_us": 22505,
+          "move_us": 37109,
+          "pve_render_us": 10075
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 12,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 0,
+          "lives": 10,
+          "score": 0
+        },
+        "PVE_PHASE": {
+          "sim": 290917,
+          "prep": 14077,
+          "draw": 38087,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 43644
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 10,
+          "triangles": 34456,
+          "free": 599040,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 15919,
+          "anim": 4489,
+          "matrix": 359,
+          "world": 6201,
+          "objects": 3201,
+          "fp": 1186,
+          "hud": 5844,
+          "audio": 25759,
+          "overlay": 1385,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2690,
+          "corners": 5644,
+          "frame_avg": 252543,
+          "frame_min": 60493,
+          "frame_p95": 404306,
+          "frame_max": 466160,
+          "samples": 104
+        },
+        "PVE": {
+          "tick": 28,
+          "count": 12,
+          "ai_us": 22972,
+          "move_us": 29808,
+          "pve_render_us": 11970
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 12,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 9,
+          "lives": 10,
+          "score": 0
+        },
+        "PVE_PHASE": {
+          "sim": 339251,
+          "prep": 16314,
+          "draw": 46909,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 43760
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 33810,
+          "free": 558592,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 15097,
+          "anim": 4515,
+          "matrix": 364,
+          "world": 5862,
+          "objects": 3847,
+          "fp": 1121,
+          "hud": 5828,
+          "audio": 28400,
+          "overlay": 1382,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2427,
+          "corners": 5036,
+          "frame_avg": 257328,
+          "frame_min": 60493,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 107
+        },
+        "PVE": {
+          "tick": 49,
+          "count": 12,
+          "ai_us": 38435,
+          "move_us": 16802,
+          "pve_render_us": 10562
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 9,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 345037,
+          "prep": 15499,
+          "draw": 49815,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 41194
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 32369,
+          "free": 568128,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 15343,
+          "anim": 4585,
+          "matrix": 358,
+          "world": 6280,
+          "objects": 4320,
+          "fp": 1130,
+          "hud": 5911,
+          "audio": 29086,
+          "overlay": 1420,
+          "present": 17,
+          "queue": 0,
+          "tracks": 2543,
+          "corners": 5340,
+          "frame_avg": 260582,
+          "frame_min": 60493,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 110
+        },
+        "PVE": {
+          "tick": 70,
+          "count": 12,
+          "ai_us": 15079,
+          "move_us": 15563,
+          "pve_render_us": 10965
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 9,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 255062,
+          "prep": 15806,
+          "draw": 51551,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 41944
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 32522,
+          "free": 568128,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14308,
+          "anim": 9530,
+          "matrix": 445,
+          "world": 6302,
+          "objects": 6531,
+          "fp": 1144,
+          "hud": 32736,
+          "audio": 35633,
+          "overlay": 1398,
+          "present": 40,
+          "queue": 26987,
+          "tracks": 1012,
+          "corners": 2272,
+          "frame_avg": 263818,
+          "frame_min": 60493,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 113
+        },
+        "PVE": {
+          "tick": 91,
+          "count": 12,
+          "ai_us": 28638,
+          "move_us": 29205,
+          "pve_render_us": 9710
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 12,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 291243,
+          "prep": 14789,
+          "draw": 92117,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 44612
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 34738,
+          "free": 573280,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 15981,
+          "anim": 9662,
+          "matrix": 301,
+          "world": 5929,
+          "objects": 4388,
+          "fp": 1154,
+          "hud": 13944,
+          "audio": 30008,
+          "overlay": 1407,
+          "present": 17,
+          "queue": 8112,
+          "tracks": 1185,
+          "corners": 2824,
+          "frame_avg": 267273,
+          "frame_min": 60493,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 116
+        },
+        "PVE": {
+          "tick": 112,
+          "count": 12,
+          "ai_us": 13216,
+          "move_us": 17801,
+          "pve_render_us": 11580
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 7,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 282689,
+          "prep": 16319,
+          "draw": 65327,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 45254
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 35120,
+          "free": 558776,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 18098,
+          "anim": 9554,
+          "matrix": 154,
+          "world": 5631,
+          "objects": 5256,
+          "fp": 1370,
+          "hud": 13335,
+          "audio": 24130,
+          "overlay": 1401,
+          "present": 18,
+          "queue": 8205,
+          "tracks": 1472,
+          "corners": 3680,
+          "frame_avg": 269409,
+          "frame_min": 60493,
+          "frame_p95": 426187,
+          "frame_max": 466160,
+          "samples": 119
+        },
+        "PVE": {
+          "tick": 133,
+          "count": 12,
+          "ai_us": 27087,
+          "move_us": 17118,
+          "pve_render_us": 13572
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 258413,
+          "prep": 18289,
+          "draw": 59517,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 43284
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 33868,
+          "free": 529768,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 19214,
+          "anim": 6342,
+          "matrix": 212,
+          "world": 4819,
+          "objects": 2999,
+          "fp": 1107,
+          "hud": 5449,
+          "audio": 24138,
+          "overlay": 1386,
+          "present": 18,
+          "queue": 0,
+          "tracks": 1962,
+          "corners": 5572,
+          "frame_avg": 271368,
+          "frame_min": 60493,
+          "frame_p95": 418683,
+          "frame_max": 466160,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 161,
+          "count": 12,
+          "ai_us": 12264,
+          "move_us": 16439,
+          "pve_render_us": 15227
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 4,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 211929,
+          "prep": 19465,
+          "draw": 45098,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 22698
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 17092,
+          "free": 450912,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 14357,
+          "anim": 12691,
+          "matrix": 184,
+          "world": 5736,
+          "objects": 2607,
+          "fp": 1287,
+          "hud": 4130,
+          "audio": 23619,
+          "overlay": 1380,
+          "present": 18,
+          "queue": 0,
+          "tracks": 1119,
+          "corners": 2776,
+          "frame_avg": 263766,
+          "frame_min": 60493,
+          "frame_p95": 405227,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 196,
+          "count": 12,
+          "ai_us": 12376,
+          "move_us": 19337,
+          "pve_render_us": 10173
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 8,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 3,
+          "lives": 10,
+          "score": 198
+        },
+        "PVE_PHASE": {
+          "sim": 194032,
+          "prep": 14577,
+          "draw": 50301,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 41516
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 32331,
+          "free": 545808,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 16626,
+          "anim": 5271,
+          "matrix": 213,
+          "world": 5661,
+          "objects": 6657,
+          "fp": 1159,
+          "hud": 4581,
+          "audio": 29904,
+          "overlay": 1404,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2725,
+          "corners": 6592,
+          "frame_avg": 261540,
+          "frame_min": 60493,
+          "frame_p95": 405227,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 224,
+          "count": 12,
+          "ai_us": 11127,
+          "move_us": 12317,
+          "pve_render_us": 12363
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 4,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 207504,
+          "prep": 16875,
+          "draw": 53476,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 34876
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 25712,
+          "free": 531072,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 17583,
+          "anim": 5371,
+          "matrix": 157,
+          "world": 5603,
+          "objects": 4706,
+          "fp": 1201,
+          "hud": 4695,
+          "audio": 24449,
+          "overlay": 1383,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2904,
+          "corners": 7340,
+          "frame_avg": 257290,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 252,
+          "count": 12,
+          "ai_us": 10109,
+          "move_us": 14999,
+          "pve_render_us": 13386
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 179300,
+          "prep": 17778,
+          "draw": 46263,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 37636
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 26615,
+          "free": 505312,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 10703,
+          "anim": 15490,
+          "matrix": 331,
+          "world": 5273,
+          "objects": 2598,
+          "fp": 1471,
+          "hud": 4567,
+          "audio": 29259,
+          "overlay": 1375,
+          "present": 17,
+          "queue": 0,
+          "tracks": 598,
+          "corners": 1312,
+          "frame_avg": 255197,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 280,
+          "count": 12,
+          "ai_us": 11603,
+          "move_us": 16001,
+          "pve_render_us": 6432
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 8,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 255391,
+          "prep": 11070,
+          "draw": 58883,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 44162
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 30222,
+          "free": 516880,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 16652,
+          "anim": 13344,
+          "matrix": 298,
+          "world": 5916,
+          "objects": 3201,
+          "fp": 1254,
+          "hud": 5179,
+          "audio": 29978,
+          "overlay": 1394,
+          "present": 20,
+          "queue": 0,
+          "tracks": 1301,
+          "corners": 3952,
+          "frame_avg": 255941,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 308,
+          "count": 12,
+          "ai_us": 9816,
+          "move_us": 13284,
+          "pve_render_us": 12334
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 7,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 238548,
+          "prep": 16986,
+          "draw": 59098,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 48076
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 33578,
+          "free": 479552,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 13171,
+          "anim": 14295,
+          "matrix": 355,
+          "world": 6247,
+          "objects": 4008,
+          "fp": 1224,
+          "hud": 4541,
+          "audio": 26994,
+          "overlay": 1454,
+          "present": 17,
+          "queue": 0,
+          "tracks": 1001,
+          "corners": 2472,
+          "frame_avg": 258259,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 336,
+          "count": 12,
+          "ai_us": 9657,
+          "move_us": 11668,
+          "pve_render_us": 8810
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 9,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 224866,
+          "prep": 13562,
+          "draw": 57538,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 55936
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 39285,
+          "free": 483488,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 12191,
+          "anim": 15716,
+          "matrix": 156,
+          "world": 5995,
+          "objects": 8198,
+          "fp": 1132,
+          "hud": 3852,
+          "audio": 22723,
+          "overlay": 1426,
+          "present": 18,
+          "queue": 0,
+          "tracks": 1001,
+          "corners": 2472,
+          "frame_avg": 257900,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 364,
+          "count": 12,
+          "ai_us": 9568,
+          "move_us": 14382,
+          "pve_render_us": 7737
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 10,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 169462,
+          "prep": 12385,
+          "draw": 57858,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 55644
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 38528,
+          "free": 504592,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 12898,
+          "anim": 12091,
+          "matrix": 271,
+          "world": 5831,
+          "objects": 9703,
+          "fp": 1602,
+          "hud": 30504,
+          "audio": 41137,
+          "overlay": 1413,
+          "present": 18,
+          "queue": 25301,
+          "tracks": 2131,
+          "corners": 4670,
+          "frame_avg": 257549,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 392,
+          "count": 12,
+          "ai_us": 10044,
+          "move_us": 12593,
+          "pve_render_us": 7979
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 7,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 6,
+          "lives": 9,
+          "score": 210
+        },
+        "PVE_PHASE": {
+          "sim": 175836,
+          "prep": 13206,
+          "draw": 101114,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 49182
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 33179,
+          "free": 504592,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 19815,
+          "anim": 4786,
+          "matrix": 185,
+          "world": 5224,
+          "objects": 7460,
+          "fp": 845,
+          "hud": 4713,
+          "audio": 32055,
+          "overlay": 39197,
+          "present": 18,
+          "queue": 37494,
+          "tracks": 2790,
+          "corners": 7452,
+          "frame_avg": 256944,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 420,
+          "count": 12,
+          "ai_us": 5482,
+          "move_us": 4168,
+          "pve_render_us": 14872
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 3,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 152146,
+          "prep": 20037,
+          "draw": 55321,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 53756
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 3,
+          "triangles": 34712,
+          "free": 464096,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 10557,
+          "anim": 15099,
+          "matrix": 277,
+          "world": 5295,
+          "objects": 4659,
+          "fp": 1336,
+          "hud": 13801,
+          "audio": 23006,
+          "overlay": 1408,
+          "present": 19,
+          "queue": 8344,
+          "tracks": 1516,
+          "corners": 2956,
+          "frame_avg": 253168,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 453,
+          "count": 12,
+          "ai_us": 5603,
+          "move_us": 3460,
+          "pve_render_us": 5539
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 6,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 161423,
+          "prep": 10871,
+          "draw": 63436,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 57268
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 4,
+          "triangles": 35959,
+          "free": 482760,
+          "audio": 1
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 9900,
+          "anim": 5639,
+          "matrix": 81,
+          "world": 4687,
+          "objects": 5170,
+          "fp": 836,
+          "hud": 5368,
+          "audio": 17820,
+          "overlay": 1409,
+          "present": 19,
+          "queue": 0,
+          "tracks": 2159,
+          "corners": 4830,
+          "frame_avg": 250499,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 487,
+          "count": 12,
+          "ai_us": 11066,
+          "move_us": 4066,
+          "pve_render_us": 5226
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 0,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 130259,
+          "prep": 10020,
+          "draw": 39756,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 37686
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 4,
+          "triangles": 22718,
+          "free": 548288,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 9648,
+          "anim": 5593,
+          "matrix": 155,
+          "world": 4957,
+          "objects": 3298,
+          "fp": 841,
+          "hud": 4713,
+          "audio": 18951,
+          "overlay": 1359,
+          "present": 19,
+          "queue": 0,
+          "tracks": 2449,
+          "corners": 5686,
+          "frame_avg": 241048,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 518,
+          "count": 12,
+          "ai_us": 5631,
+          "move_us": 2520,
+          "pve_render_us": 4872
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 2,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 92329,
+          "prep": 9840,
+          "draw": 38590,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 26362
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 7,
+          "triangles": 16099,
+          "free": 498176,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 10713,
+          "anim": 5721,
+          "matrix": 287,
+          "world": 4958,
+          "objects": 2175,
+          "fp": 888,
+          "hud": 4521,
+          "audio": 18266,
+          "overlay": 1613,
+          "present": 18,
+          "queue": 0,
+          "tracks": 2453,
+          "corners": 5686,
+          "frame_avg": 237948,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 548,
+          "count": 12,
+          "ai_us": 5931,
+          "move_us": 3559,
+          "pve_render_us": 5956
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 3,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 4,
+          "lives": 9,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 159508,
+          "prep": 11038,
+          "draw": 36747,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 26462
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 5,
+          "triangles": 18502,
+          "free": 525200,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 9622,
+          "anim": 2406,
+          "matrix": 127,
+          "world": 4586,
+          "objects": 3634,
+          "fp": 305,
+          "hud": 4362,
+          "audio": 7793,
+          "overlay": 1351,
+          "present": 19,
+          "queue": 0,
+          "tracks": 1170,
+          "corners": 2574,
+          "frame_avg": 236400,
+          "frame_min": 60493,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 579,
+          "count": 12,
+          "ai_us": 2103,
+          "move_us": 2507,
+          "pve_render_us": 3974
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 1,
+          "enemies": 5,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 1,
+          "lives": 7,
+          "score": 259
+        },
+        "PVE_PHASE": {
+          "sim": 62697,
+          "prep": 9787,
+          "draw": 23306,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 21820
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 4,
+          "triangles": 14437,
+          "free": 527184,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 13790,
+          "anim": 4520,
+          "matrix": 214,
+          "world": 6463,
+          "objects": 2965,
+          "fp": 1258,
+          "hud": 5757,
+          "audio": 20548,
+          "overlay": 1376,
+          "present": 17,
+          "queue": 0,
+          "tracks": 2276,
+          "corners": 4684,
+          "frame_avg": 232978,
+          "frame_min": 44741,
+          "frame_p95": 404650,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 16,
+          "count": 12,
+          "ai_us": 22435,
+          "move_us": 33938,
+          "pve_render_us": 9904
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 12,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 4,
+          "lives": 10,
+          "score": 0
+        },
+        "PVE_PHASE": {
+          "sim": 347254,
+          "prep": 14040,
+          "draw": 41734,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 44454
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 9,
+          "triangles": 34798,
+          "free": 595424,
+          "audio": 0
+        }
+      },
+      {
+        "PHASE": {
+          "camera": 15629,
+          "anim": 4515,
+          "matrix": 421,
+          "world": 6255,
+          "objects": 2492,
+          "fp": 1169,
+          "hud": 5743,
+          "audio": 28347,
+          "overlay": 1385,
+          "present": 17,
+          "queue": 0,
+          "tracks": 2575,
+          "corners": 5340,
+          "frame_avg": 238785,
+          "frame_min": 44741,
+          "frame_p95": 406102,
+          "frame_max": 433568,
+          "samples": 120
+        },
+        "PVE": {
+          "tick": 37,
+          "count": 12,
+          "ai_us": 46577,
+          "move_us": 33035,
+          "pve_render_us": 11544
+        },
+        "FF_STATE": {
+          "phase": 3,
+          "round": 1,
+          "wave": 1,
+          "living": 4,
+          "enemies": 12,
+          "arriving": 0,
+          "ship": 0,
+          "projectiles": 11,
+          "lives": 10,
+          "score": 0
+        },
+        "PVE_PHASE": {
+          "sim": 392934,
+          "prep": 16088,
+          "draw": 48744,
+          "rsp_wait": 0,
+          "rdp_wait": 0,
+          "vertices": 42728
+        },
+        "PERF": {
+          "views": 4,
+          "fps": 2,
+          "triangles": 33050,
+          "free": 557824,
+          "audio": 1
+        }
+      }
+    ],
+    "cpu_ms_per_simulation_tick": {
+      "tick_us": 30.237,
+      "director_us": 0.016,
+      "humans_us": 7.249,
+      "vehicle_ai_us": 5.612,
+      "vehicles_us": 8.248,
+      "actors_us": 4.333,
+      "projectiles_us": 4.702,
+      "after_us": 0.029
+    }
+  },
+  "manifests": {
+    "play": {
+      "manifest_sha256": "edcb68c0d3953f8f39ec5b34d8aaa0a1148856e7d4a1b963b453edd907e79a2f",
+      "rom_sha256": "0c676ab37c362073313b2f2764468a9c57b69878def33880c859fa1a0608b4a6"
+    },
+    "photos": {
+      "manifest_sha256": "f52d60d393274348d6e77ce1a2aed32c12bd8ec52e632ca7135a6a0807229b5c",
+      "rom_sha256": "c8264ef91391f34b680b29fcef235cbf80ae55ac9a9b030de0757e7a5aa829b4"
+    },
+    "stress-4": {
+      "manifest_sha256": "cb311c2bc6602d831e9ff023c3561506115ac8ce435e733d5bcff43c93c477c8",
+      "rom_sha256": "0aef58cc012b16e14bc3428a5495b55ae74ea64cf82fac030c3159eef07d4c97"
+    }
+  },
+  "log_sha256": {
+    "host-tests.log": "1aa3c213c1389d58e1b2ac36b98ebc242c905df1ec015a14f01ddb78fbe816ff",
+    "host-match.log": "079ebb2ceb4fac9340fbed31462adfcf0e8fd0400a87a95cda5bddefb0029d4d",
+    "photos-native.log": "33a76d6b73d5e45a359448611501d7acb37d494838ad2b1f0e2648f63806e892",
+    "stress-4-native.log": "6eabe77cc47b2fee8b95fcbeec931ca69bf8673adff0018b88bf231b94c171d7"
+  }
+}

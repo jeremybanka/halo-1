@@ -1,0 +1,35 @@
+native contact thresholds/grace: 84 boundaries passed
+available-seat kind=1: NPC/human occupancy respected, stale target rejected, pilot-death entry and safe exit passed
+available-seat kind=3: NPC/human occupancy respected, stale target rejected, pilot-death entry and safe exit passed
+available-seat kind=4: NPC/human occupancy respected, stale target rejected, pilot-death entry and safe exit passed
+available-seat kind=5: NPC/human occupancy respected, stale target rejected, pilot-death entry and safe exit passed
+autonomous empty-seat entry/source durations passed
+actual hull contact kind=0 speed=slow health 36.00 -> 36.00
+actual hull contact kind=0 speed=fast health 36.00 -> 0.00
+actual hull contact kind=1 speed=slow health 120.00 -> 120.00
+actual hull contact kind=1 speed=fast health 120.00 -> 0.00
+actual hull contact kind=2 speed=slow health 60.00 -> 60.00
+actual hull contact kind=2 speed=fast health 60.00 -> 0.00
+actual hull contact kind=3 speed=slow health 270.00 -> 270.00
+actual hull contact kind=3 speed=fast health 270.00 -> 0.00
+actual hull contact kind=4 speed=slow health 100.00 -> 100.00
+actual hull contact kind=4 speed=fast health 100.00 -> 0.00
+mounted source profiles/speed/cooldown/attribution passed
+CE Banshee secondary: vehicle target only, source delay and three-strafe exclusion passed
+1P kind=1 moved=13.100 health=400.0 pilot=4
+1P kind=3 moved=24.330 health=400.0 pilot=5
+1P kind=4 moved=8.866 health=600.0 pilot=6
+1P kind=5 moved=0.063 health=400.0 pilot=7
+2P kind=1 moved=13.100 health=400.0 pilot=4
+2P kind=3 moved=24.330 health=400.0 pilot=5
+2P kind=4 moved=8.866 health=596.0 pilot=6
+2P kind=5 moved=0.063 health=400.0 pilot=7
+3P kind=1 moved=13.100 health=400.0 pilot=4
+3P kind=3 moved=24.330 health=400.0 pilot=5
+3P kind=4 moved=8.936 health=600.0 pilot=6
+3P kind=5 moved=0.063 health=400.0 pilot=7
+4P kind=1 moved=13.100 health=400.0 pilot=4
+4P kind=3 moved=24.330 health=400.0 pilot=5
+4P kind=4 moved=8.936 health=600.0 pilot=6
+4P kind=5 moved=0.063 health=400.0 pilot=7
+enemy vehicle ownership/contact checks passed

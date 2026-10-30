@@ -1,0 +1,101 @@
+Retained 96 functions/blocks
+PASS: 2733 shared BVH surface rays agree with original BSP within 0.003 world units
+PASS: 640 cached capsule positions vs every source triangle, 1420 contacts, none omitted
+PASS terrain: continuous capsule axis, wall/ceiling clearance, high-speed contacts, slope projection/curve and original landing recovery
+Moving pairs: 384000 DMA bytes instead of 768000
+PASS: cached ROM frame pairs byte-identical through reuse, length changes and 10000 evictions; 480 reads reduced to 16 for stable endpoints
+Surface candidate cache: 48000 ordered queries agree with uncached BVH (42961 cached)
+N64 world bank: 369488 bytes match typed source geometry bit-for-bit
+Original BSP oracle: 20000 contact sweeps, 20000 hits
+Original BSP oracle: 10000 short airborne sweeps, 9958 misses
+Vehicle-pair optimization: 5000 bit-exact original comparisons, 837 contacts
+30000 feature queries: 0 changed answers; max depth difference 0
+Vehicle 0: drive/steer, pose and contact checks passed
+Vehicle 1: drive/steer, pose and contact checks passed
+Vehicle 2: drive/steer, pose and contact checks passed
+Vehicle 3: drive/steer, pose and contact checks passed
+airtest yaw -0.015836 lateral 2.647172 height 18.407152
+Airborne Warthog: lateral velocity 2.6472, yaw -0.015836
+Suspension landing: rebound 0.8005 units/s
+Rollover, full-pose seat transform and original flip torque passed
+Original grenade acceleration and angular kick passed
+Original vehicle-pair impulse transfer and wakeup passed
+PASS native vehicle physics
+PASS movement: source acceleration, air inertia, crouch, 39-tick jump / 0.652616 apex, response curve, peg ramp, zoom, both layouts, targeting eligibility, vehicle cover and adhesion direction
+kind 0 seat 0 -> target 2/0
+kind 0 seat 1 -> target 2/1
+kind 0 seat 2 -> target 2/2
+kind 1 seat 0 -> target 2/0
+kind 2 seat 0 -> target 2/0
+kind 2 seat 1 -> target 2/1
+kind 2 seat 2 -> target 2/2
+kind 2 seat 3 -> target 2/3
+kind 2 seat 4 -> target 2/4
+kind 3 seat 0 -> target 2/0
+Flip kind 0: upright peak 1.000, settled up 1.000
+Flip kind 1: upright peak 0.999, settled up 0.977
+Flip kind 3: upright peak 0.999, settled up 0.952
+PASS: weapon holds, immediate seat use, Warthog/Ghost/Banshee flips, contention, ready locks and reservations
+Mixer PCM and voice state exactly match for 2472207 stereo frames.
+PASS: original warning PCM, smooth tagged fades, unbroken loop phase, viewport pan, recharge stop
+page 0: p0=100.0/0.00/0.00/0 p1=25.0/0.95/0.00/0 p2=0.0/0.00/2.15/4 p3=259.6/0.95/0.00/0
+page 1: p0=100.0/0.00/0.00/0 p1=37.5/0.00/0.00/1 p2=12.5/0.00/0.00/3 p3=285.3/0.00/0.00/0
+page 2: p0=100.0/0.00/0.00/0 p1=25.0/0.00/0.00/0 p2=0.0/0.00/0.00/4 p3=294.2/0.00/0.00/0
+PASS: hit/depletion/health damage, six-second stun, recharge interruption/completion, low/down/charge audio states, source overshield acquisition/protection/decay, death and respawn
+PASS: camo acquisition, shot fade/quiet delay, dry trigger, expiry, hit/death/respawn, radar, aim/Needler target loss and mounted firing
+Seat exposure: 5 exposed rays / 30 hull-blocked rays across all seats
+Camera packet: 1,200 rays match independent original polygon queries
+PASS: safe/blocked/interrupted exits, hull camera obstruction, source-hull capsule contact and rotating plasma attachment
+low-speed contacts 56 fatalities 0; fast contacts 56 fatalities 55 driver credits 55
+PASS: source cubic interpolation, all seat tracks/pitch extremes, yaw basis, exact zoom magnification and world depth precision
+PASS: 4 players, terrain/rays, movement, weapons, reload, shields, charge, zoom, grenades, 4 vehicle types, seats, pickups, respawn, Slayer completion, kill announcements
+Partial collision refits: 94920 vertices agree with full joint/hatch transforms
+PASS: collision BVH matches 2400 exhaustive capsule checks and original triangle ray oracle (2157 hits, 10839 misses, four hulls and rotated poses)
+AR body 16; pistol body/head 5/3; sniper body/head 2/1
+PASS: source damage breakpoints, EMP/overshield, material/head/leg responses, range energy, melee scaling and fractional health
+PASS: source cadence, cone, reload cancellation, timed sweep, individual needle fuses, retained guidance and grenade arming
+material 1: rebound clearance 0.1033
+material 2: rebound clearance 0.3665
+PASS: Xbox grenade launch, material rebound, remaining-tick motion, wall reflection, short contacts, rest and arming
+Mounted kind 0: 24 primary shots in 60 ticks
+Mounted kind 1: 11 primary shots in 60 ticks
+Mounted kind 2: 1 primary shots in 60 ticks
+Mounted kind 3: 11 primary shots in 60 ticks
+Direct hull hit: material resistance and fractional rider transfer applied independently
+Contacts: symmetric player separation, tank support/carry, jump detach
+Animated collision: 82 leg / 121 body / 9 head rays; 39 silhouette changes
+PASS: mounted profiles, dynamic contacts and animated original player hit geometry
+PASS: 40 repeated deaths, fixed 56-slot capacity, map slots protected, oldest-drop pressure fallback
+PASS: Slayer eligibility/threat ratings, map loadout, ammunition/battery/grenade conservation, death drops, view-aware cleanup, independent schedules
+PASS: real weapon/ammo/grenade/health/powerup events; partial transfers; quantity aggregation; four isolated bounded queues; original 2+2s fade; kill/profile identity; awards; reset
+PASS: eight live firing events, empty weapons, charge growth/hold/release/cancellation, exact terrain/target sniper hits and bounded trail reuse
+Former P2 staging: feet 0.0740, moved-position floor 0.4744 (0.4004 below floor)
+Former P4 staging: feet 0.0804, moved-position floor 0.3928 (0.3124 below floor)
+PASS: two complete effects cycles, all four players stay above terrain with no deaths or stuck respawns
+kind 0: deaths 1 blink visible/hidden 32/28 removed 240 respawned 82
+kind 1: deaths 1 blink visible/hidden 32/28 removed 240 respawned 79
+kind 2: deaths 1 blink visible/hidden 32/28 removed 240 respawned 82
+kind 3: deaths 1 blink visible/hidden 32/28 removed 240 respawned 78
+Banshee destroyed at 2.829, settled to 0.434
+PASS: four real rocket kills, unpowered falling wreck, four blink cycles, expiry, healthy respawn and surviving observers
+  0 s seats -1/-1/-1/-1 health 100.0/100.0/100.0/100.0 shots 0 deaths 0
+ 15 s seats -1/-1/-1/-1 health 100.0/90.0/100.0/100.0 shots 85 deaths 3
+ 30 s seats -1/-1/-1/-1 health 100.0/100.0/100.0/100.0 shots 170 deaths 7
+ 45 s seats -1/-1/6/-1 health 52.0/0.0/100.0/0.0 shots 236 deaths 10
+ 60 s seats -1/-1/-1/-1 health 0.0/0.0/0.0/100.0 shots 244 deaths 15
+ 75 s seats -1/-1/-1/-1 health 100.0/100.0/100.0/100.0 shots 365 deaths 18
+ 90 s seats -1/-1/-1/-1 health 100.0/90.0/100.0/100.0 shots 450 deaths 21
+105 s seats -1/-1/-1/-1 health 100.0/100.0/100.0/100.0 shots 529 deaths 25
+120 s seats -1/-1/6/-1 health 0.0/0.0/100.0/0.0 shots 594 deaths 29
+135 s seats -1/0/6/-1 health 0.0/100.0/100.0/0.0 shots 665 deaths 31
+Replay: 821 shots, 35 deaths, 13 boardings, weapon mask 0xff, vehicle mask 0x7, gunner frames 809
+Replay plus fresh vehicle stage: vehicle mask 0xf
+PASS: two combat replay loops plus fresh vehicle stage, eight Xbox weapons, four vehicles, actual combat/deaths/boarding, Warthog gunner
+BANSHEE FLIGHT: pass 11.43s, shots5 kills0 score0 grenade0 boards1 super0 hits0 turn0.000 travel116.89 altitude6.33 seats660/0
+FRAG DOUBLE KILL: pass 3.47s, shots24 kills2 score2 grenade1 boards0 super0 hits0 turn0.000 travel0.00 altitude0.00 seats0/0
+RIDING SHOTGUN: pass 7.77s, shots0 kills0 score0 grenade0 boards2 super0 hits0 turn0.000 travel66.37 altitude0.86 seats660/660
+SHOTGUN KILL: pass 2.00s, shots1 kills1 score1 grenade0 boards0 super0 hits0 turn0.000 travel0.00 altitude0.00 seats0/0
+NEEDLER SUPERCOMBINE: pass 5.50s, shots20 kills1 score1 grenade0 boards0 super2 hits20 turn0.000 travel0.00 altitude0.00 seats0/0
+NEEDLE HOMING: pass 3.57s, shots1 kills0 score0 grenade0 boards0 super0 hits1 turn0.154 travel0.00 altitude0.00 seats0/0
+PASS: six live-rule showcases, full starting shields/health, actual projectile/kill/seat/flight telemetry
+PASS: native vehicle, game, replay and showcase sanitizer suites

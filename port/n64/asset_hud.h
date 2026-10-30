@@ -25,4 +25,7 @@ enum { BG_SCOPE_PISTOL, BG_SCOPE_SNIPER, BG_SCOPE_TICK_0, BG_SCOPE_TICK_1,
        BG_SCOPE_TICK_2, BG_SCOPE_TICK_3, BG_SCOPE_TICK_4, BG_SCOPE_COUNT };
 typedef struct { const uint8_t *pixels; uint16_t w,h,stride; } bg_scope_image;
 extern const bg_scope_image bg_scope_images[BG_SCOPE_COUNT];
+extern const bg_scope_image bg_damage_images[2];
+extern const uint32_t bg_damage_color;
+extern const uint16_t bg_damage_offsets[4];
 #endif

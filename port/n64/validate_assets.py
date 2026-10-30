@@ -325,7 +325,7 @@ def main():
   assert Path(raw['audio'][name]['file']).read_bytes()==Path(raw['audio'][canonical]['file']).read_bytes()
  added=sum(raw['audio'][name]['count'] for name in ('banshee','warthog_gun','banshee_bomb'))
  assert added<=60000,added
- for file in ('models_data.c','audio_data.c','hud_data.c','firstperson_data.c'):
+ for file in ('models_data.c','audio_data.c','hud_data.c','hud_damage_data.c','firstperson_data.c'):
   assert (root/'generated'/file).stat().st_size>1000,file
  # HUD padding removal must preserve the original layout and every visible
  # texel. Digits still use complete source cells to build the runtime atlas.

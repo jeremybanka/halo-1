@@ -1,0 +1,30 @@
+{
+  "baseline": {
+    "elf": "build/firefight-collision/matrix/baseline-perf-4/halo-64-render-candidate-pve-model-candidate-profile.elf",
+    "sections": {
+      ".text": 587120,
+      ".data": 554968,
+      ".bss": 1262568
+    },
+    "symbols": {
+      "bg_collision_profile": 96,
+      "candidates": 1104
+    }
+  },
+  "candidate": {
+    "elf": "build/firefight-collision/matrix/candidate-perf-4/halo-64-render-candidate-pve-model-candidate-profile.elf",
+    "sections": {
+      ".text": 589424,
+      ".data": 554968,
+      ".bss": 1288600
+    },
+    "symbols": {
+      "actor_candidate_next": 4,
+      "actor_candidates": 21280,
+      "bg_collision_profile": 96,
+      "candidates": 1104,
+      "pve_hit_bounds": 4752
+    }
+  },
+  "extra_bss_bytes": 26032
+}

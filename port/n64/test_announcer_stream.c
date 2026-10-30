@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <string.h>
 #include "sound_stream.h"
-static int8_t pcm[14048],window[1024];
+#ifndef BG_TEST_PCM_BYTES
+#define BG_TEST_PCM_BYTES 14048
+#endif
+static int8_t pcm[BG_TEST_PCM_BYTES],window[1024];
 static unsigned maximum;
 /* Simulate the aligned ROM read, including an unaligned file/sample start. */
 static const int8_t *read_pcm(unsigned at,unsigned count) {

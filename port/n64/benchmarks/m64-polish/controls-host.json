@@ -1,0 +1,128 @@
+{
+  "controls": {
+    "pass": true,
+    "command": [
+      "clang",
+      "-std=c17",
+      "-O1",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/test_controls.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/controls.c",
+      "-lm",
+      "-o",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/m64-polish/host/controls"
+    ],
+    "source_sha256": {
+      "port/n64/test_controls.c": "3551734a52b4efc5603eeaa0d135239040a80e21e7452f80c9939f6d40e8a57d",
+      "port/n64/controls.c": "901c90829b525196f2169627d0986dd3396152c65fcd98cf663b02892da09990"
+    }
+  },
+  "menu": {
+    "pass": true,
+    "command": [
+      "clang",
+      "-std=c17",
+      "-O1",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/test_menu.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/menu.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/controls.c",
+      "-lm",
+      "-o",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/m64-polish/host/menu"
+    ],
+    "source_sha256": {
+      "port/n64/test_menu.c": "e091c80b9b8e4d60babf06a8f45e34910dd0a7f6e2d7d82a4d5732a5497bda67",
+      "port/n64/menu.c": "a6569f9fd7360aa1639824110540c9548813121d2274cb201a8d6d34e11c5326",
+      "port/n64/controls.c": "901c90829b525196f2169627d0986dd3396152c65fcd98cf663b02892da09990"
+    }
+  },
+  "frontend": {
+    "pass": true,
+    "command": [
+      "clang",
+      "-std=c17",
+      "-O1",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/test_frontend.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/frontend.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/menu.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/controls.c",
+      "-lm",
+      "-o",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/m64-polish/host/frontend"
+    ],
+    "source_sha256": {
+      "port/n64/test_frontend.c": "00ec1430d985017910457a469967fa2eebd90336cebdaf648af2d426216e95cb",
+      "port/n64/frontend.c": "c01d975a89cbf4369384b83864225c2c7af2727d6f249bd8b48c041129b16e7e",
+      "port/n64/menu.c": "a6569f9fd7360aa1639824110540c9548813121d2274cb201a8d6d34e11c5326",
+      "port/n64/controls.c": "901c90829b525196f2169627d0986dd3396152c65fcd98cf663b02892da09990"
+    }
+  },
+  "menu_qa": {
+    "pass": true,
+    "command": [
+      "clang",
+      "-std=c17",
+      "-O1",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/test_menu_qa.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/menu_qa.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/menu.c",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/controls.c",
+      "-lm",
+      "-o",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/m64-polish/host/menu_qa"
+    ],
+    "source_sha256": {
+      "port/n64/test_menu_qa.c": "48599adf8d1a71fa55a4374a4db3b2628e033c74e847efc8989ab19344cac0c2",
+      "port/n64/menu_qa.c": "d2e12a763c26a5d73c422148fe96138d75b1a935e464111a7af904e6f9a41482",
+      "port/n64/menu.c": "a6569f9fd7360aa1639824110540c9548813121d2274cb201a8d6d34e11c5326",
+      "port/n64/controls.c": "901c90829b525196f2169627d0986dd3396152c65fcd98cf663b02892da09990"
+    }
+  },
+  "hud_layout": {
+    "pass": true,
+    "command": [
+      "clang",
+      "-std=c17",
+      "-O1",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/test_hud_layout.c",
+      "-lm",
+      "-o",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/m64-polish/host/hud_layout"
+    ],
+    "source_sha256": {
+      "port/n64/test_hud_layout.c": "24578b03350b9487827215352dcfbaeb87f26b581f49cacd0de0910992319b90"
+    }
+  },
+  "damage_indicator": {
+    "pass": true,
+    "command": [
+      "clang",
+      "-std=c17",
+      "-O1",
+      "-g",
+      "-fsanitize=address,undefined",
+      "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/test_damage_indicator.c",
+      "-lm",
+      "-o",
+      "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/m64-polish/host/damage_indicator"
+    ],
+    "source_sha256": {
+      "port/n64/test_damage_indicator.c": "3bcbc622568a1c048d77e0a469be75416f54d4c224f975227a0c959a9040b148"
+    }
+  }
+}

@@ -1,0 +1,158 @@
+#ifdef BG_ENEMY_VEHICLES
+#include "enemy_pilots.h"
+#endif
+/* Authored collision polygons animated with the same sampled source poses as
+ * rendering. Material identity survives to damage: Jackal shield gaps and
+ * Hunter skin are not approximated by a whole-body shield or head sphere. */
+#if defined(BG_ENEMY_VEHICLES) && defined(N64)
+/* Collision consumes each pair synchronously before another query reuses it. */
+static uint8_t pilot_hit_window[2*1024*6+32] __attribute__((aligned(16)));
+static const uint16_t*pilot_hit_pair(const bg_pve_animation*c,unsigned f0,unsigned f1){
+    static uint32_t rom,size;
+    if(!rom){rom=dfs_rom_addr("pve-motion.bin");size=dfs_rom_size("pve-motion.bin");assert(rom&&size);}
+    uint32_t offset=(uintptr_t)c->positions+f0*c->tracks*6;
+    uint32_t start=offset&~15u,end=((uintptr_t)c->positions+(f1+1)*c->tracks*6+15)&~15u;
+    assert(end<=size&&end-start<=sizeof(pilot_hit_window));
+    data_cache_hit_invalidate(pilot_hit_window,end-start);dma_read(pilot_hit_window,rom+start,end-start);
+    return (const uint16_t*)(pilot_hit_window+offset-start);
+}
+#endif
+static int16_t pve_hit_pose[BG_PVE_MAX][1024][3];
+static float pve_hit_normals[BG_PVE_MAX][3];
+static uint32_t pve_hit_keys[BG_PVE_MAX];
+static uint16_t pve_hit_generations[BG_PVE_MAX];
+#ifndef BG_COLLISION_BASELINE
+/* Contiguous groups retain source triangle order, including equal-distance
+ * material/normal selection. Refit only when the existing pose cache changes. */
+#define PVE_HIT_GROUP_SIZE 16
+#define PVE_HIT_GROUPS 32
+static int16_t pve_hit_bounds[BG_PVE_MAX][PVE_HIT_GROUPS+1][6];
+static void pve_hit_refit(unsigned i,const bg_pve_hit_mesh*m){
+    assert(m->triangles_count<=PVE_HIT_GROUPS*PVE_HIT_GROUP_SIZE);
+    unsigned groups=(m->triangles_count+PVE_HIT_GROUP_SIZE-1)/PVE_HIT_GROUP_SIZE;
+    int16_t*root=pve_hit_bounds[i][PVE_HIT_GROUPS];
+    for(unsigned a=0;a<3;a++){root[a]=INT16_MAX;root[a+3]=INT16_MIN;}
+    for(unsigned g=0;g<groups;g++){
+        int16_t*b=pve_hit_bounds[i][g];
+        for(unsigned a=0;a<3;a++){b[a]=INT16_MAX;b[a+3]=INT16_MIN;}
+        unsigned end=(g+1)*PVE_HIT_GROUP_SIZE;if(end>m->triangles_count)end=m->triangles_count;
+        for(unsigned t=g*PVE_HIT_GROUP_SIZE;t<end;t++)for(unsigned v=0;v<3;v++)for(unsigned a=0;a<3;a++){
+            int16_t x=pve_hit_pose[i][m->triangles[t][v]][a];if(x<b[a])b[a]=x;if(x>b[a+3])b[a+3]=x;
+        }
+        for(unsigned a=0;a<3;a++){if(b[a]<root[a])root[a]=b[a];if(b[a+3]>root[a+3])root[a+3]=b[a+3];}
+    }
+}
+static bool pve_hit_box(const int16_t*b,const float*o,const float*d,const float*inv,float nearest){
+    float lo=0,hi=nearest;
+    for(unsigned a=0;a<3;a++){
+        /* One quantization unit outwards also covers floating-point boundary
+         * rounding. Zero directions never divide; tiny nonzero rays remain valid. */
+        float min=((int)b[a]-1)/128.f,max=((int)b[a+3]+1)/128.f;
+        if(d[a]==0){if(o[a]<min||o[a]>max)return false;continue;}
+        float x=(min-o[a])*inv[a],y=(max-o[a])*inv[a];if(x>y){float t=x;x=y;y=t;}
+        if(x>lo)lo=x;
+        if(y<hi)hi=y;
+        if(lo>hi)return false;
+    }
+    return true;
+}
+#endif
+static bool pve_clip_once(unsigned clip){return clip==PVE_DEATH||clip==PVE_MELEE||clip==PVE_THROW||clip==PVE_EXIT||clip==PVE_EVADE_LEFT||clip==PVE_EVADE_RIGHT;}
+static void pve_clip_frame(const bg_pve_animation*c,unsigned clip,float time,unsigned*first,unsigned*second,int*weight){
+    float phase=time/fmaxf(c->duration,.001f);if(pve_clip_once(clip))phase=fminf(phase,.99999f);else phase-=floorf(phase);
+    float frame=phase*(c->frames-1);*first=(unsigned)frame;*second=*first+1<c->frames?*first+1:*first;*weight=(frame-*first)*256;
+}
+static float pve_triangle_ray(const float*o,const float*d,const float*a,const float*b,const float*c,float nearest){
+    float ab[3],ac[3],h[3],s[3],q[3];sub(ab,b,a);sub(ac,c,a);
+    h[0]=d[1]*ac[2]-d[2]*ac[1];h[1]=d[2]*ac[0]-d[0]*ac[2];h[2]=d[0]*ac[1]-d[1]*ac[0];
+    float det=dot(ab,h);if(fabsf(det)<1e-8f)return nearest;float inv=1/det;sub(s,o,a);float u=dot(s,h)*inv;if(u<0||u>1)return nearest;
+    q[0]=s[1]*ab[2]-s[2]*ab[1];q[1]=s[2]*ab[0]-s[0]*ab[2];q[2]=s[0]*ab[1]-s[1]*ab[0];
+    float v=dot(d,q)*inv;if(v<0||u+v>1)return nearest;float hit=dot(ac,q)*inv;return hit>=0&&hit<nearest?hit:nearest;
+}
+static float pve_hit_ray(unsigned unit,const float o[3],const float dir[3],float nearest,int*region){
+    BG_COLLISION_COUNT(hit_queries,1);
+    if(unit<BG_PLAYERS||unit>=BG_PLAYERS+bg_pve_count)return nearest;
+    unsigned i=unit-BG_PLAYERS;bg_player*p=&bg_players[unit];bg_pve_actor*a=&bg_pve_actors[i];
+    if(!a->occupied||a->arrival==1)return nearest;
+    float delta[3];sub(delta,o,p->pos);float along=-dot(delta,dir);if(along< -4||along>nearest+4)return nearest;
+    float perpendicular=dot(delta,delta)-along*along;if(perpendicular>(p->vehicle>=0?16:4))return nearest;
+    const bg_pve_hit_mesh*m=&bg_pve_hits[a->kind];const bg_pve_animation*c=&m->clips[a->clip];
+#ifdef BG_PVE_ROSTER
+    if(a->armament)c=&bg_pve_alt_hit_clips[a->kind][a->clip];
+#endif
+    unsigned clip_id=bg_pve_render_clip(a),phase_kind=a->clip;float seconds=a->time;
+#ifdef BG_ENEMY_VEHICLES
+    if(p->vehicle>=0){unsigned kind=bg_vehicles[p->vehicle].kind,state=bg_pilot_state(p);c=&bg_enemy_pilot_hits[kind][state];clip_id=24+kind*3+state;phase_kind=state?PVE_EXIT:PVE_IDLE;seconds=p->anim_time;}
+#endif
+    unsigned f0,f1;int mix;pve_clip_frame(c,phase_kind,seconds,&f0,&f1,&mix);
+    uint32_t key=1u+(a->kind<<29)+(clip_id<<24)+(f0<<16)+(f1<<8)+mix;
+    assert(c->vertices<=1024);
+    if(pve_hit_keys[i]!=key||pve_hit_generations[i]!=a->generation){
+        BG_COLLISION_COUNT(hit_pose_builds,1);
+        const uint16_t*positions=c->positions;unsigned first=f0,second=f1;
+#if defined(BG_ENEMY_VEHICLES) && defined(N64)
+        if(p->vehicle>=0){positions=pilot_hit_pair(c,f0,f1);first=0;second=f1-f0;}
+#endif
+        for(unsigned v=0;v<c->vertices;v++)for(unsigned axis=0;axis<3;axis++){
+            unsigned track=c->indices[v];int x=positions[(first*c->tracks+track)*3+axis],y=positions[(second*c->tracks+track)*3+axis];
+            pve_hit_pose[i][v][axis]=c->origin[axis]+x+((y-x)*mix>>8);
+        }
+        pve_hit_keys[i]=key;pve_hit_generations[i]=a->generation;
+#ifndef BG_COLLISION_BASELINE
+        pve_hit_refit(i,m);
+#endif
+    }
+    float co=cosf(p->yaw),si=sinf(p->yaw),origin[3]={co*delta[0]-si*delta[2],delta[1],si*delta[0]+co*delta[2]},direction[3]={co*dir[0]-si*dir[2],dir[1],si*dir[0]+co*dir[2]};
+#ifdef BG_ENEMY_VEHICLES
+    float pilot_basis[3][3];
+    if(p->vehicle>=0){bg_pilot_basis(p,pilot_basis);for(unsigned k=0;k<3;k++){origin[k]=dot(delta,pilot_basis[k]);direction[k]=dot(dir,pilot_basis[k]);}}
+#endif
+    BG_COLLISION_COUNT(hit_available,m->triangles_count);
+#ifndef BG_COLLISION_BASELINE
+    float inverse[3];for(unsigned k=0;k<3;k++)inverse[k]=direction[k]!=0?1/direction[k]:0;
+    if(!pve_hit_box(pve_hit_bounds[i][PVE_HIT_GROUPS],origin,direction,inverse,nearest)){BG_COLLISION_COUNT(hit_root_rejected,1);return nearest;}
+#endif
+    for(unsigned t=0;t<m->triangles_count;t++){
+#ifndef BG_COLLISION_BASELINE
+        if(t%PVE_HIT_GROUP_SIZE==0){
+            BG_COLLISION_COUNT(hit_groups,1);
+            if(!pve_hit_box(pve_hit_bounds[i][t/PVE_HIT_GROUP_SIZE],origin,direction,inverse,nearest)){
+                BG_COLLISION_COUNT(hit_rejected,1);t+=PVE_HIT_GROUP_SIZE-1;continue;
+            }
+        }
+#endif
+        unsigned material=m->materials[t];const bg_pve_hit_material*r=&m->rules[material];
+        if(a->kind==BG_PVE_JACKAL&&p->shield<=0&&r->shield_scale>0&&r->body_scale==0)continue;
+        BG_COLLISION_COUNT(hit_triangles,1);
+        float corners[3][3];for(unsigned v=0;v<3;v++)for(unsigned axis=0;axis<3;axis++)corners[v][axis]=pve_hit_pose[i][m->triangles[t][v]][axis]/128.f;
+        float hit=pve_triangle_ray(origin,direction,corners[0],corners[1],corners[2],nearest);
+        if(hit<nearest){
+            nearest=hit;*region=((material+1)<<8)|(r->head?2:1);
+            float ab[3],ac[3],normal[3];sub(ab,corners[1],corners[0]);sub(ac,corners[2],corners[0]);normal[0]=ab[1]*ac[2]-ab[2]*ac[1];normal[1]=ab[2]*ac[0]-ab[0]*ac[2];normal[2]=ab[0]*ac[1]-ab[1]*ac[0];normalize(normal);
+            if(dot(normal,direction)>0)for(unsigned k=0;k<3;k++)normal[k]=-normal[k];
+            pve_hit_normals[i][0]=co*normal[0]+si*normal[2];pve_hit_normals[i][1]=normal[1];pve_hit_normals[i][2]=-si*normal[0]+co*normal[2];
+#ifdef BG_ENEMY_VEHICLES
+            if(p->vehicle>=0)for(unsigned k=0;k<3;k++)pve_hit_normals[i][k]=pilot_basis[0][k]*normal[0]+pilot_basis[1][k]*normal[1]+pilot_basis[2][k]*normal[2];
+#endif
+        }
+    }
+    return nearest;
+}
+float bg_pve_hit_ray(unsigned unit,const float o[3],const float dir[3],float nearest,int*region){
+    uint32_t begin=BG_COLLISION_NOW();float result=pve_hit_ray(unit,o,dir,nearest,region);
+    BG_COLLISION_COUNT(hit_us,BG_COLLISION_NOW()-begin);(void)begin;return result;
+}
+
+static bool pve_needle_impact(bg_projectile*q,int target,int region){
+    unsigned i=target-BG_PLAYERS;bg_pve_actor*a=&bg_pve_actors[i];const bg_pve_hit_mesh*m=&bg_pve_hits[a->kind];int material=(region>>8)-1;
+    if(material<0||(unsigned)material>=m->material_count)return false;
+    unsigned type=m->rules[material].material;
+    if(a->kind==BG_PVE_ELITE&&bg_players[target].shield>0)type=bg_pve_definitions[a->kind].shield_material;
+    if(!bg_pve_needle_reflect[type])return false;
+    float normal[3];memcpy(normal,pve_hit_normals[i],12);float along=dot(q->velocity,normal),direction[3];
+    for(unsigned k=0;k<3;k++)direction[k]=q->velocity[k]-2*along*normal[k];
+    float speed=sqrtf(dot(direction,direction))*(1-bg_pve_needle_friction[type]);normalize(direction);
+    bg_combat_cone(direction,0,bg_pve_needle_noise[type],pve_random01(),pve_random01(),q->velocity);
+    for(unsigned k=0;k<3;k++){q->velocity[k]*=speed;q->pos[k]+=normal[k]*.02f;}
+    q->tracked=-1;return true;
+}

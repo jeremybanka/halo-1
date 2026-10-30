@@ -25,6 +25,9 @@ const bg_mode_rules *bg_current_rules(void) { return bg_mode_preset(mode_id); }
 bool bg_mode_has_teams(void) { return mode_enabled&&bg_current_rules()->teams; }
 unsigned bg_player_team(unsigned p) { return p<BG_PLAYERS?mode_teams[p]:0; }
 bool bg_players_allied(unsigned a,unsigned b) {
+#ifdef BG_PVE
+    if(bg_pve_is_active())return (a<BG_PLAYERS)==(b<BG_PLAYERS);
+#endif
     return a<active_players&&b<active_players&&(a==b||(bg_mode_has_teams()&&mode_teams[a]==mode_teams[b]));
 }
 unsigned bg_player_color(unsigned p) {
@@ -59,6 +62,9 @@ unsigned bg_player_ball_count(unsigned p) {
 }
 int bg_player_target(unsigned p) { return mode_enabled&&p<active_players?mode_targets[p]:-1; }
 bool bg_player_eliminated(unsigned p) {
+#ifdef BG_PVE
+    if(bg_ff.active)return bg_players[p].health<=0&&!bg_ff_can_respawn(p);
+#endif
     return mode_enabled&&bg_current_rules()->lives&&bg_players[p].health<=0&&
            statistics.deaths[p]>=bg_current_rules()->lives;
 }
@@ -89,7 +95,11 @@ static float mode_damage(unsigned victim,int owner) {
     }
     return scale;
 }
-bool bg_mode_radar(void) { return !mode_enabled||(bg_current_rules()->flags&BG_MODE_SENSOR); }
+bool bg_mode_radar(void) {
+#ifdef BG_PVE
+    if(bg_ff_cloud())return false;
+#endif
+    return !mode_enabled||(bg_current_rules()->flags&BG_MODE_SENSOR); }
 static unsigned mode_random(unsigned count) {
     mode_rng=mode_rng*1664525u+1013904223u;
     return count?(mode_rng>>8)%count:0;

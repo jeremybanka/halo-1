@@ -1,0 +1,42 @@
+{
+  "reference": "031e79f57ba49ab32d507a1c97aee118cbf328d2",
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "compiler_flags": [
+    "-std=c17",
+    "-O2",
+    "-g",
+    "-fno-fast-math",
+    "-ffp-contract=off",
+    "-fno-strict-aliasing",
+    "-fwrapv",
+    "-fsanitize=address,undefined",
+    "-Wno-multichar",
+    "-Wno-incompatible-pointer-types",
+    "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/firefight-checkpoint/host",
+    "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64",
+    "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/port/n64/blam",
+    "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/n64/blam-core",
+    "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/vehicle-lods/after-8-4/blam-vehicle",
+    "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/vehicle-lods/bank",
+    "-I/Users/jem/dojo/halo-1/build/n64-pve-squad/source/halo64-assets/generated/pve",
+    "-DBG_BODY_CANDIDATES",
+    "-DBG_STREAM_MAPS",
+    "-DBG_PVE",
+    "-DBG_PVE_QA=0",
+    "-DBG_PVE_ROSTER",
+    "-DBG_ENEMY_VEHICLES"
+  ],
+  "source_sha256": {
+    "port/n64/firefight_game.inc": "e7504bb6074006b9ea1fa9fd7e5001cdc0a04fa16ba5a25874c932de5cd6b9e5",
+    "port/n64/firefight.h": "77f9cc0d067f0d17e8ec9f3c8f14ed92713d935a6c8159fe717d89510d9fe423",
+    "port/n64/firefight_fights.h": "9e0f6066f682cd3fb50de676127c3641508485c80a609b856eb9b09d06b0669d",
+    "port/n64/game.c": "242170499beb03ec62b0f3b2e02bd1268bbdd1a6fc9fc25372f058f371f822d7",
+    "port/n64/frontend.c": "c01d975a89cbf4369384b83864225c2c7af2727d6f249bd8b48c041129b16e7e",
+    "port/n64/frontend.h": "7aafb8bdfffab4967962f4e2a2205ab0fdbac54a5ad623991fe589dcd14843cd",
+    "port/n64/test_firefight_fights.c": "77d81ee2c7a7917ab74c34b30d77b7800ca71d0460f691ddb8d61e5a267e8fe6",
+    "port/n64/test_firefight_frontend.c": "161bdb80eab74111aba5c89e12798048d047ff9693bb2cffcf7b2ded47a51f78"
+  }
+}

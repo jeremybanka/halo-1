@@ -52,8 +52,8 @@ int main(void){
     }
     bg_front_init(&f);press(&f,0,BG_BUTTON_D_UP);press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_MAIN);
     press(&f,0,BG_BUTTON_D_DOWN);press(&f,0,BG_BUTTON_D_DOWN);press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_SETTINGS);
-    press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_PROFILE);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.styles[0]==BG_CONTROLS_XBOX);
-    press(&f,0,BG_BUTTON_B);press(&f,0,BG_BUTTON_B);assert(f.styles[0]==BG_CONTROLS_XBOX);
+    press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_PROFILE);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.styles[0]==BG_CONTROLS_BOND);
+    press(&f,0,BG_BUTTON_B);press(&f,0,BG_BUTTON_B);assert(f.styles[0]==BG_CONTROLS_BOND);
     joins(&f,3,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);f.type=1;
     bg_front_set_memory_size(4*1024*1024);
     for(unsigned i=0;i<26;i++)assert(bg_front_available(BG_FRONT_TYPE,i)==(i==0));

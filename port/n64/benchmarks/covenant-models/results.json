@@ -1,0 +1,645 @@
+{
+  "schema": 1,
+  "cases": {
+    "baseline-opening-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 36,
+        "fps_mean": 38.17,
+        "fps_min": 21,
+        "fps_max": 44
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 44.7,
+      "fps_min": 21,
+      "fps_max": 60,
+      "min_free_bytes": 1082040,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        0,
+        5
+      ],
+      "cpu_ms": {
+        "sim": 3.801,
+        "prep": 9.249,
+        "draw": 5.0
+      },
+      "ai_ms": 0.19,
+      "movement_combat_ms": 1.791,
+      "npc_prepare_ms": 7.239,
+      "vertex_loads": 7419,
+      "all_humans_and_landed_enemies": {
+        "observations": 36,
+        "fps_mean": 38.17,
+        "fps_min": 21,
+        "fps_max": 44
+      },
+      "max_reported_frame_ms": 81.454,
+      "npc_animation_ms": 7.239
+    },
+    "candidate-opening-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 36,
+        "fps_mean": 39.83,
+        "fps_min": 30,
+        "fps_max": 44
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 45.87,
+      "fps_min": 30,
+      "fps_max": 59,
+      "min_free_bytes": 1199040,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        0,
+        5
+      ],
+      "cpu_ms": {
+        "sim": 3.041,
+        "prep": 8.403,
+        "draw": 5.015
+      },
+      "ai_ms": 0.114,
+      "movement_combat_ms": 1.329,
+      "npc_prepare_ms": 6.538,
+      "vertex_loads": 7171,
+      "all_humans_and_landed_enemies": {
+        "observations": 36,
+        "fps_mean": 39.83,
+        "fps_min": 30,
+        "fps_max": 44
+      },
+      "max_reported_frame_ms": 77.995,
+      "npc_animation_ms": 6.538
+    },
+    "baseline-opening-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 47,
+        "fps_mean": 24.09,
+        "fps_min": 16,
+        "fps_max": 44
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 30.99,
+      "fps_min": 16,
+      "fps_max": 59,
+      "min_free_bytes": 853224,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        0,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 10.748,
+        "prep": 10.07,
+        "draw": 12.107
+      },
+      "ai_ms": 0.744,
+      "movement_combat_ms": 3.753,
+      "npc_prepare_ms": 7.722,
+      "vertex_loads": 16084,
+      "all_humans_and_landed_enemies": {
+        "observations": 45,
+        "fps_mean": 23.98,
+        "fps_min": 16,
+        "fps_max": 44
+      },
+      "max_reported_frame_ms": 84.193,
+      "npc_animation_ms": 7.722
+    },
+    "candidate-opening-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 47,
+        "fps_mean": 24.32,
+        "fps_min": 15,
+        "fps_max": 44
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 31.93,
+      "fps_min": 15,
+      "fps_max": 59,
+      "min_free_bytes": 1011392,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        0,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 10.559,
+        "prep": 8.752,
+        "draw": 12.367
+      },
+      "ai_ms": 0.508,
+      "movement_combat_ms": 3.685,
+      "npc_prepare_ms": 6.522,
+      "vertex_loads": 15504,
+      "all_humans_and_landed_enemies": {
+        "observations": 45,
+        "fps_mean": 24.24,
+        "fps_min": 19,
+        "fps_max": 44
+      },
+      "max_reported_frame_ms": 86.881,
+      "npc_animation_ms": 6.522
+    },
+    "baseline-opening-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 56,
+        "fps_mean": 24.16,
+        "fps_min": 9,
+        "fps_max": 34
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 28.43,
+      "fps_min": 9,
+      "fps_max": 54,
+      "min_free_bytes": 754904,
+      "living_range": [
+        1,
+        3
+      ],
+      "enemy_range": [
+        0,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 17.261,
+        "prep": 7.556,
+        "draw": 16.15
+      },
+      "ai_ms": 1.225,
+      "movement_combat_ms": 5.756,
+      "npc_prepare_ms": 4.87,
+      "vertex_loads": 13676,
+      "all_humans_and_landed_enemies": {
+        "observations": 47,
+        "fps_mean": 24.26,
+        "fps_min": 9,
+        "fps_max": 34
+      },
+      "max_reported_frame_ms": 124.375,
+      "npc_animation_ms": 4.87
+    },
+    "candidate-opening-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 56,
+        "fps_mean": 24.52,
+        "fps_min": 11,
+        "fps_max": 34
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 28.76,
+      "fps_min": 11,
+      "fps_max": 54,
+      "min_free_bytes": 871472,
+      "living_range": [
+        1,
+        3
+      ],
+      "enemy_range": [
+        0,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 15.773,
+        "prep": 6.77,
+        "draw": 16.801
+      },
+      "ai_ms": 1.144,
+      "movement_combat_ms": 5.46,
+      "npc_prepare_ms": 4.197,
+      "vertex_loads": 12916,
+      "all_humans_and_landed_enemies": {
+        "observations": 47,
+        "fps_mean": 24.68,
+        "fps_min": 11,
+        "fps_max": 34
+      },
+      "max_reported_frame_ms": 117.161,
+      "npc_animation_ms": 4.197
+    },
+    "baseline-opening-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 47,
+        "fps_mean": 5.32,
+        "fps_min": 2,
+        "fps_max": 12
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 11.47,
+      "fps_min": 2,
+      "fps_max": 40,
+      "min_free_bytes": 699112,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        0,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 106.129,
+        "prep": 17.515,
+        "draw": 39.855
+      },
+      "ai_ms": 8.52,
+      "movement_combat_ms": 22.761,
+      "npc_prepare_ms": 13.764,
+      "vertex_loads": 46308,
+      "all_humans_and_landed_enemies": {
+        "observations": 38,
+        "fps_mean": 5.16,
+        "fps_min": 2,
+        "fps_max": 12
+      },
+      "max_reported_frame_ms": 745.06,
+      "npc_animation_ms": 13.764
+    },
+    "candidate-opening-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 47,
+        "fps_mean": 5.45,
+        "fps_min": 2,
+        "fps_max": 12
+      },
+      "observations": 75,
+      "warmup_discarded": 5,
+      "used": 70,
+      "fps_mean": 11.53,
+      "fps_min": 2,
+      "fps_max": 39,
+      "min_free_bytes": 817344,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        0,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 94.249,
+        "prep": 16.439,
+        "draw": 37.493
+      },
+      "ai_ms": 7.888,
+      "movement_combat_ms": 22.327,
+      "npc_prepare_ms": 12.857,
+      "vertex_loads": 45108,
+      "all_humans_and_landed_enemies": {
+        "observations": 38,
+        "fps_mean": 5.32,
+        "fps_min": 2,
+        "fps_max": 12
+      },
+      "max_reported_frame_ms": 743.94,
+      "npc_animation_ms": 12.857
+    },
+    "baseline-perf-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 19,
+        "fps_mean": 19.68,
+        "fps_min": 5,
+        "fps_max": 25
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 21.73,
+      "fps_min": 5,
+      "fps_max": 25,
+      "min_free_bytes": 1073208,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        6,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 16.59,
+        "prep": 27.029,
+        "draw": 6.373
+      },
+      "ai_ms": 0.557,
+      "movement_combat_ms": 5.84,
+      "npc_prepare_ms": 25.08,
+      "vertex_loads": 14463,
+      "all_humans_and_landed_enemies": {
+        "observations": 19,
+        "fps_mean": 19.68,
+        "fps_min": 5,
+        "fps_max": 25
+      },
+      "max_reported_frame_ms": 252.558,
+      "npc_animation_ms": 25.08
+    },
+    "candidate-perf-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 24.6,
+        "fps_min": 6,
+        "fps_max": 33
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 28.02,
+      "fps_min": 6,
+      "fps_max": 33,
+      "min_free_bytes": 1249368,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        6,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 14.428,
+        "prep": 19.73,
+        "draw": 6.431
+      },
+      "ai_ms": 0.402,
+      "movement_combat_ms": 4.024,
+      "npc_prepare_ms": 17.675,
+      "vertex_loads": 10603,
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 24.6,
+        "fps_min": 6,
+        "fps_max": 33
+      },
+      "max_reported_frame_ms": 215.848,
+      "npc_animation_ms": 17.675
+    },
+    "baseline-perf-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 24,
+        "fps_mean": 10.83,
+        "fps_min": 2,
+        "fps_max": 18
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 14.15,
+      "fps_min": 2,
+      "fps_max": 20,
+      "min_free_bytes": 958184,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        6,
+        8
+      ],
+      "cpu_ms": {
+        "sim": 49.647,
+        "prep": 32.268,
+        "draw": 14.69
+      },
+      "ai_ms": 1.47,
+      "movement_combat_ms": 10.996,
+      "npc_prepare_ms": 29.679,
+      "vertex_loads": 29631,
+      "all_humans_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 10.25,
+        "fps_min": 2,
+        "fps_max": 14
+      },
+      "max_reported_frame_ms": 418.48,
+      "npc_animation_ms": 29.679
+    },
+    "candidate-perf-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 13,
+        "fps_min": 2,
+        "fps_max": 23
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 18.2,
+      "fps_min": 2,
+      "fps_max": 26,
+      "min_free_bytes": 1192744,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        6,
+        8
+      ],
+      "cpu_ms": {
+        "sim": 41.777,
+        "prep": 22.839,
+        "draw": 15.199
+      },
+      "ai_ms": 1.659,
+      "movement_combat_ms": 8.095,
+      "npc_prepare_ms": 20.062,
+      "vertex_loads": 22105,
+      "all_humans_and_landed_enemies": {
+        "observations": 18,
+        "fps_mean": 12.67,
+        "fps_min": 2,
+        "fps_max": 21
+      },
+      "max_reported_frame_ms": 415.452,
+      "npc_animation_ms": 20.062
+    },
+    "baseline-perf-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 6,
+        "fps_min": 2,
+        "fps_max": 11
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 8.6,
+      "fps_min": 2,
+      "fps_max": 12,
+      "min_free_bytes": 859608,
+      "living_range": [
+        0,
+        3
+      ],
+      "enemy_range": [
+        6,
+        9
+      ],
+      "cpu_ms": {
+        "sim": 79.085,
+        "prep": 30.781,
+        "draw": 27.944
+      },
+      "ai_ms": 2.921,
+      "movement_combat_ms": 14.942,
+      "npc_prepare_ms": 27.057,
+      "vertex_loads": 50873,
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 5.5,
+        "fps_min": 2,
+        "fps_max": 9
+      },
+      "max_reported_frame_ms": 533.832,
+      "npc_animation_ms": 27.057
+    },
+    "candidate-perf-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 6.77,
+        "fps_min": 2,
+        "fps_max": 14
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 10.38,
+      "fps_min": 2,
+      "fps_max": 15,
+      "min_free_bytes": 1094168,
+      "living_range": [
+        0,
+        3
+      ],
+      "enemy_range": [
+        6,
+        9
+      ],
+      "cpu_ms": {
+        "sim": 78.267,
+        "prep": 23.21,
+        "draw": 27.681
+      },
+      "ai_ms": 3.431,
+      "movement_combat_ms": 12.519,
+      "npc_prepare_ms": 19.317,
+      "vertex_loads": 39553,
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 6.85,
+        "fps_min": 2,
+        "fps_max": 14
+      },
+      "max_reported_frame_ms": 535.757,
+      "npc_animation_ms": 19.317
+    },
+    "baseline-perf-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 3.05,
+        "fps_min": 1,
+        "fps_max": 6
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 5.12,
+      "fps_min": 1,
+      "fps_max": 8,
+      "min_free_bytes": 756104,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        9,
+        11
+      ],
+      "cpu_ms": {
+        "sim": 143.328,
+        "prep": 36.788,
+        "draw": 56.1
+      },
+      "ai_ms": 6.555,
+      "movement_combat_ms": 31.001,
+      "npc_prepare_ms": 32.488,
+      "vertex_loads": 77198,
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 3.05,
+        "fps_min": 1,
+        "fps_max": 6
+      },
+      "max_reported_frame_ms": 802.693,
+      "npc_animation_ms": 32.488
+    },
+    "candidate-perf-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 3.36,
+        "fps_min": 1,
+        "fps_max": 8
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 6.1,
+      "fps_min": 1,
+      "fps_max": 10,
+      "min_free_bytes": 991496,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        9,
+        11
+      ],
+      "cpu_ms": {
+        "sim": 141.235,
+        "prep": 29.801,
+        "draw": 55.097
+      },
+      "ai_ms": 8.658,
+      "movement_combat_ms": 24.071,
+      "npc_prepare_ms": 25.188,
+      "vertex_loads": 61707,
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 3.4,
+        "fps_min": 1,
+        "fps_max": 8
+      },
+      "max_reported_frame_ms": 750.794,
+      "npc_animation_ms": 25.188
+    }
+  }
+}

@@ -52,7 +52,7 @@ def prepare():
  selected={
  'source/physics/physics.c':['pin_fraction','physics_instance_new','compute_ground_plane','friction_evaluate','physics_compute_new','physics_compute_vehicle_collision','rotate_vectors3d_by_angular_velocity','physics_update_new','physics_update'],
  'source/physics/physics_variables.c':['physics_variable_speed_update','physics_variable_speed_update_seek','physics_variable_position_update_seek','physics_variable_position_update','physics_variable_position_get_seek_direction'],
- 'source/units/vehicles.c':['vehicle_accelerate','compute_acceleration','update_alien_fighter_physics_new','update_human_tank_physics','update_human_jeep_physics','update_alien_scout_physics','vehicle_cross_product3d_target','compute_airborne_ticks','slowly_stop_vehicle','vehicle_is_flipped'],
+ 'source/units/vehicles.c':['vehicle_accelerate','compute_acceleration','update_alien_fighter_physics_new','update_human_tank_physics','update_turret_physics','update_human_jeep_physics','update_alien_scout_physics','vehicle_cross_product3d_target','compute_airborne_ticks','slowly_stop_vehicle','vehicle_is_flipped'],
  'source/physics/collision_features.c':['collision_features_new','collision_features_from_point','collision_features_from_line','collision_features_from_polygon','collision_features_from_vertex','collision_features_from_edge','collision_features_from_surface','collision_features_test_point','collision_sphere_test_point','collision_cylinder_test_point','collision_prism_test_point'],
  'source/physics/collision_bsp.c':['collision_surface_polygon','collision_surface_test_point'],
  'source/physics/bsp3d.h':['bsp3d_get_plane_from_designator'],

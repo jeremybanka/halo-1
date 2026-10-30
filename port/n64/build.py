@@ -26,6 +26,31 @@ SHOWCASES = [
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--scope-qa",action="store_true",help="Native close-ground and distant zoom regression photos")
+    parser.add_argument("--m64-polish-qa",action="store_true",help="Frozen 1–4 viewport, controls, damage and flashlight photos")
+    parser.add_argument("--pve-squad",action="store_true",help="Boot directly into the squad diagnostic")
+    parser.add_argument("--firefight",action="store_true",help="Enable the Firefight menu and squad encounter (8 MiB)")
+    parser.add_argument("--firefight-photo",choices=("main","join","map"),help="Hold a Firefight QA menu for a native photograph")
+    parser.add_argument("--firefight-qa",type=int,choices=range(1,5),help="Exercise Firefight menus with 1–4 controllers")
+    parser.add_argument("--pve-players",type=int,choices=(1,2,3,4),default=4)
+    parser.add_argument("--pve-count",type=int,choices=(0,5,8),default=5)
+    parser.add_argument("--pve-qa",type=int,choices=(0,1,2,3,4,5,6,7,8,9),default=0)
+    parser.add_argument("--pve-roster",action="store_true",help="Appraisal CE ranks, NPC weapons, camouflage and source dialogue")
+    parser.add_argument("--pve-jackal-shields",action="store_true",help="Restore source Jackal shield attachment at every LOD")
+    parser.add_argument("--jackal-shield-qa",action="store_true",help="Native shield strength, recharge, gaps and depth photos")
+    parser.add_argument("--pve-photo-tick",type=int)
+    parser.add_argument("--pve-model-qa",action="store_true",help="Native four-angle Covenant model audit")
+    parser.add_argument("--pve-model-bank",type=Path,help="Isolated Covenant visual-bank candidate; simulation assets stay canonical")
+    parser.add_argument("--collision-profile",action="store_true",help="Per-tick Firefight collision/service diagnostics")
+    parser.add_argument("--collision-baseline",action="store_true",help="Profiling-only pre-acceleration collision control")
+    parser.add_argument("--pve-prep-profile",action="store_true",help="NPC preparation service and reuse counters")
+    parser.add_argument("--pve-prep-baseline",action="store_true",help="Diagnostic pre-reuse NPC preparation control")
+    parser.add_argument("--pve-crunch",action="store_true",help="Opt-in three-tier small-screen Covenant bank")
+    parser.add_argument("--pve-crunch-baseline",action="store_true",help="With --pve-crunch, retain original body/gun LOD selection for matched checks")
+    parser.add_argument("--pve-draw-audit",action="store_true",help="Frozen per-camera submission and omission-pixel audit; never a performance build")
+    parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
+    parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
+    parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument(
         "--preset",
         choices=["release"],
@@ -291,13 +316,61 @@ def parse_args(argv=None):
         action="store_true",
         help="Script four-angle vehicle destruction, wreck settling, blinking and respawn",
     )
+    parser.add_argument("--vehicle-query-baseline",action="store_true",help="QA: retain scalar clearance and cooldown arc obstruction checks")
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
     parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 26 presets through the real menus")
     parser.add_argument("--modes-preview",type=int,choices=range(26),help="QA: stage one preset and hold it open for objective visual review")
     parser.add_argument("--objective-photo",type=int,choices=range(10),
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
+    parser.add_argument('--enemy-vehicle-bank',type=Path,help='Owned CE enemy vehicle prototype bank')
+    parser.add_argument('--enemy-vehicle-qa',action='store_true',help='Native vehicle/seat/hatch multi-angle inspection')
+    parser.add_argument('--vehicle-distance-lods',action='store_true',help='Opt-in articulated Wraith/Shade projected-size LOD bank')
+    parser.add_argument('--vehicle-lod-qa',action='store_true',help='Matched multi-angle Wraith/Shade tier/pose photos')
+    parser.add_argument('--vehicle-cost-audit',action='store_true',help='Isolated vehicle cost instrumentation; never a playable build')
+    parser.add_argument("--vehicle-query-verify",action="store_true",help="Diagnostic only: scalar query/trajectory oracles and per-tick state hashes")
     args = parser.parse_args(argv)
+    if args.vehicle_lod_qa:args.enemy_vehicle_qa=True
+    if args.vehicle_query_verify and not args.vehicle_cost_audit:parser.error("--vehicle-query-verify requires --vehicle-cost-audit")
+    if args.vehicle_query_baseline and not (args.enemy_vehicle_bank and args.output_dir):parser.error("--vehicle-query-baseline requires an isolated enemy-vehicle build")
+    if args.vehicle_distance_lods and not (args.enemy_vehicle_bank and args.output_dir and (args.enemy_vehicle_bank/'vehicle_distance_data.c').is_file()):parser.error('--vehicle-distance-lods requires an isolated output and a prepared enemy-vehicle LOD bank')
+    if args.enemy_vehicle_qa:
+        if not args.enemy_vehicle_bank:parser.error('--enemy-vehicle-qa requires --enemy-vehicle-bank')
+        args.pve_model_qa=True
+    if args.enemy_vehicle_bank and not (args.pve_roster and (args.firefight or args.pve_squad)):parser.error('--enemy-vehicle-bank requires roster and PvE')
+    if args.vehicle_cost_audit and not (args.enemy_vehicle_bank and args.pve_squad and args.profile and args.collision_profile and args.output_dir and args.pve_qa in (8,9) and not (args.pve_draw_audit or args.scene_source or args.game_source or args.feature_cache_slots or args.pve_model_qa or args.benchmark or args.vi_benchmark)):parser.error('--vehicle-cost-audit requires isolated enemy-vehicle QA8/9, --profile --collision-profile and no competing source/scene experiment')
+    if args.pve_crunch_baseline and not args.pve_crunch:parser.error('--pve-crunch-baseline requires --pve-crunch')
+    if args.pve_crunch and not args.pve_model_bank:parser.error('--pve-crunch requires a three-tier --pve-model-bank')
+    if args.pve_model_bank:
+        report=json.loads((args.pve_model_bank/'pve-report.json').read_text())
+        if report.get('lod_count',2)!=(3 if args.pve_crunch else 2):parser.error('PvE bank tier count does not match --pve-crunch')
+        if bool(report.get('roster'))!=args.pve_roster:parser.error('Roster runtime and visual bank must match')
+    if args.pve_roster and not (args.pve_model_bank and args.pve_crunch):parser.error('--pve-roster requires its three-tier --pve-model-bank')
+    if args.jackal_shield_qa:
+        if not args.pve_roster:parser.error('--jackal-shield-qa requires --pve-roster')
+        args.pve_model_qa=True
+    if args.pve_jackal_shields and not (args.pve_roster and (args.pve_model_bank/'pve_jackal_shield.c').is_file()):parser.error('--pve-jackal-shields requires the private shield bank and roster')
+    if args.pve_qa==7 and not args.pve_roster:parser.error('--pve-qa 7 requires --pve-roster')
+    if args.collision_profile and not (args.profile and args.pve_squad):parser.error('--collision-profile requires --profile --pve-squad')
+    if args.collision_baseline and not args.collision_profile:parser.error('--collision-baseline requires --collision-profile')
+    if args.pve_prep_profile and not (args.profile and args.pve_squad):parser.error('--pve-prep-profile requires --profile --pve-squad')
+    if args.pve_prep_baseline and not (args.pve_squad and (args.pve_prep_profile or args.pve_model_qa)):parser.error('--pve-prep-baseline requires NPC preparation profiling or model QA')
+    if args.pve_draw_audit and not (args.profile and args.pve_squad and args.pve_photo_tick is not None and args.pve_photo_tick>0 and args.pve_players==4 and args.output_dir and args.pve_qa in (3,4,5) and not (args.scene_source or args.pve_model_qa or args.spartan_motion_qa or args.spartan_reload_qa or args.photo_tour or args.benchmark or args.vi_benchmark)):parser.error('--pve-draw-audit requires an isolated output, --profile --pve-squad --pve-players 4 --pve-qa 3/4/5, a positive --pve-photo-tick and no competing scene fixture')
+    if args.firefight_photo and not args.firefight_qa:parser.error("--firefight-photo requires --firefight-qa")
+    if args.firefight_qa:
+        args.firefight=True;args.frontend_qa=args.firefight_qa
+    if args.scope_qa:args.m64_polish_qa=True
+    if args.m64_polish_qa:
+        if not args.pve_squad or not args.output_dir or args.firefight or args.profile or args.validate or args.pve_photo_tick is not None or args.pve_model_qa or args.pve_qa or args.frontend_qa:
+            parser.error('--m64-polish-qa requires isolated direct PvE, without competing QA or profiling')
+        args.pve_count=0;args.pve_players=4
+    if args.firefight and args.pve_squad:parser.error("Choose menu Firefight or direct squad diagnostics")
+    if args.pve_model_qa and not args.pve_squad:parser.error('--pve-model-qa requires --pve-squad')
+    if args.pve_model_bank and (not args.output_dir or not (args.pve_squad or args.firefight)):
+        parser.error('--pve-model-bank requires an isolated PvE output directory')
+    if (args.pve_qa or args.pve_photo_tick is not None) and not args.pve_squad:parser.error("PvE QA requires --pve-squad")
+    if args.pve_squad and args.initial_map!="bloodgulch":parser.error("The first squad navigation fixture is Blood Gulch only")
+    if args.pve_photo_tick is not None and not 0<=args.pve_photo_tick<(1801 if args.pve_draw_audit or args.vehicle_query_verify else 450):parser.error("PvE photo tick outside the selected diagnostic route")
     if args.objective_photo is not None and args.modes_preview is None:
         parser.error('--objective-photo requires --modes-preview')
     if args.flag_cloth_qa and args.modes_preview!=17:parser.error("--flag-cloth-qa requires --modes-preview 17")
@@ -319,7 +392,7 @@ def parse_args(argv=None):
             parser.error('--photo-tour is a separate frozen visual inspection')
         args.initial_map='sidewinder';args.snapshot_tick=0
     if args.map_bank_override:
-        if not args.output_dir or not (args.playable_candidate or args.photo_tour or args.vi_benchmark or args.benchmark or args.snapshot_tick is not None or args.validate or args.frontend_qa or args.maps_cycle):
+        if not args.output_dir or not (args.firefight or args.pve_squad or args.playable_candidate or args.photo_tour or args.vi_benchmark or args.benchmark or args.snapshot_tick is not None or args.validate or args.frontend_qa or args.maps_cycle):
             parser.error('--map-bank-override requires isolated output and an explicit diagnostic or playable-candidate mode')
         if args.world_pvs_data:
             data=json.loads(args.world_pvs_data.read_text())
@@ -356,6 +429,9 @@ def parse_args(argv=None):
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
     ):
         parser.error("--game-source requires an explicit profiling or telemetry mode")
+    if args.spartan_motion_qa and args.spartan_reload_qa:parser.error('Choose one Spartan animation fixture')
+    if args.scene_source and not (args.profile or args.spartan_motion_qa or args.spartan_reload_qa):
+        parser.error("--scene-source requires profiling or Spartan motion QA")
     if args.feature_cache_slots and not (
         args.profile or args.benchmark or args.vi_benchmark or args.telemetry
         or args.validate or args.snapshot_tick is not None or args.frontend_qa
@@ -382,6 +458,8 @@ def parse_args(argv=None):
         or args.interaction_qa is not None
         or args.plasma_qa is not None
         or args.model_qa
+        or (args.spartan_motion_qa or args.spartan_reload_qa)
+        or args.pve_model_qa
         or args.weapon_qa
         or args.geometry_qa
         or args.environment_qa
@@ -409,10 +487,10 @@ def parse_args(argv=None):
             parser.error(
                 "--snapshot-tick is an overlay-free pixel fixture; benchmark/profile/validation diagnostics must use separate builds"
             )
-    if args.gpu_diagnostic and not args.benchmark:
-        parser.error("--gpu-diagnostic requires --benchmark")
-    if args.gpu_empty_scissor and not (args.gpu_diagnostic and args.benchmark):
-        parser.error("--gpu-empty-scissor requires --benchmark --gpu-diagnostic")
+    if args.gpu_diagnostic and not (args.benchmark or args.collision_profile):
+        parser.error("--gpu-diagnostic requires --benchmark or --collision-profile")
+    if args.gpu_empty_scissor and not (args.gpu_diagnostic and (args.benchmark or args.pve_draw_audit or (args.vehicle_cost_audit and args.pve_photo_tick is not None))):
+        parser.error("--gpu-empty-scissor requires --gpu-diagnostic and benchmark or frozen drawing audit")
     if args.gpu_minimal_attributes and not args.gpu_empty_scissor:
         parser.error("--gpu-minimal-attributes requires --gpu-empty-scissor")
     if (
@@ -449,6 +527,27 @@ def parse_args(argv=None):
 def compile_options(args, sdk, tiny, out, source):
     sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
     return [
+        *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
+        *(["-DBG_PVE_MODEL_CANDIDATE"] if args.pve_model_bank else []),
+        *(["-DBG_PVE_ROSTER"] if args.pve_roster else []),
+        *(["-DBG_ENEMY_VEHICLE_QA"] if args.enemy_vehicle_qa else []),
+        *(["-DBG_ENEMY_VEHICLES", "-I"+str(args.enemy_vehicle_bank.resolve())] if args.enemy_vehicle_bank else []),
+        *(["-DBG_VEHICLE_QUERY_BASELINE"] if args.vehicle_query_baseline else []),
+        *(["-DBG_VEHICLE_DISTANCE_LODS"] if args.vehicle_distance_lods else []),
+        *(["-DBG_VEHICLE_LOD_QA"] if args.vehicle_lod_qa else []),
+        *(["-DBG_PVE_JACKAL_SHIELDS"] if args.pve_jackal_shields else []),
+        *(["-DBG_JACKAL_SHIELD_QA"] if args.jackal_shield_qa else []),
+        *(["-DBG_PVE_CRUNCH"] if args.pve_crunch else []),
+        *(["-DBG_PVE_CRUNCH_BASELINE"] if args.pve_crunch_baseline else []),
+        *(["-DBG_PVE_MODEL_QA"] if args.pve_model_qa else []),
+        *(["-DBG_PVE_DRAW_AUDIT"] if args.pve_draw_audit else []),
+        *(["-DBG_VEHICLE_COST_AUDIT"] if args.vehicle_cost_audit else []),
+        *(["-DBG_SCOPE_QA"] if args.scope_qa else []),
+        *(["-DBG_M64_POLISH_QA"] if args.m64_polish_qa else []),
+        *(["-DBG_FIREFIGHT"] if args.firefight else []),
+        *(["-DBG_FIREFIGHT_QA"] if args.firefight_qa else []),
+        *(["-DBG_FIREFIGHT_QA_PHOTO="+str({"main":2,"join":5,"map":9}[args.firefight_photo])] if args.firefight_photo else []),
+        *(["-DBG_PVE_PHOTO_TICK="+str(args.pve_photo_tick)] if args.pve_photo_tick is not None else []),
         *(["-flto"] if args.lto else []),
         *(["-DBG_BODY_CANDIDATES"] if args.vehicle_body_candidates else []),
         "-DBG_STREAM_MAPS",
@@ -477,7 +576,7 @@ def compile_options(args, sdk, tiny, out, source):
         "-I" + str(tiny / "src"),
         "-I" + str(ROOT / "port/n64"),
         *(['-I' + str(ROOT / 'port/n64/blam')]
-          if args.feature_cache_slots and source.name == 'vehicle_physics.c' else []),
+          if (args.feature_cache_slots or args.vehicle_cost_audit) and source.name == 'vehicle_physics.c' else []),
         "-I" + str(out / "blam-core"),
         "-I" + str(out / "blam-vehicle"),
         *(
@@ -526,6 +625,8 @@ def compile_options(args, sdk, tiny, out, source):
             if args.aim_qa is not None
             or args.plasma_qa is not None
             or args.model_qa
+            or (args.spartan_motion_qa or args.spartan_reload_qa)
+            or args.pve_model_qa
             or args.weapon_qa
             or args.geometry_qa
             or args.environment_qa
@@ -543,6 +644,12 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_HUD_QA_PAGE=" + str(args.hud_qa_page)] if args.hud_qa_page is not None else []),
         *(["-DBG_PLASMA_QA=" + str(args.plasma_qa)] if args.plasma_qa is not None else []),
         *(["-DBG_WEAPON_QA"] if args.weapon_qa else []),
+        *(["-DBG_SPARTAN_MOTION_QA"] if args.spartan_motion_qa else []),
+        *(["-DBG_COLLISION_PROFILE"] if args.collision_profile else []),
+        *(["-DBG_COLLISION_BASELINE"] if args.collision_baseline else []),
+        *(["-DBG_PVE_PREP_PROFILE"] if args.pve_prep_profile else []),
+        *(["-DBG_PVE_PREP_BASELINE"] if args.pve_prep_baseline else []),
+        *(["-DBG_SPARTAN_RELOAD_QA"] if args.spartan_reload_qa else []),
         *(["-DBG_ENVIRONMENT_QA"] if args.environment_qa else []),
         *(["-DBG_GROUND_QA"] if args.ground_qa else []),
         *(["-DBG_GEOMETRY_QA"] if args.geometry_qa else []),
@@ -642,6 +749,12 @@ def rom_name(args):
         name += "-aim" + str(args.aim_qa)
     if args.model_qa:
         name += "-model-qa"
+    if args.spartan_motion_qa:
+        name += "-spartan-motion-qa"
+    if args.spartan_reload_qa:
+        name += "-spartan-reload-qa"
+    if args.pve_model_qa:name += "-pve-model-qa"
+    if args.pve_model_bank:name += "-pve-model-candidate"
     if args.plasma_qa is not None:
         name += "-plasma" + str(args.plasma_qa)
     if args.weapon_qa:
@@ -671,6 +784,8 @@ def rom_name(args):
     if args.flag_cloth_qa:name += "-cloth-qa"
     if args.objective_photo is not None:
         name += "-objective-photo"+str(args.objective_photo)
+    if args.firefight:name += "-firefight"
+    if args.firefight_photo:name += "-photo-"+args.firefight_photo
     if args.frontend_qa:
         name += "-frontend-qa" + str(args.frontend_qa)
     if args.blam_bsp:
@@ -708,6 +823,13 @@ def main():
     args = parse_args()
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     connect_assets(required=False)
+    if args.firefight:
+        voice_report=ROOT/'halo64-assets/assets/firefight/provenance.json'
+        if not voice_report.exists():build_error("Missing private Firefight announcement provenance")
+        for name,record in json.loads(voice_report.read_text())["files"].items():
+            path=ROOT/'halo64-assets'/name
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=record['sha256']:
+                build_error("Missing or stale Firefight announcement: "+name)
     out = ROOT / "build/n64"
     out.mkdir(parents=True, exist_ok=True)
     terrain_report = out / "generated/terrain-report.json"
@@ -950,8 +1072,8 @@ def main():
         if not (ROOT / name).is_file() or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
             build_error("Stale prompt silhouette bank; rerun port/n64/pack_prompt_icons.py: " + name)
     out = args.output_dir.resolve() if args.output_dir else asset_root
-    if args.map_bank_override and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
-        build_error('--map-bank-override requires a separate output tree')
+    if (args.map_bank_override or args.pve_model_bank) and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
+        build_error('Map/model bank overrides require a separate output tree')
     out.mkdir(parents=True, exist_ok=True)
     objects = []
     run([sys.executable, ROOT / "port/n64/blam/prepare_core.py", "--output", out / "blam-core"])
@@ -967,6 +1089,7 @@ def main():
         [
             sys.executable,
             ROOT / "port/n64/blam/export_vehicle.py",
+            *(["--enemy-vehicles"] if args.enemy_vehicle_bank else []),
             "--output",
             out / "generated",
             "--rom-files",
@@ -1033,7 +1156,7 @@ def main():
     if args.menu_qa:
         sources.append("menu_qa.c")
     if args.frontend_qa:
-        sources.append("modes_qa.c" if args.modes_cycle else "frontend_qa.c")
+        sources.append("firefight_qa.c" if args.firefight_qa else "modes_qa.c" if args.modes_cycle else "frontend_qa.c")
     generated = [
         "maps/common_data.c",
         "combat_data.c",
@@ -1049,6 +1172,7 @@ def main():
         "objectives_data.c",
         "audio_data.c",
         "hud_data.c",
+        "hud_damage_data.c",
         "prompt-icons/prompt_icons_data.c",
         "menu_data.c",
         "frontend_data.c",
@@ -1073,15 +1197,37 @@ def main():
         (
             args.game_source.resolve()
             if name == "game.c" and args.game_source
+            else args.scene_source.resolve() if name == "scene.c" and args.scene_source
             else ROOT / "port/n64" / name
         )
         for name in sources
     ]
+    if args.pve_squad or args.firefight:
+        runtime_sources.extend((args.pve_model_bank.resolve() if name=="pve_data.c" and args.pve_model_bank else ROOT/"halo64-assets/generated/pve")/name for name in ("pve_data.c","pve_defs.c","pve_nav.c","pve_collision.c"))
+    if args.pve_roster:
+        runtime_sources.extend(args.pve_model_bank.resolve()/name for name in ('pve_roster.c','pve_roster_colors.c','pve_roster_weapons.c'))
+    if args.enemy_vehicle_bank:
+        runtime_sources.extend([ROOT/'port/n64/vehicle_ai.c',args.enemy_vehicle_bank.resolve()/'enemy_vehicle_data.c',args.enemy_vehicle_bank.resolve()/'enemy_pilot_data.c',args.enemy_vehicle_bank.resolve()/'enemy_pilot_hits.c'])
+    if args.vehicle_distance_lods:runtime_sources.append(args.enemy_vehicle_bank.resolve()/'vehicle_distance_data.c')
+    if args.pve_jackal_shields:runtime_sources.append(args.pve_model_bank.resolve()/'pve_jackal_shield.c')
     if args.photo_tour:
         from photo_tour_source import photo_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
         photo_main.write_text(photo_source(original.read_text()))
         runtime_sources[runtime_sources.index(original)]=photo_main
+    if args.pve_draw_audit:
+        from pve_draw_audit_source import generate
+        for name,source in generate(ROOT/'port/n64').items():
+            target=out/name;target.write_text(source)
+            original=ROOT/'port/n64'/name
+            if original in runtime_sources:runtime_sources[runtime_sources.index(original)]=target
+    if args.vehicle_cost_audit:
+        from vehicle_cost_audit_source import generate
+        vehicle_audit_sources=generate(ROOT/'port/n64',args.pve_photo_tick is not None,args.vehicle_query_verify)
+        for name,source in vehicle_audit_sources.items():
+            target=out/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(source)
+            original=ROOT/'port/n64'/name
+            if original in runtime_sources:runtime_sources[runtime_sources.index(original)]=target
     if args.photo_walk_benchmark:
         from photo_tour_source import walking_benchmark_source
         original=ROOT/'port/n64/main.c';photo_main=out/'main.c'
@@ -1104,10 +1250,13 @@ def main():
         candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_text(candidate_source(original.read_text(), args.feature_cache_slots))
         runtime_sources[runtime_sources.index(original)] = candidate
+    def generated_path(name):
+        if args.enemy_vehicle_bank and (args.enemy_vehicle_bank/name).is_file():return args.enemy_vehicle_bank.resolve()/name
+        return (out if name=="vehicle_data.c" else asset_root)/"generated"/name
     for source in [
         *runtime_sources,
         *(
-            (out if name == "vehicle_data.c" else asset_root) / "generated" / name
+            generated_path(name)
             for name in generated
         ),
         *sdk_extra_sources,
@@ -1173,6 +1322,22 @@ def main():
             target = out / "frontend-files" / source.name
             if not target.exists():
                 target.symlink_to(source.resolve())
+    if args.pve_squad or args.firefight:
+        motion=(args.pve_model_bank.resolve() if args.pve_model_bank else ROOT/'halo64-assets/generated/pve')/'pve-motion.bin'
+        report=json.loads((motion.parent/'pve-report.json').read_text())
+        if hashlib.sha256(motion.read_bytes()).hexdigest()!=report['motion']['sha256']:build_error('Stale PvE motion bank')
+        target=out/'frontend-files/pve-motion.bin'
+        if target.is_symlink():target.unlink()
+        shutil.copy2(motion,target)
+        if args.pve_roster:
+            target=out/'frontend-files/pve-voices.bin'
+            if target.is_symlink():target.unlink()
+            shutil.copy2(args.pve_model_bank/'pve-voices.bin',target)
+    if args.enemy_vehicle_bank:
+        for name in ('interactions.bin','player-hits.bin','enemy-wraith.s8','enemy-shade.s8','enemy-wraith-engine.s8','enemy-shade-engine.s8'):
+            target=out/'frontend-files'/name
+            if target.is_symlink():target.unlink()
+            shutil.copy2(args.enemy_vehicle_bank/name,target)
     maps_directory = out / "frontend-files/maps"
     assert not maps_directory.is_symlink(),'Refuse shared map-bank output directory'
     maps_directory.mkdir(parents=True, exist_ok=True)
@@ -1255,8 +1420,14 @@ def main():
         return result.stdout.strip() if result.returncode == 0 else None
 
     manifest = {
+        "vehicle_cost_audit": ({"generator_sha256":hashlib.sha256((ROOT/'port/n64/vehicle_cost_audit_source.py').read_bytes()).hexdigest(),
+            "sources":{str(out/name):hashlib.sha256((out/name).read_bytes()).hexdigest() for name in vehicle_audit_sources}}
+            if args.vehicle_cost_audit else None),
         "preset": args.preset,
         "render_bank_experiment":override_info,
+        "firefight": ({"required_ram_mib":8,"map_id":9,"players":[1,2,3,4],
+            "voice":json.loads((ROOT/'halo64-assets/assets/firefight/provenance.json').read_text())}
+            if args.firefight else None),
         "runtime_commit": revision(ROOT),
         "asset_commit": revision(ROOT / "halo64-assets"),
         "toolchain": {
@@ -1273,7 +1444,8 @@ def main():
         "included_data": {
             str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
             for suffix in ("*.inc", "*.def")
-            for path in (ROOT / "port/n64").rglob(suffix)
+            for path in [*(ROOT / "port/n64").rglob(suffix),
+                         *(args.enemy_vehicle_bank.resolve().glob(suffix) if args.enemy_vehicle_bank else [])]
         },
         "generated_adapters": {
             str(path): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -1322,7 +1494,7 @@ def main():
             for source in [
                 *runtime_sources,
                 *(
-                    (out if name == "vehicle_data.c" else asset_root) / "generated" / name
+                    generated_path(name)
                     for name in generated
                 ),
                 *sdk_extra_sources,

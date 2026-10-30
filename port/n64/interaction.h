@@ -1,5 +1,6 @@
 #ifndef BG_INTERACTION_H
 #define BG_INTERACTION_H
+#include "vehicle_kinds.h"
 #include <stdbool.h>
 #include <stdint.h>
 #define BG_VEHICLE_SEATS 5
@@ -12,8 +13,11 @@ typedef struct {
     uint16_t flags;
     uint8_t pose;
 } bg_seat_definition;
-extern const bg_seat_definition bg_seat_definitions[4][BG_VEHICLE_SEATS];
-extern const uint8_t bg_seat_counts[4];
+extern const bg_seat_definition bg_seat_definitions[BG_VEHICLE_COUNT][BG_VEHICLE_SEATS];
+#ifdef BG_ENEMY_VEHICLES
+extern const bg_seat_definition bg_enemy_vehicle_seats[BG_VEHICLE_COUNT];
+#endif
+extern const uint8_t bg_seat_counts[BG_VEHICLE_COUNT];
 extern const float bg_ready_times[9];
 enum { BG_USE_NONE, BG_USE_PICKUP, BG_USE_ENTER, BG_USE_EXIT, BG_USE_FLIP };
 enum { BG_SEAT_STABLE, BG_SEAT_ENTERING, BG_SEAT_EXITING };

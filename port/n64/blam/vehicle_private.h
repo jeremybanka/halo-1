@@ -1,5 +1,6 @@
 #ifndef BG_VEHICLE_PRIVATE_H
 #define BG_VEHICLE_PRIVATE_H
+#include "../vehicle_kinds.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -87,15 +88,15 @@ extern const struct vehicle_bvh_node *bg_vehicle_bvh;
 extern const uint16_t *bg_vehicle_surface_indices;
 extern const int16_t (*bg_vehicle_surface_bounds)[6];
 extern const unsigned bg_vehicle_world_bytes,bg_vehicle_world_layout[7][2];
-extern const struct physics_definition bg_vehicle_physics_defs[4];
-extern const struct vehicle_definition bg_vehicle_drive_defs[4];
+extern const struct physics_definition bg_vehicle_physics_defs[BG_VEHICLE_COUNT];
+extern const struct vehicle_definition bg_vehicle_drive_defs[BG_VEHICLE_COUNT];
 extern const struct material_definition bg_vehicle_materials[NUMBER_OF_MATERIAL_TYPES];
-extern const float bg_vehicle_seat_times[4][2][2];
+extern const float bg_vehicle_seat_times[BG_VEHICLE_COUNT][2][2];
 struct vehicle_damage_kick {float acceleration;uint32_t flags;};
 extern const struct vehicle_damage_kick bg_vehicle_damage_kicks[7];
-extern const float bg_vehicle_acceleration_scale[4];
+extern const float bg_vehicle_acceleration_scale[BG_VEHICLE_COUNT];
 extern const float bg_vehicle_floor, bg_vehicle_ceiling;
 /* Original mass-point order maps suspension channels to wheel centers. */
-extern const int8_t bg_vehicle_suspension_points[4][8];
-extern const float bg_vehicle_suspension_bounds[4][8][2];
+extern const int8_t bg_vehicle_suspension_points[BG_VEHICLE_COUNT][8];
+extern const float bg_vehicle_suspension_bounds[BG_VEHICLE_COUNT][8][2];
 #endif

@@ -1,0 +1,3438 @@
+{
+  "schema": 1,
+  "scope": "Ares v148, NTSC 320x240, 8 MiB, audio enabled, uncapped; 45 observations per case minus 5 warmup. Engaged FPS means at least one human and enemy alive, no arrival underway. CPU counters retain their separate scopes.",
+  "cases": {
+    "before-control-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 35.25,
+        "fps_min": 22,
+        "fps_max": 40
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 40,
+      "fps_min": 22,
+      "fps_max": 49,
+      "min_free_bytes": 457880,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        6,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 5.041,
+        "prep": 10.358,
+        "draw": 4.862
+      },
+      "ai_ms": 0.171,
+      "movement_combat_ms": 1.969,
+      "npc_prepare_ms": 7.996,
+      "vertex_loads": 8711,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 5.284,
+          "director": 0.0206,
+          "humans": 1.5384,
+          "vehicles": 0.0175,
+          "actors": 2.9837,
+          "projectiles": 0.6629,
+          "after": 0.0279,
+          "terrain": 2.4046,
+          "hit": 0.944
+        },
+        "max_tick_ms": 26.285,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 16106,
+          "terrain_hits": 15866,
+          "terrain_misses": 240,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 59782,
+          "hit_queries": 3504,
+          "hit_pose_builds": 902,
+          "hit_available": 346996,
+          "hit_triangles": 4184,
+          "hit_groups": 894,
+          "hit_rejected": 632,
+          "hit_root_rejected": 1070
+        },
+        "terrain_reuse_percent": 98.51,
+        "hit_triangles_per_query": 1.19,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 468960,
+          "max_tick_us": 26285,
+          "director_us": 603,
+          "humans_us": 177820,
+          "vehicles_us": 551,
+          "actors_us": 135515,
+          "projectiles_us": 152630,
+          "after_us": 810,
+          "terrain_us": 99280,
+          "terrain_queries": 525,
+          "terrain_hits": 485,
+          "terrain_misses": 40,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2210,
+          "hit_us": 173115,
+          "hit_queries": 475,
+          "hit_pose_builds": 128,
+          "hit_available": 66506,
+          "hit_triangles": 960,
+          "hit_groups": 175,
+          "hit_rejected": 115,
+          "hit_root_rejected": 196
+        }
+      },
+      "phase_ms": {
+        "audio": 2.996,
+        "hud": 0.851,
+        "queue": 0.0,
+        "world": 1.504,
+        "objects": 0.431,
+        "fp": 0.203
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 35.25
+      },
+      "max_reported_frame_ms": 85.053,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.7258,
+          "buffers": 0.0815,
+          "matrices": 0.1813,
+          "motion": 0.4261,
+          "decode": 2.3283,
+          "scatter": 3.0973,
+          "writeback": 0.614,
+          "grip": 0.3929,
+          "ship": 0.0029
+        },
+        "mean_counts": {
+          "pose_requests": 6.0,
+          "pose_hits": 0.0,
+          "shared_poses": 0.875,
+          "pair_requests": 5.125,
+          "pair_hits": 4.675,
+          "dma_bytes": 1854.8
+        },
+        "totals": {
+          "pose_requests": 240,
+          "pose_hits": 0,
+          "shared_poses": 35,
+          "pair_requests": 205,
+          "pair_hits": 187,
+          "dma_bytes": 74192
+        },
+        "motion_pair_hit_percent": 91.22,
+        "shared_pose_percent": 14.58
+      }
+    },
+    "after-control-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 34.95,
+        "fps_min": 22,
+        "fps_max": 40
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 39.77,
+      "fps_min": 22,
+      "fps_max": 49,
+      "min_free_bytes": 440448,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        6,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 3.622,
+        "prep": 10.221,
+        "draw": 5.186
+      },
+      "ai_ms": 0.102,
+      "movement_combat_ms": 1.869,
+      "npc_prepare_ms": 8.176,
+      "vertex_loads": 8787,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 5.0599,
+          "director": 0.0193,
+          "humans": 1.5054,
+          "vehicles": 0.0153,
+          "actors": 2.8274,
+          "projectiles": 0.6495,
+          "after": 0.0253,
+          "terrain": 2.2916,
+          "hit": 0.9251
+        },
+        "max_tick_ms": 25.939,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 16106,
+          "terrain_hits": 15866,
+          "terrain_misses": 240,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 59782,
+          "hit_queries": 3504,
+          "hit_pose_builds": 902,
+          "hit_available": 346996,
+          "hit_triangles": 4184,
+          "hit_groups": 894,
+          "hit_rejected": 632,
+          "hit_root_rejected": 1070
+        },
+        "terrain_reuse_percent": 98.51,
+        "hit_triangles_per_query": 1.19,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 463244,
+          "max_tick_us": 25939,
+          "director_us": 567,
+          "humans_us": 178397,
+          "vehicles_us": 444,
+          "actors_us": 131992,
+          "projectiles_us": 150518,
+          "after_us": 726,
+          "terrain_us": 96827,
+          "terrain_queries": 525,
+          "terrain_hits": 485,
+          "terrain_misses": 40,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2210,
+          "hit_us": 170016,
+          "hit_queries": 475,
+          "hit_pose_builds": 128,
+          "hit_available": 66506,
+          "hit_triangles": 960,
+          "hit_groups": 175,
+          "hit_rejected": 115,
+          "hit_root_rejected": 196
+        }
+      },
+      "phase_ms": {
+        "audio": 3.073,
+        "hud": 1.017,
+        "queue": 0.0,
+        "world": 1.558,
+        "objects": 0.595,
+        "fp": 0.203
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 34.95
+      },
+      "max_reported_frame_ms": 85.154,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.8633,
+          "buffers": 0.101,
+          "matrices": 0.1599,
+          "motion": 0.3279,
+          "decode": 2.4142,
+          "scatter": 3.0213,
+          "writeback": 0.6214,
+          "grip": 0.4309,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 6.0,
+          "pose_hits": 0.0,
+          "shared_poses": 0.875,
+          "pair_requests": 5.125,
+          "pair_hits": 4.825,
+          "dma_bytes": 1347.2
+        },
+        "totals": {
+          "pose_requests": 240,
+          "pose_hits": 0,
+          "shared_poses": 35,
+          "pair_requests": 205,
+          "pair_hits": 193,
+          "dma_bytes": 53888
+        },
+        "motion_pair_hit_percent": 94.15,
+        "shared_pose_percent": 14.58
+      }
+    },
+    "before-control-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 23,
+        "fps_mean": 17.52,
+        "fps_min": 5,
+        "fps_max": 34
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 24.57,
+      "fps_min": 5,
+      "fps_max": 36,
+      "min_free_bytes": 430584,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        6,
+        8
+      ],
+      "cpu_ms": {
+        "sim": 15.843,
+        "prep": 13.795,
+        "draw": 13.22
+      },
+      "ai_ms": 0.46,
+      "movement_combat_ms": 4.376,
+      "npc_prepare_ms": 10.596,
+      "vertex_loads": 17466,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 7.2177,
+          "director": 0.0201,
+          "humans": 3.1589,
+          "vehicles": 0.0169,
+          "actors": 3.2229,
+          "projectiles": 0.7352,
+          "after": 0.0311,
+          "terrain": 2.6796,
+          "hit": 1.3754
+        },
+        "max_tick_ms": 41.396,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 18376,
+          "terrain_hits": 17828,
+          "terrain_misses": 548,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 69994,
+          "hit_queries": 5762,
+          "hit_pose_builds": 1090,
+          "hit_available": 606132,
+          "hit_triangles": 21048,
+          "hit_groups": 5146,
+          "hit_rejected": 3826,
+          "hit_root_rejected": 1546
+        },
+        "terrain_reuse_percent": 97.02,
+        "hit_triangles_per_query": 3.65,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 706561,
+          "max_tick_us": 41396,
+          "director_us": 608,
+          "humans_us": 318020,
+          "vehicles_us": 537,
+          "actors_us": 184375,
+          "projectiles_us": 201109,
+          "after_us": 890,
+          "terrain_us": 134390,
+          "terrain_queries": 723,
+          "terrain_hits": 659,
+          "terrain_misses": 64,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2763,
+          "hit_us": 215147,
+          "hit_queries": 863,
+          "hit_pose_builds": 159,
+          "hit_available": 102516,
+          "hit_triangles": 2396,
+          "hit_groups": 464,
+          "hit_rejected": 314,
+          "hit_root_rejected": 303
+        }
+      },
+      "phase_ms": {
+        "audio": 5.43,
+        "hud": 2.035,
+        "queue": 0.898,
+        "world": 3.021,
+        "objects": 1.257,
+        "fp": 0.374
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 16.06
+      },
+      "max_reported_frame_ms": 205.402,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 1.4631,
+          "buffers": 0.1125,
+          "matrices": 0.2397,
+          "motion": 0.8762,
+          "decode": 2.9625,
+          "scatter": 3.4973,
+          "writeback": 0.7621,
+          "grip": 0.4936,
+          "ship": 0.0023
+        },
+        "mean_counts": {
+          "pose_requests": 9.15,
+          "pose_hits": 1.2,
+          "shared_poses": 1.525,
+          "pair_requests": 6.425,
+          "pair_hits": 5.375,
+          "dma_bytes": 4066.4
+        },
+        "totals": {
+          "pose_requests": 366,
+          "pose_hits": 48,
+          "shared_poses": 61,
+          "pair_requests": 257,
+          "pair_hits": 215,
+          "dma_bytes": 162656
+        },
+        "motion_pair_hit_percent": 83.66,
+        "shared_pose_percent": 16.67
+      }
+    },
+    "after-control-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 23,
+        "fps_mean": 17.39,
+        "fps_min": 6,
+        "fps_max": 33
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 24.65,
+      "fps_min": 6,
+      "fps_max": 36,
+      "min_free_bytes": 413152,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        6,
+        8
+      ],
+      "cpu_ms": {
+        "sim": 15.787,
+        "prep": 13.714,
+        "draw": 14.544
+      },
+      "ai_ms": 0.661,
+      "movement_combat_ms": 4.029,
+      "npc_prepare_ms": 10.972,
+      "vertex_loads": 17700,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 6.8748,
+          "director": 0.0184,
+          "humans": 3.0876,
+          "vehicles": 0.015,
+          "actors": 2.9883,
+          "projectiles": 0.7207,
+          "after": 0.0272,
+          "terrain": 2.5266,
+          "hit": 1.3546
+        },
+        "max_tick_ms": 40.108,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 18376,
+          "terrain_hits": 17828,
+          "terrain_misses": 548,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 69994,
+          "hit_queries": 5762,
+          "hit_pose_builds": 1090,
+          "hit_available": 606132,
+          "hit_triangles": 21048,
+          "hit_groups": 5146,
+          "hit_rejected": 3826,
+          "hit_root_rejected": 1546
+        },
+        "terrain_reuse_percent": 97.02,
+        "hit_triangles_per_query": 3.65,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 685141,
+          "max_tick_us": 40108,
+          "director_us": 531,
+          "humans_us": 309241,
+          "vehicles_us": 445,
+          "actors_us": 175947,
+          "projectiles_us": 197608,
+          "after_us": 812,
+          "terrain_us": 128384,
+          "terrain_queries": 723,
+          "terrain_hits": 659,
+          "terrain_misses": 64,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2763,
+          "hit_us": 213545,
+          "hit_queries": 863,
+          "hit_pose_builds": 159,
+          "hit_available": 102516,
+          "hit_triangles": 2396,
+          "hit_groups": 464,
+          "hit_rejected": 314,
+          "hit_root_rejected": 303
+        }
+      },
+      "phase_ms": {
+        "audio": 5.131,
+        "hud": 3.348,
+        "queue": 2.038,
+        "world": 3.091,
+        "objects": 1.486,
+        "fp": 0.399
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 15.69
+      },
+      "max_reported_frame_ms": 193.542,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 1.8878,
+          "buffers": 0.1396,
+          "matrices": 0.2047,
+          "motion": 0.7662,
+          "decode": 2.9852,
+          "scatter": 3.3837,
+          "writeback": 0.7373,
+          "grip": 0.5429,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 9.05,
+          "pose_hits": 1.2,
+          "shared_poses": 1.55,
+          "pair_requests": 6.3,
+          "pair_hits": 5.3,
+          "dma_bytes": 3440.0
+        },
+        "totals": {
+          "pose_requests": 362,
+          "pose_hits": 48,
+          "shared_poses": 62,
+          "pair_requests": 252,
+          "pair_hits": 212,
+          "dma_bytes": 137600
+        },
+        "motion_pair_hit_percent": 84.13,
+        "shared_pose_percent": 17.13
+      }
+    },
+    "before-control-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 21,
+        "fps_mean": 9.76,
+        "fps_min": 3,
+        "fps_max": 17
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 13.15,
+      "fps_min": 3,
+      "fps_max": 17,
+      "min_free_bytes": 337784,
+      "living_range": [
+        0,
+        3
+      ],
+      "enemy_range": [
+        6,
+        9
+      ],
+      "cpu_ms": {
+        "sim": 36.38,
+        "prep": 15.06,
+        "draw": 29.531
+      },
+      "ai_ms": 2.429,
+      "movement_combat_ms": 8.06,
+      "npc_prepare_ms": 10.56,
+      "vertex_loads": 28932,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 9.0305,
+          "director": 0.0189,
+          "humans": 4.529,
+          "vehicles": 0.0156,
+          "actors": 3.473,
+          "projectiles": 0.9303,
+          "after": 0.0318,
+          "terrain": 2.8915,
+          "hit": 1.6086
+        },
+        "max_tick_ms": 53.788,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 19910,
+          "terrain_hits": 19238,
+          "terrain_misses": 672,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 84966,
+          "hit_queries": 8844,
+          "hit_pose_builds": 1252,
+          "hit_available": 832064,
+          "hit_triangles": 30316,
+          "hit_groups": 8766,
+          "hit_rejected": 6858,
+          "hit_root_rejected": 2160
+        },
+        "terrain_reuse_percent": 96.62,
+        "hit_triangles_per_query": 3.43,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 880924,
+          "max_tick_us": 53788,
+          "director_us": 580,
+          "humans_us": 421882,
+          "vehicles_us": 471,
+          "actors_us": 231883,
+          "projectiles_us": 224089,
+          "after_us": 1009,
+          "terrain_us": 157299,
+          "terrain_queries": 862,
+          "terrain_hits": 772,
+          "terrain_misses": 90,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 3292,
+          "hit_us": 242878,
+          "hit_queries": 1069,
+          "hit_pose_builds": 184,
+          "hit_available": 124368,
+          "hit_triangles": 3200,
+          "hit_groups": 735,
+          "hit_rejected": 533,
+          "hit_root_rejected": 387
+        }
+      },
+      "phase_ms": {
+        "audio": 8.422,
+        "hud": 10.609,
+        "queue": 11.059,
+        "world": 6.791,
+        "objects": 2.587,
+        "fp": 0.585
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 18,
+        "fps_mean": 9.11
+      },
+      "max_reported_frame_ms": 290.575,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 2.5479,
+          "buffers": 0.1273,
+          "matrices": 0.2987,
+          "motion": 1.0803,
+          "decode": 2.3754,
+          "scatter": 2.7545,
+          "writeback": 0.6106,
+          "grip": 0.577,
+          "ship": 0.0024
+        },
+        "mean_counts": {
+          "pose_requests": 11.175,
+          "pose_hits": 1.35,
+          "shared_poses": 4.475,
+          "pair_requests": 5.35,
+          "pair_hits": 3.85,
+          "dma_bytes": 5127.6
+        },
+        "totals": {
+          "pose_requests": 447,
+          "pose_hits": 54,
+          "shared_poses": 179,
+          "pair_requests": 214,
+          "pair_hits": 154,
+          "dma_bytes": 205104
+        },
+        "motion_pair_hit_percent": 71.96,
+        "shared_pose_percent": 40.04
+      }
+    },
+    "after-control-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 9.2,
+        "fps_min": 3,
+        "fps_max": 16
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 12.85,
+      "fps_min": 3,
+      "fps_max": 17,
+      "min_free_bytes": 320352,
+      "living_range": [
+        0,
+        3
+      ],
+      "enemy_range": [
+        6,
+        9
+      ],
+      "cpu_ms": {
+        "sim": 36.294,
+        "prep": 15.888,
+        "draw": 31.656
+      },
+      "ai_ms": 2.022,
+      "movement_combat_ms": 8.123,
+      "npc_prepare_ms": 11.963,
+      "vertex_loads": 29339,
+      "collision": {
+        "intervals": 42,
+        "ticks": 1260,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 8.6649,
+          "director": 0.0171,
+          "humans": 4.3783,
+          "vehicles": 0.0141,
+          "actors": 3.3091,
+          "projectiles": 0.9002,
+          "after": 0.0289,
+          "terrain": 2.7781,
+          "hit": 1.5463
+        },
+        "max_tick_ms": 53.575,
+        "counts": {
+          "ticks": 1260,
+          "terrain_queries": 20270,
+          "terrain_hits": 19598,
+          "terrain_misses": 672,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 86526,
+          "hit_queries": 8844,
+          "hit_pose_builds": 1252,
+          "hit_available": 832064,
+          "hit_triangles": 30316,
+          "hit_groups": 8766,
+          "hit_rejected": 6858,
+          "hit_root_rejected": 2160
+        },
+        "terrain_reuse_percent": 96.68,
+        "hit_triangles_per_query": 3.43,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 875570,
+          "max_tick_us": 53575,
+          "director_us": 530,
+          "humans_us": 422173,
+          "vehicles_us": 419,
+          "actors_us": 229306,
+          "projectiles_us": 221667,
+          "after_us": 916,
+          "terrain_us": 158050,
+          "terrain_queries": 862,
+          "terrain_hits": 772,
+          "terrain_misses": 90,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 3292,
+          "hit_us": 240821,
+          "hit_queries": 1069,
+          "hit_pose_builds": 184,
+          "hit_available": 124368,
+          "hit_triangles": 3200,
+          "hit_groups": 735,
+          "hit_rejected": 533,
+          "hit_root_rejected": 387
+        }
+      },
+      "phase_ms": {
+        "audio": 9.316,
+        "hud": 6.768,
+        "queue": 13.872,
+        "world": 9.864,
+        "objects": 4.329,
+        "fp": 0.575
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 18,
+        "fps_mean": 8.67
+      },
+      "max_reported_frame_ms": 300.014,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 3.6556,
+          "buffers": 0.1647,
+          "matrices": 0.2397,
+          "motion": 1.1562,
+          "decode": 2.4317,
+          "scatter": 2.7179,
+          "writeback": 0.614,
+          "grip": 0.6439,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 11.175,
+          "pose_hits": 1.325,
+          "shared_poses": 4.5,
+          "pair_requests": 5.35,
+          "pair_hits": 3.875,
+          "dma_bytes": 5498.0
+        },
+        "totals": {
+          "pose_requests": 447,
+          "pose_hits": 53,
+          "shared_poses": 180,
+          "pair_requests": 214,
+          "pair_hits": 155,
+          "dma_bytes": 219920
+        },
+        "motion_pair_hit_percent": 72.43,
+        "shared_pose_percent": 40.27
+      }
+    },
+    "before-control-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 21,
+        "fps_mean": 4.9,
+        "fps_min": 2,
+        "fps_max": 12
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 7.95,
+      "fps_min": 2,
+      "fps_max": 12,
+      "min_free_bytes": 287496,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        9,
+        12
+      ],
+      "cpu_ms": {
+        "sim": 82.594,
+        "prep": 21.372,
+        "draw": 43.74
+      },
+      "ai_ms": 6.476,
+      "movement_combat_ms": 17.477,
+      "npc_prepare_ms": 16.171,
+      "vertex_loads": 42529,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 13.6136,
+          "director": 0.0184,
+          "humans": 6.7884,
+          "vehicles": 0.0159,
+          "actors": 5.116,
+          "projectiles": 1.6087,
+          "after": 0.0337,
+          "terrain": 3.9701,
+          "hit": 2.3406
+        },
+        "max_tick_ms": 69.93,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 28610,
+          "terrain_hits": 27742,
+          "terrain_misses": 868,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 111787,
+          "hit_queries": 16300,
+          "hit_pose_builds": 1940,
+          "hit_available": 1257334,
+          "hit_triangles": 45148,
+          "hit_groups": 12938,
+          "hit_rejected": 10108,
+          "hit_root_rejected": 3434
+        },
+        "terrain_reuse_percent": 96.97,
+        "hit_triangles_per_query": 2.77,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 1207968,
+          "max_tick_us": 69930,
+          "director_us": 574,
+          "humans_us": 608980,
+          "vehicles_us": 488,
+          "actors_us": 298706,
+          "projectiles_us": 297129,
+          "after_us": 1064,
+          "terrain_us": 197772,
+          "terrain_queries": 1075,
+          "terrain_hits": 963,
+          "terrain_misses": 112,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 4065,
+          "hit_us": 295931,
+          "hit_queries": 1848,
+          "hit_pose_builds": 209,
+          "hit_available": 190364,
+          "hit_triangles": 5260,
+          "hit_groups": 1185,
+          "hit_rejected": 855,
+          "hit_root_rejected": 570
+        }
+      },
+      "phase_ms": {
+        "audio": 9.672,
+        "hud": 11.541,
+        "queue": 16.887,
+        "world": 9.527,
+        "objects": 6.14,
+        "fp": 0.806
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 18,
+        "fps_mean": 4.67
+      },
+      "max_reported_frame_ms": 391.146,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 4.215,
+          "buffers": 0.162,
+          "matrices": 0.3665,
+          "motion": 2.8398,
+          "decode": 3.1543,
+          "scatter": 3.5461,
+          "writeback": 0.9256,
+          "grip": 0.7138,
+          "ship": 0.0025
+        },
+        "mean_counts": {
+          "pose_requests": 13.3,
+          "pose_hits": 1.25,
+          "shared_poses": 3.375,
+          "pair_requests": 8.675,
+          "pair_hits": 4.975,
+          "dma_bytes": 13876.4
+        },
+        "totals": {
+          "pose_requests": 532,
+          "pose_hits": 50,
+          "shared_poses": 135,
+          "pair_requests": 347,
+          "pair_hits": 199,
+          "dma_bytes": 555056
+        },
+        "motion_pair_hit_percent": 57.35,
+        "shared_pose_percent": 25.38
+      }
+    },
+    "after-control-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 4.55,
+        "fps_min": 2,
+        "fps_max": 11
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 7.42,
+      "fps_min": 2,
+      "fps_max": 11,
+      "min_free_bytes": 270064,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        9,
+        11
+      ],
+      "cpu_ms": {
+        "sim": 83.527,
+        "prep": 22.747,
+        "draw": 52.915
+      },
+      "ai_ms": 6.128,
+      "movement_combat_ms": 17.852,
+      "npc_prepare_ms": 18.245,
+      "vertex_loads": 43535,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 13.4594,
+          "director": 0.0165,
+          "humans": 6.812,
+          "vehicles": 0.0165,
+          "actors": 4.9716,
+          "projectiles": 1.5939,
+          "after": 0.0311,
+          "terrain": 3.8777,
+          "hit": 2.3165
+        },
+        "max_tick_ms": 71.182,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 28610,
+          "terrain_hits": 27742,
+          "terrain_misses": 868,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 111787,
+          "hit_queries": 16300,
+          "hit_pose_builds": 1940,
+          "hit_available": 1257334,
+          "hit_triangles": 45148,
+          "hit_groups": 12938,
+          "hit_rejected": 10108,
+          "hit_root_rejected": 3434
+        },
+        "terrain_reuse_percent": 96.97,
+        "hit_triangles_per_query": 2.77,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 1222064,
+          "max_tick_us": 71182,
+          "director_us": 532,
+          "humans_us": 627458,
+          "vehicles_us": 477,
+          "actors_us": 297468,
+          "projectiles_us": 294608,
+          "after_us": 955,
+          "terrain_us": 197740,
+          "terrain_queries": 1075,
+          "terrain_hits": 963,
+          "terrain_misses": 112,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 4065,
+          "hit_us": 296152,
+          "hit_queries": 1848,
+          "hit_pose_builds": 209,
+          "hit_available": 190364,
+          "hit_triangles": 5260,
+          "hit_groups": 1185,
+          "hit_rejected": 855,
+          "hit_root_rejected": 570
+        }
+      },
+      "phase_ms": {
+        "audio": 10.331,
+        "hud": 15.955,
+        "queue": 23.333,
+        "world": 11.228,
+        "objects": 9.036,
+        "fp": 0.804
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 4.55
+      },
+      "max_reported_frame_ms": 430.166,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 6.1303,
+          "buffers": 0.2096,
+          "matrices": 0.3098,
+          "motion": 2.6464,
+          "decode": 3.2575,
+          "scatter": 3.5162,
+          "writeback": 0.9216,
+          "grip": 0.8015,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 13.25,
+          "pose_hits": 1.25,
+          "shared_poses": 3.275,
+          "pair_requests": 8.725,
+          "pair_hits": 5.075,
+          "dma_bytes": 12818.0
+        },
+        "totals": {
+          "pose_requests": 530,
+          "pose_hits": 50,
+          "shared_poses": 131,
+          "pair_requests": 349,
+          "pair_hits": 203,
+          "dma_bytes": 512720
+        },
+        "motion_pair_hit_percent": 58.17,
+        "shared_pose_percent": 24.72
+      }
+    },
+    "before-roster-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 38.35,
+        "fps_min": 29,
+        "fps_max": 53
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 46.67,
+      "fps_min": 29,
+      "fps_max": 59,
+      "min_free_bytes": 661736,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        6,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 4.131,
+        "prep": 8.249,
+        "draw": 4.888
+      },
+      "ai_ms": 0.087,
+      "movement_combat_ms": 1.749,
+      "npc_prepare_ms": 5.84,
+      "vertex_loads": 7574,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 5.6387,
+          "director": 0.0206,
+          "humans": 1.3643,
+          "vehicles": 0.0175,
+          "actors": 3.1744,
+          "projectiles": 1.0008,
+          "after": 0.028,
+          "terrain": 2.558,
+          "hit": 0.8696
+        },
+        "max_tick_ms": 23.29,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 15692,
+          "terrain_hits": 15512,
+          "terrain_misses": 180,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 60334,
+          "hit_queries": 12134,
+          "hit_pose_builds": 996,
+          "hit_available": 505500,
+          "hit_triangles": 5556,
+          "hit_groups": 1100,
+          "hit_rejected": 752,
+          "hit_root_rejected": 2044
+        },
+        "terrain_reuse_percent": 98.85,
+        "hit_triangles_per_query": 0.46,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 478574,
+          "max_tick_us": 23290,
+          "director_us": 650,
+          "humans_us": 109624,
+          "vehicles_us": 496,
+          "actors_us": 122827,
+          "projectiles_us": 243108,
+          "after_us": 827,
+          "terrain_us": 80882,
+          "terrain_queries": 439,
+          "terrain_hits": 404,
+          "terrain_misses": 35,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 1840,
+          "hit_us": 173261,
+          "hit_queries": 1025,
+          "hit_pose_builds": 165,
+          "hit_available": 129242,
+          "hit_triangles": 976,
+          "hit_groups": 190,
+          "hit_rejected": 129,
+          "hit_root_rejected": 520
+        }
+      },
+      "phase_ms": {
+        "audio": 2.089,
+        "hud": 0.806,
+        "queue": 0.0,
+        "world": 1.532,
+        "objects": 0.484,
+        "fp": 0.198
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 38.35
+      },
+      "max_reported_frame_ms": 83.616,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.8071,
+          "buffers": 0.0797,
+          "matrices": 0.1806,
+          "motion": 0.2226,
+          "decode": 1.5312,
+          "scatter": 1.8935,
+          "writeback": 0.5761,
+          "grip": 0.394,
+          "ship": 0.0024
+        },
+        "mean_counts": {
+          "pose_requests": 6.0,
+          "pose_hits": 0.0,
+          "shared_poses": 0.0,
+          "pair_requests": 6.0,
+          "pair_hits": 5.65,
+          "dma_bytes": 816.4
+        },
+        "totals": {
+          "pose_requests": 240,
+          "pose_hits": 0,
+          "shared_poses": 0,
+          "pair_requests": 240,
+          "pair_hits": 226,
+          "dma_bytes": 32656
+        },
+        "motion_pair_hit_percent": 94.17,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "after-roster-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 38.1,
+        "fps_min": 28,
+        "fps_max": 53
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 46.55,
+      "fps_min": 28,
+      "fps_max": 59,
+      "min_free_bytes": 644304,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        6,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 4.02,
+        "prep": 8.357,
+        "draw": 5.389
+      },
+      "ai_ms": 0.073,
+      "movement_combat_ms": 1.587,
+      "npc_prepare_ms": 6.256,
+      "vertex_loads": 7651,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 5.4518,
+          "director": 0.0192,
+          "humans": 1.3391,
+          "vehicles": 0.0154,
+          "actors": 3.0122,
+          "projectiles": 1.0227,
+          "after": 0.0253,
+          "terrain": 2.4331,
+          "hit": 0.8829
+        },
+        "max_tick_ms": 23.422,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 15692,
+          "terrain_hits": 15512,
+          "terrain_misses": 180,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 60334,
+          "hit_queries": 12134,
+          "hit_pose_builds": 996,
+          "hit_available": 505500,
+          "hit_triangles": 5556,
+          "hit_groups": 1100,
+          "hit_rejected": 752,
+          "hit_root_rejected": 2044
+        },
+        "terrain_reuse_percent": 98.85,
+        "hit_triangles_per_query": 0.46,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 480153,
+          "max_tick_us": 23422,
+          "director_us": 572,
+          "humans_us": 109735,
+          "vehicles_us": 450,
+          "actors_us": 119022,
+          "projectiles_us": 249062,
+          "after_us": 735,
+          "terrain_us": 78058,
+          "terrain_queries": 439,
+          "terrain_hits": 404,
+          "terrain_misses": 35,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 1840,
+          "hit_us": 177573,
+          "hit_queries": 1025,
+          "hit_pose_builds": 165,
+          "hit_available": 129242,
+          "hit_triangles": 976,
+          "hit_groups": 190,
+          "hit_rejected": 129,
+          "hit_root_rejected": 520
+        }
+      },
+      "phase_ms": {
+        "audio": 1.768,
+        "hud": 0.953,
+        "queue": 0.0,
+        "world": 1.563,
+        "objects": 0.652,
+        "fp": 0.207
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 20,
+        "fps_mean": 38.1
+      },
+      "max_reported_frame_ms": 83.869,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.9732,
+          "buffers": 0.1002,
+          "matrices": 0.1541,
+          "motion": 0.3065,
+          "decode": 1.5897,
+          "scatter": 1.878,
+          "writeback": 0.5838,
+          "grip": 0.4323,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 6.0,
+          "pose_hits": 0.0,
+          "shared_poses": 0.0,
+          "pair_requests": 6.0,
+          "pair_hits": 5.5,
+          "dma_bytes": 1190.8
+        },
+        "totals": {
+          "pose_requests": 240,
+          "pose_hits": 0,
+          "shared_poses": 0,
+          "pair_requests": 240,
+          "pair_hits": 220,
+          "dma_bytes": 47632
+        },
+        "motion_pair_hit_percent": 91.67,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "before-roster-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 23,
+        "fps_mean": 19,
+        "fps_min": 8,
+        "fps_max": 37
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 25.23,
+      "fps_min": 8,
+      "fps_max": 41,
+      "min_free_bytes": 681448,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        8,
+        8
+      ],
+      "cpu_ms": {
+        "sim": 20.06,
+        "prep": 10.692,
+        "draw": 14.033
+      },
+      "ai_ms": 0.789,
+      "movement_combat_ms": 5.092,
+      "npc_prepare_ms": 7.496,
+      "vertex_loads": 16202,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 9.9702,
+          "director": 0.02,
+          "humans": 2.7503,
+          "vehicles": 0.017,
+          "actors": 4.1983,
+          "projectiles": 2.9212,
+          "after": 0.0305,
+          "terrain": 3.2907,
+          "hit": 1.9825
+        },
+        "max_tick_ms": 38.422,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 22220,
+          "terrain_hits": 21928,
+          "terrain_misses": 292,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 82178,
+          "hit_queries": 47818,
+          "hit_pose_builds": 2402,
+          "hit_available": 1438116,
+          "hit_triangles": 8336,
+          "hit_groups": 1718,
+          "hit_rejected": 1194,
+          "hit_root_rejected": 6530
+        },
+        "terrain_reuse_percent": 98.69,
+        "hit_triangles_per_query": 0.17,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 698490,
+          "max_tick_us": 38422,
+          "director_us": 574,
+          "humans_us": 208691,
+          "vehicles_us": 469,
+          "actors_us": 172381,
+          "projectiles_us": 314427,
+          "after_us": 906,
+          "terrain_us": 113353,
+          "terrain_queries": 637,
+          "terrain_hits": 580,
+          "terrain_misses": 57,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2410,
+          "hit_us": 223587,
+          "hit_queries": 1568,
+          "hit_pose_builds": 214,
+          "hit_available": 172314,
+          "hit_triangles": 1904,
+          "hit_groups": 315,
+          "hit_rejected": 196,
+          "hit_root_rejected": 749
+        }
+      },
+      "phase_ms": {
+        "audio": 4.374,
+        "hud": 2.619,
+        "queue": 1.272,
+        "world": 3.067,
+        "objects": 1.516,
+        "fp": 0.377
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 17.94
+      },
+      "max_reported_frame_ms": 145.447,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 1.8183,
+          "buffers": 0.0996,
+          "matrices": 0.2527,
+          "motion": 0.5053,
+          "decode": 1.695,
+          "scatter": 1.7423,
+          "writeback": 0.6691,
+          "grip": 0.5219,
+          "ship": 0.0024
+        },
+        "mean_counts": {
+          "pose_requests": 8.0,
+          "pose_hits": 0.05,
+          "shared_poses": 0.0,
+          "pair_requests": 7.95,
+          "pair_hits": 7.05,
+          "dma_bytes": 2122.8
+        },
+        "totals": {
+          "pose_requests": 320,
+          "pose_hits": 2,
+          "shared_poses": 0,
+          "pair_requests": 318,
+          "pair_hits": 282,
+          "dma_bytes": 84912
+        },
+        "motion_pair_hit_percent": 88.68,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "after-roster-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 23,
+        "fps_mean": 18.61,
+        "fps_min": 9,
+        "fps_max": 35
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 24.93,
+      "fps_min": 8,
+      "fps_max": 40,
+      "min_free_bytes": 664016,
+      "living_range": [
+        0,
+        2
+      ],
+      "enemy_range": [
+        8,
+        8
+      ],
+      "cpu_ms": {
+        "sim": 20.57,
+        "prep": 10.979,
+        "draw": 14.655
+      },
+      "ai_ms": 1.281,
+      "movement_combat_ms": 4.793,
+      "npc_prepare_ms": 8.201,
+      "vertex_loads": 16341,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 9.6134,
+          "director": 0.0183,
+          "humans": 2.7087,
+          "vehicles": 0.015,
+          "actors": 3.9361,
+          "projectiles": 2.89,
+          "after": 0.0271,
+          "terrain": 3.1342,
+          "hit": 2.0049
+        },
+        "max_tick_ms": 37.313,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 22220,
+          "terrain_hits": 21928,
+          "terrain_misses": 292,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 82178,
+          "hit_queries": 47818,
+          "hit_pose_builds": 2402,
+          "hit_available": 1438116,
+          "hit_triangles": 8336,
+          "hit_groups": 1718,
+          "hit_rejected": 1194,
+          "hit_root_rejected": 6530
+        },
+        "terrain_reuse_percent": 98.69,
+        "hit_triangles_per_query": 0.17,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 683478,
+          "max_tick_us": 37313,
+          "director_us": 529,
+          "humans_us": 202498,
+          "vehicles_us": 428,
+          "actors_us": 164839,
+          "projectiles_us": 313818,
+          "after_us": 796,
+          "terrain_us": 108394,
+          "terrain_queries": 637,
+          "terrain_hits": 580,
+          "terrain_misses": 57,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2410,
+          "hit_us": 227242,
+          "hit_queries": 1568,
+          "hit_pose_builds": 214,
+          "hit_available": 172314,
+          "hit_triangles": 1904,
+          "hit_groups": 315,
+          "hit_rejected": 196,
+          "hit_root_rejected": 749
+        }
+      },
+      "phase_ms": {
+        "audio": 5.559,
+        "hud": 2.384,
+        "queue": 0.571,
+        "world": 3.132,
+        "objects": 1.714,
+        "fp": 0.392
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 15,
+        "fps_mean": 18.2
+      },
+      "max_reported_frame_ms": 150.355,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 2.4272,
+          "buffers": 0.1326,
+          "matrices": 0.2116,
+          "motion": 0.5089,
+          "decode": 1.7234,
+          "scatter": 1.6921,
+          "writeback": 0.6517,
+          "grip": 0.5684,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 8.0,
+          "pose_hits": 0.1,
+          "shared_poses": 0.0,
+          "pair_requests": 7.9,
+          "pair_hits": 6.975,
+          "dma_bytes": 2084.4
+        },
+        "totals": {
+          "pose_requests": 320,
+          "pose_hits": 4,
+          "shared_poses": 0,
+          "pair_requests": 316,
+          "pair_hits": 279,
+          "dma_bytes": 83376
+        },
+        "motion_pair_hit_percent": 88.29,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "before-roster-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 23,
+        "fps_mean": 11.17,
+        "fps_min": 3,
+        "fps_max": 22
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 14.97,
+      "fps_min": 3,
+      "fps_max": 23,
+      "min_free_bytes": 612600,
+      "living_range": [
+        0,
+        3
+      ],
+      "enemy_range": [
+        9,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 43.94,
+        "prep": 14.03,
+        "draw": 24.221
+      },
+      "ai_ms": 3.03,
+      "movement_combat_ms": 10.233,
+      "npc_prepare_ms": 9.752,
+      "vertex_loads": 26566,
+      "collision": {
+        "intervals": 42,
+        "ticks": 1260,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 11.7592,
+          "director": 0.0195,
+          "humans": 4.448,
+          "vehicles": 0.0162,
+          "actors": 4.8776,
+          "projectiles": 2.3325,
+          "after": 0.0328,
+          "terrain": 3.7717,
+          "hit": 2.4347
+        },
+        "max_tick_ms": 53.557,
+        "counts": {
+          "ticks": 1260,
+          "terrain_queries": 26638,
+          "terrain_hits": 26202,
+          "terrain_misses": 436,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 96690,
+          "hit_queries": 36542,
+          "hit_pose_builds": 3122,
+          "hit_available": 1548088,
+          "hit_triangles": 15948,
+          "hit_groups": 3478,
+          "hit_rejected": 2474,
+          "hit_root_rejected": 6822
+        },
+        "terrain_reuse_percent": 98.36,
+        "hit_triangles_per_query": 0.44,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 940345,
+          "max_tick_us": 53557,
+          "director_us": 578,
+          "humans_us": 286313,
+          "vehicles_us": 469,
+          "actors_us": 236132,
+          "projectiles_us": 414823,
+          "after_us": 1009,
+          "terrain_us": 144195,
+          "terrain_queries": 837,
+          "terrain_hits": 753,
+          "terrain_misses": 84,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 3057,
+          "hit_us": 277151,
+          "hit_queries": 2565,
+          "hit_pose_builds": 258,
+          "hit_available": 223796,
+          "hit_triangles": 2670,
+          "hit_groups": 470,
+          "hit_rejected": 303,
+          "hit_root_rejected": 977
+        }
+      },
+      "phase_ms": {
+        "audio": 8.169,
+        "hud": 4.273,
+        "queue": 4.49,
+        "world": 5.617,
+        "objects": 3.146,
+        "fp": 0.538
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 15,
+        "fps_mean": 11.13
+      },
+      "max_reported_frame_ms": 309.397,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 3.018,
+          "buffers": 0.127,
+          "matrices": 0.3026,
+          "motion": 0.7902,
+          "decode": 1.9335,
+          "scatter": 1.9927,
+          "writeback": 0.741,
+          "grip": 0.6248,
+          "ship": 0.0025
+        },
+        "mean_counts": {
+          "pose_requests": 9.8,
+          "pose_hits": 0.7,
+          "shared_poses": 0.0,
+          "pair_requests": 9.1,
+          "pair_hits": 7.4,
+          "dma_bytes": 3472.8
+        },
+        "totals": {
+          "pose_requests": 392,
+          "pose_hits": 28,
+          "shared_poses": 0,
+          "pair_requests": 364,
+          "pair_hits": 296,
+          "dma_bytes": 138912
+        },
+        "motion_pair_hit_percent": 81.32,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "after-roster-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 23,
+        "fps_mean": 10.87,
+        "fps_min": 3,
+        "fps_max": 21
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 14.57,
+      "fps_min": 3,
+      "fps_max": 22,
+      "min_free_bytes": 595168,
+      "living_range": [
+        0,
+        3
+      ],
+      "enemy_range": [
+        9,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 41.836,
+        "prep": 14.978,
+        "draw": 25.354
+      },
+      "ai_ms": 2.502,
+      "movement_combat_ms": 9.357,
+      "npc_prepare_ms": 11.274,
+      "vertex_loads": 26932,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 11.563,
+          "director": 0.0175,
+          "humans": 4.5044,
+          "vehicles": 0.0148,
+          "actors": 4.5763,
+          "projectiles": 2.4025,
+          "after": 0.0297,
+          "terrain": 3.5325,
+          "hit": 2.5308
+        },
+        "max_tick_ms": 53.37,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 26098,
+          "terrain_hits": 25662,
+          "terrain_misses": 436,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 94804,
+          "hit_queries": 36222,
+          "hit_pose_builds": 3122,
+          "hit_available": 1548088,
+          "hit_triangles": 15948,
+          "hit_groups": 3478,
+          "hit_rejected": 2474,
+          "hit_root_rejected": 6822
+        },
+        "terrain_reuse_percent": 98.33,
+        "hit_triangles_per_query": 0.44,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 940134,
+          "max_tick_us": 53370,
+          "director_us": 538,
+          "humans_us": 286098,
+          "vehicles_us": 422,
+          "actors_us": 230111,
+          "projectiles_us": 421483,
+          "after_us": 912,
+          "terrain_us": 139575,
+          "terrain_queries": 837,
+          "terrain_hits": 753,
+          "terrain_misses": 84,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 3057,
+          "hit_us": 285602,
+          "hit_queries": 2565,
+          "hit_pose_builds": 258,
+          "hit_available": 223796,
+          "hit_triangles": 2670,
+          "hit_groups": 470,
+          "hit_rejected": 303,
+          "hit_root_rejected": 977
+        }
+      },
+      "phase_ms": {
+        "audio": 7.814,
+        "hud": 4.093,
+        "queue": 3.941,
+        "world": 5.744,
+        "objects": 4.009,
+        "fp": 0.55
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 15,
+        "fps_mean": 10.87
+      },
+      "max_reported_frame_ms": 312.822,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 4.2886,
+          "buffers": 0.1648,
+          "matrices": 0.2587,
+          "motion": 0.8685,
+          "decode": 1.9753,
+          "scatter": 1.9547,
+          "writeback": 0.751,
+          "grip": 0.6895,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 9.8,
+          "pose_hits": 0.675,
+          "shared_poses": 0.0,
+          "pair_requests": 9.125,
+          "pair_hits": 7.375,
+          "dma_bytes": 3816.0
+        },
+        "totals": {
+          "pose_requests": 392,
+          "pose_hits": 27,
+          "shared_poses": 0,
+          "pair_requests": 365,
+          "pair_hits": 295,
+          "dma_bytes": 152640
+        },
+        "motion_pair_hit_percent": 80.82,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "before-roster-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 5.54,
+        "fps_min": 2,
+        "fps_max": 13
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 7.3,
+      "fps_min": 2,
+      "fps_max": 14,
+      "min_free_bytes": 545288,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        11,
+        12
+      ],
+      "cpu_ms": {
+        "sim": 120.736,
+        "prep": 18.236,
+        "draw": 43.354
+      },
+      "ai_ms": 9.729,
+      "movement_combat_ms": 24.865,
+      "npc_prepare_ms": 13.024,
+      "vertex_loads": 40873,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 18.1764,
+          "director": 0.0185,
+          "humans": 6.8957,
+          "vehicles": 0.0166,
+          "actors": 6.5632,
+          "projectiles": 4.6157,
+          "after": 0.0339,
+          "terrain": 4.8107,
+          "hit": 3.5216
+        },
+        "max_tick_ms": 72.183,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 31626,
+          "terrain_hits": 31038,
+          "terrain_misses": 588,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 118816,
+          "hit_queries": 92890,
+          "hit_pose_builds": 4166,
+          "hit_available": 2135488,
+          "hit_triangles": 23604,
+          "hit_groups": 5258,
+          "hit_rejected": 3772,
+          "hit_root_rejected": 9866
+        },
+        "terrain_reuse_percent": 98.14,
+        "hit_triangles_per_query": 0.25,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 1277060,
+          "max_tick_us": 72183,
+          "director_us": 570,
+          "humans_us": 445118,
+          "vehicles_us": 511,
+          "actors_us": 317510,
+          "projectiles_us": 511297,
+          "after_us": 1020,
+          "terrain_us": 184946,
+          "terrain_queries": 1045,
+          "terrain_hits": 932,
+          "terrain_misses": 113,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 3877,
+          "hit_us": 322890,
+          "hit_queries": 4440,
+          "hit_pose_builds": 292,
+          "hit_available": 293766,
+          "hit_triangles": 3406,
+          "hit_groups": 595,
+          "hit_rejected": 379,
+          "hit_root_rejected": 1359
+        }
+      },
+      "phase_ms": {
+        "audio": 12.89,
+        "hud": 6.392,
+        "queue": 10.568,
+        "world": 7.189,
+        "objects": 7.109,
+        "fp": 0.76
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 12,
+        "fps_mean": 4.67
+      },
+      "max_reported_frame_ms": 416.822,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 4.4681,
+          "buffers": 0.151,
+          "matrices": 0.3801,
+          "motion": 1.412,
+          "decode": 2.3415,
+          "scatter": 2.3255,
+          "writeback": 0.9337,
+          "grip": 0.7457,
+          "ship": 0.0024
+        },
+        "mean_counts": {
+          "pose_requests": 11.8,
+          "pose_hits": 0.6,
+          "shared_poses": 0.0,
+          "pair_requests": 11.2,
+          "pair_hits": 8.2,
+          "dma_bytes": 6458.4
+        },
+        "totals": {
+          "pose_requests": 472,
+          "pose_hits": 24,
+          "shared_poses": 0,
+          "pair_requests": 448,
+          "pair_hits": 328,
+          "dma_bytes": 258336
+        },
+        "motion_pair_hit_percent": 73.21,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "after-roster-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 27,
+        "fps_mean": 5.52,
+        "fps_min": 2,
+        "fps_max": 14
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 7.17,
+      "fps_min": 2,
+      "fps_max": 14,
+      "min_free_bytes": 527856,
+      "living_range": [
+        0,
+        4
+      ],
+      "enemy_range": [
+        11,
+        12
+      ],
+      "cpu_ms": {
+        "sim": 117.237,
+        "prep": 19.895,
+        "draw": 48.721
+      },
+      "ai_ms": 10.301,
+      "movement_combat_ms": 23.03,
+      "npc_prepare_ms": 15.369,
+      "vertex_loads": 41546,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 17.9972,
+          "director": 0.0167,
+          "humans": 6.9077,
+          "vehicles": 0.0168,
+          "actors": 6.3102,
+          "projectiles": 4.696,
+          "after": 0.032,
+          "terrain": 4.6174,
+          "hit": 3.5776
+        },
+        "max_tick_ms": 73.699,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 31626,
+          "terrain_hits": 31038,
+          "terrain_misses": 588,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 118816,
+          "hit_queries": 92890,
+          "hit_pose_builds": 4166,
+          "hit_available": 2135488,
+          "hit_triangles": 23604,
+          "hit_groups": 5258,
+          "hit_rejected": 3772,
+          "hit_root_rejected": 9866
+        },
+        "terrain_reuse_percent": 98.14,
+        "hit_triangles_per_query": 0.25,
+        "max_tick_interval": {
+          "tick": 30,
+          "ticks": 30,
+          "tick_us": 1295277,
+          "max_tick_us": 73699,
+          "director_us": 538,
+          "humans_us": 459294,
+          "vehicles_us": 513,
+          "actors_us": 316618,
+          "projectiles_us": 516789,
+          "after_us": 953,
+          "terrain_us": 183528,
+          "terrain_queries": 1045,
+          "terrain_hits": 932,
+          "terrain_misses": 113,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 3877,
+          "hit_us": 332376,
+          "hit_queries": 4440,
+          "hit_pose_builds": 292,
+          "hit_available": 293766,
+          "hit_triangles": 3406,
+          "hit_groups": 595,
+          "hit_rejected": 379,
+          "hit_root_rejected": 1359
+        }
+      },
+      "phase_ms": {
+        "audio": 12.567,
+        "hud": 11.691,
+        "queue": 11.779,
+        "world": 7.11,
+        "objects": 7.445,
+        "fp": 0.788
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 12,
+        "fps_mean": 4.5
+      },
+      "max_reported_frame_ms": 410.828,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 6.6117,
+          "buffers": 0.1988,
+          "matrices": 0.3162,
+          "motion": 1.4996,
+          "decode": 2.3546,
+          "scatter": 2.2751,
+          "writeback": 0.925,
+          "grip": 0.8155,
+          "ship": 0.003
+        },
+        "mean_counts": {
+          "pose_requests": 11.8,
+          "pose_hits": 0.6,
+          "shared_poses": 0.0,
+          "pair_requests": 11.2,
+          "pair_hits": 8.05,
+          "dma_bytes": 6801.2
+        },
+        "totals": {
+          "pose_requests": 472,
+          "pose_hits": 24,
+          "shared_poses": 0,
+          "pair_requests": 448,
+          "pair_hits": 322,
+          "dma_bytes": 272048
+        },
+        "motion_pair_hit_percent": 71.88,
+        "shared_pose_percent": 0.0
+      }
+    },
+    "before-ordinary-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 45.81,
+        "fps_min": 40,
+        "fps_max": 53
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 52.12,
+      "fps_min": 39,
+      "fps_max": 59,
+      "min_free_bytes": 429024,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        0,
+        5
+      ],
+      "cpu_ms": {
+        "sim": 2.619,
+        "prep": 5.364,
+        "draw": 4.894
+      },
+      "ai_ms": 0.084,
+      "movement_combat_ms": 1.159,
+      "npc_prepare_ms": 3.059,
+      "vertex_loads": 6069,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 3.0107,
+          "director": 0.1192,
+          "humans": 1.0618,
+          "vehicles": 0.0141,
+          "actors": 1.5452,
+          "projectiles": 0.2331,
+          "after": 0.0215,
+          "terrain": 1.4364,
+          "hit": 0.1496
+        },
+        "max_tick_ms": 70.478,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 7292,
+          "terrain_hits": 6872,
+          "terrain_misses": 420,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 42468,
+          "hit_queries": 1476,
+          "hit_pose_builds": 212,
+          "hit_available": 40468,
+          "hit_triangles": 1782,
+          "hit_groups": 315,
+          "hit_rejected": 202,
+          "hit_root_rejected": 198
+        },
+        "terrain_reuse_percent": 94.24,
+        "hit_triangles_per_query": 1.21,
+        "max_tick_interval": {
+          "tick": 240,
+          "ticks": 30,
+          "tick_us": 102490,
+          "max_tick_us": 70478,
+          "director_us": 72623,
+          "humans_us": 24940,
+          "vehicles_us": 419,
+          "actors_us": 1966,
+          "projectiles_us": 1482,
+          "after_us": 560,
+          "terrain_us": 11752,
+          "terrain_queries": 131,
+          "terrain_hits": 60,
+          "terrain_misses": 71,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 180,
+          "hit_us": 0,
+          "hit_queries": 0,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 6.101,
+        "hud": 0.858,
+        "queue": 0.0,
+        "world": 1.55,
+        "objects": 0.35,
+        "fp": 0.261
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 45.81
+      },
+      "max_reported_frame_ms": 79.693,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.422,
+          "buffers": 0.0392,
+          "matrices": 0.0944,
+          "motion": 0.1121,
+          "decode": 0.6552,
+          "scatter": 1.0546,
+          "writeback": 0.2685,
+          "grip": 0.2136,
+          "ship": 0.1373
+        },
+        "mean_counts": {
+          "pose_requests": 3.3,
+          "pose_hits": 0.35,
+          "shared_poses": 0.45,
+          "pair_requests": 2.55,
+          "pair_hits": 2.4,
+          "dma_bytes": 406.0
+        },
+        "totals": {
+          "pose_requests": 132,
+          "pose_hits": 14,
+          "shared_poses": 18,
+          "pair_requests": 102,
+          "pair_hits": 96,
+          "dma_bytes": 16240
+        },
+        "motion_pair_hit_percent": 94.12,
+        "shared_pose_percent": 13.64
+      }
+    },
+    "after-ordinary-1": {
+      "living_players_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 45.56,
+        "fps_min": 41,
+        "fps_max": 54
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 51.88,
+      "fps_min": 37,
+      "fps_max": 59,
+      "min_free_bytes": 411872,
+      "living_range": [
+        0,
+        1
+      ],
+      "enemy_range": [
+        0,
+        5
+      ],
+      "cpu_ms": {
+        "sim": 2.177,
+        "prep": 5.205,
+        "draw": 4.956
+      },
+      "ai_ms": 0.052,
+      "movement_combat_ms": 0.743,
+      "npc_prepare_ms": 3.18,
+      "vertex_loads": 6069,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 2.9938,
+          "director": 0.1242,
+          "humans": 1.0536,
+          "vehicles": 0.0152,
+          "actors": 1.5295,
+          "projectiles": 0.2303,
+          "after": 0.0235,
+          "terrain": 1.4186,
+          "hit": 0.15
+        },
+        "max_tick_ms": 70.571,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 7292,
+          "terrain_hits": 6872,
+          "terrain_misses": 420,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 42468,
+          "hit_queries": 1476,
+          "hit_pose_builds": 212,
+          "hit_available": 40468,
+          "hit_triangles": 1782,
+          "hit_groups": 315,
+          "hit_rejected": 202,
+          "hit_root_rejected": 198
+        },
+        "terrain_reuse_percent": 94.24,
+        "hit_triangles_per_query": 1.21,
+        "max_tick_interval": {
+          "tick": 240,
+          "ticks": 30,
+          "tick_us": 102582,
+          "max_tick_us": 70571,
+          "director_us": 73079,
+          "humans_us": 24332,
+          "vehicles_us": 449,
+          "actors_us": 2179,
+          "projectiles_us": 1353,
+          "after_us": 600,
+          "terrain_us": 11836,
+          "terrain_queries": 131,
+          "terrain_hits": 60,
+          "terrain_misses": 71,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 180,
+          "hit_us": 0,
+          "hit_queries": 0,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 4.278,
+        "hud": 0.95,
+        "queue": 0.0,
+        "world": 1.621,
+        "objects": 0.403,
+        "fp": 0.282
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 16,
+        "fps_mean": 45.56
+      },
+      "max_reported_frame_ms": 79.512,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.4732,
+          "buffers": 0.0596,
+          "matrices": 0.0906,
+          "motion": 0.1339,
+          "decode": 0.6674,
+          "scatter": 1.047,
+          "writeback": 0.265,
+          "grip": 0.226,
+          "ship": 0.1426
+        },
+        "mean_counts": {
+          "pose_requests": 3.3,
+          "pose_hits": 0.35,
+          "shared_poses": 0.45,
+          "pair_requests": 2.55,
+          "pair_hits": 2.35,
+          "dma_bytes": 509.6
+        },
+        "totals": {
+          "pose_requests": 132,
+          "pose_hits": 14,
+          "shared_poses": 18,
+          "pair_requests": 102,
+          "pair_hits": 94,
+          "dma_bytes": 20384
+        },
+        "motion_pair_hit_percent": 92.16,
+        "shared_pose_percent": 13.64
+      }
+    },
+    "before-ordinary-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 25.96,
+        "fps_min": 20,
+        "fps_max": 32
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 35.35,
+      "fps_min": 20,
+      "fps_max": 59,
+      "min_free_bytes": 375920,
+      "living_range": [
+        2,
+        2
+      ],
+      "enemy_range": [
+        0,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 7.573,
+        "prep": 5.559,
+        "draw": 12.741
+      },
+      "ai_ms": 0.35,
+      "movement_combat_ms": 1.944,
+      "npc_prepare_ms": 2.927,
+      "vertex_loads": 13370,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 6.3646,
+          "director": 0.1506,
+          "humans": 3.5081,
+          "vehicles": 0.0134,
+          "actors": 2.3873,
+          "projectiles": 0.2636,
+          "after": 0.0258,
+          "terrain": 2.3993,
+          "hit": 0.3034
+        },
+        "max_tick_ms": 71.683,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 11788,
+          "terrain_hits": 10756,
+          "terrain_misses": 1032,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 56376,
+          "hit_queries": 2743,
+          "hit_pose_builds": 403,
+          "hit_available": 114502,
+          "hit_triangles": 6654,
+          "hit_groups": 1310,
+          "hit_rejected": 892,
+          "hit_root_rejected": 524
+        },
+        "terrain_reuse_percent": 91.25,
+        "hit_triangles_per_query": 2.43,
+        "max_tick_interval": {
+          "tick": 240,
+          "ticks": 30,
+          "tick_us": 123153,
+          "max_tick_us": 71683,
+          "director_us": 73468,
+          "humans_us": 44716,
+          "vehicles_us": 422,
+          "actors_us": 1983,
+          "projectiles_us": 1469,
+          "after_us": 595,
+          "terrain_us": 24554,
+          "terrain_queries": 191,
+          "terrain_hits": 120,
+          "terrain_misses": 71,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 420,
+          "hit_us": 0,
+          "hit_queries": 0,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 3.888,
+        "hud": 2.07,
+        "queue": 0.14,
+        "world": 3.239,
+        "objects": 1.093,
+        "fp": 0.65
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 25.96
+      },
+      "max_reported_frame_ms": 85.678,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.7966,
+          "buffers": 0.0866,
+          "matrices": 0.1075,
+          "motion": 0.1176,
+          "decode": 0.4635,
+          "scatter": 0.57,
+          "writeback": 0.2168,
+          "grip": 0.238,
+          "ship": 0.2525
+        },
+        "mean_counts": {
+          "pose_requests": 3.875,
+          "pose_hits": 0.325,
+          "shared_poses": 0.75,
+          "pair_requests": 2.9,
+          "pair_hits": 2.7,
+          "dma_bytes": 416.8
+        },
+        "totals": {
+          "pose_requests": 155,
+          "pose_hits": 13,
+          "shared_poses": 30,
+          "pair_requests": 116,
+          "pair_hits": 108,
+          "dma_bytes": 16672
+        },
+        "motion_pair_hit_percent": 93.1,
+        "shared_pose_percent": 19.35
+      }
+    },
+    "after-ordinary-2": {
+      "living_players_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 25.88,
+        "fps_min": 20,
+        "fps_max": 32
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 35.3,
+      "fps_min": 20,
+      "fps_max": 59,
+      "min_free_bytes": 358768,
+      "living_range": [
+        2,
+        2
+      ],
+      "enemy_range": [
+        0,
+        6
+      ],
+      "cpu_ms": {
+        "sim": 7.767,
+        "prep": 5.501,
+        "draw": 13.647
+      },
+      "ai_ms": 0.331,
+      "movement_combat_ms": 2.042,
+      "npc_prepare_ms": 3.233,
+      "vertex_loads": 13387,
+      "collision": {
+        "intervals": 40,
+        "ticks": 1200,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 6.2915,
+          "director": 0.1569,
+          "humans": 3.4958,
+          "vehicles": 0.0147,
+          "actors": 2.3231,
+          "projectiles": 0.258,
+          "after": 0.0261,
+          "terrain": 2.4026,
+          "hit": 0.3161
+        },
+        "max_tick_ms": 74.303,
+        "counts": {
+          "ticks": 1200,
+          "terrain_queries": 11788,
+          "terrain_hits": 10756,
+          "terrain_misses": 1032,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 56376,
+          "hit_queries": 2743,
+          "hit_pose_builds": 403,
+          "hit_available": 114502,
+          "hit_triangles": 6654,
+          "hit_groups": 1310,
+          "hit_rejected": 892,
+          "hit_root_rejected": 524
+        },
+        "terrain_reuse_percent": 91.25,
+        "hit_triangles_per_query": 2.43,
+        "max_tick_interval": {
+          "tick": 240,
+          "ticks": 30,
+          "tick_us": 125355,
+          "max_tick_us": 74303,
+          "director_us": 76188,
+          "humans_us": 43891,
+          "vehicles_us": 456,
+          "actors_us": 2225,
+          "projectiles_us": 1356,
+          "after_us": 644,
+          "terrain_us": 25024,
+          "terrain_queries": 191,
+          "terrain_hits": 120,
+          "terrain_misses": 71,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 420,
+          "hit_us": 0,
+          "hit_queries": 0,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 3.675,
+        "hud": 2.599,
+        "queue": 1.002,
+        "world": 3.38,
+        "objects": 1.246,
+        "fp": 0.67
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 25.88
+      },
+      "max_reported_frame_ms": 88.073,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.9964,
+          "buffers": 0.1109,
+          "matrices": 0.1076,
+          "motion": 0.1562,
+          "decode": 0.4722,
+          "scatter": 0.5715,
+          "writeback": 0.2215,
+          "grip": 0.2475,
+          "ship": 0.2799
+        },
+        "mean_counts": {
+          "pose_requests": 3.875,
+          "pose_hits": 0.325,
+          "shared_poses": 0.75,
+          "pair_requests": 2.9,
+          "pair_hits": 2.675,
+          "dma_bytes": 606.8
+        },
+        "totals": {
+          "pose_requests": 155,
+          "pose_hits": 13,
+          "shared_poses": 30,
+          "pair_requests": 116,
+          "pair_hits": 107,
+          "dma_bytes": 24272
+        },
+        "motion_pair_hit_percent": 92.24,
+        "shared_pose_percent": 19.35
+      }
+    },
+    "before-ordinary-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 22,
+        "fps_min": 13,
+        "fps_max": 35
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 30.3,
+      "fps_min": 13,
+      "fps_max": 53,
+      "min_free_bytes": 289152,
+      "living_range": [
+        3,
+        3
+      ],
+      "enemy_range": [
+        0,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 12.781,
+        "prep": 5.438,
+        "draw": 19.293
+      },
+      "ai_ms": 0.717,
+      "movement_combat_ms": 3.76,
+      "npc_prepare_ms": 2.304,
+      "vertex_loads": 13454,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 8.7902,
+          "director": 0.1886,
+          "humans": 4.7772,
+          "vehicles": 0.0138,
+          "actors": 3.4843,
+          "projectiles": 0.2857,
+          "after": 0.0253,
+          "terrain": 3.554,
+          "hit": 0.2814
+        },
+        "max_tick_ms": 73.953,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 18301,
+          "terrain_hits": 16482,
+          "terrain_misses": 1819,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 81119,
+          "hit_queries": 4854,
+          "hit_pose_builds": 328,
+          "hit_available": 130314,
+          "hit_triangles": 4736,
+          "hit_groups": 1025,
+          "hit_rejected": 728,
+          "hit_root_rejected": 569
+        },
+        "terrain_reuse_percent": 90.06,
+        "hit_triangles_per_query": 0.98,
+        "max_tick_interval": {
+          "tick": 240,
+          "ticks": 30,
+          "tick_us": 139345,
+          "max_tick_us": 73953,
+          "director_us": 74934,
+          "humans_us": 59518,
+          "vehicles_us": 434,
+          "actors_us": 1922,
+          "projectiles_us": 1443,
+          "after_us": 603,
+          "terrain_us": 34033,
+          "terrain_queries": 251,
+          "terrain_hits": 180,
+          "terrain_misses": 71,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 540,
+          "hit_us": 0,
+          "hit_queries": 0,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 2.875,
+        "hud": 3.87,
+        "queue": 1.636,
+        "world": 4.075,
+        "objects": 2.165,
+        "fp": 1.129
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 22
+      },
+      "max_reported_frame_ms": 104.796,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.6878,
+          "buffers": 0.1,
+          "matrices": 0.0626,
+          "motion": 0.2111,
+          "decode": 0.3499,
+          "scatter": 0.3914,
+          "writeback": 0.1334,
+          "grip": 0.1361,
+          "ship": 0.1779
+        },
+        "mean_counts": {
+          "pose_requests": 2.225,
+          "pose_hits": 0.2,
+          "shared_poses": 0.5,
+          "pair_requests": 1.6,
+          "pair_hits": 1.25,
+          "dma_bytes": 931.6
+        },
+        "totals": {
+          "pose_requests": 89,
+          "pose_hits": 8,
+          "shared_poses": 20,
+          "pair_requests": 64,
+          "pair_hits": 50,
+          "dma_bytes": 37264
+        },
+        "motion_pair_hit_percent": 78.12,
+        "shared_pose_percent": 22.47
+      }
+    },
+    "after-ordinary-3": {
+      "living_players_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 22.08,
+        "fps_min": 12,
+        "fps_max": 36
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 30.52,
+      "fps_min": 12,
+      "fps_max": 54,
+      "min_free_bytes": 272000,
+      "living_range": [
+        3,
+        3
+      ],
+      "enemy_range": [
+        0,
+        10
+      ],
+      "cpu_ms": {
+        "sim": 16.084,
+        "prep": 5.24,
+        "draw": 19.046
+      },
+      "ai_ms": 0.781,
+      "movement_combat_ms": 3.735,
+      "npc_prepare_ms": 2.6,
+      "vertex_loads": 13476,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 8.6784,
+          "director": 0.1916,
+          "humans": 4.718,
+          "vehicles": 0.0152,
+          "actors": 3.4246,
+          "projectiles": 0.2848,
+          "after": 0.0274,
+          "terrain": 3.5113,
+          "hit": 0.2973
+        },
+        "max_tick_ms": 73.452,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 18301,
+          "terrain_hits": 16482,
+          "terrain_misses": 1819,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 81119,
+          "hit_queries": 4854,
+          "hit_pose_builds": 328,
+          "hit_available": 130314,
+          "hit_triangles": 4736,
+          "hit_groups": 1025,
+          "hit_rejected": 728,
+          "hit_root_rejected": 569
+        },
+        "terrain_reuse_percent": 90.06,
+        "hit_triangles_per_query": 0.98,
+        "max_tick_interval": {
+          "tick": 240,
+          "ticks": 30,
+          "tick_us": 136750,
+          "max_tick_us": 73452,
+          "director_us": 74873,
+          "humans_us": 56578,
+          "vehicles_us": 495,
+          "actors_us": 2191,
+          "projectiles_us": 1365,
+          "after_us": 652,
+          "terrain_us": 32818,
+          "terrain_queries": 251,
+          "terrain_hits": 180,
+          "terrain_misses": 71,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 540,
+          "hit_us": 0,
+          "hit_queries": 0,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 3.161,
+        "hud": 3.286,
+        "queue": 0.949,
+        "world": 4.408,
+        "objects": 1.962,
+        "fp": 1.007
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 26,
+        "fps_mean": 22.08
+      },
+      "max_reported_frame_ms": 111.918,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 0.9215,
+          "buffers": 0.1043,
+          "matrices": 0.0647,
+          "motion": 0.1566,
+          "decode": 0.3756,
+          "scatter": 0.4315,
+          "writeback": 0.1403,
+          "grip": 0.1463,
+          "ship": 0.1796
+        },
+        "mean_counts": {
+          "pose_requests": 2.225,
+          "pose_hits": 0.15,
+          "shared_poses": 0.5,
+          "pair_requests": 1.65,
+          "pair_hits": 1.375,
+          "dma_bytes": 673.2
+        },
+        "totals": {
+          "pose_requests": 89,
+          "pose_hits": 6,
+          "shared_poses": 20,
+          "pair_requests": 66,
+          "pair_hits": 55,
+          "dma_bytes": 26928
+        },
+        "motion_pair_hit_percent": 83.33,
+        "shared_pose_percent": 22.47
+      }
+    },
+    "before-ordinary-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 7.77,
+        "fps_min": 3,
+        "fps_max": 14
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 17.38,
+      "fps_min": 3,
+      "fps_max": 39,
+      "min_free_bytes": 286920,
+      "living_range": [
+        4,
+        4
+      ],
+      "enemy_range": [
+        0,
+        11
+      ],
+      "cpu_ms": {
+        "sim": 58.709,
+        "prep": 8.52,
+        "draw": 33.846
+      },
+      "ai_ms": 5.517,
+      "movement_combat_ms": 11.223,
+      "npc_prepare_ms": 4.736,
+      "vertex_loads": 26193,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 12.4648,
+          "director": 0.1934,
+          "humans": 8.3455,
+          "vehicles": 0.0136,
+          "actors": 3.4845,
+          "projectiles": 0.3868,
+          "after": 0.0253,
+          "terrain": 3.9275,
+          "hit": 0.5229
+        },
+        "max_tick_ms": 76.066,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 21097,
+          "terrain_hits": 19321,
+          "terrain_misses": 1776,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 100564,
+          "hit_queries": 6766,
+          "hit_pose_builds": 650,
+          "hit_available": 293974,
+          "hit_triangles": 12414,
+          "hit_groups": 2465,
+          "hit_rejected": 1683,
+          "hit_root_rejected": 1451
+        },
+        "terrain_reuse_percent": 91.58,
+        "hit_triangles_per_query": 1.83,
+        "max_tick_interval": {
+          "tick": 930,
+          "ticks": 30,
+          "tick_us": 470728,
+          "max_tick_us": 76066,
+          "director_us": 55439,
+          "humans_us": 254214,
+          "vehicles_us": 411,
+          "actors_us": 158034,
+          "projectiles_us": 1271,
+          "after_us": 898,
+          "terrain_us": 126412,
+          "terrain_queries": 585,
+          "terrain_hits": 528,
+          "terrain_misses": 57,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2544,
+          "hit_us": 1887,
+          "hit_queries": 280,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 7.309,
+        "hud": 5.427,
+        "queue": 2.999,
+        "world": 7.776,
+        "objects": 3.945,
+        "fp": 1.294
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 7.77
+      },
+      "max_reported_frame_ms": 735.724,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 1.852,
+          "buffers": 0.1786,
+          "matrices": 0.1416,
+          "motion": 0.3082,
+          "decode": 0.6265,
+          "scatter": 0.746,
+          "writeback": 0.2942,
+          "grip": 0.3097,
+          "ship": 0.1785
+        },
+        "mean_counts": {
+          "pose_requests": 4.95,
+          "pose_hits": 0.525,
+          "shared_poses": 0.575,
+          "pair_requests": 3.925,
+          "pair_hits": 3.275,
+          "dma_bytes": 1324.0
+        },
+        "totals": {
+          "pose_requests": 198,
+          "pose_hits": 21,
+          "shared_poses": 23,
+          "pair_requests": 157,
+          "pair_hits": 131,
+          "dma_bytes": 52960
+        },
+        "motion_pair_hit_percent": 83.44,
+        "shared_pose_percent": 11.62
+      }
+    },
+    "after-ordinary-4": {
+      "living_players_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 7.36,
+        "fps_min": 3,
+        "fps_max": 14
+      },
+      "observations": 45,
+      "warmup_discarded": 5,
+      "used": 40,
+      "fps_mean": 17.15,
+      "fps_min": 3,
+      "fps_max": 39,
+      "min_free_bytes": 269488,
+      "living_range": [
+        4,
+        4
+      ],
+      "enemy_range": [
+        0,
+        11
+      ],
+      "cpu_ms": {
+        "sim": 58.377,
+        "prep": 8.944,
+        "draw": 35.509
+      },
+      "ai_ms": 5.199,
+      "movement_combat_ms": 10.765,
+      "npc_prepare_ms": 5.726,
+      "vertex_loads": 26196,
+      "collision": {
+        "intervals": 41,
+        "ticks": 1230,
+        "truncated_final_records_excluded": 0,
+        "ms_per_tick": {
+          "tick": 12.5307,
+          "director": 0.1973,
+          "humans": 8.4923,
+          "vehicles": 0.0169,
+          "actors": 3.395,
+          "projectiles": 0.3849,
+          "after": 0.0274,
+          "terrain": 4.071,
+          "hit": 0.5379
+        },
+        "max_tick_ms": 74.66,
+        "counts": {
+          "ticks": 1230,
+          "terrain_queries": 21097,
+          "terrain_hits": 19321,
+          "terrain_misses": 1776,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 100564,
+          "hit_queries": 6766,
+          "hit_pose_builds": 650,
+          "hit_available": 293974,
+          "hit_triangles": 12414,
+          "hit_groups": 2465,
+          "hit_rejected": 1683,
+          "hit_root_rejected": 1451
+        },
+        "terrain_reuse_percent": 91.58,
+        "hit_triangles_per_query": 1.83,
+        "max_tick_interval": {
+          "tick": 930,
+          "ticks": 30,
+          "tick_us": 464693,
+          "max_tick_us": 74660,
+          "director_us": 54131,
+          "humans_us": 253982,
+          "vehicles_us": 500,
+          "actors_us": 153454,
+          "projectiles_us": 1266,
+          "after_us": 916,
+          "terrain_us": 124904,
+          "terrain_queries": 585,
+          "terrain_hits": 528,
+          "terrain_misses": 57,
+          "terrain_overflows": 0,
+          "terrain_actor_overflows": 0,
+          "terrain_candidates": 2544,
+          "hit_us": 2475,
+          "hit_queries": 280,
+          "hit_pose_builds": 0,
+          "hit_available": 0,
+          "hit_triangles": 0,
+          "hit_groups": 0,
+          "hit_rejected": 0,
+          "hit_root_rejected": 0
+        }
+      },
+      "phase_ms": {
+        "audio": 7.908,
+        "hud": 5.599,
+        "queue": 3.182,
+        "world": 8.088,
+        "objects": 4.199,
+        "fp": 1.34
+      },
+      "drain_ms": {
+        "rsp_wait": 0.0,
+        "rdp_wait": 0.0
+      },
+      "all_humans_and_landed_enemies": {
+        "observations": 22,
+        "fps_mean": 7.36
+      },
+      "max_reported_frame_ms": 753.629,
+      "npc_preparation": {
+        "sampled_frames": 40,
+        "ms_per_sampled_frame": {
+          "visibility": 2.7185,
+          "buffers": 0.2027,
+          "matrices": 0.1377,
+          "motion": 0.3496,
+          "decode": 0.6378,
+          "scatter": 0.7384,
+          "writeback": 0.2999,
+          "grip": 0.3305,
+          "ship": 0.1802
+        },
+        "mean_counts": {
+          "pose_requests": 4.95,
+          "pose_hits": 0.55,
+          "shared_poses": 0.55,
+          "pair_requests": 3.925,
+          "pair_hits": 3.2,
+          "dma_bytes": 1528.0
+        },
+        "totals": {
+          "pose_requests": 198,
+          "pose_hits": 22,
+          "shared_poses": 22,
+          "pair_requests": 157,
+          "pair_hits": 128,
+          "dma_bytes": 61120
+        },
+        "motion_pair_hit_percent": 81.53,
+        "shared_pose_percent": 11.11
+      }
+    }
+  }
+}

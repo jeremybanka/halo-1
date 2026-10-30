@@ -59,13 +59,14 @@ packing rather than checking only ideal floating-point matrices.
 Zoom now uses `2*atan(tan(fov/2)/magnification)` so the projected size ratio is
 exactly 2x or 10x. Dividing the FOV angle produced excessive magnification.
 The scope-only far parameter doubles from 6200 to 12400 renderer units. The
-world near plane is 4 render units unscoped and 32 (one Halo world unit) scoped;
-the scope has no foreground weapon to protect. This gives distant vehicle
-faces eight times more depth separation than the old scope near plane and
-reduces magnified z-fighting. W normalization, magnification and the separate
-foreground projection remain unchanged. Close world geometry inside the scope
-near plane is clipped. Existing scoped
-high-detail body/vehicle/held-weapon selection stays enabled.
+world near plane is 4 render units unscoped. Scoped views use 32 only when a
+conservative near-field probe finds no nearby visible geometry; otherwise they
+use 4 too. The former unconditional scoped setting clipped nearby terrain and
+walls. The adaptive setting retains distant depth separation in clear views
+without discarding foreground surfaces. W normalization, magnification and the
+separate foreground projection remain unchanged. Existing scoped high-detail
+body/vehicle/held-weapon selection stays enabled. See [SCOPE_RENDERING.md](SCOPE_RENDERING.md)
+for the native regressions and conservative query budget.
 
 This is deliberately bounded rather than multiplying the far plane by 10.
 Blood Gulch's entire extracted geometry fits within a roughly 194-world-unit

@@ -6,6 +6,13 @@
 #include "interaction.h"
 #include "game_modes.h"
 #define BG_PLAYERS 4
+#ifdef BG_PVE
+#include "pve.h"
+#define BG_UNITS (BG_PLAYERS+BG_PVE_MAX)
+#else
+#define BG_UNITS BG_PLAYERS
+#endif
+unsigned bg_unit_count(void);
 #define BG_MAX_VEHICLES 12
 #define BG_MAX_PROJECTILES 48
 #define BG_MAX_PICKUPS 56
@@ -33,13 +40,7 @@ enum {
     BG_PICK_OVERSHIELD,
     BG_PICK_CAMO
 };
-typedef enum {
-    BG_V_WARTHOG,
-    BG_V_GHOST,
-    BG_V_SCORPION,
-    BG_V_BANSHEE,
-    BG_VEHICLE_COUNT
-} bg_vehicle_kind;
+#include "vehicle_kinds.h"
 typedef enum {
     BG_ANIM_IDLE,
     BG_ANIM_WALK,
@@ -80,7 +81,8 @@ typedef enum {
     BG_EVENT_SHIELD_BREAK,
     BG_EVENT_AMMO, /* Actual reserve rounds transferred; distinguishes weapon acquisition. */
     BG_EVENT_KILL, /* player=credited killer (-1 environment), weapon=victim viewport. */
-    BG_EVENT_OBJECTIVE
+    BG_EVENT_OBJECTIVE,
+    BG_EVENT_COVENANT
 } bg_event_kind;
 enum { BG_OBJECTIVE_TAKEN, BG_OBJECTIVE_DROPPED, BG_OBJECTIVE_RETURNED,
        BG_OBJECTIVE_SCORED, BG_OBJECTIVE_MOVED, BG_OBJECTIVE_CHECKPOINT };
@@ -91,7 +93,8 @@ typedef enum {
     BG_P_FRAG,
     BG_P_PLASMA_GRENADE,
     BG_P_CANNON,
-    BG_P_FLAME
+    BG_P_FLAME,
+    BG_P_FUEL, BG_P_GRUNT_FUEL, BG_P_DROPPED_FUEL
 } bg_projectile_kind;
 /* BG_EVENT_EXPLOSION stores this presentation type in event.weapon. */
 typedef enum { BG_EXPLOSION_NORMAL, BG_EXPLOSION_PLASMA, BG_EXPLOSION_NEEDLER } bg_explosion_kind;
@@ -109,10 +112,18 @@ typedef struct {
      * explicitly named *_tick(s) fields advance on the 30 Hz source clock. */
     float pos[3], yaw, pitch, vy, cooldown, reload, respawn, hurt, flash;
     float health;
+#ifdef BG_PVE
+    float pve_height,pve_radius;
+#endif
     int ammo, score;
     bool grounded;
+    bool flashlight_on;
+    float damage_flash_time,damage_flash_strength;
+    uint8_t damage_flash_profile;
+    float damage_indicator[4]; /* Source order: top, left, bottom, right. */
     bool climbing;
     float shield, shield_delay, heat, charge, recoil, gait, anim_time, melee_time, invisibility;
+    float locomotion_time; /* Base body cycle; weapon impulses must not restart it. */
     /* Source damage flash decays independently of remaining shield vitality. */
     float shield_hit, shield_break, shield_break_pos[3];
     float camo_opacity, camo_quiet;
@@ -125,6 +136,7 @@ typedef struct {
     float body_stun, stun_time;
     float exit_grace;
     int exit_vehicle;
+    uint32_t exit_tick; /* Source own-vehicle protection lasts through exit+90. */
     uint16_t support_triangle;
     uint8_t support_vehicle; /* one-based; zero means no moving support */
     float support_local[3];
@@ -149,7 +161,7 @@ typedef struct {
     float forward, strafe, turn, look;
     /* interact is held use; reload and the other discrete actions are edges. */
     bool jump, fire, reload, switch_weapon, grenade, switch_grenade, interact, melee, zoom, crouch,
-        secondary_fire;
+        secondary_fire, flashlight;
 } bg_input;
 typedef struct {
     float pos[3], yaw, pitch, velocity[3], speed, cooldown, flash, respawn, engine_phase;
@@ -158,7 +170,7 @@ typedef struct {
     bool physics_valid;
     float home[3], home_yaw, secondary_cooldown, turret_yaw, turret_pitch, health;
     int kind, occupants[BG_VEHICLE_SEATS];
-    bool active;
+    bool active, encounter_owned;
     float gun_rate[2], gun_error[2];
     float hatch;
     bool hatch_closing, flipping;
@@ -178,6 +190,7 @@ typedef struct {
     float attached_offset[3], distance, age;
     int8_t tracked;
     uint8_t damage_profile;
+    uint16_t hit_region;
     bool active, countdown, combined;
 } bg_projectile;
 /* Map slots are permanent schedule owners. Dynamic slots are a bounded pool;
@@ -210,7 +223,7 @@ extern unsigned bg_teleporter_count;
 extern const bg_teleporter bg_teleporters[2];
 extern const unsigned bg_teleporter_count;
 #endif
-extern bg_player bg_players[BG_PLAYERS];
+extern bg_player bg_players[BG_UNITS];
 /* Profile identity is independent of physical controller and viewport. */
 extern unsigned bg_player_profiles[BG_PLAYERS];
 extern bg_vehicle bg_vehicles[BG_MAX_VEHICLES];

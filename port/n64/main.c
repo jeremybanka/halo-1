@@ -16,6 +16,9 @@
 #include "menu_draw.h"
 #include "frontend.h"
 #include "frontend_draw.h"
+#ifdef BG_FIREFIGHT_QA
+#include "firefight_menu_photo.h"
+#endif
 #ifdef BG_FRONTEND_QA
 #include "frontend_qa.h"
 #endif
@@ -36,6 +39,7 @@
 #include "destruction_qa.h"
 #endif
 #include "scene.h"
+#include "pve_prepare_profile.h"
 #include "presentation.h"
 #include "residency.h"
 #include "asset_interaction.h"
@@ -250,6 +254,10 @@ static uint32_t control_buttons(joypad_buttons_t buttons) {
 #undef BUTTON
     return bits;
 }
+#ifdef BG_M64_POLISH_QA
+#include "m64_polish_qa.h"
+#endif
+static bg_control_gesture gestures[4];
 static bool input(bg_input in[4]) {
     bg_control_state raw[4];
     bg_menu_input navigation[4];
@@ -278,7 +286,7 @@ static bool input(bg_input in[4]) {
 #ifdef BG_SCORES_BENCHMARK
     /* A separately named replay measures all four live score overlays. */
     for (unsigned i = 0; i < 4; i++)
-        raw[i] = (bg_control_state){.held = BG_BUTTON_R};
+        raw[i] = (bg_control_state){.held = BG_BUTTON_Z|BG_BUTTON_C_UP};
 #endif
 #ifdef BG_FRONTEND
     if (front_active()) {
@@ -289,6 +297,9 @@ static bool input(bg_input in[4]) {
         if (action == BG_FRONT_START_MATCH) {
             uint8_t teams[4];
             for(unsigned p=0;p<4;p++)teams[p]=front.teams[front.ports[p]];
+#ifdef BG_PVE
+            bg_pve_stop();
+#endif
             bg_configure_mode(front.type,teams);
             bg_front_draw_release();
 #ifdef BG_STREAM_MAPS
@@ -309,7 +320,11 @@ static bool input(bg_input in[4]) {
 #endif
             views = front.count;
             bg_set_players(views);
+#ifdef BG_FIREFIGHT
+            if(front.firefight)bg_ff_start_fight(views,front.fight);else
+#endif
             bg_reset();
+            memset(gestures,0,sizeof(gestures));
             bg_hud_messages_reset();
             game_time = 0;
             match_ended = 0;
@@ -326,6 +341,10 @@ static bool input(bg_input in[4]) {
 #ifndef BG_STREAM_MAPS
             bg_sound_frontend(false);
 #endif
+            bg_sound_begin_match();
+#ifdef BG_FIREFIGHT
+            debugf("SESSION_START firefight=%u map=%u players=%u npcs=%u fight=%u\n",front.firefight,front.map,views,bg_pve_count,front.fight);
+#endif
         } else if (action == BG_FRONT_RESUME_MATCH) {
 #ifdef BG_FRONTEND_QA
             bg_front_qa_resumed();
@@ -336,6 +355,9 @@ static bool input(bg_input in[4]) {
             menu.open = false;
         } else if (action == BG_FRONT_LEAVE_MATCH) {
             menu.open = false;
+#ifdef BG_PVE
+            bg_pve_stop();
+#endif
             bg_residency_menu(true);
         }
         paused = front_active();
@@ -359,6 +381,7 @@ static bool input(bg_input in[4]) {
 #endif
     if (result.action == BG_MENU_ACTION_RESTART) {
         bg_reset();
+        memset(gestures,0,sizeof(gestures));
         bg_hud_messages_reset();
         game_time = 0;
         bg_scene_reset();
@@ -372,11 +395,13 @@ static bool input(bg_input in[4]) {
     }
     memset(in, 0, sizeof(bg_input) * 4);
     memset(scores, 0, sizeof(scores));
-    if (!result.consumed)
-        for (unsigned i = 0; i < views; i++) {
-            bg_controls_map(&in[i], &raw[i], menu.styles[i], bg_players[i].vehicle >= 0);
-            scores[i] = bg_controls_show_scores(&raw[i], menu.styles[i]);
-        }
+    for (unsigned i = 0; i < views; i++) {
+        if(bg_players[i].health<=0) bg_controls_reset(&gestures[i]);
+        bg_controls_update(&in[i], &gestures[i], &raw[i], menu.styles[i],
+            bg_players[i].vehicle >= 0, !result.consumed && bg_players[i].health>0,
+            get_ticks_us());
+        scores[i] = !result.consumed && bg_controls_show_scores(&raw[i], menu.styles[i]);
+    }
 #ifdef BG_MENU_QA
     bg_menu_qa_check(&menu, views, &result, in);
 #endif
@@ -409,6 +434,7 @@ static surface_t *paced_acquire(blam_clock *clock, uint64_t *previous, bg_input 
                 EDGE(switch_grenade);
                 EDGE(melee);
                 EDGE(zoom);
+            EDGE(flashlight);
 #undef EDGE
             }
             bg_presentation_mode(views >= 3 && !front_active());
@@ -851,18 +877,24 @@ int main(void) {
 #ifndef BG_FRONTEND_QA
     rdpq_text_register_font(1, rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_VAR));
 #endif
+    #if defined(BG_PVE) && !defined(BG_FIREFIGHT)
+    views=BG_PVE_PLAYERS;
+    #endif
     bg_menu_init(&menu, views);
+#ifdef BG_MENU_QA
+    for(unsigned p=0;p<4;p++)menu.styles[p]=BG_CONTROLS_BOND;
+#endif
 #if defined(BG_COMBAT_QA) && BG_COMBAT_QA == 8
-    menu.styles[0] = BG_CONTROLS_XBOX;
-    menu.styles[1] = BG_CONTROLS_N64;
+    menu.styles[0] = BG_CONTROLS_DUKE;
+    menu.styles[1] = BG_CONTROLS_BOND;
 #endif
 #ifdef BG_HUD_QA
     for (unsigned p = 0; p < BG_PLAYERS; p++)
-        menu.styles[p] = p & 1 ? BG_CONTROLS_XBOX : BG_CONTROLS_N64;
+        menu.styles[p] = p & 1 ? BG_CONTROLS_DUKE : BG_CONTROLS_BOND;
 #endif
 #ifdef BG_SCORES_BENCHMARK
     for (unsigned p = 0; p < 4; p++)
-        menu.styles[p] = BG_CONTROLS_XBOX;
+        menu.styles[p] = BG_CONTROLS_DUKE;
 #endif
 #ifndef BG_SNAPSHOT_TICK
     bg_menu_draw_init();
@@ -883,6 +915,21 @@ int main(void) {
     bg_set_players(views);
 #if !defined(BG_FRONTEND) || !defined(BG_STREAM_MAPS)
     bg_reset();
+#endif
+    #if defined(BG_PVE) && !defined(BG_FIREFIGHT)
+#if BG_PVE_QA>=3
+    bg_ff_qa_stage(views,BG_PVE_QA);
+#else
+    bg_pve_stage(views);if(BG_PVE_COUNT!=5)bg_pve_start(BG_PVE_COUNT);
+#endif
+#ifdef BG_PVE_PHOTO_TICK
+    for(unsigned tick=0;tick<BG_PVE_PHOTO_TICK;tick++){bg_input in[4]={0};bg_clear_events();bg_pve_qa_input(in);bg_tick(in,BLAM_TICK_SECONDS);game_time+=BLAM_TICK_SECONDS;bg_scene_update(BLAM_TICK_SECONDS,game_time);}
+    bg_clear_events();
+#endif
+    #endif
+#ifdef BG_PVE
+    debugf("PVE_START views=%u count=%u tick=%u seed=505645\n",views,bg_pve_count,bg_pve_tick_number);
+    for(unsigned i=0;i<bg_unit_count();i++)if(i<views||i>=4){const bg_player*p=&bg_players[i];debugf("PVE_POSE unit=%u pos=%.6f,%.6f,%.6f yaw=%.6f pitch=%.6f crouch=%.6f hp=%.3f shield=%.3f\n",i,p->pos[0],p->pos[1],p->pos[2],p->yaw,p->pitch,p->crouch_amount,p->health,p->shield);}
 #endif
     bg_hud_messages_reset();
     bg_sound_init();
@@ -917,7 +964,7 @@ int main(void) {
 #endif
 #ifdef BG_INTERACTION_QA
     for (unsigned p = 0; p < BG_PLAYERS; p++)
-        menu.styles[p] = p & 1 ? BG_CONTROLS_XBOX : BG_CONTROLS_N64;
+        menu.styles[p] = p & 1 ? BG_CONTROLS_DUKE : BG_CONTROLS_BOND;
     bg_qa_interaction_stage();
 #endif
 #ifdef BG_SHIELD_QA
@@ -949,6 +996,9 @@ int main(void) {
     while (1) {
 #ifdef BG_PROFILE
         uint64_t profile_start = get_ticks_us();
+#ifdef BG_PVE
+        bg_pve_ai_us=bg_pve_move_us=bg_pve_nav_us=0;
+#endif
         bg_scene_profile.camera_us = bg_scene_profile.animation_us = bg_scene_profile.matrix_us =
             bg_scene_profile.world_us = bg_scene_profile.object_us = bg_scene_profile.fp_us =
                 hud_us = audio_us = 0;
@@ -1033,9 +1083,13 @@ int main(void) {
             EDGE(switch_grenade);
             EDGE(melee);
             EDGE(zoom);
+            EDGE(flashlight);
 #undef EDGE
         }
         unsigned ticks = blam_clock_update(&clock, dt);
+#endif
+#if defined(BG_PVE_PHOTO_TICK) || defined(BG_M64_POLISH_QA)
+        ticks=0;
 #endif
         for (unsigned t = 0; t < ticks; t++) {
 #ifdef BG_DEMO
@@ -1072,7 +1126,12 @@ int main(void) {
             bg_qa_combat_input(in, game_time);
 #endif
             bg_clear_events();
+#if defined(BG_PVE) && BG_PVE_QA
+            bg_pve_qa_input(in);
+#endif
+#ifndef BG_PVE_PHOTO_TICK
             bg_tick(in, BLAM_TICK_SECONDS);
+#endif
             bg_hud_messages_update();
             game_time += BLAM_TICK_SECONDS;
 #ifdef BG_SHOWCASE
@@ -1085,6 +1144,7 @@ int main(void) {
                     in[p].jump = false;
                 in[p].reload = in[p].switch_weapon = in[p].grenade = in[p].switch_grenade =
                     in[p].melee = in[p].zoom = false;
+                in[p].flashlight = false;
             }
             memset(latch, 0, sizeof(latch));
         }
@@ -1124,6 +1184,9 @@ int main(void) {
             rdpq_clear_z(ZBUF_MAX);
             bg_front_draw(&front, now);
             pump_audio();
+#ifdef BG_FIREFIGHT_QA
+            firefight_menu_photo(screen,&front);
+#endif
 #ifdef BG_FRONTEND_QA
             sys_get_heap_stats(&heap);
             rdpq_set_mode_standard();
@@ -1162,8 +1225,9 @@ int main(void) {
         uint64_t attach_us = get_ticks_us() - profile_start;
         profile_start = get_ticks_us();
 #endif
-        if (views == 3)
-            rdpq_clear(RGBA32(0, 0, 0, 255));
+#ifdef BG_M64_POLISH_QA
+        m64_polish_stage(&views);
+#endif
         bg_scene_prepare(slot, views, game_time);
 #ifdef BG_PROFILE
         prep_us = get_ticks_us() - profile_start;
@@ -1242,11 +1306,14 @@ int main(void) {
 #ifdef BG_PROFILE
         hud_us = get_ticks_us() - hud_begin;
 #endif
+#ifdef BG_M64_POLISH_QA
+        m64_polish_overlay();
+#endif
         rdpq_set_scissor(0, 0, 320, 240);
         if (views > 1)
             fill(0, 119, 320, 2, RGBA32(0, 0, 0, 255));
         if (views >= 3)
-            fill(159, 0, 2, 240, RGBA32(0, 0, 0, 255));
+            fill(159, 0, 2, views==3?120:240, RGBA32(0, 0, 0, 255));
 #ifdef BG_GEOMETRY_CENSUS
         rdpq_set_mode_standard();fill(0,0,320,240,RGBA32(0,0,0,255));
         rdpq_set_mode_standard();
@@ -1380,11 +1447,51 @@ int main(void) {
                          validation_warnings);
 #endif
 #endif
+#ifdef BG_M64_POLISH_QA
+        m64_polish_photo(screen);
+#endif
 #ifdef BG_PROFILE
         overlay_us = get_ticks_us() - profile_start;
         profile_start = get_ticks_us();
 #endif
-#if defined(BG_VI_MEASURE) || defined(BG_PACED30)
+#if defined(BG_PVE_PHOTO_TICK) || defined(BG_SPARTAN_MOTION_QA) || defined(BG_SPARTAN_RELOAD_QA) || defined(BG_PVE_MODEL_QA)
+        /* Frozen QA only: read completed native RDP pixels, without desktop
+         * capture or VI/window scaling. Never compiled into perf/play builds. */
+        rdpq_detach_wait();
+        static unsigned photo_exported;
+        if(photo_exported<
+#ifdef BG_PVE_MODEL_QA
+            BG_PVE_MODEL_QA_FRAMES
+#elif defined(BG_SPARTAN_RELOAD_QA)
+            72
+#elif defined(BG_SPARTAN_MOTION_QA)
+            51
+#else
+            1
+#endif
+        ){
+            assertf(surface_get_format(screen)==FMT_RGBA16&&screen->width==320&&screen->height==240,"Photo format");
+            debugf("FF_PHOTO_BEGIN tick=%u width=320 height=240 format=RGBA5551\n",
+#if defined(BG_SPARTAN_MOTION_QA) || defined(BG_SPARTAN_RELOAD_QA) || defined(BG_PVE_MODEL_QA)
+                   photo_exported
+#else
+                   BG_PVE_PHOTO_TICK
+#endif
+            );
+            photo_exported++;
+            static const char digits[]="0123456789abcdef";
+            for(unsigned first=0;first<320*240;first+=64){
+                char hex[257];
+                for(unsigned j=0;j<64;j++){
+                    unsigned n=first+j;const uint16_t*row=(const uint16_t*)((const uint8_t*)UncachedAddr(screen->buffer)+(n/320)*screen->stride);
+                    unsigned value=row[n%320];for(unsigned k=0;k<4;k++)hex[j*4+k]=digits[(value>>(12-k*4))&15];
+                }
+                hex[256]=0;debugf("FF_PIX %u %s\n",first,hex);
+            }
+            debugf("FF_PHOTO_END\n");
+        }
+        display_show(screen);
+#elif defined(BG_VI_MEASURE) || defined(BG_PACED30)
         frame_present(screen, fmodf(game_time, 75.f) >= 36.f);
 #else
         rdpq_detach_show();
@@ -1488,6 +1595,21 @@ int main(void) {
                    present_us, queue_us, bg_scene_profile.animated_tracks,
                    bg_scene_profile.animated_vertices, frame_average, frame_minimum, frame_p95,
                    frame_maximum, (unsigned)frame_time_count);
+#ifdef BG_PVE
+            debugf("PVE tick=%u count=%u ai_us=%u move_us=%u pve_render_us=%u\n",bg_pve_tick_number,bg_pve_count,(unsigned)bg_pve_ai_us,(unsigned)bg_pve_move_us,bg_pve_animation_us);
+            if(bg_ff.active){
+                unsigned living=0,enemies=0,arriving=0,projectiles=0;
+                for(unsigned h=0;h<views;h++)living+=bg_players[h].health>0;
+                for(unsigned i=0;i<bg_pve_count;i++){enemies+=bg_players[4+i].health>0;arriving+=bg_pve_actors[i].arrival!=0;}
+                for(unsigned i=0;i<BG_MAX_PROJECTILES;i++){const bg_projectile*q=bg_projectile_at(i);projectiles+=q&&q->active;}
+                debugf("FF_STATE phase=%u round=%u wave=%u living=%u enemies=%u arriving=%u ship=%u projectiles=%u lives=%u score=%u\n",bg_ff.phase,bg_ff.round+1,bg_ff.wave+1,living,enemies,arriving,bg_ff_dropship.phase,projectiles,bg_ff.lives,(unsigned)bg_ff.team_score);
+            }
+            debugf("NAV tick=%u us=%u total_us=%u max_us=%u requests=%u ready=%u shared=%u fields=%u evictions=%u searches=%u expanded=%u committed=%u work=%u max_work=%u completed=%u wait_ticks=%u max_wait=%u\n",bg_pve_tick_number,(unsigned)bg_pve_nav_us,bg_pve_navigation.service_us,bg_pve_navigation.max_us,bg_pve_navigation.requests,bg_pve_navigation.ready,bg_pve_navigation.shared,bg_pve_navigation.fields,bg_pve_navigation.evictions,bg_pve_navigation.searches,bg_pve_navigation.expanded,bg_pve_navigation.committed,bg_pve_navigation.work,bg_pve_navigation.max_work,bg_pve_navigation.completed,bg_pve_navigation.wait_ticks,bg_pve_navigation.max_wait);
+            debugf("PVE_PHASE sim=%u prep=%u draw=%u rsp_wait=%u rdp_wait=%u vertices=%u\n",sim_us,prep_us,draw_us,geometry_rsp_us,geometry_rdp_us,bg_scene_profile.submitted_vertices);
+#ifdef BG_PVE_PREP_PROFILE
+            debugf("NPC_PREP visibility_us=%u buffers_us=%u matrices_us=%u motion_us=%u decode_us=%u scatter_us=%u writeback_us=%u grip_us=%u ship_us=%u pose_requests=%u pose_hits=%u shared_poses=%u pair_requests=%u pair_hits=%u dma_bytes=%u\n",bg_pve_prepare_profile.visibility_us,bg_pve_prepare_profile.buffers_us,bg_pve_prepare_profile.matrices_us,bg_pve_prepare_profile.motion_us,bg_pve_prepare_profile.decode_us,bg_pve_prepare_profile.scatter_us,bg_pve_prepare_profile.writeback_us,bg_pve_prepare_profile.grip_us,bg_pve_prepare_profile.ship_us,bg_pve_prepare_profile.pose_requests,bg_pve_prepare_profile.pose_hits,bg_pve_prepare_profile.shared_poses,bg_pve_prepare_profile.pair_requests,bg_pve_prepare_profile.pair_hits,bg_pve_prepare_profile.dma_bytes);
+#endif
+#endif
             debugf("PERF views=%u fps=%u triangles=%u free=%d audio=%d p1=(%.2f %.2f %.2f)\n",
                    views, fps, triangles, heap.total - heap.used, audio_can_write(),
                    bg_players[0].pos[0], bg_players[0].pos[1], bg_players[0].pos[2]);

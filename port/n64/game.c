@@ -1,7 +1,14 @@
+#include "damage_indicator.h"
+#include "damage_flash.h"
 #include "telemetry.h"
+#include "collision_profile.h"
 #include "blam/vehicle_physics.h"
 #include "blam/vehicle_profile.h"
 #include "game.h"
+#include "vehicle_contact.h"
+#ifdef BG_ENEMY_VEHICLES
+#include "vehicle_ai.h"
+#endif
 #include "combat.h"
 #include "camouflage.h"
 #include "pickup_rules.h"
@@ -15,8 +22,10 @@
 #include <math.h>
 #include <string.h>
 #include <float.h>
-#if defined(N64) && defined(BG_PROFILE)
+#if defined(N64) && (defined(BG_PROFILE) || defined(BG_PVE))
 #include <libdragon.h>
+#endif
+#if defined(N64) && defined(BG_PROFILE)
 uint32_t bg_tick_profile[3];
 #endif
 #ifdef BG_BLAM_BSP
@@ -32,7 +41,10 @@ const bg_teleporter bg_teleporters[2] = {
 };
 const unsigned bg_teleporter_count = 2;
 #endif
-bg_player bg_players[BG_PLAYERS];
+#ifdef BG_COLLISION_PROFILE
+bg_collision_profile_data bg_collision_profile;
+#endif
+bg_player bg_players[BG_UNITS];
 static bg_shot_trace sniper_traces[BG_PLAYERS];
 const bg_shot_trace *bg_sniper_trace(unsigned player) {
     return &sniper_traces[player];
@@ -66,10 +78,35 @@ bg_pickup bg_pickups[BG_MAX_PICKUPS];
 bg_event bg_events[BG_MAX_EVENTS];
 unsigned bg_vehicle_count, bg_pickup_count, bg_event_count;
 static unsigned active_players = 4;
+unsigned bg_unit_count(void) {
+#ifdef BG_PVE
+    if(bg_pve_is_active())return BG_PLAYERS+bg_pve_count;
+#endif
+    return active_players;
+}
+#ifdef BG_PVE
+static const bg_pve_definition*pve_definition_for(unsigned kind,unsigned weapon);
+static const bg_pve_definition*pve_definition(unsigned i);
+#ifdef BG_PVE_ROSTER
+#include "pve_roster.h"
+static void pve_say(unsigned i,unsigned speech);
+static const bg_pve_fuel*pve_fuel_for(unsigned kind){return kind==BG_P_GRUNT_FUEL?&bg_pve_grunt_fuel:kind==BG_P_DROPPED_FUEL?&bg_pve_dropped_fuel:&bg_pve_fuel_rod;}
+#else
+static const bg_pve_fuel*pve_fuel_for(unsigned kind){(void)kind;return &bg_pve_fuel_rod;}
+#endif
+static bool pve_needle_impact(bg_projectile*q,int target,int region);
+static void pve_killed(unsigned unit,int owner);
+static void pve_place_human(unsigned player);
+static void pve_damage(unsigned unit,int owner,float amount,bool headshot,unsigned profile,bool behind,int region);
+#endif
 static uint16_t pickup_generation;
 static uint32_t spawn_random = 0x53504157, item_random = 0x4954454d;
 static uint32_t random_state = 0xCE064;
 static float match_time, last_kill_time[BG_PLAYERS];
+static uint32_t simulation_tick;
+#ifdef BG_ENEMY_VEHICLES
+static float pve_vehicle_damage_scale(unsigned profile);
+#endif
 static unsigned kill_chain[BG_PLAYERS], kill_spree[BG_PLAYERS];
 static int match_winner = -1;
 static bg_match_statistics statistics;
@@ -436,7 +473,13 @@ int bg_select_spawn(unsigned player) {
     return selected;
 }
 static void spawn(unsigned player) {
+#ifdef BG_PVE
+    if(bg_ff.active&&!bg_ff_place_human(player)){bg_players[player].respawn=.25f;return;}
+#endif
     int index = bg_select_spawn(player);
+#ifdef BG_PVE
+    if(bg_ff.active)index=0;
+#endif
     bg_player *p = &bg_players[player];
     if (index < 0) {
         p->respawn = 1.f / 30;
@@ -445,6 +488,7 @@ static void spawn(unsigned player) {
     int score = p->score;
     memset(damage_history[player], 0, sizeof(damage_history[player]));
     memset(p, 0, sizeof(*p));
+    p->exit_vehicle = -1;
     p->fire_ticks[0] = p->fire_ticks[1] = 65535;
     p->score = score;
     p->health = 100;
@@ -474,19 +518,35 @@ static void spawn(unsigned player) {
     p->ground_normal[1] = 1;
     p->weapon_ready = bg_ready_times[p->weapon];
     p->cooldown = p->weapon_ready;
+#ifdef BG_PVE
+    if(bg_pve_is_active())pve_place_human(player);
+    if(bg_ff.active)bg_ff.respawn_reserved[player]=false;
+#endif
     event(BG_EVENT_RESPAWN, player, p->weapon, p->pos, 1);
 }
 #include "pickups.inc"
 int bg_add_vehicle(bg_vehicle_kind kind, const float pos[3], float yaw) {
-    if (bg_vehicle_count >= BG_MAX_VEHICLES || kind >= BG_VEHICLE_COUNT)
+    if (kind >= BG_VEHICLE_COUNT)
         return -1;
-    int index = bg_vehicle_count++;
+    int index = -1;
+#ifdef BG_ENEMY_VEHICLES
+    for(unsigned n=0;n<bg_vehicle_count;n++)if(bg_vehicles[n].encounter_owned&&!bg_vehicle_body_present(&bg_vehicles[n])){index=n;break;}
+#endif
+    if(index<0){if(bg_vehicle_count>=BG_MAX_VEHICLES)return -1;index=bg_vehicle_count++;}
     bg_vehicle *v = &bg_vehicles[index];
+    #ifdef BG_ENEMY_VEHICLES
+    /* A reused slot is a new hull: discard only stale attachment/grace handles. */
+    for(unsigned p=0;p<bg_unit_count();p++)if(bg_players[p].exit_vehicle==index)bg_players[p].exit_vehicle=-1;
+    for(unsigned n=0;n<BG_MAX_PROJECTILES;n++){bg_projectile*q=bg_projectile_at(n);if(q&&q->active&&q->attached==BG_UNITS+index){q->attached=-1;memset(q->velocity,0,sizeof(q->velocity));}}
+#endif
     memset(v, 0, sizeof(*v));
     v->kind = kind;
     v->yaw = v->home_yaw = yaw;
     v->active = true;
     v->health = kind == BG_V_SCORPION ? 800 : 400;
+#ifdef BG_ENEMY_VEHICLES
+    if(kind==BG_V_WRAITH)v->health=bg_vehicle_ai_defs[kind].health*(100.f/bg_combat_body_max);
+#endif
     for (int i = 0; i < BG_VEHICLE_SEATS; i++)
         v->occupants[i] = -1;
     memcpy(v->pos, pos, sizeof(v->pos));
@@ -541,6 +601,7 @@ void bg_reset(void) {
     spawn_random = 0x53504157;
     item_random = 0x4954454d;
     match_time = 0;
+    simulation_tick = 0;
     match_winner = -1;
     memset(kill_chain, 0, sizeof(kill_chain));
     memset(kill_spree, 0, sizeof(kill_spree));
@@ -551,8 +612,15 @@ void bg_reset(void) {
     mode_prepare_scenario();
     for (unsigned i = 0; i < active_players; i++)
         spawn(i);
+#ifdef BG_PVE
+    if(bg_ff.active){bg_ff_start_fight(active_players,bg_ff.fight);return;}
+    if(bg_pve_is_active()){bg_pve_start(bg_pve_count);for(unsigned i=0;i<active_players;i++)pve_place_human(i);}
+#endif
 }
 const bg_seat_definition *bg_player_seat(const bg_player *p) {
+#ifdef BG_ENEMY_VEHICLES
+    if(p->pve_height>0&&p->vehicle>=0&&p->seat==0)return &bg_enemy_vehicle_seats[bg_vehicles[p->vehicle].kind];
+#endif
     return p->vehicle >= 0 && (unsigned)p->vehicle < bg_vehicle_count && p->seat >= 0 &&
                    p->seat < bg_seat_counts[bg_vehicles[p->vehicle].kind]
                ? &bg_seat_definitions[bg_vehicles[p->vehicle].kind][p->seat]
@@ -579,6 +647,9 @@ void bg_vehicle_seat_position(const bg_vehicle *v, unsigned seat, bool entry, fl
     if (seat >= bg_seat_counts[v->kind])
         seat = 0;
     const bg_seat_definition *s = &bg_seat_definitions[v->kind][seat];
+#ifdef BG_ENEMY_VEHICLES
+    if(v->occupants[seat]>=BG_PLAYERS)s=&bg_enemy_vehicle_seats[v->kind];
+#endif
     float local[3];
     memcpy(local, entry ? s->entry : s->anchor, sizeof(local));
     if (!entry && v->kind == BG_V_WARTHOG && seat == 1) {
@@ -604,13 +675,25 @@ bool bg_vehicle_exit_position(unsigned player, float out[3]) {
      * wall; a blocked voluntary exit retains its seat reservation. */
     const float alternatives[7][2] = {{0, 0},    {0, .45f}, {0, -.45f}, {.5f, 0},
                                       {-.5f, 0}, {0, .9f},  {0, -.9f}};
-    for (unsigned i = 0; i < 7; i++) {
+    unsigned attempts=7;
+#ifdef BG_ENEMY_VEHICLES
+    if(v->kind==BG_V_WRAITH)attempts=15;
+#endif
+    for (unsigned i = 0; i < attempts; i++) {
         bg_player probe = *p;
         probe.crouch_amount = 0;
         for (unsigned a = 0; a < 3; a++)
             probe.pos[a] = anchor[a] + offset[a];
-        probe.pos[0] += alternatives[i][0] * cosf(v->yaw) + alternatives[i][1] * sinf(v->yaw);
-        probe.pos[2] += -alternatives[i][0] * sinf(v->yaw) + alternatives[i][1] * cosf(v->yaw);
+        float x=i<7?alternatives[i][0]:0,z=i<7?alternatives[i][1]:0;
+#ifdef BG_ENEMY_VEHICLES
+        if(i>=7){const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];unsigned n=i-7;
+            x=(n&2?m->bounds[3]/1024.f+.6f:m->bounds[0]/1024.f-.6f)-s->anchor[0];
+            z=(n&1?m->bounds[5]/1024.f+.6f:m->bounds[2]/1024.f-.6f)-s->anchor[2];
+            if(n>=4){if(n&1)x=-s->anchor[0];else z=-s->anchor[2];}
+        }
+#endif
+        probe.pos[0] += x*cosf(v->yaw)+z*sinf(v->yaw);
+        probe.pos[2] += -x*sinf(v->yaw)+z*cosf(v->yaw);
         float floor = bg_floor(probe.pos[0], probe.pos[2], fmaxf(anchor[1], probe.pos[1]) + .8f);
         if (floor > -999 && probe.pos[1] < floor + .015f)
             probe.pos[1] = floor + .015f;
@@ -697,7 +780,8 @@ static bool eject(unsigned player, bool forced) {
     if (!clear && !forced)
         return false;
     p->exit_vehicle = p->vehicle;
-    p->exit_grace = .3f;
+    p->exit_tick = simulation_tick;
+    p->exit_grace = 3.f;
     const bg_seat_definition *s = bg_player_seat(p);
     float offset[3], velocity[3], anchor[3];
     seat_vector(v, s, s->exit_offset, offset);
@@ -720,6 +804,7 @@ static bool eject(unsigned player, bool forced) {
     p->cooldown = p->weapon_ready;
     p->animation = BG_ANIM_IDLE;
     p->anim_time = 0;
+    p->locomotion_time = 0;
     event(BG_EVENT_EXIT, player, v->kind, p->pos, 1);
     return true;
 }
@@ -755,6 +840,9 @@ static void eject_overturned(unsigned vehicle) {
     }
 }
 static void kill(unsigned victim, int owner) {
+#ifdef BG_PVE
+    if(victim>=BG_PLAYERS){pve_killed(victim,owner);return;}
+#endif
     bg_player *p = &bg_players[victim];
     if (p->health <= 0)
         return;
@@ -781,6 +869,9 @@ static void kill(unsigned victim, int owner) {
     kill_chain[victim] = kill_spree[victim] = 0;
     event(BG_EVENT_DIE, victim, p->weapon, p->pos, 1);
     event(BG_EVENT_KILL, owner, victim, p->pos, 1);
+#ifdef BG_PVE
+    if(bg_ff.active){bg_ff_player_died(victim);return;}
+#endif
     if (owner >= 0 && owner < (int)active_players) {
         bg_player *k = &bg_players[owner];
         if (bg_players_allied(owner,victim)) {
@@ -814,13 +905,30 @@ static void kill(unsigned victim, int owner) {
         }
     }
     mode_killed(victim,owner);
+#ifdef BG_PVE_ROSTER
+    if(owner>=BG_PLAYERS&&owner<(int)bg_unit_count())pve_say(owner-BG_PLAYERS,PVE_V_KILL);
+#endif
 }
-static void damage_player_profile(unsigned victim, int owner, float damage, bool plasma,
+static void damage_player_region(unsigned victim, int owner, float damage, bool plasma,
                                   bool headshot, unsigned profile, bool legs, bool behind,
-                                  float energy) {
+                                  float energy,int region) {
     bg_player *p = &bg_players[victim];
     if (bg_match_finished() || p->health <= 0 || damage <= 0)
         return;
+#ifdef BG_PVE
+    if(owner>=BG_PLAYERS&&owner<(int)bg_unit_count()){
+        if(profile){
+#ifdef BG_ENEMY_VEHICLES
+            if(profile==BG_D_GHOST||profile==BG_D_BANSHEE||profile==BG_D_FUEL_ROD||profile==BG_D_WRAITH||profile==BG_D_SHADE)damage*=pve_vehicle_damage_scale(profile);
+            else
+#endif
+            damage*=pve_definition(owner-BG_PLAYERS)->damage_scale;
+        }
+        if(bg_ff.active)damage*=bg_pve_difficulties[bg_ff.difficulty].damage;
+    }
+    if(bg_ff.active&&owner>=0&&owner<(int)active_players&&victim<active_players&&victim!=(unsigned)owner)return;
+    if(victim>=BG_PLAYERS){pve_damage(victim,owner,damage,headshot,profile,behind,region);return;}
+#endif
     damage*=mode_damage(victim,owner);
     bg_camo_reveal(p); /* Source damage also depowers camouflage. */
     if (p->shield_overcharging &&
@@ -832,7 +940,7 @@ static void damage_player_profile(unsigned victim, int owner, float damage, bool
     }
     if (owner >= 0 && owner < (int)active_players && owner != (int)victim)
         damage_history[victim][owner] += damage * (profile ? 100.f / bg_combat_body_max : 1);
-    float old_shield = p->shield;
+    float old_shield = p->shield, old_health = p->health;
     p->shield_charging = false;
     if (profile && bg_damage_profiles[profile].stun > 0) {
         const bg_damage_profile *d = &bg_damage_profiles[profile];
@@ -861,6 +969,13 @@ static void damage_player_profile(unsigned victim, int owner, float damage, bool
         if (damage > 0)
             p->health = fmaxf(0, p->health - damage);
     }
+    if(p->shield<old_shield || p->health<old_health)bg_damage_flash_start(p,profile,energy);
+    if(owner>=0 && owner<(int)bg_unit_count() && owner!=(int)victim &&
+       (p->shield<old_shield || p->health<old_health)) {
+        const bg_player *attacker=&bg_players[owner];
+        float delta[3]={attacker->pos[0]-p->pos[0],attacker->pos[1]-p->pos[1],attacker->pos[2]-p->pos[2]};
+        bg_damage_indicator_hit(p->damage_indicator,p->yaw,p->pitch,delta);
+    }
     if (p->shield < .0001f)
         p->shield = 0;
     if (old_shield > p->shield) {
@@ -878,6 +993,9 @@ static void damage_player_profile(unsigned victim, int owner, float damage, bool
         kill(victim, owner);
     }
 }
+static void damage_player_profile(unsigned victim,int owner,float damage,bool plasma,bool headshot,unsigned profile,bool legs,bool behind,float energy){
+    damage_player_region(victim,owner,damage,plasma,headshot,profile,legs,behind,energy,0);
+}
 static unsigned weapon_damage(int weapon, bool charged) {
     static const unsigned profiles[BG_WEAPON_COUNT] = {
         BG_D_AR,      BG_D_PISTOL, BG_D_PLASMA_PISTOL, BG_D_PLASMA_RIFLE, BG_D_LEGACY,
@@ -888,6 +1006,9 @@ static void damage_vehicle(unsigned index, int owner, float amount) {
     bg_vehicle *v = &bg_vehicles[index];
     if (bg_match_finished() || !v->active)
         return;
+    #ifdef BG_ENEMY_VEHICLES
+    if(v->kind==BG_V_SHADE)return; /* CE Shade has no destructible body vitality. */
+#endif
     v->health -= amount;
     if (v->health > 0)
         return;
@@ -984,11 +1105,14 @@ static void explode_profile(const float pos[3], int owner, float damage, float r
     if (profile)
         radius = d->cutoff;
     event(BG_EVENT_EXPLOSION, owner,
+          #ifdef BG_ENEMY_VEHICLES
+          profile==BG_D_WRAITH?BG_EXPLOSION_PLASMA:
+#endif
           kind == BG_P_NEEDLE           ? BG_EXPLOSION_NEEDLER
           : kind == BG_P_PLASMA_GRENADE ? BG_EXPLOSION_PLASMA
                                         : BG_EXPLOSION_NORMAL,
           pos, radius);
-    for (unsigned i = 0; i < active_players; i++) {
+    for (unsigned i = 0; i < bg_unit_count(); i++) {
         bg_player *p = &bg_players[i];
         if (p->health <= 0 || ((d->flags & BG_DAMAGE_NO_OWNER) && (int)i == owner))
             continue;
@@ -1008,6 +1132,18 @@ static void explode_profile(const float pos[3], int owner, float damage, float r
                               : 1 - length / radius;
         float amount =
             profile ? bg_combat_amount(d, scale, .5f + .5f * random_signed()) : damage * scale;
+#ifdef BG_PVE
+        if(kind==BG_P_FUEL||kind==BG_P_GRUNT_FUEL||kind==BG_P_DROPPED_FUEL){
+            const bg_pve_fuel*fuel=pve_fuel_for(kind);
+            if((int)i==owner)continue;
+            scale=clamp((radius-length)/fmaxf(.001f,radius-fuel->falloff),0,1);
+            amount=(1-scale)*fuel->minimum+fuel->damage*scale;
+            if(owner>=BG_PLAYERS&&owner<(int)bg_unit_count())amount*=pve_definition(owner-BG_PLAYERS)->damage_scale;
+            unsigned material=i<BG_PLAYERS?(p->shield>0?22:21):(p->shield>0?pve_definition(i-BG_PLAYERS)->shield_material:pve_definition(i-BG_PLAYERS)->body_material);
+            amount*=fuel->material_damage[material];
+            if(i<BG_PLAYERS)amount*=100.f/bg_combat_body_max;
+        }
+#endif
         damage_player_profile(i, owner, amount, false, false, profile, false, false, scale);
         if (p->vehicle < 0) {
             float direction[3];
@@ -1056,7 +1192,7 @@ static void explode(const float pos[3], int owner, float damage, float radius,
 static int target_ray(unsigned owner, const float origin[3], const float dir[3], float *nearest,
                       int *region) {
     int victim = -1;
-    for (unsigned j = 0; j < active_players; j++) {
+    for (unsigned j = 0; j < bg_unit_count(); j++) {
         bg_player *p = &bg_players[j];
         if (j == owner || p->health <= 0)
             continue;
@@ -1105,9 +1241,9 @@ static float hitscan(unsigned owner, const float origin[3], const float directio
                 sub(offset, v->pos, bg_players[owner].pos);
                 behind = dot(offset, facing) > 0;
             }
-            damage_player_profile(victim, owner, damage, false,
-                                  (headshots || profile) && region == 2, profile,
-                                  profile != BG_D_MELEE && region == 0, behind, scale);
+            damage_player_region(victim, owner, damage, false,
+                                  (headshots || profile) && (region&255) == 2, profile,
+                                  profile != BG_D_MELEE && region == 0, behind, scale,region);
         } else
             damage_vehicle_profile(vehicle, owner, damage, profile, material, false);
         return nearest;
@@ -1158,7 +1294,7 @@ bg_aim_target bg_aim_query(unsigned owner) {
                 : 1;
     float origin[3] = {p->pos[0], p->pos[1] + bg_eye_height(p), p->pos[2]};
     float cp = cosf(p->pitch), dir[3] = {cosf(p->yaw) * cp, sinf(p->pitch), -sinf(p->yaw) * cp};
-    for (unsigned j = 0; j < active_players; j++) {
+    for (unsigned j = 0; j < bg_unit_count(); j++) {
         const bg_player *q = &bg_players[j];
         if (bg_players_allied(j, owner) || q->health <= 0 || bg_player_visibility(q) <= 0)
             continue;
@@ -1379,7 +1515,7 @@ static void needle_attach(bg_projectile *q, int target) {
 }
 static void needle_detonate(bg_projectile *q) {
     int target = q->attached;
-    if (target < 0 || target >= BG_PLAYERS || bg_players[target].health <= 0)
+    if (target < 0 || target >= (int)bg_unit_count() || bg_players[target].health <= 0)
         return;
     unsigned count = 0;
     for (unsigned j = 0; j < BG_MAX_PROJECTILES; j++) {
@@ -1407,9 +1543,9 @@ static void needle_detonate(bg_projectile *q) {
         event(BG_EVENT_SUPERCOMBINE, q->owner, BG_W_NEEDLER, center, target);
         explode(center, q->owner, 300, 1, BG_P_NEEDLE);
     } else
-        damage_player_profile(target, q->owner,
+        damage_player_region(target, q->owner,
                               bg_combat_amount(&bg_damage_profiles[BG_D_NEEDLE], 1, .5f), false,
-                              false, BG_D_NEEDLE, false, false, 1);
+                              false, BG_D_NEEDLE, false, false, 1, q->hit_region);
     if (bg_players[target].needles > 0)
         bg_players[target].needles--;
     if (!bg_players[target].needles)
@@ -1470,7 +1606,10 @@ static void update_grenade_motion(bg_projectile *q, const bg_grenade_profile *g,
             material = world_material;
         } else if (target >= 0)
             material = bg_players[target].shield > 0 ? 18 : 17; /* cyborg shield/armor */
-        else if (vehicle >= 0) {
+#ifdef BG_PVE
+        if(target>=BG_PLAYERS){const bg_pve_definition*d=pve_definition(target-BG_PLAYERS);material=bg_players[target].shield>0?d->shield_material:d->body_material;}
+#endif
+        if (vehicle >= 0) {
             static const unsigned hull_types[4] = {7, 6, 8, 9}; /* thick/thin metal, rubber, glass */
             material = hull_types[hull_material < 4 ? hull_material : 0];
         }
@@ -1484,7 +1623,7 @@ static void update_grenade_motion(bg_projectile *q, const bg_grenade_profile *g,
             return;
         remaining -= elapsed;
         if (q->kind == BG_P_PLASMA_GRENADE && (target >= 0 || vehicle >= 0)) {
-            q->attached = target >= 0 ? target : BG_PLAYERS + vehicle;
+            q->attached = target >= 0 ? target : BG_UNITS + vehicle;
             q->countdown = true;
             q->life = g->fuse;
             memset(q->velocity, 0, sizeof(q->velocity));
@@ -1539,14 +1678,14 @@ static void update_projectiles(float dt) {
             q->life -= dt;
         if (q->attached >= 0) {
             bool attached = false;
-            if (q->attached < BG_PLAYERS && bg_players[q->attached].health > 0) {
+            if (q->attached < BG_UNITS && bg_players[q->attached].health > 0) {
                 for (unsigned a = 0; a < 3; a++)
                     q->pos[a] = bg_players[q->attached].pos[a] + q->attached_offset[a];
                 attached = true;
-            } else if (q->attached >= BG_PLAYERS &&
-                       (unsigned)(q->attached - BG_PLAYERS) < bg_vehicle_count &&
-                       bg_vehicles[q->attached - BG_PLAYERS].active) {
-                bg_vehicle_transform(&bg_vehicles[q->attached - BG_PLAYERS], q->attached_offset,
+            } else if (q->attached >= BG_UNITS &&
+                       (unsigned)(q->attached - BG_UNITS) < bg_vehicle_count &&
+                       bg_vehicles[q->attached - BG_UNITS].active) {
+                bg_vehicle_transform(&bg_vehicles[q->attached - BG_UNITS], q->attached_offset,
                                      q->pos);
                 attached = true;
             }
@@ -1557,10 +1696,10 @@ static void update_projectiles(float dt) {
             }
         } else if (q->attached != -2) {
             if (q->tracked >= 0 &&
-                (q->tracked >= (int)active_players || bg_players[q->tracked].health <= 0 ||
+                (q->tracked >= (int)bg_unit_count() || bg_players[q->tracked].health <= 0 ||
                  bg_player_visibility(&bg_players[q->tracked]) <= 0))
                 q->tracked = -1;
-            if (q->kind == BG_P_NEEDLE && q->tracked >= 0 && q->tracked < (int)active_players &&
+            if (q->kind == BG_P_NEEDLE && q->tracked >= 0 && q->tracked < (int)bg_unit_count() &&
                 bg_players[q->tracked].health > 0) {
                 float forward[3], desired[3];
                 memcpy(forward, q->velocity, sizeof(forward));
@@ -1585,6 +1724,9 @@ static void update_projectiles(float dt) {
             if (grenade_kind) {
                 update_grenade_motion(q, g, dt);
             } else {
+#ifdef BG_PVE
+                if(q->kind==BG_P_FUEL||q->kind==BG_P_GRUNT_FUEL)q->velocity[1]-=bg_movement.gravity*pve_fuel_for(q->kind)->gravity*dt;
+#endif
                 if (q->damage_profile >= BG_D_HOG) {
                     const bg_damage_profile *d = &bg_damage_profiles[q->damage_profile];
                     float speed = sqrtf(dot(q->velocity, q->velocity));
@@ -1595,7 +1737,7 @@ static void update_projectiles(float dt) {
                         30 *
                         sqrtf(d->speed_start * d->speed_start +
                               (d->speed_end * d->speed_end - d->speed_start * d->speed_start) * energy);
-                    if (speed > 1e-6f)
+                    if (speed > 1e-6f && (d->gravity==0 || d->speed_start!=d->speed_end))
                         for (unsigned a = 0; a < 3; a++)
                             q->velocity[a] *= desired / speed;
                     q->velocity[1] -= bg_movement.gravity * d->gravity * dt;
@@ -1638,7 +1780,11 @@ static void update_projectiles(float dt) {
                     q->pos[a] += dir[a] * (impact ? fmaxf(0, nearest - .003f) : nearest);
                 if (impact) {
                     if (q->kind == BG_P_NEEDLE && target >= 0) {
-                        needle_attach(q, target);
+#ifdef BG_PVE
+                        if(target>=BG_PLAYERS&&pve_needle_impact(q,target,region)){}
+                        else
+#endif
+                        {needle_attach(q, target);q->hit_region=region;}
                     } else if (q->radius > 0) {
                         explode_profile(q->pos, q->owner, q->damage, q->radius, q->kind,
                                         q->damage_profile);
@@ -1651,9 +1797,9 @@ static void update_projectiles(float dt) {
                                 energy = bg_combat_range_scale(d, q->distance);
                                 amount = bg_combat_amount(d, energy, .5f + .5f * random_signed());
                             }
-                            damage_player_profile(target, q->owner, amount, q->kind == BG_P_PLASMA,
-                                                  q->damage_profile && region == 2, q->damage_profile,
-                                                  region == 0, false, energy);
+                            damage_player_region(target, q->owner, amount, q->kind == BG_P_PLASMA,
+                                                  q->damage_profile && (region&255) == 2, q->damage_profile,
+                                                  region == 0, false, energy,region);
                         }
                         if (vehicle >= 0) {
                             const bg_damage_profile *d = &bg_damage_profiles[q->damage_profile];
@@ -1675,7 +1821,7 @@ static void update_projectiles(float dt) {
                 needle_detonate(q);
             else if (q->radius > 0) {
                 explode_profile(q->pos, q->owner, q->damage, q->radius, q->kind, q->damage_profile);
-                if (q->kind == BG_P_PLASMA_GRENADE && q->attached >= 0 && q->attached < BG_PLAYERS)
+                if (q->kind == BG_P_PLASMA_GRENADE && q->attached >= 0 && q->attached < BG_UNITS)
                     damage_player_profile(q->attached, q->owner,
                                           bg_combat_amount(&bg_damage_profiles[BG_D_STICK], 1, .5f),
                                           false, false, BG_D_STICK, false, false, 1);
@@ -1854,7 +2000,8 @@ static void update_use(unsigned player, bool held, float dt) {
     p->use_time += dt;
     /* Xbox delays weapon swaps only; vehicle actions start on use. The
      * animation bank is streamed during playback, independently of this hold. */
-    if (target.kind != BG_USE_PICKUP || p->use_time + 1e-6f >= BG_USE_HOLD_TICKS / 30.f) {
+    float hold=target.kind==BG_USE_PICKUP?BG_USE_HOLD_TICKS/30.f:0;
+    if (p->use_time + 1e-6f >= hold) {
         p->use_latched = true;
         p->use_time = 0;
         interact(player, target);
@@ -1928,6 +2075,19 @@ static void melee(unsigned index) {
     p->cooldown = p->melee_time;
     event(BG_EVENT_MELEE, index, p->weapon, p->pos, 1);
 }
+#ifdef BG_ENEMY_VEHICLES
+static void vehicle_weapon_origin(const bg_vehicle*v,float origin[3]){
+    float local[3];memcpy(local,bg_vehicle_muzzles[v->kind],12);
+    if(v->kind==BG_V_WRAITH||v->kind==BG_V_SHADE){
+        const bg_hit_mesh*m=&bg_vehicle_hit_meshes[v->kind];const bg_hit_part*part=&m->parts[bg_vehicle_muzzle_parts[v->kind]];
+        float pitch=v->turret_pitch-v->pitch,c=cosf(pitch),s=sinf(pitch),x=local[0]-part->pivot[0],y=local[1]-part->pivot[1];
+        local[0]=part->pivot[0]+c*x-s*y;local[1]=part->pivot[1]+s*x+c*y;
+        const float*pivot=m->parts[m->turret_part].pivot;c=cosf(v->turret_yaw);s=sinf(v->turret_yaw);x=local[0]-pivot[0];float z=local[2]-pivot[2];
+        local[0]=pivot[0]+c*x+s*z;local[2]=pivot[2]-s*x+c*z;
+    }
+    bg_vehicle_transform(v,local,origin);
+}
+#endif
 static void mounted_fire(bg_vehicle *v, unsigned player, unsigned gun, unsigned slot, bool down,
                          float dt) {
     const bg_mounted_profile *m = &bg_mounted_profiles[gun];
@@ -1936,19 +2096,37 @@ static void mounted_fire(bg_vehicle *v, unsigned player, unsigned gun, unsigned 
     if (down && *cooldown <= 1e-6f) {
         float axis[3], dir[3], origin[3];
         aim(&bg_players[player], axis, origin);
+#ifdef BG_ENEMY_VEHICLES
+        if(v->kind==BG_V_GHOST||v->kind==BG_V_BANSHEE||v->kind==BG_V_WRAITH||v->kind==BG_V_SHADE){
+            vehicle_weapon_origin(v,origin);
+            if(player>=BG_PLAYERS&&(bg_vehicle_ai_defs[v->kind].flags&256)){memcpy(axis,v->forward,12);if(!v->physics_valid){axis[0]=cosf(v->yaw);axis[1]=0;axis[2]=-sinf(v->yaw);}}
+        }
+#endif
+        float error=t->cone_min + (t->cone_max - t->cone_min) * v->gun_error[slot];
+#ifdef BG_ENEMY_VEHICLES
+        if(player>=BG_PLAYERS){const bg_vehicle_ai_definition*ai=&bg_vehicle_ai_defs[v->kind];
+            float modifier=bg_pve_actors[player-BG_PLAYERS].vehicle_target_time<ai->new_target_time&&ai->new_target[3]>0?ai->new_target[3]:1;
+            error+=ai->error*modifier*bg_pve_difficulties[bg_ff.active?bg_ff.difficulty:1].error;
+        }
+#endif
         bg_combat_cone(axis, t->cone_inner,
-                       t->cone_min + (t->cone_max - t->cone_min) * v->gun_error[slot],
+                       error,
                        .5f + .5f * random_signed(), .5f + .5f * random_signed(), dir);
-        for (unsigned a = 0; a < 3; a++)
-            origin[a] += axis[a];
+#ifdef BG_ENEMY_VEHICLES
+        if(v->kind==BG_V_WARTHOG||v->kind==BG_V_SCORPION)
+#endif
+        for (unsigned a = 0; a < 3; a++)origin[a] += axis[a];
         const bg_damage_profile *d = &bg_damage_profiles[m->profile];
         if (gun == 0 || gun == 3)
             hitscan(player, origin, dir, d->range, 0, false, m->profile, 1);
         else {
-            bg_projectile *q = projectile(gun == 2 || gun == 5 ? BG_P_CANNON : BG_P_PLASMA, player,
+            bg_projectile *q = projectile(gun == 2 || gun == 5 || gun == 6 ? BG_P_CANNON : BG_P_PLASMA, player,
                                           origin, dir, d->speed_start * 30, d->upper, d->cutoff);
-            if (q)
-                q->damage_profile = m->profile;
+            if (q){q->damage_profile = m->profile;
+#ifdef BG_ENEMY_VEHICLES
+                if(player>=BG_PLAYERS)bg_pve_actors[player-BG_PLAYERS].shots++;
+#endif
+            }
         }
         float rate = t->rate_min + (t->rate_max - t->rate_min) * v->gun_rate[slot];
         *cooldown = m->chamber > 0 ? m->chamber : rate > 0 ? ceilf(30.f / rate) / 30.f : 1.f / 30;
@@ -1964,7 +2142,7 @@ static void mounted_fire(bg_vehicle *v, unsigned player, unsigned gun, unsigned 
     v->gun_error[slot] =
         bg_trigger_step(v->gun_error[slot], (down ? t->error_up : -t->error_down) * dt * 30);
 }
-static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
+static void update_vehicles(const bg_input inputs[BG_UNITS], float dt) {
     bg_vehicle_physics_prepare();
     for (unsigned i = 0; i < bg_vehicle_count; i++) {
         bg_vehicle *v = &bg_vehicles[i];
@@ -1976,6 +2154,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                 bg_vehicle_physics_wreck(i);
                 v->wreck_time = fmaxf(0, v->wreck_time - dt);
             }
+            if(v->encounter_owned)continue;
             v->respawn -= dt;
             if (v->respawn <= 0) {
                 v->active = true;
@@ -1991,14 +2170,21 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
             continue;
         }
         for (int seat = 0; seat < bg_seat_counts[v->kind]; seat++)
-            if (v->occupants[seat] >= (int)active_players)
+            if (v->occupants[seat] >= 0 &&
+                ((unsigned)v->occupants[seat] >= bg_unit_count() ||
+                 (v->occupants[seat] >= (int)active_players && v->occupants[seat] < BG_PLAYERS) ||
+                 bg_players[v->occupants[seat]].health <= 0))
                 eject(v->occupants[seat], true);
         int driver = v->occupants[0];
         const bg_input *in =
             driver >= 0 && bg_players[driver].seat_state == BG_SEAT_STABLE ? &inputs[driver] : NULL;
-        if (v->kind == BG_V_SCORPION || v->kind == BG_V_BANSHEE) {
+        if (v->kind == BG_V_SCORPION || v->kind == BG_V_BANSHEE
+#ifdef BG_ENEMY_VEHICLES
+||v->kind==BG_V_WRAITH
+#endif
+) {
             const bg_player *p = driver >= 0 ? &bg_players[driver] : NULL;
-            float duration = v->kind == BG_V_SCORPION ? 16.f / 30 : 22.f / 30;
+            float duration = v->kind == BG_V_SCORPION ? 16.f / 30 : v->kind==BG_V_BANSHEE ? 22.f / 30 : 20.f / 30;
             v->hatch_closing = p && p->seat_state == BG_SEAT_STABLE;
             v->hatch =
                 !p || p->seat_state == BG_SEAT_ENTERING ? 1 : clamp(p->anim_time / duration, 0, 1);
@@ -2036,10 +2222,10 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
         }
         float hull_speed = sqrtf(dot(v->velocity, v->velocity));
         BG_VP_BEGIN;
-        for (unsigned j = 0; j < active_players; j++) {
+        for (unsigned j = 0; j < bg_unit_count(); j++) {
+            if (j >= active_players && j < BG_PLAYERS) continue;
             bg_player *p = &bg_players[j];
-            if (p->health <= 0 || p->vehicle >= 0 || p->support_vehicle == i + 1 ||
-                (p->exit_grace > 0 && p->exit_vehicle == (int)i))
+            if (p->health <= 0 || p->vehicle >= 0 || p->support_vehicle == i + 1)
                 continue;
             float relative[3];
             sub(relative, v->velocity, p->velocity);
@@ -2048,7 +2234,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                 continue;
             /* Sweep the authored hull, not an origin-centered kill sphere.
              * Up to eight substeps cover fast lateral/falling impacts. */
-            unsigned steps = (unsigned)ceilf(hull_speed * dt / (bg_movement.radius * .5f));
+            unsigned steps = (unsigned)ceilf(hull_speed * dt / (bg_body_radius(p) * .5f));
             if (steps < 1)
                 steps = 1;
             if (steps > 8)
@@ -2059,7 +2245,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                     probe.pos[a] = previous_pos[a] + (v->pos[a] - previous_pos[a]) * step / steps;
                 if (bg_vehicle_contacts_player(&probe, p)) {
                     /* physics_compute_biped_collision, converted from per-tick
-                     * units, including biped_accelerate's live-player halving. */
+                     * units, including biped_accelerate's live-biped halving. */
                     float direction[3];
                     sub(direction, p->pos, v->pos);
                     direction[1] += bg_body_height(p) * .5f;
@@ -2076,9 +2262,9 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                     p->grounded = false;
                     bg_player displaced = *p;
                     for (unsigned a = 0; a < 3; a++)
-                        /* collision_fix_pill uses the unhalved impulse;
-                         * biped_accelerate halves only the velocity kick. */
-                        displaced.pos[a] += acceleration[a] * (4.f / 30);
+                        /* biped_accelerate mutates the caller's acceleration;
+                         * collision_fix_pill therefore uses that halved value. */
+                        displaced.pos[a] += acceleration[a] * (2.f / 30);
                     bool clear = bg_terrain_clearance(&displaced) &&
                                  !bg_vehicle_contacts_player(v, &displaced);
                     for (unsigned attempt = 0; !clear && attempt < 4; attempt++) {
@@ -2098,15 +2284,21 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                         memcpy(p->pos, displaced.pos, 12);
                     /* A bounded demake clearance failure can be a seam or
                      * shallow resting overlap, not proof of lethal crushing.
-                     * Retain CE's 2 / 1 units-per-second impact thresholds. */
-                    if (hull_speed > 2 || speed > 1) {
+                     * Test CE's native thresholds after the velocity kick. */
+                    if (bg_vehicle_contact_damage(v->velocity,p->velocity,
+                            p->exit_vehicle==(int)i,simulation_tick-p->exit_tick)) {
                         damage_player_profile(
                             j, driver,
                             bg_combat_amount(&bg_damage_profiles[BG_D_COLLISION], 1, .5f), false,
                             false, BG_D_COLLISION, false, false, 1);
                         damage_vehicle_profile(
                             i, j,
-                            bg_combat_amount(&bg_damage_profiles[BG_D_VEHICLE_KILL], .25f, .5f),
+                            bg_combat_amount(&bg_damage_profiles[BG_D_VEHICLE_KILL], 1, .5f)*
+#ifdef BG_PVE
+                            (j>=BG_PLAYERS&&bg_pve_actors[j-BG_PLAYERS].kind==BG_PVE_HUNTER?1.f:.25f),
+#else
+                            .25f,
+#endif
                             BG_D_VEHICLE_KILL, 0, true);
                     }
                     break;
@@ -2121,7 +2313,11 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                     v->turret_yaw = p->yaw - v->yaw;
                 bg_vehicle_seat_position(v, seat, false, p->pos);
                 if ((v->kind == BG_V_SCORPION && seat == 0) ||
-                    (v->kind == BG_V_WARTHOG && seat == 1)) {
+                    (v->kind == BG_V_WARTHOG && seat == 1)
+#ifdef BG_ENEMY_VEHICLES
+                    || v->kind==BG_V_WRAITH || v->kind==BG_V_SHADE
+#endif
+                   ) {
                     v->turret_yaw = p->yaw - v->yaw;
                     v->turret_pitch = p->pitch;
                 }
@@ -2133,7 +2329,7 @@ static void update_vehicles(const bg_input inputs[BG_PLAYERS], float dt) {
                                                         (v->kind != BG_V_WARTHOG && seat == 0));
                 const bg_input *control = &inputs[v->occupants[seat]];
                 if (mounted) {
-                    static const unsigned primary[4] = {0, 1, 2, 4};
+                    static const unsigned primary[] = {0, 1, 2, 4, 6, 7};
                     mounted_fire(v, v->occupants[seat], primary[v->kind], 0, control->fire, dt);
                     if (v->kind == BG_V_SCORPION || v->kind == BG_V_BANSHEE)
                         mounted_fire(v, v->occupants[seat], v->kind == BG_V_SCORPION ? 3 : 5, 1,
@@ -2252,6 +2448,8 @@ static void tick_player_timers(unsigned player_index, float dt) {
     player->cooldown = fmaxf(0, player->cooldown - dt);
     player->flash = fmaxf(0, player->flash - dt);
     player->hurt = fmaxf(0, player->hurt - dt);
+    player->damage_flash_time=fmaxf(0,player->damage_flash_time-dt);
+    for(unsigned d=0;d<4;d++)player->damage_indicator[d]=fmaxf(0,player->damage_indicator[d]-dt);
     player->shield_hit = fmaxf(0, player->shield_hit - dt * .5f);
     player->shield_break = fmaxf(0, player->shield_break - dt);
     player->airborne_time = player->grounded ? 0 : player->airborne_time + dt;
@@ -2264,6 +2462,7 @@ static void tick_player_timers(unsigned player_index, float dt) {
     bg_camo_tick(player, dt);
     player->teleport_cooldown = fmaxf(0, player->teleport_cooldown - dt);
     player->anim_time += dt;
+    player->locomotion_time += dt;
     player->weapon_ready = fmaxf(0, player->weapon_ready - dt);
     player->seat_blend = fmaxf(0, player->seat_blend - dt);
     if (player->seat_state != BG_SEAT_STABLE) {
@@ -2283,6 +2482,7 @@ static void tick_player_timers(unsigned player_index, float dt) {
 }
 static void tick_player_resources(unsigned player_index, const bg_input *input, float dt) {
     bg_player *player = &bg_players[player_index];
+    if(input->flashlight)player->flashlight_on=!player->flashlight_on;
     bool was_charging = player->shield_charging;
     player->shield_charging = false;
     if (player->shield_overcharging) {
@@ -2486,12 +2686,12 @@ static void tick_player_weapons(unsigned player_index, const bg_input *input, fl
     }
 }
 static void resolve_player_pairs(void) {
-    for (unsigned a = 0; a < active_players; a++)
-        for (unsigned b = a + 1; b < active_players; b++) {
+    for (unsigned a = 0; a < bg_unit_count(); a++)
+        for (unsigned b = a + 1; b < bg_unit_count(); b++) {
             bg_player *p = &bg_players[a], *q = &bg_players[b];
             if (p->health <= 0 || q->health <= 0 || p->vehicle >= 0 || q->vehicle >= 0)
                 continue;
-            float r = bg_movement.radius, dx = p->pos[0] - q->pos[0], dz = p->pos[2] - q->pos[2];
+            float r = (bg_body_radius(p)+bg_body_radius(q))*.5f, dx = p->pos[0] - q->pos[0], dz = p->pos[2] - q->pos[2];
             float bottom = fmaxf(p->pos[1] + r, q->pos[1] + r),
                   top = fminf(p->pos[1] + bg_body_height(p) - r, q->pos[1] + bg_body_height(q) - r);
             float dy = fmaxf(0, bottom - top), distance = sqrtf(dx * dx + dy * dy + dz * dz);
@@ -2544,14 +2744,24 @@ static void resolve_player_pairs(void) {
             q->vy = q->velocity[1];
         }
 }
+#ifdef BG_PVE
+#include "pve_game.inc"
+#include "firefight_game.inc"
+#endif
 void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     dt = clamp(dt, 0, 1.0f / 30);
     if (dt <= 0 || bg_match_finished())
         return;
+    uint32_t collision_begin=BG_COLLISION_NOW(),collision_section=collision_begin;
     match_time += dt;
+    simulation_tick++;
 #if defined(N64) && defined(BG_PROFILE)
     uint32_t tick_begin = get_ticks_us();
 #endif
+#ifdef BG_PVE
+    bg_ff_tick(dt);
+#endif
+    BG_COLLISION_COUNT(director_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
     update_pickups(dt);
     for (unsigned i = 0; i < active_players; i++) {
         bg_player *p = &bg_players[i];
@@ -2581,17 +2791,49 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
         bg_tick_profile[0] += get_ticks_us() - tick_begin;
         tick_begin = get_ticks_us();
 #endif
-        update_vehicles(inputs, dt);
+        BG_COLLISION_COUNT(humans_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
+    #ifdef BG_ENEMY_VEHICLES
+    bg_input unit_inputs[BG_UNITS]={0};
+    memcpy(unit_inputs,inputs,BG_PLAYERS*sizeof(bg_input));
+    uint32_t vehicle_ai_begin=BG_COLLISION_NOW();pve_vehicle_inputs(unit_inputs,dt);
+    BG_COLLISION_COUNT(vehicle_ai_us,BG_COLLISION_NOW()-vehicle_ai_begin);(void)vehicle_ai_begin;collision_section=BG_COLLISION_NOW();
+    update_vehicles(unit_inputs,dt);
+#else
+    update_vehicles(inputs, dt);
+#endif
+        BG_COLLISION_COUNT(vehicles_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
 #if defined(N64) && defined(BG_PROFILE)
         bg_tick_profile[1] += get_ticks_us() - tick_begin;
         tick_begin = get_ticks_us();
 #endif
+#ifdef BG_PVE
+        bg_pve_tick(dt);
+#endif
+        BG_COLLISION_COUNT(actors_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
         update_projectiles(dt);
+        BG_COLLISION_COUNT(projectiles_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
         mode_tick(dt);
+#ifdef BG_PVE
+        bg_ff_after_tick(dt);
+#endif
 #if defined(N64) && defined(BG_PROFILE)
         bg_tick_profile[2] += get_ticks_us() - tick_begin;
 #endif
     }
     /* game_time_update increments its tick counter after game_tick returns. */
     mode_advance_spawn_clock(dt);
+    BG_COLLISION_COUNT(after_us,BG_COLLISION_NOW()-collision_section);
+#if defined(BG_COLLISION_PROFILE) && defined(N64) && defined(BG_PVE)
+    uint32_t elapsed=BG_COLLISION_NOW()-collision_begin;
+    bg_collision_profile.tick_us+=elapsed;
+    if(elapsed>bg_collision_profile.max_tick_us)bg_collision_profile.max_tick_us=elapsed;
+    if(++bg_collision_profile.ticks==30){
+        debugf("COLLISION tick=%u ticks=%u tick_us=%u max_tick_us=%u director_us=%u humans_us=%u vehicle_ai_us=%u vehicles_us=%u actors_us=%u projectiles_us=%u after_us=%u terrain_us=%u terrain_queries=%u terrain_hits=%u terrain_misses=%u terrain_overflows=%u terrain_actor_overflows=%u terrain_candidates=%u hit_us=%u hit_queries=%u hit_pose_builds=%u hit_available=%u hit_triangles=%u hit_groups=%u hit_rejected=%u hit_root_rejected=%u\n",bg_pve_tick_number,bg_collision_profile.ticks,bg_collision_profile.tick_us,bg_collision_profile.max_tick_us,bg_collision_profile.director_us,bg_collision_profile.humans_us,bg_collision_profile.vehicle_ai_us,bg_collision_profile.vehicles_us,bg_collision_profile.actors_us,bg_collision_profile.projectiles_us,bg_collision_profile.after_us,bg_collision_profile.terrain_us,bg_collision_profile.terrain_queries,bg_collision_profile.terrain_hits,bg_collision_profile.terrain_misses,bg_collision_profile.terrain_overflows,bg_collision_profile.terrain_actor_overflows,bg_collision_profile.terrain_candidates,bg_collision_profile.hit_us,bg_collision_profile.hit_queries,bg_collision_profile.hit_pose_builds,bg_collision_profile.hit_available,bg_collision_profile.hit_triangles,bg_collision_profile.hit_groups,bg_collision_profile.hit_rejected,bg_collision_profile.hit_root_rejected);
+        #ifdef BG_ENEMY_VEHICLES
+        for(unsigned n=0;n<bg_pve_count;n++)if(bg_pve_actors[n].occupied&&bg_players[4+n].vehicle>=0){bg_vehicle*v=&bg_vehicles[bg_players[4+n].vehicle];debugf("ENEMY_VEHICLE tick=%u actor=%u kind=%d shots=%u pos=%.3f,%.3f,%.3f health=%.2f\n",bg_pve_tick_number,n,v->kind,bg_pve_actors[n].shots,v->pos[0],v->pos[1],v->pos[2],v->health);}
+#endif
+        memset(&bg_collision_profile,0,sizeof(bg_collision_profile));
+    }
+#endif
+    (void)collision_begin;(void)collision_section;
 }

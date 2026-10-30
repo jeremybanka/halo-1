@@ -1,10 +1,11 @@
 #ifndef BG_VIEW_CAMERA_H
 #define BG_VIEW_CAMERA_H
+#include "vehicle_kinds.h"
 #include <math.h>
 #include <stdbool.h>
 typedef struct { const float (*points)[3]; unsigned count; float origin[3]; } bg_camera_track;
 #define BG_CAMERA_NORMALIZE_SUM 1024.f
-extern const bg_camera_track bg_camera_tracks[4][5];
+extern const bg_camera_track bg_camera_tracks[BG_VEHICLE_COUNT][5];
 /* following_camera.c:camera_track_splut + real_math.h:uniform_cubic_spline.
  * Points are still in Xbox forward/left/up coordinates, in world units. */
 static inline void bg_camera_track_sample(const bg_camera_track*track,float pitch,float out[3]){
@@ -33,10 +34,8 @@ static inline void bg_camera_depth(bool scoped,float*near,float*far){
     /* 1/8 Halo unit stays inside the on-foot collision radius, while
      * retaining enough RDP depth precision for wall-attached details.
      * First-person arms keep their separate .125 render-unit projection. */
-    /* Scoped cameras have no foreground weapon and resolve thin distant
-     * surfaces at large magnification. A one-unit near plane gives their
-     * depth differences eight times the precision of the unscoped camera.
-     * Keep unscoped close geometry and W/viewport normalization unchanged. */
+    /* The scoped precision default is only used when the near-field probe
+     * is empty. Nearby world/actor geometry selects the ordinary 4-unit plane. */
     *near=scoped?32.f:4.f;*far=scoped?12400.f:6200.f;
 }
 #endif

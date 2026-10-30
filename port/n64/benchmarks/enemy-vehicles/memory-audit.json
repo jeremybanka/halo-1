@@ -1,0 +1,84 @@
+{
+  "before": {
+    "elf_sha256": "f9e6b04d22325143bb4a830962220ec15adcfcd0fd182d600a189903300a0133",
+    "sections": {
+      "text": 3644604,
+      "data": 694808,
+      "bss": 1439688
+    },
+    "symbols": {
+      "bg_pve_nav_heights": {
+        "bytes": 133128,
+        "type": "R"
+      },
+      "bg_pve_nav_layers": {
+        "bytes": 33282,
+        "type": "R"
+      },
+      "bg_pve_nav_links": {
+        "bytes": 33282,
+        "type": "R"
+      },
+      "pve_decoded": {
+        "bytes": 65536,
+        "type": "b"
+      },
+      "pve_motion_cache": {
+        "bytes": 197008,
+        "type": "b"
+      },
+      "pve_nav_edges": {
+        "bytes": 33282,
+        "type": "b"
+      },
+      "pve_nav_height": {
+        "bytes": 133128,
+        "type": "b"
+      },
+      "pve_nav_layers": {
+        "bytes": 33282,
+        "type": "b"
+      },
+      "pve_route_fields": {
+        "bytes": 262336,
+        "type": "b"
+      }
+    }
+  },
+  "after": {
+    "elf_sha256": "9cf47cbfb4cf1ff2e16b720ec39c7408caffdfe0200cdc67017306afc28e955c",
+    "sections": {
+      "text": 3644860,
+      "data": 694824,
+      "bss": 715120
+    },
+    "symbols": {
+      "bg_pve_nav_heights": {
+        "bytes": 133128,
+        "type": "R"
+      },
+      "bg_pve_nav_layers": {
+        "bytes": 33282,
+        "type": "R"
+      },
+      "bg_pve_nav_links": {
+        "bytes": 33282,
+        "type": "R"
+      },
+      "pve_decoded": {
+        "bytes": 4,
+        "type": "b"
+      },
+      "pve_motion_cache": {
+        "bytes": 4,
+        "type": "b"
+      },
+      "pve_route_fields": {
+        "bytes": 4,
+        "type": "b"
+      }
+    }
+  },
+  "bss_bytes_removed": 724568,
+  "note": "Matched uncapped 4P stress builds. HUD adds a source reticle; animation scratch and goal fields move from permanent BSS to PvE lifetime allocations. The 199692-byte immutable navigation duplicate is eliminated, saving that memory even during PvE. This is not a claim that all removed BSS remains free during Firefight."
+}

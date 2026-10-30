@@ -1,14 +1,26 @@
 #ifndef BG_RUNTIME_CONFIG_H
 #define BG_RUNTIME_CONFIG_H
-#if defined(BG_GPU_EMPTY_SCISSOR) && (!defined(BG_GPU_DIAGNOSTIC) || !defined(BG_BENCHMARK))
+#if defined(BG_VEHICLE_DISTANCE_LODS) && !defined(BG_ENEMY_VEHICLES)
+#error "Distance vehicle assets require the enemy vehicle bank"
+#endif
+#if defined(BG_VEHICLE_LOD_QA) && !defined(BG_ENEMY_VEHICLE_QA)
+#error "Distance vehicle photos require the vehicle inspection configuration"
+#endif
+#if defined(BG_GPU_EMPTY_SCISSOR) && (!defined(BG_GPU_DIAGNOSTIC) || (!defined(BG_BENCHMARK) && !defined(BG_PVE_DRAW_AUDIT) && !(defined(BG_VEHICLE_COST_AUDIT) && defined(BG_PVE_PHOTO_TICK))))
 #error "Empty-scissor control is restricted to serialized benchmark diagnostics"
+#endif
+#if defined(BG_VEHICLE_COST_AUDIT) && (!defined(BG_PROFILE) || !defined(BG_COLLISION_PROFILE) || !defined(BG_ENEMY_VEHICLES) || !defined(BG_PVE))
+#error "Vehicle cost audit requires enemy-vehicle PvE profiling"
+#endif
+#if defined(BG_PVE_DRAW_AUDIT) && (!defined(BG_PROFILE) || !defined(BG_PVE_PHOTO_TICK) || !defined(BG_PVE) || BG_PVE_PLAYERS != 4)
+#error "Drawing audit requires frozen four-camera PvE profiling"
 #endif
 #if defined(BG_GPU_MINIMAL_ATTRIBUTES) && !defined(BG_GPU_EMPTY_SCISSOR)
 #error "Minimal-attribute control requires empty scissoring"
 #endif
 #if !defined(BG_RELOAD_QA) && !defined(BG_COMBAT_QA) && !defined(BG_MOVEMENT_QA) &&                \
     !defined(BG_DESTRUCTION_QA) && !defined(BG_EFFECTS_QA) && !defined(BG_DEMO) &&                 \
-    !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA)
+    !defined(BG_SHOWCASE) && !defined(BG_SNAPSHOT_TICK) && !defined(BG_MENU_QA) && (!defined(BG_PVE) || defined(BG_FIREFIGHT))
 #define BG_FRONTEND
 #endif
 #ifndef BG_PACED30_BUFFERS

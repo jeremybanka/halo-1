@@ -1,0 +1,196 @@
+{
+  "schema": 1,
+  "models": {
+    "model_warthog": {
+      "triangles": 318,
+      "packed_vertices": 298,
+      "vertex_loads": 298,
+      "batches": 10
+    },
+    "model_ghost": {
+      "triangles": 242,
+      "packed_vertices": 244,
+      "vertex_loads": 244,
+      "batches": 7
+    },
+    "model_scorpion": {
+      "triangles": 388,
+      "packed_vertices": 450,
+      "vertex_loads": 450,
+      "batches": 12
+    },
+    "model_banshee": {
+      "triangles": 352,
+      "packed_vertices": 256,
+      "vertex_loads": 256,
+      "batches": 10
+    },
+    "model_spartan": {
+      "triangles": 328,
+      "packed_vertices": 562,
+      "vertex_loads": 562,
+      "batches": 10
+    },
+    "model_warthog_lod": {
+      "triangles": 152,
+      "packed_vertices": 170,
+      "vertex_loads": 170,
+      "batches": 4
+    },
+    "model_ghost_lod": {
+      "triangles": 134,
+      "packed_vertices": 142,
+      "vertex_loads": 142,
+      "batches": 4
+    },
+    "model_scorpion_lod": {
+      "triangles": 210,
+      "packed_vertices": 282,
+      "vertex_loads": 282,
+      "batches": 6
+    },
+    "model_banshee_lod": {
+      "triangles": 198,
+      "packed_vertices": 142,
+      "vertex_loads": 142,
+      "batches": 5
+    },
+    "model_spartan_lod": {
+      "triangles": 135,
+      "packed_vertices": 250,
+      "vertex_loads": 250,
+      "batches": 5
+    },
+    "pve_grunt_0": {
+      "triangles": 730,
+      "packed_vertices": 1516,
+      "vertex_loads": 1516,
+      "batches": 26
+    },
+    "pve_grunt_1": {
+      "triangles": 342,
+      "packed_vertices": 784,
+      "vertex_loads": 784,
+      "batches": 14
+    },
+    "pve_elite_0": {
+      "triangles": 572,
+      "packed_vertices": 1224,
+      "vertex_loads": 1224,
+      "batches": 21
+    },
+    "pve_elite_1": {
+      "triangles": 368,
+      "packed_vertices": 776,
+      "vertex_loads": 776,
+      "batches": 14
+    },
+    "pve_jackal_0": {
+      "triangles": 757,
+      "packed_vertices": 1526,
+      "vertex_loads": 1526,
+      "batches": 26
+    },
+    "pve_jackal_1": {
+      "triangles": 449,
+      "packed_vertices": 946,
+      "vertex_loads": 946,
+      "batches": 16
+    },
+    "pve_hunter_0": {
+      "triangles": 2006,
+      "packed_vertices": 3378,
+      "vertex_loads": 3378,
+      "batches": 58
+    },
+    "pve_spirit_0": {
+      "triangles": 2956,
+      "packed_vertices": 4228,
+      "vertex_loads": 4228,
+      "batches": 77
+    },
+    "micro_warthog": {
+      "triangles": 72,
+      "packed_vertices": 98,
+      "vertex_loads": 98,
+      "batches": 2
+    },
+    "micro_ghost": {
+      "triangles": 64,
+      "packed_vertices": 76,
+      "vertex_loads": 76,
+      "batches": 2
+    },
+    "micro_banshee": {
+      "triangles": 64,
+      "packed_vertices": 42,
+      "vertex_loads": 42,
+      "batches": 2
+    }
+  },
+  "hit_mesh_triangles": {
+    "grunt": 158,
+    "elite": 228,
+    "jackal": 420,
+    "hunter": 502
+  },
+  "source_function_checks": [
+    {
+      "function": "grunt_decide_action",
+      "source": "source/ai/actor_type_grunt.c",
+      "body_sha256": "ec110a699693d4b2201d53c06cf1adbdc0f820e9b26f523f15c295123d9edb04",
+      "identical": true
+    },
+    {
+      "function": "elite_decide_action",
+      "source": "source/ai/actor_type_elite.c",
+      "body_sha256": "8a462d523319bdb6a2e690730472bc7f9088ff1a5bfb4282591d2e6b87f4ff53",
+      "identical": true
+    },
+    {
+      "function": "jackal_decide_action",
+      "source": "source/ai/actor_type_jackal.c",
+      "body_sha256": "8c30c4f3f3213805e4af98a1de4822b178f3993205199c802ebcaa25bd3c887a",
+      "identical": true
+    },
+    {
+      "function": "hunter_decide_action",
+      "source": "source/ai/actor_type_hunter.c",
+      "body_sha256": "6764cbd8f90b07553f49f3a6c25e6a78aed5fa9898597f50cc99a9f0f639592d",
+      "identical": true
+    },
+    {
+      "function": "actor_action_handle_panic_transition",
+      "source": "source/ai/actions.c",
+      "body_sha256": "dae9f57fe6106fa8bbc4d78be11005572be6549503a5f8ad77b9ab879e72a000",
+      "identical": true
+    },
+    {
+      "function": "actor_action_consider_grenade",
+      "source": "source/ai/actions.c",
+      "body_sha256": "610c90b0ae60fe6d9c8db2f54698d14e786caa87230735e04f1936243decdcca",
+      "identical": true
+    },
+    {
+      "function": "actor_action_handle_grenade_throwing",
+      "source": "source/ai/actions.c",
+      "body_sha256": "00bcc714f68f74304d9293d5b945e59e8e1aa63a9c6fc86fd98f2f7b4c92a8aa",
+      "identical": true
+    }
+  ],
+  "inputs": {
+    "halo64-assets/generated/models_data.c": "a09be98ffc1542556ef83cbd3e97a559e1bc4d7a1958842562f8a948981a3d5f",
+    "halo64-assets/generated/pve/pve_data.c": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+    "halo64-assets/generated/micro_data.c": "962f94ee861aa55419a5d6d21f6c31c671d9ed49aea37a8c6f2deb4894d9b632",
+    "halo64-assets/generated/pve/pve_source_decisions.inc": "d638dc749acc61aca6b877741398281c245fc93dfbb309e3b634fd69d4bf3928",
+    "halo64-assets/generated/pve/pve_collision.c": "aa320b519215e8f4e6a7592c1e0ed27732c359ab582946cb0d3ac9bbaa0f2a5b",
+    "halo64-assets/generated/pve/pve_nav.c": "00b355e1c40e2b3d43f18d687b7ef07f12f97edfdc64011a59c2150ca5d137eb"
+  },
+  "nav_valid_height_nodes": 7016,
+  "nav_addressable_nodes": 33282,
+  "notes": [
+    "Loads sum (batch.count+1)&~1, matching scene.c model_load_count. Packed vertices are not unique geometric points.",
+    "Body only: guns, first-person arms, projectiles, shield effects and riders excluded; Jackal shield mesh is included.",
+    "Hunter and Spirit far entries alias their near model. Vehicles also have smaller micro LODs; visible articulated near parts may be culled independently."
+  ]
+}

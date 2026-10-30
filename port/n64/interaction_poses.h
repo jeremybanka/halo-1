@@ -2,6 +2,7 @@
 #define BG_INTERACTION_POSES_H
 #include <stdint.h>
 #include "render_bounds.h"
+#include "player_animation.h"
 /* Frames are read from DragonFS, never copied wholesale into RDRAM. Each
  * frame is padded to 16 bytes and contains big-endian XYZ int16 positions. */
 typedef struct {
@@ -11,6 +12,14 @@ typedef struct {
     bg_bounds bounds;
 } bg_rom_pose;
 extern const bg_rom_pose bg_locomotion_poses[6][2], bg_locomotion_grips[6];
+/* Source recoil composed with each base skeleton before skinning. First axis:
+ * standing idle/run, crouched idle/run. Each recoil sample is a looping base
+ * cycle, allowing gait and shot time to advance independently. */
+extern const bg_rom_pose bg_body_fire_poses[4][BG_BODY_FIRE_FRAMES][2];
+extern const bg_rom_pose bg_body_fire_grips[4][BG_BODY_FIRE_FRAMES];
+/* Source masked replacement over independently advancing gait; no runtime skinning. */
+extern const bg_rom_pose bg_body_reload_poses[4][BG_BODY_RELOAD_FRAMES][2];
+extern const bg_rom_pose bg_body_reload_grips[4][BG_BODY_RELOAD_FRAMES];
 extern const bg_rom_pose bg_seat_poses[][3][2];
 extern const bg_rom_pose bg_body_ready_poses[2], bg_body_ready_grip;
 extern const bg_rom_pose bg_seat_grips[], bg_hatch_poses[2][2];

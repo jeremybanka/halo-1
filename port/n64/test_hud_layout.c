@@ -1,4 +1,5 @@
 #include "hud_layout.h"
+#include "view_layout.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -10,6 +11,7 @@
 static void source_reference(unsigned views,unsigned player,float *x,float *y,
     float *projection_x,float *projection_y)
 {
+    if(views==3&&player==2){views=2;player=1;}
     int columns=1,rows=1;
     while((unsigned)(columns*rows)<views){
         if(columns<rows)columns++;
@@ -39,13 +41,13 @@ int main(void)
 {
     const unsigned layouts[]={1,2,3,4};
     const float expected[4][4][2]={{{160,120}},{{159,68},{159,172}},
-        {{91,68},{229,68},{91,172}},
+        {{91,68},{229,68},{159,172}},
         {{91,68},{229,68},{91,172},{229,172}}};
     unsigned projected=0;
     for(unsigned l=0;l<4;l++)for(unsigned p=0;p<layouts[l];p++){
-        unsigned views=layouts[l],columns=views>=3?2:1;
-        float width=views>=3?160:320,height=views==1?240:120;
-        float x=(p%columns)*width,y=(p/columns)*height,cx,cy,rx,ry,px,py;
+        unsigned views=layouts[l];
+        bg_view_rect rect=bg_view_area(views,p);
+        float width=rect.w,height=rect.h,x=rect.x,y=rect.y,cx,cy,rx,ry,px,py;
         source_reference(views,p,&rx,&ry,&px,&py);
         bg_hud_aim_point(views,p,x,y,width,height,&cx,&cy);
         assert(fabsf(cx-expected[l][p][0])<.0001f);

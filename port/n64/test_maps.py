@@ -11,12 +11,12 @@ from asset_ids import map_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
-def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False,target_math=False):
+def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False,target_math=False,pve=False,with_pve=False,firefight=False,navigation=False,spartan_motion=False,collision=False,roster=False,enemy_vehicles=False):
     output = output.resolve(); output.mkdir(parents=True, exist_ok=True)
     solver = output/'solver'; solver.mkdir(exist_ok=True)
     for script in ('prepare_vehicle.py','export_vehicle.py'):
         args=[str(ROOT/'port/n64/blam'/script),'--output',str(solver)]
-        if script=='export_vehicle.py':args += ['--rom-files',str(solver)]
+        if script=='export_vehicle.py':args += ['--rom-files',str(solver)]+(['--enemy-vehicles'] if enemy_vehicles else [])
         subprocess.run([str(ROOT/'build/n64-python/bin/python'),*args],cwd=ROOT,check=True)
     flags=['-std=c17','-O1','-g','-Wall','-Wextra','-Werror','-Wno-multichar',
            '-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
@@ -42,6 +42,34 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
         if target_math:
             # VR4300 has no fused multiply-add; disable host contraction too.
             flags+=['-ffast-math','-ftrapping-math','-fno-associative-math','-ffp-contract=off','-Wno-overriding-option']
+    if pve:
+        flags += ["-DBG_PVE","-DBG_PVE_QA=2","-DBG_PVE_NAV_BUILD","-Ihalo64-assets/generated/pve"]
+        sources[0]="port/n64/test_pve.c";sources.remove("port/n64/game.c")
+        sources += ["halo64-assets/generated/pve/pve_defs.c","halo64-assets/generated/pve/pve_collision.c"]
+    if with_pve and not pve:
+        flags += ["-DBG_PVE","-DBG_PVE_QA=0","-Ihalo64-assets/generated/pve"]
+        sources += ["halo64-assets/generated/pve/pve_defs.c","halo64-assets/generated/pve/pve_nav.c","halo64-assets/generated/pve/pve_collision.c"]
+    if roster:
+        flags += ['-DBG_PVE_ROSTER']
+        sources += ['build/firefight-roster/bank/pve_roster.c']
+    if firefight or navigation:
+        sources[0]="port/n64/test_navigation.c" if navigation else "port/n64/test_firefight.c";sources.remove("port/n64/game.c")
+    if spartan_motion:
+        sources[0]="port/n64/test_spartan_motion.c";sources.remove("port/n64/game.c")
+    if collision:
+        from collision_reference import generate
+        generate(solver)
+        flags += ['-DBG_COLLISION_PROFILE']
+        if target_math:flags += ['-ffast-math','-ftrapping-math','-fno-associative-math','-ffp-contract=off','-Wno-overriding-option']
+        sources[0]='port/n64/test_firefight_collision.c';sources.remove('port/n64/game.c')
+        sources.append(str(solver/'collision_reference_terrain.c'))
+    if enemy_vehicles:
+        bank=ROOT/'build/pve-vehicles/bank'
+        flags+=['-DBG_ENEMY_VEHICLES','-I'+str(bank)]
+        sources=[str(bank/Path(n).name) if Path(n).name in ('combat_data.c','interaction_defs.c') else n for n in sources]
+        sources += ['port/n64/vehicle_ai.c',str(bank/'enemy_vehicle_data.c'),str(bank/'enemy_pilot_hits.c')]
+        if not firefight and not navigation and not mode_tests:
+            sources[0]='port/n64/test_enemy_vehicles.c';sources.remove('port/n64/game.c')
     if blam_bsp:
         flags.append('-DBG_BLAM_BSP')
         sources += ['port/n64/blam/collision.c', 'build/n64/generated/blam_collision_data.c']
@@ -77,6 +105,11 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,default=ROOT/'build/n64-wizard-audit/maps-tests')
     parser.add_argument('--blam-bsp', action='store_true', help='Also exercise the optional Blood Gulch source BSP')
+    parser.add_argument('--navigation',action='store_true',help='Exact shortest-distance, scheduling and cache-lifecycle navigation checks')
+    parser.add_argument("--collision",action="store_true",help="Exact terrain and animated hit oracles")
+    parser.add_argument('--spartan-motion',action='store_true',help='Sustained-fire locomotion clocks and animated hit poses')
+    parser.add_argument('--firefight',action='store_true',help='Finite Firefight lifecycle and formation-arrival tests')
+    parser.add_argument('--with-pve', action='store_true', help='Run regressions with the NPC pool compiled in but inactive')
     parser.add_argument('--frontend-cycle', action='store_true', help='Run the real three-match menu/map/quit/resume fixture')
     parser.add_argument('--export-spawn-clearance',action='store_true',help='Bake only minimal map-specific offsets using the accepted capsule solver')
     parser.add_argument("--maps-cycle",action="store_true",help="Complete the fourteen-match/all-thirteen-map menu fixture")
@@ -84,7 +117,11 @@ if __name__=='__main__':
     parser.add_argument('--world-cells',action='store_true',help='Match the larger batch capacity of the world-cell/hierarchy renderer')
     parser.add_argument('--modes',action='store_true',help='Exercise every multiplayer preset and objective transition against all maps')
     parser.add_argument('--target-math',action='store_true',help='Exercise modes with target math flags against a separately compiled strict source reference')
+    parser.add_argument("--pve",action="store_true")
+    parser.add_argument("--roster",action="store_true",help="Test the isolated CE roster candidate")
+    parser.add_argument('--enemy-vehicles',action='store_true')
     args = parser.parse_args()
+    if args.enemy_vehicles:args.with_pve=True;args.roster=True
     if args.export_spawn_clearance and args.map_directory:parser.error('Spawn export uses only the canonical banks')
-    if args.target_math and not args.modes:parser.error('--target-math requires --modes')
-    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes,args.target_math)
+    if args.target_math and not (args.modes or args.collision):parser.error('--target-math requires --modes or --collision')
+    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes,args.target_math,args.pve,args.with_pve or args.firefight or args.navigation or args.collision,args.firefight,args.navigation,args.spartan_motion,args.collision,args.roster,args.enemy_vehicles)

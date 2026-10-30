@@ -1,4 +1,5 @@
 #include "telemetry.h"
+#include "collision_profile.h"
 #include "terrain.h"
 #include "movement.h"
 #include <math.h>
@@ -76,32 +77,91 @@ static void cells(const float*p,float r,int bounds[4]){
 /* Cache candidate IDs, never contact answers. The expanded AABB covers
  * every posture and every query until the anchor moves by 0.25 units.
  * Overflow falls back to the full grid; no collision is silently omitted. */
+/* The four small contact lists retain the original refresh/order semantics.
+ * Per-actor caches below them retain an expanded, deduplicated grid query.
+ * Refiltering that short list preserves exactly the legacy triangle order. */
+#ifndef BG_COLLISION_BASELINE
+#define TERRAIN_ACTOR_IDS 512
+typedef struct {const bg_player*key;float anchor[3],radius;int cells[4];uint16_t ids[TERRAIN_ACTOR_IDS],count;bool valid;} terrain_actor_cache;
+static terrain_actor_cache actor_candidates[BG_UNITS+4];
+static unsigned actor_candidate_next;
+static const terrain_actor_cache*actor_nearby(const bg_player*p,const int bounds[4]){
+    terrain_actor_cache*c=NULL;uintptr_t address=(uintptr_t)p,first=(uintptr_t)bg_players;
+    if(address>=first&&address-first<sizeof(bg_players)&&(address-first)%sizeof(*p)==0)
+        c=&actor_candidates[(address-first)/sizeof(*p)];
+    else{
+        for(unsigned i=BG_UNITS;i<BG_UNITS+4;i++)if(actor_candidates[i].valid&&actor_candidates[i].key==p){c=&actor_candidates[i];break;}
+        if(!c)c=&actor_candidates[BG_UNITS+actor_candidate_next++%4];
+    }
+    float radius=bg_body_radius(p);
+    if(c->valid&&c->key==p&&c->radius==radius&&!memcmp(c->cells,bounds,sizeof(c->cells))&&
+       fabsf(c->anchor[0]-p->pos[0])<=.25f&&fabsf(c->anchor[1]-p->pos[1])<=.25f&&fabsf(c->anchor[2]-p->pos[2])<=.25f){
+        BG_COLLISION_COUNT(terrain_hits,1);return c;
+    }
+    BG_COLLISION_COUNT(terrain_misses,1);
+    c->key=p;c->valid=true;c->count=0;c->radius=radius;memcpy(c->anchor,p->pos,12);memcpy(c->cells,bounds,sizeof(c->cells));
+    /* Superset of every legacy query whose anchor is within .25 on all axes.
+     * Extra .01 padding makes the outer bound conservative under float rounding. */
+    float anchor[3]={p->pos[0],p->pos[1]-.51f,p->pos[2]};
+    for(int z=bounds[2];z<=bounds[3];z++)for(int x=bounds[0];x<=bounds[1];x++){
+        bg_cell cell=bg_grid[z*BG_GRID+x];
+        for(unsigned j=0;j<cell.count;j++){
+            unsigned id=bg_grid_indices[cell.first+j];
+            if(!near_triangle(&bg_collision[id],anchor,bg_movement.height[0]+1.02f,radius+.53f))continue;
+            bool found=false;for(unsigned n=0;n<c->count;n++)if(c->ids[n]==id){found=true;break;}
+            if(found)continue;
+            if(c->count==TERRAIN_ACTOR_IDS){c->count=UINT16_MAX;BG_COLLISION_COUNT(terrain_actor_overflows,1);return c;}
+            c->ids[c->count++]=id;
+        }
+    }
+    return c;
+}
+#endif
 typedef struct {const bg_player*key;float anchor[3];uint16_t ids[128],count;bool valid;} terrain_candidates;
 static terrain_candidates candidates[4];
 static unsigned candidate_next;
-void bg_terrain_reset(void){memset(candidates,0,sizeof(candidates));candidate_next=0;}
+void bg_terrain_reset(void){
+    memset(candidates,0,sizeof(candidates));candidate_next=0;
+#ifndef BG_COLLISION_BASELINE
+    memset(actor_candidates,0,sizeof(actor_candidates));actor_candidate_next=0;
+#endif
+}
 static const terrain_candidates *nearby(const bg_player*p){
+    BG_COLLISION_COUNT(terrain_queries,1);
     terrain_candidates*c=NULL;
     for(unsigned slot=0;slot<4;slot++)if(candidates[slot].valid&&candidates[slot].key==p){c=&candidates[slot];break;}
     if(!c)c=&candidates[candidate_next++%4];
-    if(c->valid&&c->key==p&&fabsf(c->anchor[0]-p->pos[0])<=.25f&&fabsf(c->anchor[1]-p->pos[1])<=.25f&&fabsf(c->anchor[2]-p->pos[2])<=.25f){BG_COUNT(BG_COUNT_TERRAIN_HIT,1);return c;}
+    if(c->valid&&c->key==p&&fabsf(c->anchor[0]-p->pos[0])<=.25f&&fabsf(c->anchor[1]-p->pos[1])<=.25f&&fabsf(c->anchor[2]-p->pos[2])<=.25f){BG_COUNT(BG_COUNT_TERRAIN_HIT,1);BG_COLLISION_COUNT(terrain_hits,1);return c;}
     BG_COUNT(BG_COUNT_TERRAIN_MISS,1);
     c->key=p;c->valid=true;c->count=0;memcpy(c->anchor,p->pos,12);
-    float anchor[3]={p->pos[0],p->pos[1]-.25f,p->pos[2]},radius=bg_movement.radius+.27f;int bounds[4];cells(anchor,radius,bounds);
+    float anchor[3]={p->pos[0],p->pos[1]-.25f,p->pos[2]},radius=bg_body_radius(p)+.27f;int bounds[4];cells(anchor,radius,bounds);
+#ifndef BG_COLLISION_BASELINE
+    const terrain_actor_cache*actor=actor_nearby(p,bounds);
+    if(actor->count!=UINT16_MAX){
+        for(unsigned n=0;n<actor->count;n++){
+            unsigned id=actor->ids[n];if(!near_triangle(&bg_collision[id],anchor,bg_movement.height[0]+.5f,radius))continue;
+            if(c->count==128){BG_COUNT(BG_COUNT_TERRAIN_OVERFLOW,1);BG_COLLISION_COUNT(terrain_overflows,1);c->count=UINT16_MAX;return c;}
+            c->ids[c->count++]=id;
+        }
+        return c;
+    }
+#else
+    BG_COLLISION_COUNT(terrain_misses,1);
+#endif
     for(int z=bounds[2];z<=bounds[3];z++)for(int x=bounds[0];x<=bounds[1];x++){
         bg_cell cell=bg_grid[z*BG_GRID+x];
         for(unsigned j=0;j<cell.count;j++){
             unsigned id=bg_grid_indices[cell.first+j];if(!near_triangle(&bg_collision[id],anchor,bg_movement.height[0]+.5f,radius))continue;
             bool found=false;for(unsigned k=0;k<c->count;k++)if(c->ids[k]==id){found=true;break;}
             if(found)continue;
-            if(c->count==128){BG_COUNT(BG_COUNT_TERRAIN_OVERFLOW,1);c->count=UINT16_MAX;return c;}
+            if(c->count==128){BG_COUNT(BG_COUNT_TERRAIN_OVERFLOW,1);BG_COLLISION_COUNT(terrain_overflows,1);c->count=UINT16_MAX;return c;}
             c->ids[c->count++]=id;
         }
     }
     return c;
 }
 bool bg_terrain_clearance(const bg_player*p){
-    float r=bg_movement.radius,h=bg_body_height(p);const terrain_candidates*c=nearby(p);
+    float r=bg_body_radius(p),h=bg_body_height(p);const terrain_candidates*c=nearby(p);
     unsigned count=c->count==UINT16_MAX?bg_collision_count:c->count;
     for(unsigned j=0;j<count;j++){
         const bg_triangle*t=&bg_collision[c->count==UINT16_MAX?j:c->ids[j]];
@@ -112,7 +172,7 @@ bool bg_terrain_clearance(const bg_player*p){
     return true;
 }
 bool bg_can_stand(const bg_player*p){
-    float r=bg_movement.radius,h=bg_movement.height[0];const terrain_candidates*c=nearby(p);
+    float r=bg_body_radius(p),h=bg_movement.height[0];const terrain_candidates*c=nearby(p);
     unsigned count=c->count==UINT16_MAX?bg_collision_count:c->count;
     for(unsigned j=0;j<count;j++){
             const bg_triangle*t=&bg_collision[c->count==UINT16_MAX?j:c->ids[j]];
@@ -131,7 +191,7 @@ static bool recover_support(bg_player*p,unsigned previous,float normal[3]){
     if(!previous||previous>bg_collision_count)return false;
     const bg_triangle*old=&bg_collision[previous-1];float ab[3],ac[3],old_n[3];sub(ab,old->p[1],old->p[0]);sub(ac,old->p[2],old->p[0]);cross(old_n,ab,ac);
     float length=sqrtf(dot(old_n,old_n));if(length<1e-8f)return false;for(unsigned a=0;a<3;a++)old_n[a]/=length;
-    float r=bg_movement.radius,center[3]={p->pos[0],p->pos[1]+r,p->pos[2]},offset[3],projected[3];sub(offset,center,old->p[0]);float distance=dot(offset,old_n);
+    float r=bg_body_radius(p),center[3]={p->pos[0],p->pos[1]+r,p->pos[2]},offset[3],projected[3];sub(offset,center,old->p[0]);float distance=dot(offset,old_n);
     for(unsigned a=0;a<3;a++)projected[a]=center[a]-old_n[a]*distance;
     float best=1e9f,best_n[3]={0},best_plane=0,best_speed=0;unsigned selected=0;int grid[4];cells(p->pos,2*r,grid);
     for(int z=grid[2];z<=grid[3];z++)for(int x=grid[0];x<=grid[1];x++){
@@ -159,8 +219,8 @@ static bool recover_support(bg_player*p,unsigned previous,float normal[3]){
     if(outward>-1)for(unsigned a=0;a<3;a++)p->velocity[a]-=best_n[a]*(outward+1);
     p->support_triangle=selected;memcpy(normal,best_n,12);return true;
 }
-float bg_move_capsule(bg_player*p,float dt){
-    float r=bg_movement.radius,h=bg_body_height(p),impact=0;
+static float move_capsule(bg_player*p,float dt){
+    float r=bg_body_radius(p),h=bg_body_height(p),impact=0;
     bool was_grounded=p->grounded;unsigned previous=p->support_triangle;p->support_triangle=0;bool contacted=false;
     float distance=sqrtf(dot(p->velocity,p->velocity))*dt;
     unsigned steps=(unsigned)ceilf(distance/(r*.4f));if(steps<1)steps=1;if(steps>64)steps=64;
@@ -172,6 +232,7 @@ float bg_move_capsule(bg_player*p,float dt){
         for(unsigned iteration=0;iteration<3;iteration++){
             bool adjusted=false;const terrain_candidates*c=nearby(p);
             unsigned count=c->count==UINT16_MAX?bg_collision_count:c->count;
+            BG_COLLISION_COUNT(terrain_candidates,count);
             for(unsigned j=0;j<count;j++){
                     const bg_triangle*t=&bg_collision[c->count==UINT16_MAX?j:c->ids[j]];
                     if(!near_triangle(t,p->pos,h,r+.02f))continue;
@@ -199,4 +260,8 @@ float bg_move_capsule(bg_player*p,float dt){
     if(!contacted&&was_grounded&&recover_support(p,previous,support))supported=true;
     p->climbing=climbing;p->grounded=supported;if(supported)memcpy(p->ground_normal,support,12);
     p->vy=p->velocity[1];return impact;
+}
+float bg_move_capsule(bg_player*p,float dt){
+    uint32_t begin=BG_COLLISION_NOW();float result=move_capsule(p,dt);
+    BG_COLLISION_COUNT(terrain_us,BG_COLLISION_NOW()-begin);(void)begin;return result;
 }

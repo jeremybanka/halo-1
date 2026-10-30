@@ -68,7 +68,7 @@ static void hit_regions(void){
  unsigned changed=0;p->animation=BG_ANIM_RUN;
  for(unsigned y=0;y<28;y++)for(int z=-10;z<=10;z++){
   float o[3]={p->pos[0]-2,p->pos[1]+y*.025f,p->pos[2]+z*.025f};int region;
-  p->anim_time=0;float a=bg_player_hit_ray(0,o,dir,4,&region);p->anim_time=.25f;float b=bg_player_hit_ray(0,o,dir,4,&region);changed+=(a<4)!=(b<4);
+  p->locomotion_time=0;float a=bg_player_hit_ray(0,o,dir,4,&region);p->locomotion_time=.25f;float b=bg_player_hit_ray(0,o,dir,4,&region);changed+=(a<4)!=(b<4);
  }assert(changed>10);printf("Animated collision: %u leg / %u body / %u head rays; %u silhouette changes\n",regions[0],regions[1],regions[2],changed);
 }
 int main(void){mounted();rider_damage();contacts();hit_regions();puts("PASS: mounted profiles, dynamic contacts and animated original player hit geometry");}

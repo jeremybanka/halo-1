@@ -1,0 +1,193 @@
+{
+  "baseline_models": {
+    "pve_grunt_0": {
+      "triangles": 730,
+      "packed_vertices": 1516,
+      "vertex_loads": 1516,
+      "batches": 26
+    },
+    "pve_grunt_1": {
+      "triangles": 342,
+      "packed_vertices": 784,
+      "vertex_loads": 784,
+      "batches": 14
+    },
+    "pve_elite_0": {
+      "triangles": 572,
+      "packed_vertices": 1224,
+      "vertex_loads": 1224,
+      "batches": 21
+    },
+    "pve_elite_1": {
+      "triangles": 368,
+      "packed_vertices": 776,
+      "vertex_loads": 776,
+      "batches": 14
+    },
+    "pve_jackal_0": {
+      "triangles": 757,
+      "packed_vertices": 1526,
+      "vertex_loads": 1526,
+      "batches": 26
+    },
+    "pve_jackal_1": {
+      "triangles": 449,
+      "packed_vertices": 946,
+      "vertex_loads": 946,
+      "batches": 16
+    },
+    "pve_hunter_0": {
+      "triangles": 2006,
+      "packed_vertices": 3378,
+      "vertex_loads": 3378,
+      "batches": 58
+    },
+    "pve_spirit_0": {
+      "triangles": 2956,
+      "packed_vertices": 4228,
+      "vertex_loads": 4228,
+      "batches": 77
+    }
+  },
+  "candidate_models": {
+    "pve_grunt_0": {
+      "triangles": 730,
+      "packed_vertices": 1512,
+      "vertex_loads": 1512,
+      "batches": 27
+    },
+    "pve_grunt_1": {
+      "triangles": 342,
+      "packed_vertices": 784,
+      "vertex_loads": 784,
+      "batches": 14
+    },
+    "pve_elite_0": {
+      "triangles": 572,
+      "packed_vertices": 1224,
+      "vertex_loads": 1224,
+      "batches": 21
+    },
+    "pve_elite_1": {
+      "triangles": 368,
+      "packed_vertices": 776,
+      "vertex_loads": 776,
+      "batches": 14
+    },
+    "pve_jackal_0": {
+      "triangles": 757,
+      "packed_vertices": 1516,
+      "vertex_loads": 1516,
+      "batches": 27
+    },
+    "pve_jackal_1": {
+      "triangles": 449,
+      "packed_vertices": 920,
+      "vertex_loads": 920,
+      "batches": 17
+    },
+    "pve_hunter_0": {
+      "triangles": 1306,
+      "packed_vertices": 1606,
+      "vertex_loads": 1606,
+      "batches": 33
+    },
+    "pve_hunter_1": {
+      "triangles": 1138,
+      "packed_vertices": 1464,
+      "vertex_loads": 1464,
+      "batches": 29
+    },
+    "pve_spirit_0": {
+      "triangles": 944,
+      "packed_vertices": 1232,
+      "vertex_loads": 1232,
+      "batches": 24
+    },
+    "pve_spirit_1": {
+      "triangles": 860,
+      "packed_vertices": 1084,
+      "vertex_loads": 1084,
+      "batches": 22
+    }
+  },
+  "jackal_shield_audit": {
+    "source_superhigh_triangles": 76,
+    "baseline_lod_triangles": [
+      0,
+      0
+    ],
+    "candidate_lod_triangles": [
+      0,
+      0
+    ],
+    "status": "Existing missing visual shield; gameplay collision is unchanged. Not repaired by this reduction."
+  },
+  "unchanged_simulation": {
+    "pve_defs.c": "eafe160762dbf273c817ae878143abcb17078c67b0885524d652405057d89c4f",
+    "pve_collision.c": "aa320b519215e8f4e6a7592c1e0ed27732c359ab582946cb0d3ac9bbaa0f2a5b",
+    "pve_source_decisions.inc": "d638dc749acc61aca6b877741398281c245fc93dfbb309e3b634fd69d4bf3928"
+  },
+  "unchanged_other_actor_meshes": [
+    "grunt",
+    "elite",
+    "jackal"
+  ],
+  "unchanged_hit_meshes_and_grips": true,
+  "surface_batches": {
+    "pve_grunt_0": {
+      "opaque_vertices": 1488,
+      "energy_vertices": 24,
+      "two_sided_batches": 1
+    },
+    "pve_grunt_1": {
+      "opaque_vertices": 784,
+      "energy_vertices": 0,
+      "two_sided_batches": 0
+    },
+    "pve_elite_0": {
+      "opaque_vertices": 1224,
+      "energy_vertices": 0,
+      "two_sided_batches": 0
+    },
+    "pve_elite_1": {
+      "opaque_vertices": 776,
+      "energy_vertices": 0,
+      "two_sided_batches": 0
+    },
+    "pve_jackal_0": {
+      "opaque_vertices": 1516,
+      "energy_vertices": 0,
+      "two_sided_batches": 3
+    },
+    "pve_jackal_1": {
+      "opaque_vertices": 920,
+      "energy_vertices": 0,
+      "two_sided_batches": 3
+    },
+    "pve_hunter_0": {
+      "opaque_vertices": 1606,
+      "energy_vertices": 0,
+      "two_sided_batches": 0
+    },
+    "pve_hunter_1": {
+      "opaque_vertices": 1464,
+      "energy_vertices": 0,
+      "two_sided_batches": 0
+    },
+    "pve_spirit_0": {
+      "opaque_vertices": 1182,
+      "energy_vertices": 50,
+      "two_sided_batches": 1
+    },
+    "pve_spirit_1": {
+      "opaque_vertices": 1034,
+      "energy_vertices": 50,
+      "two_sided_batches": 1
+    }
+  },
+  "pose_frames": 1004,
+  "max_aligned_pose_pair_bytes": 8176,
+  "minimum_silhouette_iou": 0.92941,
+  "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+}

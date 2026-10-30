@@ -1,0 +1,577 @@
+{
+  "schema": 1,
+  "emulator": "Ares v148, NTSC 320x240, 8 MiB, audio enabled, uncapped",
+  "settings_sha256": "1f48ba810b8d36673cfcc2a8b3ab46e92cf9d1e9ee2e952ddae9b917cada275c",
+  "cases": {
+    "baseline-opening-1": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "c856aec4f2191ef6560ccb92ac4865badae2776c7f814e86f4994f7e0f136fcf",
+      "rom_sha256": "c38f65659a5553c2e33a6a5d08b35e25891a732e5e1ea444b9a23c7e6d62588a",
+      "manifest_sha256": "1ba84660551b9fc3ac74b925de09c7d6455243ccd959e9422027d57bf09d8e7d",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-1/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-1/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-opening-1": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "170537a92379cc95d59bc089e4e2c5f5ddde6239e7368afd83eb9d22ac4faf21",
+      "rom_sha256": "4169be8adb96b1b293c1a9ec02e3654b964e64820ba766131295139fd8d3a3d8",
+      "manifest_sha256": "83074f1de44f67b46ae7fd0af0f669ea7e7648ca39aa96aa174dd2971bdb2d7e",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-1/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-1/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    },
+    "baseline-opening-2": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "37cf33827b0edb32cbbf763dbc2eb6e12ae10fef6f9fce87af0cd741e943ad6a",
+      "rom_sha256": "74810e96a4378c643d2e76a6301ed97ddd139afc1279d63acb3a0abb23224abd",
+      "manifest_sha256": "e894478e7ea6ebc0d72ea3399060e987d60260920d4c230407e84951c03a5626",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-2/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-2/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-opening-2": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "66b5493a8780853079fae1a13881421c7d89588423175fc85a02e59b5a942a26",
+      "rom_sha256": "bf53be864abfe253a9194c737a1cd11f09f179b182426e3f082126781d6b5594",
+      "manifest_sha256": "7be45d9d744e675c969521a170bccc256d2674234efd19d01383eb8b1ebf90cd",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-2/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-2/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    },
+    "baseline-opening-3": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "3eeec62c50902a0211dab93ac0703b808072809920e5b5ba652bf6f992219341",
+      "rom_sha256": "8e1d87dfa5c7bacf8ca25b8f69cd77ef00d8b1f2aa548dd18d38e7bfe024948e",
+      "manifest_sha256": "4371d928bcf03f60cd535a570e444f90752ca5e417b825f319f496478cbd12aa",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-3/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-3/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-opening-3": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "5142a38ef8120eaf61b9e5e14880b5f054c9454f7cb744d72433a3459ced08f5",
+      "rom_sha256": "bbf3af4f5eb9925af5f14ca883f539391ad75739ea945502cdcf7e404a6cd822",
+      "manifest_sha256": "31863fa02c7fd1ab68ccd228fa18e29bbec3f321705bf8ebfe933c4c813f4a41",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-3/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-3/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    },
+    "baseline-opening-4": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "0b2f3593a198f9eebebef9e8e9e99b7c29df843238d60cd6ed061e9e480e1334",
+      "rom_sha256": "bf2e9d2805a233b18d778cb49fbb2710b7fe4a099c2766ede2e71075f88c6aa4",
+      "manifest_sha256": "33db279fe95e2054ba7c69756dfcef7372f81aeec617b1a628692971194f3702",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-4/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-opening-4/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-opening-4": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "c589ba7edb13e3e6a3b1e046271106bbc68458aad8c10757193106fcb7d7ea60",
+      "rom_sha256": "4b36fd8e45ed6f25a93499149adcad64b1b096d242f9373fde282f475b710ca4",
+      "manifest_sha256": "e79ec346605dc7d14fe0f232fc6fbf11f17ac1d9a57acc82a6eca1f32fab5b52",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-4/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-opening-4/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    },
+    "baseline-perf-1": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "fc4e239a4b06bd71a960ff6864873a3918eb3ee1def42416f2be69b3f8b51b65",
+      "rom_sha256": "64987995fff219f1db03bc63512fef5ae9decdcbab709486127c2c54eb2667f7",
+      "manifest_sha256": "3c11129ac02cd8b93c1e5867b17ef671d4f2391d957d375c8f862ae725366725",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-1/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-1/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-perf-1": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "27b6c32f6a752cbe9b481d0a09f2fc4f1f25bb0e6e1be01123e5c80eacb1517a",
+      "rom_sha256": "ee50632c194b34fb4a1495c8115210d6c868f4bcbad382bfbfc7eca83ffa5ed3",
+      "manifest_sha256": "04647e52f2baf1224ab2cac1be31fd69bb412d16dda7e9e198df80e6ec1c7a46",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-1/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-1/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    },
+    "baseline-perf-2": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "dfe142d196b80b9caa970b9d097d306be669924edfc62a247617da747b916083",
+      "rom_sha256": "f7a392e8bd341cbfa8072ed5a603af119c9eeb06cbee4c22c51ecb159b0cb37c",
+      "manifest_sha256": "f341dfaf4ea8c534c1a6f8266c7d0b29349d6044c95b3519f6b0f8a446a117dc",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-2/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-2/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-perf-2": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "ba379a146e16f139a8727fe18dbd212a8f1673e8a672d3ef656858f437663be4",
+      "rom_sha256": "3216b2805092079ecf37e363a058bfab917ccaab00e1b4a4a17e3f0936c2d1a5",
+      "manifest_sha256": "d2cbb51fce9349bc41a004b158dbb48f08c1e6610a15641060e2086245c1f668",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-2/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-2/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    },
+    "baseline-perf-3": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "039b25e063d449055419f169379efbeaf7e4376f62dc8ccc8be297620e0efbbe",
+      "rom_sha256": "126a36d1cb305b11702028eb888ca08dbddfba94279236f0262a19ecc43d86fa",
+      "manifest_sha256": "f87f1c6be82eee2a6954c830b4377bfe3ef062eb915b49575a9df23098c5d768",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-3/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-3/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-perf-3": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "1bb9f011222f94a4803f8bfbe700edd3a6723f4f1ae6b279aa53ffad5b2cb783",
+      "rom_sha256": "9ef23ecb7c22d6fb608bcb97a9b06536bf23e329044159119a277ddfdfd5591e",
+      "manifest_sha256": "164e80117191a664913431eaaaaf1a4d047dbe49fba67f1f2ce1950278a135e1",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-3/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-3/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    },
+    "baseline-perf-4": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "3dd8183e00055e5afe0d655907b9d756066f9a0a0f393f5aaf827f6bb59db673",
+      "rom_sha256": "36b23b7c781047467102109a2e68856b2c5e56a83a0076b88dc6b6db070561ac",
+      "manifest_sha256": "46f95a2e9ab85fb8377d7c57e2d6c32c60cf8f6cbd5aec7a412ca8dd1fc3c0ac",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-4/halo-64-render-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/navigation-matrix/baseline-perf-4/halo-64-render-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "417ac46ee9f5114bf68fbb7286b4c4c7aa6537ebff22b8c6c3751755f72ce588"
+    },
+    "candidate-perf-4": {
+      "source_commit": "d7c4e2d0e04feda2bb8a4f5585ff307cad015852",
+      "asset_commit": "b673db776fbcfac5a477bd1098561d3490503771",
+      "log_sha256": "02d4eda4941453b8b7a3b49995081d8e0fa61fa066dad854067cdc1140789374",
+      "rom_sha256": "cabfa2ddd7cb838c25be9ab207ef1a452d6500617128a4732b35e86abd4e1ba8",
+      "manifest_sha256": "1352ffaa5b3cf5c56061a182f6e1d53ac84676365ecc7bf80f5809d925fdb079",
+      "local_manifest": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-4/halo-64-render-candidate-pve-model-candidate-profile.build.json",
+      "local_rom": "/Users/jem/dojo/halo-1/build/n64-pve-squad/source/build/covenant-models/matrix/candidate-perf-4/halo-64-render-candidate-pve-model-candidate-profile.z64",
+      "toolchain": {
+        "gcc": "mips64-elf-gcc (GCC) 16.2.0",
+        "tiny3d_commit": "c682dafb607f68c26bebc9a84b1dbd32050edc15",
+        "libdragon_commit": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15"
+      },
+      "render_bank_sha256": "e41307486411467db7bfb405253864a07f962996f0991e47ad8277a15b9853a4",
+      "motion_bank_sha256": "8613631df94b4fe8430393e937d085b641141c30d2543c3432176f34bf0d6a93"
+    }
+  },
+  "matched_inputs": {
+    "opening-1": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    },
+    "opening-2": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    },
+    "opening-3": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    },
+    "opening-4": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    },
+    "perf-1": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    },
+    "perf-2": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    },
+    "perf-3": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    },
+    "perf-4": {
+      "options_identical_except_output_and_model_override": true,
+      "canonical_assets_and_render_bank_identical": true,
+      "simulation_collision_navigation_unchanged": true,
+      "runtime_input_differences": {
+        "halo64-assets/generated/pve/pve_data.c": {
+          "baseline": "2338764a2916c8e796167b625dc709b93aafca65aed19f06192326ad08d60ab9",
+          "candidate": "f26de29dc59fb7df5daac8342b0d9132abbf378cbc40d5473d783468d14348cf"
+        },
+        "port/n64/asset_pve.h": {
+          "baseline": "5f3c8eacb5c71f78add1da911cecc10fb77fcc8e668bbb4b700eaca9a9d17f87",
+          "candidate": "d9bb20000ed2a4b3ca106f5eed4328aadf3d77fde8b7f0cb770b26f215370274"
+        },
+        "port/n64/main.c": {
+          "baseline": "ee382a8c8b9d41f10e39faf39b97a1d490f16f90b0a1ed7857a1d1a72f4c9e61",
+          "candidate": "e4d4772896a1ebde5101344d281abfe8843758a19c229bc38c7508311ab1dbba"
+        },
+        "port/n64/pve_draw.inc": {
+          "baseline": "8100ccc6bee0035890e96940f1c98c82dfd5dc13742e1b5a16da82bf03fa8043",
+          "candidate": "52c046a75e4b97e9cde09a3a8883ed6bb02bd57861e43a33784af3f1aee6e37c"
+        },
+        "port/n64/pve_model_candidate.inc": {
+          "baseline": null,
+          "candidate": "3a123fc3be23af252437e29950f823e89513d9d065292cc3e91e20bb535c1536"
+        },
+        "port/n64/pve_model_qa.h": {
+          "baseline": null,
+          "candidate": "2efd990cf43454148be797a0e6a5152e062ee839c8fe9abb74fedf7ad46d101d"
+        },
+        "port/n64/runtime_qa.c": {
+          "baseline": "c95b792b6363b116b649ee03eb6793bbde8f4a0f61a0a6f19ebfb333b0f6a52b",
+          "candidate": "928fc37d9d5741eb4d7fd8e2e81667a9e96143e1f38c661d0a79a7f60a5f60e0"
+        },
+        "port/n64/scene.c": {
+          "baseline": "a335d5d923f290161ecd1db7b476a2e8eb56d49d6b3e8cb2ae1cfbfbc7203953",
+          "candidate": "9f2faa8fdfe7dfb9a07d639d7d6a15394e5e5a247f304b9f6c38986f0765b46a"
+        }
+      }
+    }
+  }
+}

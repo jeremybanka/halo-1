@@ -24,7 +24,7 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
            '-fno-strict-aliasing','-fwrapv','-DBG_BODY_CANDIDATES','-DBG_STREAM_MAPS',
            '-fsanitize=address,undefined','-Iport/n64','-Ibuild/n64/blam-core','-I'+str(solver)]
     if world_cells:flags.append('-DBG_WORLD_CELLS')
-    sources=['port/n64/test_maps.c','port/n64/map.c','halo64-assets/generated/maps/common_data.c',
+    sources=['port/n64/test_maps.c','halo64-assets/generated/hud_damage_data.c','port/n64/map.c','halo64-assets/generated/maps/common_data.c',
              'port/n64/game.c','port/n64/terrain.c','port/n64/movement.c','port/n64/combat_geometry.c',
              'build/n64/generated/combat_data.c','build/n64/generated/movement_data.c',
              'build/n64/generated/interaction_defs.c','port/n64/blam/runtime.c','port/n64/blam/core.c',

@@ -8,6 +8,24 @@ static void clear_enemies(void){for(unsigned i=0;i<bg_pve_count;i++)if(bg_player
 #endif
 int main(void){
     assert(bg_map_load(9));
+    /* Armor selection must survive PvE launch, enemy damage and resupply. */
+    bg_set_player_armor(0,BG_ARMOR_JORGE);bg_ff_start(2);
+    assert(bg_players[0].shield==200&&bg_players[1].shield==100);
+    float foe[3]={4,bg_floor(4,0,12)+.015f,0};
+    pve_spawn_actor(0,BG_PVE_ELITE,BG_W_PLASMA_RIFLE,0,foe,0);
+    damage_player_profile(0,4,160,false,false,BG_D_ROCKET,false,false,1);
+    assert(bg_players[0].shield<200&&bg_players[0].health==100);
+    for(unsigned h=0;h<2;h++){bg_players[h].shield=0;bg_players[h].health=71;}
+    damage_player_profile(0,1,30,false,false,BG_D_AR,false,false,1);
+    assert(bg_players[0].health==71); /* Firefight friendly-fire guard retained. */
+    for(unsigned h=0;h<2;h++)damage_player_profile(h,4,30,false,false,BG_D_ROCKET,false,false,1);
+    assert(bg_players[0].health==71&&bg_players[1].health<71);
+    damage_player_profile(0,4,10,false,false,BG_D_AR,false,false,1);
+    assert(bg_players[0].health<71);
+    ff_resupply();assert(bg_players[0].health==100&&bg_players[0].shield==200&&bg_players[1].shield==100);
+    kill(0,-1);ff_resupply();assert(bg_players[0].armor==BG_ARMOR_JORGE&&bg_players[0].shield==200);
+    bg_set_player_armor(0,BG_ARMOR_SPARTAN);
+    puts("PASS Jorge PvE launch, NPC explosions/bullets, friendly-fire guard, resupply and respawn");
     for(unsigned players=1;players<=4;players++){
         bg_ff_start(players);assert(bg_ff.cap==4+players*2&&bg_ff.lives==10&&bg_pve_count==0);
         for(unsigned h=0;h<players;h++){assert(bg_players[h].health==100);assert(bg_terrain_clearance(&bg_players[h]));}

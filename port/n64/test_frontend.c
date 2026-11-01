@@ -46,7 +46,7 @@ int main(void){
     f.page=BG_FRONT_SETTINGS;f.settings_profile=3;press(&f,0,BG_BUTTON_D_RIGHT);
     assert(f.settings_profile==0);
     f.page=BG_FRONT_CONTROLS;press(&f,0,BG_BUTTON_D_RIGHT);
-    assert(f.styles[0]==BG_CONTROLS_BOND && f.styles[3]==BG_CONTROLS_XBOX);
+    assert(f.styles[0]==BG_CONTROLS_BOND && f.styles[3]==BG_CONTROLS_DUKE);
 
     for(unsigned mask=1;mask<16;mask++)for(unsigned host=0;host<4;host++)if(mask&(1u<<host)){
         joins(&f,mask,host);assert(f.count==(unsigned)__builtin_popcount(mask));assert(f.ports[0]==host);

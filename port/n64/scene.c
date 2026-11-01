@@ -229,7 +229,7 @@ static void tint_team(T3DVertPacked *vertices, unsigned count, const uint8_t *ma
 static void tint_jorge(T3DVertPacked *vertices, unsigned count, const uint8_t *masks, unsigned p) {
     for (unsigned i=0;i<count;i++) {
         uint32_t *color=t3d_vertbuffer_get_color(vertices,i);
-        *color=bg_jorge_palette_color(*color,bg_player_profiles[p],masks?masks[i]:BG_JORGE_ACCENT);
+        *color=bg_jorge_palette_color(*color,bg_player_color(p),masks?masks[i]:BG_JORGE_ACCENT);
     }
 }
 static rspq_block_t *record(T3DVertPacked *verts, unsigned count) {
@@ -664,7 +664,7 @@ static void animate_mesh(T3DVertPacked *output, const bg_anim_asset *a, unsigned
 #endif
 }
 static float locomotion_seconds(const bg_player *p, int clip);
-static bool is_jorge(unsigned p) { return bg_player_armors[p] == BG_ARMOR_JORGE; }
+static bool is_jorge(unsigned p) { return p < BG_PLAYERS && bg_player_armors[p] == BG_ARMOR_JORGE; }
 static const bg_model_asset *body_model(unsigned p, bool lod) {
     if (is_jorge(p)) return lod ? &bg_jorge_lod_model : &bg_jorge_model;
     return lod ? &bg_spartan_lod : &bg_model_assets[BG_M_SPARTAN];
@@ -1281,7 +1281,7 @@ static void animate_firstperson(unsigned p) {
     if (firstperson_weapon[slot][p] != (int)w) {
         memcpy(output, m->vertices, bytes);
         if(is_jorge(p)) {
-            bg_jorge_firstperson_tint(output,w,bg_player_profiles[p]);
+            bg_jorge_firstperson_tint(output,w,bg_player_color(p));
             T3DVertPacked *arms=(T3DVertPacked *)((uint8_t *)output+((bg_fp_max_vertices+1)&~1u)*16);
             memcpy(arms,bg_jorge_fp_model.vertices,((bg_jorge_fp_model.vertex_count+1)&~1u)*16);
             tint_jorge(arms,bg_jorge_fp_model.vertex_count,NULL,p);

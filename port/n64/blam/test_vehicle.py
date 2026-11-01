@@ -34,7 +34,7 @@ def validate(out, regenerate=False):
              '-Wno-multichar', '-Wno-unused-function', '-Wno-unused-parameter',
              '-Wno-unused-variable', '-Wno-incompatible-pointer-types',
              '-Iport/n64', '-Ibuild/n64/blam-core', '-I'+str(solver), '-Ibuild/n64/blam-vehicle']
-    shared = ['build/n64/generated/pickup_data.c','port/n64/combat_geometry.c','build/n64/generated/combat_data.c', 'port/n64/terrain.c', 'port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
+    shared = ['halo64-assets/generated/hud_damage_data.c','build/n64/generated/pickup_data.c','port/n64/combat_geometry.c','build/n64/generated/combat_data.c', 'port/n64/terrain.c', 'port/n64/movement.c', 'build/n64/generated/movement_data.c', 'port/n64/game.c', 'build/n64/generated/interaction_defs.c', 'port/n64/blam/runtime.c', 'port/n64/blam/core.c',
               'port/n64/blam/vehicle_physics.c', 'build/n64/generated/vehicle_data.c',
               'build/n64/generated/terrain_data.c']
     suites = {

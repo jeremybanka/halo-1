@@ -320,7 +320,7 @@ void bg_ff_player_died(unsigned p){
 static void ff_resupply(void){
     for(unsigned i=0;i<bg_pickup_count;i++)if(!bg_pickups[i].dropped)refill_pickup(&bg_pickups[i]);
     for(unsigned h=0;h<active_players;h++){
-        if(bg_players[h].health<=0){bg_ff.respawn_reserved[h]=true;spawn(h);}else {bg_players[h].health=bg_players[h].shield=100;bg_players[h].grenades[0]=bg_players[h].grenades[1]=2;}
+        if(bg_players[h].health<=0){bg_ff.respawn_reserved[h]=true;spawn(h);}else {bg_players[h].health=bg_armor_def(bg_players[h].armor)->health;bg_players[h].shield=bg_armor_def(bg_players[h].armor)->shield;bg_players[h].grenades[0]=bg_players[h].grenades[1]=2;}
     }
 }
 static unsigned ff_packet_kind(unsigned packet){
@@ -444,7 +444,7 @@ void bg_ff_after_tick(float dt){
 void bg_ff_qa_input(void*data){
     bg_input*in=data;memset(in,0,sizeof(bg_input)*4);
 #if BG_PVE_QA==6
-    for(unsigned h=0;h<active_players;h++){bg_players[h].health=bg_players[h].shield=100;}
+    for(unsigned h=0;h<active_players;h++){bg_players[h].health=bg_armor_def(bg_players[h].armor)->health;bg_players[h].shield=bg_armor_def(bg_players[h].armor)->shield;}
     if(bg_ff.phase==BG_FF_READY||bg_ff.phase==BG_FF_RECOVER)bg_ff.timer=fminf(bg_ff.timer,.1f);
     if(bg_ff.tick%90==0)for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[4+i].health>0&&!bg_pve_actors[i].arrival)damage_player_profile(4+i,0,100000,false,false,0,false,false,1);
     if(bg_ff.phase==BG_FF_BONUS&&bg_ff.packet>=1)bg_ff.timer=0;

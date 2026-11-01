@@ -919,6 +919,7 @@ static void kill(unsigned victim, int owner) {
 static void damage_player(unsigned victim, int owner, float damage, bool plasma,
                                   bool headshot, unsigned profile, bool legs, bool behind,
                                   float energy, int region, bool blast) {
+    (void)region; /* NPC hit regions are only consumed in PvE builds. */
     bg_player *p = &bg_players[victim];
     if (bg_match_finished() || p->health <= 0 || damage <= 0)
         return;

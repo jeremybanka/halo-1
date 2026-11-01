@@ -12,9 +12,13 @@ asset, **not completion of the eventual approximately 700-triangle budget**.
 Current source is [playable-personal](../../halo64-assets/assets/jorge/playable-personal/):
 1,387 GLB vertices, 1,334 native vertices, 2,108 triangles and 2,264 packed N64
 vertices, including the backpack. Jorge is the fifth selectable profile, shares
-CE motion, has personal first-person arms and visible legs, and has passed visual
+CE motion, has personal first-person arms, and has passed visual
 checks in single-player and four-player layouts at 8 MiB. Near and far still use
 the same mesh; a dedicated low LOD and further optimization remain open.
+
+Presentation update, 2026-11-01: first-person legs were subsequently removed to
+match CE. The historical experiment and its camera/coverage lessons below remain
+part of the trace. The custom arms and complete third-person body are retained.
 
 ## The route we actually took
 

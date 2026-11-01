@@ -36,15 +36,16 @@ per-frame animation bank. The additional arm buffer costs 1,184 bytes per live
 frame slot per Jorge player; profile changes fence/release the buffers before
 resizing. Standard Spartan profiles retain their original viewmodels.
 
-Looking down draws **783 triangles** from Jorge's lower-body components, including
-the connecting undersuit. The head and upper torso stay hidden. The close-range
-foreground projection prevents the world near plane from cutting through the
-thighs during crouching. Legs and arms share depth so they occlude each other. A small
-local backward placement adjustment fits the larger Reach thighs under the CE
-eye position; world bodies, collision, camera origin and aim are unchanged.
-The legs use the normal body animation, including running and crouching.
-Two inset cloth caps close the upper thigh openings exposed by this new angle.
-They add 15 native vertices and 11 triangles; all accepted armor is untouched.
+First person shows only the weapon and Jorge's custom arms, matching CE's
+presentation. The local body is hidden even when looking down, walking or
+crouching, in both single-player and split-screen views. The former 783-triangle
+leg draw, its command blocks and its placement matrices were removed on
+2026-11-01. Other players and third-person cameras still see the complete body.
+
+The body asset is unchanged. Two inset cloth caps from the earlier leg-view
+experiment remain in its thigh openings (15 native vertices / 11 triangles).
+They remain useful coverage geometry; removing the first-person draw does not
+require another model reduction or animation bake.
 
 | Body metric | Previous refined | Current |
 |---|---:|---:|
@@ -58,6 +59,18 @@ Component budgets remain in `component-budgets.csv`. The body still has one
 near/far mesh. The final reduction and dedicated distant LOD remain separate work.
 
 ## Validation
+
+The 2026-11-01 removal builds successfully in release and both field-QA layouts.
+Ares look-down checks show the weapon/custom arms and ground, with no local legs,
+in single-player and four-player crouched views. The actual C arm binding still
+passes all 1,409 production poses under address/undefined-behavior sanitizers;
+the accepted body geometry and all 39 pose arrays remain exact. The updated
+release ROM is `build/n64-jorge-no-legs-release/halo-64-paced30-rspq32k.z64`.
+
+The captures below record the preceding legs-enabled checkpoint. They remain
+historical evidence for the model and arm binding, not previews of the current
+first-person presentation. The look-down QA pages now check that no local body
+appears while Jorge's custom arms and weapon remain visible.
 
 - Every accepted source vertex, triangle and all 39 pose arrays compare exactly.
 - All 39 clips / 1,530 frames and grip sockets serialize exactly into the ROM bank.
@@ -73,8 +86,8 @@ near/far mesh. The final reduction and dedicated distant LOD remain separate wor
   weapons and staggered actions verify per-player buffers/colors; profile changes
   and the return to two views complete without allocation failure or a black screen.
 - Look-down cases use non-explosive weapons so scripted fire into the ground cannot
-  kill a player before the crouch/reload samples. Each Jorge sees his own legs;
-  standard Spartans retain their existing first-person presentation.
+  kill a player before the crouch/reload samples. At that checkpoint each Jorge
+  saw his own legs; standard Spartans retained their existing presentation.
 - The earlier four-player black screen at 4 MiB does not recur at 8 MiB. Ares's
   Expansion Pak is enabled and remains on, as requested for Halo. These are visual
   acceptance checks, not physical-console performance or full-match memory profiling.

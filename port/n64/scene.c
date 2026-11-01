@@ -126,8 +126,7 @@ static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
 /* A segmented vertex address shares each weapon's commands across all
  * fenced player/slot buffers. Segment 1 is reserved for these draw calls. */
 static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
-static rspq_block_t *jorge_firstperson_block, *jorge_leg_blocks[BG_FRAME_SLOTS][4];
-static T3DMat4FP firstperson_legs_matrix[BG_FRAME_SLOTS][4];
+static rspq_block_t *jorge_firstperson_block;
 static float fired_at[4] = {-100, -100, -100, -100};
 static bool body_firing[4], body_reloading[4];
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
@@ -822,16 +821,6 @@ static void prepare_player_bounds(unsigned p) {
         for (unsigned b = 0; b < 3; b++)
             armor_matrix.m[a][b] *= BG_SCALE / (is_jorge(p) ? BG_JORGE_SCALE : BG_MODEL_SCALE);
     t3d_mat4_to_fixed_3x4(&transforms[slot][p], &armor_matrix);
-    if(is_jorge(p)) {
-        /* Fit the larger Reach thighs behind CE's eye position in the local
-         * view. World bodies, feet physics, camera and aim remain unchanged. */
-        if(player->vehicle<0) {
-            armor_matrix.m[3][0]-=cosf(player->yaw)*BG_SCALE*.10f;
-            armor_matrix.m[3][2]+=sinf(player->yaw)*BG_SCALE*.10f;
-        }
-        t3d_mat4_to_fixed_3x4(&firstperson_legs_matrix[slot][p],&armor_matrix);
-        data_cache_hit_writeback(&firstperson_legs_matrix[slot][p],sizeof(T3DMat4FP));
-    }
 }
 static int locomotion_clip(const bg_player *p) {
     if (p->health <= 0 || p->vehicle >= 0 || p->weapon_ready > 0 || p->melee_time > 0 ||
@@ -1187,14 +1176,6 @@ static void body_buffers_load(void) {
             if (!is_jorge(p)) tint_team(armor[s][p], near->vertex_count, bg_spartan_team_mask, p);
             player_blocks[s][p] = record_model(near, armor[s][p]);
             if (is_jorge(p)) {
-                rspq_block_begin();
-                for(unsigned b=0;b<near->batch_count;b++) if(bg_jorge_leg_batches[b]) {
-                    const bg_mesh_batch *batch=&near->batches[b];
-                    t3d_vert_load(armor[s][p]+batch->first/2,0,(batch->count+1)&~1u);
-                    t3d_tri_draw_strip(near->indices+batch->index_first,batch->index_count);
-                    t3d_tri_sync();
-                }
-                jorge_leg_blocks[s][p]=rspq_block_end();
                 armor_lod[s][p] = armor[s][p];
                 armor_lod_blocks[s][p] = player_blocks[s][p];
             } else {
@@ -1219,8 +1200,6 @@ static void body_buffers_release(void) {
             if (armor_lod_blocks[s][p] != player_blocks[s][p]) rspq_block_free(armor_lod_blocks[s][p]);
             if (armor_lod[s][p] != armor[s][p]) free_uncached(armor_lod[s][p]);
             rspq_block_free(player_blocks[s][p]); free_uncached(armor[s][p]);
-            if(jorge_leg_blocks[s][p]) rspq_block_free(jorge_leg_blocks[s][p]);
-            jorge_leg_blocks[s][p]=NULL;
             player_blocks[s][p] = armor_lod_blocks[s][p] = NULL;
             armor[s][p] = armor_lod[s][p] = NULL;
         }
@@ -1680,12 +1659,9 @@ static void prepare_view(unsigned p) {
 #else
         bool self_firstperson=false;
 #endif
-        if(self_firstperson) {
-            if(is_jorge(p)&&player->pitch<-.25f&&!player->zoom) {
-                body_lods[p][j]=3;wanted_lods[j]|=1;
-            }
+        /* CE first person shows only the viewmodel, including for Jorge. */
+        if (self_firstperson)
             continue;
-        }
         if (q->vehicle >= 0 && (bg_player_seat(q)->flags&1) &&
             q->seat_state == BG_SEAT_STABLE)
             continue;
@@ -2206,7 +2182,7 @@ static void draw_view(unsigned p) {
             rdpq_mode_combiner(RDPQ_COMBINER1((0, 0, 0, SHADE), (0, 0, 0, ENV)));
             rdpq_mode_end();
         }
-        if (body_lods[p][j] && body_lods[p][j] != 3) {
+        if (body_lods[p][j]) {
             bool lod = body_lods[p][j] == 2;
             float shield = bg_shield_glow(&bg_players[j]);
             if (shield > 0) {
@@ -2346,30 +2322,6 @@ static void draw_view(unsigned p) {
 #endif
         t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH | T3D_FLAG_CULL_BACK);
         rdpq_mode_zbuf(true, true);
-        if(body_lods[p][p]==3) {
-            /* Like sleeves, the local thighs cross the world's near plane,
-             * especially while crouching. Render them in the foreground depth
-             * range so clipping cannot slice open otherwise intact armor. */
-            float opacity=bg_player_visibility(player);
-            if(opacity<1) {
-                rdpq_sync_pipe();
-                rdpq_set_env_color(RGBA32(255,255,255,(unsigned)(opacity*255)));
-                rdpq_mode_alphacompare(-1);
-                rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,SHADE),(0,0,0,ENV)));
-            }
-            t3d_matrix_set(&firstperson_legs_matrix[slot][p],true);
-            rspq_block_run(jorge_leg_blocks[slot][p]);
-            triangles+=bg_jorge_leg_triangles;
-#ifdef BG_PROFILE
-            for(unsigned b=0;b<bg_jorge_model.batch_count;b++)
-                if(bg_jorge_leg_batches[b])submitted_vertices+=bg_jorge_model.batches[b].count;
-#endif
-            if(opacity<1) {
-                rdpq_sync_pipe();
-                rdpq_mode_alphacompare(0);
-                rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
-            }
-        }
         t3d_segment_set(T3D_SEGMENT_1, firstperson[slot][p]);
         int carried=bg_player_objective(p);
         if(carried>=0){

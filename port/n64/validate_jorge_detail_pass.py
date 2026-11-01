@@ -61,7 +61,7 @@ def roundtrip():
     scene,rig=task.proof_scene();body=task.body(scene);weapon=next(o for o in scene.objects if o.name.startswith('CE rifle'));actions=actions_for(rig);rig.animation_data.use_nla=False;old_actions=set(bpy.data.actions)
     other=bpy.data.scenes.new('Detail GLB verification');other.render.fps=30;bpy.context.window.scene=other;bpy.ops.import_scene.gltf(filepath=str(OUT/(task.NAME+'-with-rifle.glb')))
     irig=next(o for o in other.objects if o.type=='ARMATURE');irig.animation_data.use_nla=False;imported=task.body(other);iw=next(o for o in other.objects if o.type=='MESH' and o.name.startswith('CE rifle'))
-    ia={name:next(a for a in set(bpy.data.actions)-old_actions if a.name.startswith('Jorge / '+name)) for name in animation.CLIPS};assert len(imported)==64 and len(irig.data.bones)==85
+    ia={name:next(a for a in set(bpy.data.actions)-old_actions if a.name.startswith('Jorge / '+name)) for name in animation.CLIPS};assert len(imported)==len(body) and len(irig.data.bones)==85
     def distance(a,b):
         tree=KDTree(len(a))
         for i,p in enumerate(a):tree.insert(p,i)

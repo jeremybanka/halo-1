@@ -59,10 +59,21 @@ visual model or damage multiplier would not implement a different hitbox.
 
 ## Palettes and assets
 
-Green preserves the accepted Jorge plate colors. The backpack stays matte
-neutral gray in all four variants. Red, blue and yellow armor uses three
-neighboring hues per profile: base, secondary and accent groups assigned by
-component, retaining existing baked light/dark gradients. Gold visor, black
+The backpack stays matte neutral gray in all four variants. Armor retains
+existing baked light/dark gradients and neighboring base, secondary and accent
+hues, with distinct chest and shoulder colors:
+
+| Profile | Chest | Shoulders |
+|---|---|---|
+| Red | Orange | Green |
+| Blue | Purple | Orange |
+| Yellow | Green | Purple |
+| Green | Original | Original |
+
+Calves, knee plates, feet and the rear codpiece are 20% darker in every profile.
+The codpiece shade uses the rear half in the rest pose, leaving the front
+plate unchanged. The far model already replaces its rear codpiece with dark
+pelvis coverage. Other green armor retains the accepted colors. Gold visor, black
 undersuit and dark headband are protected by component-aware vertex masks. Both
 LODs and custom first-person plates use the same tint function. Weapon pixels
 and weapon vertex colors are unchanged. First-person legs remain hidden.
@@ -94,5 +105,5 @@ Ares v148 with the Expansion Pak enabled passed the scripted four-player
 setup/match/results/settings cycle (36/36). Visual checks cover the armor
 cards, all four first-person palettes, rocket `INF` readouts, mixed Spartan/
 Jorge views and single-player arms. The release ROM is
-`build/n64-armor/release/halo-64-paced30-rspq32k.z64`; hashes and the validation
+`build/n64-armor-accents/release/halo-64-paced30-rspq32k.z64`; hashes and the validation
 ledger are in `halo64-assets/assets/jorge/armor-palettes/validation.json`.

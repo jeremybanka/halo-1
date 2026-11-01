@@ -39,12 +39,16 @@ def pack_lod(lod,bank):
     components=np.array(meta['components'])[order]
     secondary={'chest','thigh-l','thigh-r','boot-l','boot-r','glove-l','glove-r'}
     accent={'helmet','shoulder-l','shoulder-r','forearm-l','forearm-r','codpiece'}
-    def palette_class(component,color):
-        # Stable IDs from armor_palette.h: keep, base, gray bag, secondary, accent.
+    def palette_class(component,color,point):
+        # Stable IDs from armor_palette.h; flag 16 is a 20% darker shade.
         if component in {'pack','pack-backing'}:return 2
         if component=='visor' or component in cloth or max(color)<=65:return 0
-        return 3 if component in secondary else 4 if component in accent else 1
-    palette_mask=[palette_class(components[i],v[1]) for i,v in zip(mesh['sources'],mesh['vertices'])]
+        kind=5 if component=='chest' else 6 if component in {'shoulder-l','shoulder-r'} else 3 if component in secondary else 4 if component in accent else 1
+        # Rest-space +X faces forward. Shade only the rear of the near codpiece;
+        # the far model already replaces that region with dark pelvis coverage.
+        dark=component.startswith(('calf-','boot-','kneecap-')) or (component=='codpiece' and point[0]<0)
+        return kind | (16 if dark else 0)
+    palette_mask=[palette_class(components[i],v[1],v[0]) for i,v in zip(mesh['sources'],mesh['vertices'])]
     for i in range(0,len(mesh['vertices']),2):
         a,b=mesh['vertices'][i:i+2]
         def rgba(rgb):return (rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255

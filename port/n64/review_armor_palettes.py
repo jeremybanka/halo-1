@@ -10,20 +10,23 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[2]
 A=ROOT/'halo64-assets';OUT=A/'assets/jorge/armor-palettes'
 NAMES=('red','blue','yellow','green')
-TONES=(((225,45,38),(169,43,68),(226,80,49)),
-       ((39,92,215),(32,124,190),(84,77,190)),
-       ((215,179,44),(198,140,50),(225,200,85)))
+TONES=(((225,45,38),(169,43,68),(226,80,49),(235,110,32),(71,152,57)),
+       ((39,92,215),(32,124,190),(84,77,190),(165,60,210),(235,110,32)),
+       ((215,179,44),(198,140,50),(225,200,85),(71,152,57),(165,60,210)))
 
 def palette(colors,mask,profile):
     result=colors.astype(int).copy()
     mask=np.asarray(mask)
+    kinds=mask&15
     if profile!=3:
         shade=result.max(axis=1)[:,None]
-        for kind,tone in zip((1,3,4),TONES[profile]):
+        for kind,tone in zip((1,3,4,5,6),TONES[profile]):
             recolored=(shade*(64+3*np.array(tone)//4)+127)//255
-            result[mask==kind]=recolored[mask==kind]
+            result[kinds==kind]=recolored[kinds==kind]
     gray=(colors.astype(int)@np.array([54,183,19])+128)//256
-    result[mask==2]=gray[mask==2,None]
+    result[kinds==2]=gray[kinds==2,None]
+    dark=(mask&16)!=0
+    result[dark]=result[dark]*4//5
     return result
 
 def masks(lod):
@@ -54,7 +57,7 @@ def render():
             weapon=bpy.data.objects.new('Production AR',bpy.data.meshes.new('AR'));scene.collection.objects.link(weapon);half.port_ar(weapon)
             hand=d['grips_0'][0];q=Quaternion((hand[6],*hand[3:6]))
             matrix=(AXIS@q.to_matrix()@Matrix(((1,0,0),(0,0,1),(0,-1,0)))).to_4x4();matrix.translation=AXIS@Vector(hand[:3])*3.048;weapon.matrix_world=matrix
-            for view in ('three_quarter','back'):
+            for view in ('front','three_quarter','back'):
                 studio.camera(scene,view);scene.render.filepath=str(OUT/f'{lod}-{name}-{view}.png');bpy.ops.render.render(write_still=True)
             bpy.data.libraries.write(str(OUT/f'{lod}-{name}.blend'),{scene},compress=True)
 
@@ -72,6 +75,14 @@ def portraits():
             im=Image.open(OUT/f'{lod}-{name}-three_quarter.png').convert('RGBA')
             sheet.paste(im,(240*profile,25+325*j),im);draw.text((240*profile+10,8+325*j),name.title()+' / '+lod,fill='white')
     sheet.save(OUT/'palette-comparison.png')
+    for view in ('front','back'):
+        sheet=Image.new('RGB',(960,650),(35,39,42));draw=ImageDraw.Draw(sheet)
+        for profile,name in enumerate(NAMES):
+            for j,lod in enumerate(('near','far')):
+                im=Image.open(OUT/f'{lod}-{name}-{view}.png').convert('RGBA')
+                sheet.paste(im,(240*profile,25+325*j),im)
+                draw.text((240*profile+10,8+325*j),name.title()+' / '+lod,fill='white')
+        sheet.save(OUT/f'palette-{view}-comparison.png')
     # Keep the historical single-portrait symbol as the accepted green variant.
     array=lambda a:'{'+','.join(hex(int(v)) for v in a)+'}'
     (A/'generated/jorge_portrait.c').write_text('#include "asset_jorge.h"\nconst uint16_t bg_jorge_portraits[BG_PROFILE_COUNT][32*40] __attribute__((aligned(16)))={'+','.join(array(a) for a in rows)+'};\nconst uint16_t bg_jorge_portrait[32*40] __attribute__((aligned(16)))='+array(rows[3])+';\n')

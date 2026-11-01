@@ -4,6 +4,21 @@ An experimental standalone **Nintendo 64 Blood Gulch demake** lives in
 [port/n64](port/n64/README.md). It builds a local ROM with two- or four-player
 splitscreen from your own Xbox map data.
 
+With the N64 dependencies and assets already set up, run this from the project
+root to build the current release and copy it to the attached SD card:
+
+```sh
+make n64-sd
+```
+
+This writes `/Volumes/DISK_IMG/homebrew/halo_YYYYMMDD_HHMMSS.z64` using local
+time. It requires the card to be mounted, creates `homebrew/` if needed, and
+preserves previous builds. Eject the card before removing it. For a different
+volume name, use `make n64-sd SD_VOLUME=/Volumes/DISK_IMAGE`.
+The command uses `build/n64-python/bin/python`; override `N64_PYTHON` if your
+N64 Python environment lives elsewhere. See the [N64 setup guide](port/n64/README.md#build)
+for dependencies and assets.
+
 [![Join our Discord](https://invidget.switchblade.xyz/9gqcHyr5km)](https://discord.gg/9gqcHyr5km)
 
 This project is a port of the Halo: Combat Evolved decompilation to Linux,

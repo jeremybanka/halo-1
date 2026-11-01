@@ -91,7 +91,7 @@ static void collect_nearby(unsigned owner){
             if(bg_weapon_defs[q->weapon].energy)continue;
             int slot=p->inventory[0]==q->weapon?0:p->inventory[1]==q->weapon?1:-1;
             if(slot<0)continue;
-            store_inventory(p);int space=bg_ammo_rules[q->weapon].maximum_reserve-p->reserves[slot];
+            store_inventory(p);int space=bg_infinite_reserve(p,q->weapon)?0:bg_ammo_rules[q->weapon].maximum_reserve-p->reserves[slot];
             if(space<=0)continue;
             /* Transfer actual loose rounds, then the dropped magazine, to
              * reserve only. Never refill a held magazine or create rounds. */
@@ -102,8 +102,8 @@ static void collect_nearby(unsigned owner){
         }else if(q->weapon==BG_PICK_FRAG||q->weapon==BG_PICK_PLASMA){
             int kind=q->weapon==BG_PICK_PLASMA,space=4-p->grenades[kind];amount=space<q->quantity?space:q->quantity;
             p->grenades[kind]+=amount;q->quantity-=amount;consume=q->quantity==0;
-        }else if(q->weapon==BG_PICK_HEALTH&&p->health<100){p->health=100;consume=true;amount=1;
-        }else if(q->weapon==BG_PICK_OVERSHIELD&&p->shield<=100&&!p->shield_overcharging){
+        }else if(q->weapon==BG_PICK_HEALTH&&p->health<bg_armor_def(p->armor)->health){p->health=bg_armor_def(p->armor)->health;consume=true;amount=1;
+        }else if(q->weapon==BG_PICK_OVERSHIELD&&p->shield<=bg_armor_def(p->armor)->shield&&!p->shield_overcharging){
             p->shield=fmaxf(1,p->shield);p->shield_delay=0;p->shield_overcharging=p->shield_charging=true;consume=true;amount=1;
             event(BG_EVENT_SHIELD,owner,p->weapon,p->pos,1);
         }else if(q->weapon==BG_PICK_CAMO){if(p->invisibility<=0){p->camo_opacity=1;p->camo_quiet=0;}p->invisibility=bg_camo_duration;consume=true;amount=1;}

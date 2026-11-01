@@ -342,7 +342,7 @@ static void draw_menu_profile(const bg_menu *m, unsigned profile, bool frontend)
                                                    : "CONTROLS";
     text(BG_MENU_FONT_LARGE, 34, 40, frontend ? .80f : 1.05f, white, title);
     char owner[16];
-    snprintf(owner, sizeof(owner), "PLAYER %u", profile + 1);
+    snprintf(owner, sizeof(owner), "%s", bg_profile_name(profile));
     text(BG_MENU_FONT_SMALL, 286 - text_width(BG_MENU_FONT_SMALL, owner, .72f), 38, .72f, blue,
          owner);
     if (m->page == BG_MENU_ROOT)
@@ -449,7 +449,7 @@ void bg_scores_draw(unsigned owner, int x, int y, int width, int height) {
     score_layout *layout = &score_layouts[count * (count - 1) / 2 + owner];
     /* Original split-screen score text ranks players and brightens the viewer's
      * row. Keep those cues; report actual match score, which includes suicides. */
-    static const color_t player_colors[BG_PLAYERS] = {
+    static const color_t player_colors[BG_PROFILE_COUNT] = {
         {225, 45, 38, 255}, {39, 92, 215, 255}, {215, 179, 44, 255}, {57, 183, 69, 255}};
     letter_count = 0;
     rdpq_sync_pipe();

@@ -1,4 +1,5 @@
 #include "frontend_draw.h"
+#include "asset_jorge.h"
 #include "asset_frontend.h"
 #include "menu_draw.h"
 #include <libdragon.h>
@@ -47,7 +48,7 @@ static void graphics_wait(void) {
     }
     rspq_wait();
 }
-static const unsigned profile_palette[4] = {2, 3, 5, 6};
+static const unsigned profile_palette[BG_PROFILE_COUNT] = {2, 3, 5, 6};
 static const color_t blue = {40, 150, 255, 255}, white = {204, 204, 204, 255};
 static void read_bank(void *out, unsigned offset, unsigned length) {
     assertf(bank && fseek(bank, offset, SEEK_SET) == 0, "Front-end asset seek");
@@ -182,6 +183,18 @@ static void bitmap(unsigned tag, unsigned frame, float x, float y, float w, floa
         rdpq_set_scissor(0, 0, 320, 240);
 }
 
+static void character_portrait(unsigned profile, float x, float y, float w, float h) {
+    bitmap(357, profile_palette[profile], x, y, w, h, 255);
+}
+static void armor_portrait(unsigned armor, unsigned profile, float x, float y, float w, float h) {
+    if (armor==BG_ARMOR_SPARTAN) { character_portrait(profile,x,y,w,h); return; }
+    surface_t image = surface_make((void *)bg_jorge_portraits[profile], FMT_RGBA16, 32, 40, 64);
+    data_cache_hit_writeback((void *)bg_jorge_portraits[profile], sizeof(bg_jorge_portraits[profile]));
+    rdpq_set_mode_standard(); rdpq_mode_alphacompare(0);
+    rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+    rdpq_tex_blit(&image, x * .5f, y * .5f,
+        &(rdpq_blitparms_t){.scale_x = w / 64, .scale_y = h / 80, .filtering = true});
+}
 static void art(unsigned tag, unsigned frame, int dx, int dy, unsigned alpha) {
     const bg_shell_node *n = node(tag);
     if (n->bitmap >= 0)
@@ -387,10 +400,13 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
     /* Disjoint fields: profile choices may repeat in unjoined slots, so a
      * summed 32-bit key could alias another page and retain stale textures. */
     uint64_t key = f->page | ((uint64_t)f->row << 4) | ((uint64_t)f->map << 7) |
-                   ((uint64_t)f->type << 11) | ((uint64_t)f->settings_profile << 16) | ((uint64_t)f->firefight << 40) | ((uint64_t)f->fight << 41);
-    if (f->page == BG_FRONT_JOIN)
+                   ((uint64_t)f->type << 11) | ((uint64_t)f->settings_profile << 16) | ((uint64_t)f->firefight << 51) | ((uint64_t)f->fight << 52);
+    if (f->page == BG_FRONT_JOIN || f->page == BG_FRONT_ARMOR)
         for (unsigned p = 0; p < 4; p++)
-            key |= (uint64_t)(f->profile[p] + 4 * f->joined[p] + 8 * f->ready[p]) << (18 + 4 * p);
+            key |= (uint64_t)(f->profile[p] + 8 * f->joined[p] + 16 * f->ready[p]) << (19 + 5 * p);
+    if (f->page == BG_FRONT_ARMOR)
+        for (unsigned p=0;p<4;p++)
+            key |= (uint64_t)(f->armor[p]+4*f->armor_ready[p]) << (39+3*p);
     if (key != cache_key) {
         clear_cache();
         cache_key = key;
@@ -439,7 +455,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         for (unsigned p = 0; p < 4; p++) {
             int x = 70 + 258 * (p % 2), y = 76 + 166 * (p / 2);
             char name[32];
-            snprintf(name, sizeof(name), "Player %u", f->profile[p] + 1);
+            snprintf(name, sizeof(name), "%s", bg_profile_name(f->profile[p]));
             art(f->joined[p] ? 493 : 491, 0, x, y, 255);
             if (!f->joined[p]) {
                 label(586, x + 20, y + 20, "Press START to Join", blue);
@@ -453,6 +469,29 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
                           : "Choose a Profile\n\nPress A to select",
                       blue);
             }
+        }
+        buttons(true);
+        break;
+    }
+    case BG_FRONT_ARMOR: {
+        text(0,36,22,550,30,0,white,"Select Armor");
+        for (unsigned p=0;p<4;p++) {
+            int x=70+258*(p%2), y=76+166*(p/2);
+            art(f->joined[p]?493:491,0,x,y,255);
+            if (!f->joined[p]) {
+                text(1,x+20,y+65,210,40,0,blue,"No player joined");
+                continue;
+            }
+            const bg_armor_definition *suit=bg_armor_def(f->armor[p]);
+            char heading[48];snprintf(heading,sizeof(heading),"%s: %s",bg_profile_name(f->profile[p]),suit->name);
+            text(0,x+14,y+3,230,25,0,white,heading);
+            text(1,x+14,y+28,230,22,0,white,suit->designation);
+            armor_portrait(f->armor[p],f->profile[p],x+16,y+53,80,100);
+            text(1,x+101,y+53,145,65,0,blue,suit->description);
+            const char *state=!bg_front_armor_available(f->armor[p])?"Expansion Pak required":
+                f->armor_ready[p]?(p==f->host?"Ready\nA = Continue":"Ready\nB = Change"):
+                "< > Change\nA = Select";
+            text(1,x+101,y+123,145,37,0,white,state);
         }
         buttons(true);
         break;
@@ -519,6 +558,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
                 snprintf(value,sizeof(value),"P%u - %s",f->profile[f->ports[p]]+1,f->teams[f->ports[p]]?"Blue":"Red");
             else snprintf(value, sizeof(value), "Player %u", f->profile[f->ports[p]] + 1);
             label(513, 133, y, value, white);
+            text(1,133,y+23,130,20,0,blue,bg_armor_def(f->armor[f->ports[p]])->name);
         }
         label(535, 4, 32, NULL, blue);
         label(528, 330, 257, bg_front_maps[f->map].name, white);
@@ -586,12 +626,12 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         art(909, 0, 0, 0, 255);
         const unsigned cards[] = {354, 369, 372}, names[] = {355, 370, 373};
         for (unsigned c = 0; c < 3; c++) {
-            unsigned p = (f->settings_profile + 4 + c - f->row) % 4;
+            unsigned p = (f->settings_profile + BG_PROFILE_COUNT + c - f->row) % BG_PROFILE_COUNT;
             char name[32];
-            snprintf(name, sizeof(name), "Player %u", p + 1);
+            snprintf(name, sizeof(name), "%s", bg_profile_name(p));
             art(cards[c], c == f->row ? 1 : 0, 0, 0, 255);
             label(names[c], 81 + 167 * c, 83, name, color(true, c == f->row));
-            bitmap(357, profile_palette[p], 104 + 167 * c, 110, 112, 136, 255);
+            character_portrait(p, 104 + 167 * c, 110, 112, 136);
             text(1, 83 + 167 * c, 267, 145, 90, 0, blue, bg_control_style_name(f->styles[p]));
         }
         buttons(true);
@@ -607,8 +647,8 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
             label(tags[r], 0, r == 4 ? 22 : 0, NULL, color(enabled, r == f->row));
         }
         char name[32];
-        snprintf(name, sizeof(name), "Player %u", f->settings_profile + 1);
-        bitmap(357, profile_palette[f->settings_profile], 370, 115, 112, 136, 255);
+        snprintf(name, sizeof(name), "%s", bg_profile_name(f->settings_profile));
+        character_portrait(f->settings_profile, 370, 115, 112, 136);
         text(0, 294, 290, 290, 90, 0, blue, "Choose a controller setup.\n\nCurrent Profile:");
         text(0, 432, 353, 145, 26, 0, white, name);
         buttons(bg_front_available(f->page, f->row));

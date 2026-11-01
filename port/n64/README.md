@@ -117,8 +117,15 @@ The collision/camera follow-up measures **25.3 / 26.6 / 24.1 FPS** with the same
 49 KiB free. Five-ray hull traversal and shared projected polygons improve
 repeated work; the vehicle and 30 FPS gates remain open.
 The original-style front end opens first. Follow **Multiplayer → Split Screen →
-Select Profile → map → game type**. Join and ready one to four controllers;
-three players use three quadrants. Assign Gamepads to controller ports 1–4 in ares,
+Select Profile → map → game type → Select Armor**. Join and ready one to four
+controllers; three players use three quadrants. Each of the four color profiles
+can wear **Spartan / MJOLNIR Mk V** or **Jorge / MJOLNIR Mk IV [G-052]**. Jorge
+requires 8 MiB and has double shields, infinite rocket reserve and protection
+from explosive health damage. See [ARMOR_SETUP.md](ARMOR_SETUP.md) for setup,
+palette rules and gameplay behavior, [JORGE_LODS.md](JORGE_LODS.md) for body budgets
+and [JORGE_FIRSTPERSON.md](JORGE_FIRSTPERSON.md) for the
+asset and validation, and [CHARACTER_DEMAKE.md](CHARACTER_DEMAKE.md) for the
+reusable Reach-to-N64 workflow. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.
 Any active player can press **Start** to pause and own the menu. Another
 player's Start transfers ownership; the current owner's Start resumes.

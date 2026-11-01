@@ -7,6 +7,15 @@ static bg_front_action press(bg_frontend*f,unsigned p,uint32_t button){
     bg_control_state in[4]={0};in[p].held=in[p].pressed=button;now+=20000;
     return bg_front_update(f,in,now);
 }
+static void select_armor(bg_frontend*f) {
+    assert(f->page==BG_FRONT_ARMOR);
+    for(unsigned p=0;p<4;p++)if(f->joined[p]) {
+        press(f,p,BG_BUTTON_D_RIGHT); /* Repeating Jorge suits are allowed. */
+        press(f,p,BG_BUTTON_A);assert(f->armor_ready[p]);
+    }
+    assert(f->page==BG_FRONT_ARMOR);
+    press(f,f->host,BG_BUTTON_A);assert(f->page==BG_FRONT_PREGAME);
+}
 static void joins(bg_frontend*f,unsigned mask,unsigned host){
     bg_front_init(f);press(f,host,BG_BUTTON_A);assert(f->page==BG_FRONT_MULTIPLAYER);
     press(f,host,BG_BUTTON_A);assert(f->page==BG_FRONT_JOIN);
@@ -20,7 +29,25 @@ int main(void){
     bg_frontend f;
     bg_front_set_memory_size(4*1024*1024);
     for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i)==(i==0||i==5||i==6||i==9||i==10));
+    assert(!bg_front_armor_available(BG_ARMOR_JORGE));
+    assert(bg_front_armor_available(BG_ARMOR_SPARTAN));
+    assert(!bg_front_armor_available(BG_ARMOR_COUNT));
+    joins(&f,1,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);
+    assert(f.page==BG_FRONT_ARMOR);
+    press(&f,0,BG_BUTTON_D_RIGHT);assert(f.armor[0]==BG_ARMOR_JORGE);
+    press(&f,0,BG_BUTTON_A);assert(!f.armor_ready[0]&&f.sound==BG_FRONT_BEEP);
     bg_front_set_memory_size(8*1024*1024);
+    assert(bg_front_armor_available(BG_ARMOR_JORGE));
+    press(&f,0,BG_BUTTON_A);assert(f.armor_ready[0]);
+    press(&f,0,BG_BUTTON_D_RIGHT);assert(f.armor[0]==BG_ARMOR_JORGE);
+    press(&f,0,BG_BUTTON_B);assert(!f.armor_ready[0]);
+    press(&f,0,BG_BUTTON_B);assert(f.page==BG_FRONT_TYPE);
+    press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_ARMOR&&f.armor[0]==BG_ARMOR_JORGE);
+    f.page=BG_FRONT_SETTINGS;f.settings_profile=3;press(&f,0,BG_BUTTON_D_RIGHT);
+    assert(f.settings_profile==0);
+    f.page=BG_FRONT_CONTROLS;press(&f,0,BG_BUTTON_D_RIGHT);
+    assert(f.styles[0]==BG_CONTROLS_BOND && f.styles[3]==BG_CONTROLS_DUKE);
+
     for(unsigned mask=1;mask<16;mask++)for(unsigned host=0;host<4;host++)if(mask&(1u<<host)){
         joins(&f,mask,host);assert(f.count==(unsigned)__builtin_popcount(mask));assert(f.ports[0]==host);
         bg_control_state physical[4],mapped[4];
@@ -34,38 +61,52 @@ int main(void){
         press(&f,host,BG_BUTTON_D_RIGHT);assert(f.map==9);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_TYPE&&f.type==0);
         for(unsigned i=1;i<26;i++){
             press(&f,host,BG_BUTTON_D_RIGHT);assert(f.type==i);
-            press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME);
+            press(&f,host,BG_BUTTON_A);select_armor(&f);
             if(bg_mode_preset(i)->teams)for(unsigned p=0;p<4;p++)if(mask&(1u<<p)){
                 unsigned before=f.teams[p];press(&f,p,BG_BUTTON_D_LEFT);assert(f.teams[p]==(before^1));
             }
-            press(&f,host,BG_BUTTON_B);assert(f.page==BG_FRONT_TYPE);
+            press(&f,host,BG_BUTTON_B);assert(f.page==BG_FRONT_ARMOR);press(&f,host,BG_BUTTON_B);press(&f,host,BG_BUTTON_B);assert(f.page==BG_FRONT_TYPE);
         }
-        press(&f,host,BG_BUTTON_D_RIGHT);assert(f.type==0);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME);
+        press(&f,host,BG_BUTTON_D_RIGHT);assert(f.type==0);press(&f,host,BG_BUTTON_A);select_armor(&f);
         uint64_t deadline=f.deadline;press(&f,host,BG_BUTTON_C_LEFT);assert(f.deadline==deadline+5000000);
         press(&f,host,BG_BUTTON_A);assert(f.deadline==deadline);press(&f,host,BG_BUTTON_A);press(&f,host,BG_BUTTON_A);assert(f.deadline==now+999000);
         bg_control_state empty[4]={0};assert(bg_front_update(&f,empty,f.deadline-1)==BG_FRONT_NONE);
         assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_START_MATCH&&f.page==BG_FRONT_PLAY);
         bg_front_quit(&f);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_PLAY);
         const int scores[4]={15,4,-1,7};bg_front_results(&f,scores,0);assert(!memcmp(scores,f.final_scores,sizeof(scores)));
-        press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP);press(&f,host,BG_BUTTON_A);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME);
-        press(&f,host,BG_BUTTON_B);assert(f.page==BG_FRONT_TYPE&&f.deadline==0);
+        press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP);press(&f,host,BG_BUTTON_A);press(&f,host,BG_BUTTON_A);select_armor(&f);
+        press(&f,host,BG_BUTTON_B);assert(f.page==BG_FRONT_ARMOR&&f.deadline==0);
     }
     bg_front_init(&f);press(&f,0,BG_BUTTON_D_UP);press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_MAIN);
     press(&f,0,BG_BUTTON_D_DOWN);press(&f,0,BG_BUTTON_D_DOWN);press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_SETTINGS);
     press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_PROFILE);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.styles[0]==BG_CONTROLS_BOND);
     press(&f,0,BG_BUTTON_B);press(&f,0,BG_BUTTON_B);assert(f.styles[0]==BG_CONTROLS_BOND);
-    joins(&f,3,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);f.type=1;
+    joins(&f,3,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);select_armor(&f);for(unsigned p=0;p<4;p++)f.armor[p]=BG_ARMOR_SPARTAN;f.type=1;
     bg_front_set_memory_size(4*1024*1024);
     for(unsigned i=0;i<26;i++)assert(bg_front_available(BG_FRONT_TYPE,i)==(i==0));
     bg_control_state empty[4]={0};assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_NONE&&f.page==BG_FRONT_JOIN);
     bg_front_set_memory_size(8*1024*1024);
     joins(&f,15,0);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.map==10);
     press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_TYPE);
-    press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME&&f.map==10);
+    press(&f,0,BG_BUTTON_A);select_armor(&f);assert(f.map==10);
     assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_START_MATCH);
     const int wizard_scores[4]={15,3,2,1};bg_front_results(&f,wizard_scores,0);
     press(&f,0,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP&&f.map==10);
     press(&f,0,BG_BUTTON_D_LEFT);assert(f.map==9);
     for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i));
+    /* A simultaneous confirmation cannot leak onto the countdown; every
+     * joined port chooses independently, and unused ports cannot advance. */
+    joins(&f,15,2);press(&f,2,BG_BUTTON_A);press(&f,2,BG_BUTTON_A);
+    bg_control_state together[4]={0};
+    for(unsigned p=0;p<4;p++){together[p].pressed=BG_BUTTON_A;f.armor[p]=BG_ARMOR_JORGE;}
+    bg_front_update(&f,together,now+=20000);assert(f.page==BG_FRONT_ARMOR);
+    for(unsigned p=0;p<4;p++)assert(f.armor_ready[p]&&f.profile[p]==p);
+    press(&f,2,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME);
+    bg_front_set_memory_size(4*1024*1024);
+    assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_NONE&&f.page==BG_FRONT_JOIN);
+    bg_front_set_memory_size(8*1024*1024);
+    joins(&f,5,2);press(&f,2,BG_BUTTON_A);press(&f,2,BG_BUTTON_A);
+    press(&f,1,BG_BUTTON_D_RIGHT);press(&f,1,BG_BUTTON_A);assert(!f.armor_ready[1]&&f.armor[1]==BG_ARMOR_SPARTAN);
+    press(&f,2,BG_BUTTON_A);press(&f,2,BG_BUTTON_A);assert(f.page==BG_FRONT_ARMOR);
     puts("front-end: all rosters/hosts, thirteen maps, 26 presets, capability guards, countdown, cancel, results, controls PASS");
 }

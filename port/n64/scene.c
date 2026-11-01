@@ -50,6 +50,8 @@ static uint64_t world_camera_masks[4];
 #include "blam/runtime.h"
 #include "hud.h"
 #include "scene.h"
+#include "asset_jorge.h"
+#include "jorge_firstperson.h"
 #include "map.h"
 #include "runtime_qa.h"
 #ifdef BG_GEOMETRY_CENSUS
@@ -72,7 +74,7 @@ static unsigned decode_key_count;
 extern T3DVertPacked bg_vertices[];
 extern uint16_t bg_textures[][32 * 32];
 #endif
-static const color_t colors[4] = {
+static const color_t colors[BG_PROFILE_COUNT] = {
     {225, 45, 38, 255}, {39, 92, 215, 255}, {215, 179, 44, 255}, {57, 183, 69, 255}};
 static surface_t textures[32];
 static rspq_block_t *texture_blocks[32];
@@ -124,6 +126,7 @@ static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
 /* A segmented vertex address shares each weapon's commands across all
  * fenced player/slot buffers. Segment 1 is reserved for these draw calls. */
 static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
+static rspq_block_t *jorge_firstperson_block;
 static float fired_at[4] = {-100, -100, -100, -100};
 static bool body_firing[4], body_reloading[4];
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
@@ -223,6 +226,12 @@ static void tint_team(T3DVertPacked *vertices, unsigned count, const uint8_t *ma
         *rgba = (r << 24) | (g << 16) | (b << 8) | 255;
     }
 }
+static void tint_jorge(T3DVertPacked *vertices, unsigned count, const uint8_t *masks, unsigned p) {
+    for (unsigned i=0;i<count;i++) {
+        uint32_t *color=t3d_vertbuffer_get_color(vertices,i);
+        *color=bg_jorge_palette_color(*color,bg_player_color(p),masks?masks[i]:BG_JORGE_ACCENT);
+    }
+}
 static rspq_block_t *record(T3DVertPacked *verts, unsigned count) {
     rspq_block_begin();
     for (unsigned first = 0; first < count; first += 60) {
@@ -242,11 +251,14 @@ static void prepare_model(const bg_model_asset *asset) {
     data_cache_hit_writeback(asset->vertices, ((asset->vertex_count + 1) & ~1u) * 16);
     if (!asset->batch_count)
         return;
-    for (unsigned i = 0; i < converted_count; i++)
-        if (converted[i] == asset->indices)
-            return;
-    assertf(converted_count < 96, "Model index conversion capacity");
-    converted[converted_count++] = asset->indices;
+    /* Streamed Jorge indices are fresh on every load, even if malloc reuses
+     * an old address. Static model addresses can use the startup registry. */
+    if (asset != &bg_jorge_model && asset != &bg_jorge_lod_model) {
+        for (unsigned i = 0; i < converted_count; i++)
+            if (converted[i] == asset->indices) return;
+        assertf(converted_count < 96, "Model index conversion capacity");
+        converted[converted_count++] = asset->indices;
+    }
     for (unsigned b = 0; b < asset->batch_count; b++) {
         const bg_mesh_batch *batch = &asset->batches[b];
         assertf(batch->count <= 60 && batch->index_count <= 120 && batch->index_count % 3 == 0 &&
@@ -495,6 +507,8 @@ static void init_scene(void) {
         covenant_wreck_blocks[m] = record_model(a, a->vertices);
     }
     prepare_model(&bg_spartan_lod);
+    prepare_model(&bg_jorge_fp_model);
+    jorge_firstperson_block=record_model(&bg_jorge_fp_model,t3d_segment_placeholder(T3D_SEGMENT_1));
     for (unsigned weapon = 0; weapon < BG_FP_WEAPONS; weapon++) {
         const bg_model_asset *a = &bg_fp_models[weapon];
         prepare_model(a);
@@ -649,6 +663,34 @@ static void animate_mesh(T3DVertPacked *output, const bg_anim_asset *a, unsigned
     animated_vertices += a->vertices;
 #endif
 }
+static float locomotion_seconds(const bg_player *p, int clip);
+static bool is_jorge(unsigned p) { return p < BG_PLAYERS && bg_player_armors[p] == BG_ARMOR_JORGE; }
+static const bg_model_asset *body_model(unsigned p, bool lod) {
+    if (is_jorge(p)) return lod ? &bg_jorge_lod_model : &bg_jorge_model;
+    return lod ? &bg_spartan_lod : &bg_model_assets[BG_M_SPARTAN];
+}
+typedef struct { unsigned clip; float seconds; bool loop; int locomotion; float loc_seconds, blend; } jorge_motion;
+static jorge_motion jorge_motion_for(unsigned p) {
+    const bg_player *q = &bg_players[p];
+    const bg_seat_definition *seat = bg_player_seat(q);
+    jorge_motion m = {.clip = body_clips[p], .seconds = q->anim_time, .locomotion = -1};
+    m.loop = m.clip == BG_A_IDLE || m.clip == BG_A_RUN || m.clip >= BG_A_DRIVE;
+    if (seat) {
+        m.clip = BG_J_SEATS + seat->pose * 3 + q->seat_state;
+        m.loop = q->seat_state == BG_SEAT_STABLE;
+    } else if (q->weapon_ready > 0) {
+        m.clip = BG_J_READY; m.loop = false;
+        m.seconds = (1 - q->weapon_ready / bg_ready_times[q->weapon]) * bg_jorge_clips[m.clip].duration;
+    } else {
+        if (body_throwing[p]) m.seconds = (.9f - q->grenade_cooldown) / .35f * bg_jorge_clips[m.clip].duration;
+        m.locomotion = locomotion_clip(q);
+        if (m.locomotion >= 0) {
+            m.loc_seconds = locomotion_seconds(q, m.locomotion);
+            m.blend = m.locomotion < 2 ? q->crouch_amount : 1;
+        }
+    }
+    return m;
+}
 static void prepare_player_bounds(unsigned p) {
     bg_player *player = &bg_players[p];
     unsigned clip;
@@ -750,6 +792,16 @@ static void prepare_player_bounds(unsigned p) {
             }
         }
     }
+    if (is_jorge(p)) {
+        jorge_motion m = jorge_motion_for(p); merged = bg_jorge_clips[m.clip].bounds;
+        if (m.locomotion >= 0) {
+            const bg_bounds *b = &bg_jorge_clips[BG_J_LOCOMOTION + m.locomotion].bounds;
+            for (unsigned k = 0; k < 3; k++) {
+                merged.min[k] = fminf(merged.min[k], b->min[k]);
+                merged.max[k] = fmaxf(merged.max[k], b->max[k]);
+            }
+        }
+    }
     bg_bounds box;
     bg_bounds_transform(&box, &merged, body->m, BG_SCALE);
     bg_bounds_quantize(&body_bounds[p], &box);
@@ -758,13 +810,23 @@ static void prepare_player_bounds(unsigned p) {
     bg_bounds marker = bg_attachment_cull_bounds[clip];
     if (seat || player->weapon_ready > 0 || locomotion >= 0 || body_firing[p] || body_reloading[p])
         marker = (bg_bounds){{-1, -1, -1}, {1, 1, 1}};
+    if (is_jorge(p)) {
+        jorge_motion m = jorge_motion_for(p); marker = bg_jorge_clips[m.clip].grip_bounds;
+        if (m.locomotion >= 0) {
+            const bg_bounds *b = &bg_jorge_clips[BG_J_LOCOMOTION + m.locomotion].grip_bounds;
+            for (unsigned k = 0; k < 3; k++) {
+                marker.min[k] = fminf(marker.min[k], b->min[k]);
+                marker.max[k] = fmaxf(marker.max[k], b->max[k]);
+            }
+        }
+    }
     bg_bounds_expand(&marker, bg_model_cull_radii[weapon_model(player->weapon)]);
     bg_bounds_transform(&box, &marker, body->m, BG_SCALE);
     bg_bounds_quantize(&held_bounds[p], &box);
     T3DMat4 armor_matrix = *body;
     for (unsigned a = 0; a < 3; a++)
         for (unsigned b = 0; b < 3; b++)
-            armor_matrix.m[a][b] *= BG_SCALE / BG_MODEL_SCALE;
+            armor_matrix.m[a][b] *= BG_SCALE / (is_jorge(p) ? BG_JORGE_SCALE : BG_MODEL_SCALE);
     t3d_mat4_to_fixed_3x4(&transforms[slot][p], &armor_matrix);
 }
 static int locomotion_clip(const bg_player *p) {
@@ -832,6 +894,34 @@ static void animate_layered_player(unsigned p) {
 static void animate_player(unsigned p) {
     if (!wanted_lods[p] && !(wanted_held & (1u << p)))
         return;
+    if (is_jorge(p)) {
+        jorge_motion m = jorge_motion_for(p);
+        bg_attachment_pose hand_pose;
+        bg_attachment_pose *hp = wanted_held & (1u << p) ? &hand_pose : NULL;
+        unsigned grip_lod = wanted_lods[p] & 1u ? 0 : wanted_lods[p] & 2u ? 1 : 0;
+        for (unsigned lod = 0; lod < 2; lod++) {
+            bool visible = wanted_lods[p] & (1u << lod);
+            bg_attachment_pose *grip = lod == grip_lod ? hp : NULL;
+            if (!visible && !grip) continue;
+            T3DVertPacked *out = visible ? CachedAddr(lod ? armor_lod[slot][p] : armor[slot][p]) : NULL;
+            bg_jorge_pose(out, lod, m.clip, m.seconds, m.loop, 1, grip);
+            if (m.locomotion >= 0)
+                bg_jorge_pose(out, lod, BG_J_LOCOMOTION + m.locomotion, m.loc_seconds,
+                               m.locomotion < 2, m.blend, grip);
+#ifdef BG_PROFILE
+            if (out) animated_vertices += body_model(p, lod)->vertex_count;
+#endif
+        }
+        if (hp) {
+            T3DMat4 hand, world;
+            float scale = BG_SCALE / BG_OBJECT_SCALE;
+            float pos[3]; for (unsigned k = 0; k < 3; k++) pos[k] = hp->pos[k] * BG_SCALE;
+            t3d_mat4_from_srt(&hand, (float[]){scale, scale, scale}, hp->quat, pos);
+            t3d_mat4_mul(&world, &body_matrices[p], &hand);
+            t3d_mat4_to_fixed_3x4(&held_matrices[slot][p], &world);
+        }
+        return;
+    }
     bg_player *player = &bg_players[p];
     unsigned clip = body_clips[p];
     const bg_seat_definition *seat = bg_player_seat(player);
@@ -1079,26 +1169,37 @@ static void prepare_pickup_bounds(void) {
         bg_bounds_quantize(&pickup_bounds[i], &box);
     }
 }
+static unsigned body_armors[BG_PLAYERS];
 /* Body commands retain their vertex addresses; allocate and release together. */
 static void body_buffers_load(void) {
     if (armor[0][0])
         return;
-    const bg_model_asset *spartan = &bg_model_assets[BG_M_SPARTAN];
-    unsigned bytes = ((spartan->vertex_count + 1) & ~1u) * 16;
-    unsigned lod_bytes = ((bg_spartan_lod.vertex_count + 1) & ~1u) * 16;
-    for (unsigned s = 0; s < BG_FRAME_SLOTS; s++)
-        for (unsigned p = 0; p < 4; p++) {
+    bool needed = false;
+    for (unsigned p = 0; p < BG_PLAYERS; p++) needed |= is_jorge(p);
+    if (needed && bg_jorge_load()) {
+        prepare_model(&bg_jorge_model);
+        prepare_model(&bg_jorge_lod_model);
+    }
+    for (unsigned p = 0; p < BG_PLAYERS; p++) {
+        body_armors[p] = bg_player_armors[p];
+        const bg_model_asset *near = body_model(p, false), *far = body_model(p, true);
+        unsigned bytes = ((near->vertex_count + 1) & ~1u) * 16;
+        unsigned lod_bytes = ((far->vertex_count + 1) & ~1u) * 16;
+        for (unsigned s = 0; s < BG_FRAME_SLOTS; s++) {
             armor[s][p] = malloc_uncached(bytes);
-            assertf(armor[s][p], "Spartan buffer allocation");
-            memcpy(armor[s][p], spartan->vertices, bytes);
-            tint_team(armor[s][p], spartan->vertex_count, bg_spartan_team_mask, p);
-            player_blocks[s][p] = record_model(spartan, armor[s][p]);
+            assertf(armor[s][p], "Character buffer allocation");
+            memcpy(armor[s][p], near->vertices, bytes);
+            if (is_jorge(p)) tint_jorge(armor[s][p], near->vertex_count, bg_jorge_palette_mask, p);
+            else tint_team(armor[s][p], near->vertex_count, bg_spartan_team_mask, p);
+            player_blocks[s][p] = record_model(near, armor[s][p]);
             armor_lod[s][p] = malloc_uncached(lod_bytes);
-            assertf(armor_lod[s][p], "Spartan LOD allocation");
-            memcpy(armor_lod[s][p], bg_spartan_lod.vertices, lod_bytes);
-            tint_team(armor_lod[s][p], bg_spartan_lod.vertex_count, bg_spartan_lod_team_mask, p);
-            armor_lod_blocks[s][p] = record_model(&bg_spartan_lod, armor_lod[s][p]);
+            assertf(armor_lod[s][p], "Character LOD allocation");
+            memcpy(armor_lod[s][p], far->vertices, lod_bytes);
+            if (is_jorge(p)) tint_jorge(armor_lod[s][p], far->vertex_count, bg_jorge_lod_palette_mask, p);
+            else tint_team(armor_lod[s][p], far->vertex_count, bg_spartan_lod_team_mask, p);
+            armor_lod_blocks[s][p] = record_model(far, armor_lod[s][p]);
         }
+    }
 }
 static void body_buffers_release(void) {
     if (!armor[0][0])
@@ -1109,15 +1210,13 @@ static void body_buffers_release(void) {
     rspq_wait();
     for (unsigned s = 0; s < BG_FRAME_SLOTS; s++)
         for (unsigned p = 0; p < 4; p++) {
-            rspq_block_free(player_blocks[s][p]);
-            player_blocks[s][p] = NULL;
-            rspq_block_free(armor_lod_blocks[s][p]);
-            armor_lod_blocks[s][p] = NULL;
-            free_uncached(armor[s][p]);
-            armor[s][p] = NULL;
-            free_uncached(armor_lod[s][p]);
-            armor_lod[s][p] = NULL;
+            if (armor_lod_blocks[s][p] != player_blocks[s][p]) rspq_block_free(armor_lod_blocks[s][p]);
+            if (armor_lod[s][p] != armor[s][p]) free_uncached(armor_lod[s][p]);
+            rspq_block_free(player_blocks[s][p]); free_uncached(armor[s][p]);
+            player_blocks[s][p] = armor_lod_blocks[s][p] = NULL;
+            armor[s][p] = armor_lod[s][p] = NULL;
         }
+    bg_jorge_release();
 }
 /* Segment-based weapon commands do not retain these addresses. Keep their
  * animation workspace out of the full-screen menu texture peak. */
@@ -1158,6 +1257,7 @@ static void firstperson_buffer_resize(unsigned p, unsigned bytes) {
             unsigned required=((bg_objective_fp_models[k].vertex_count+1)&~1u)*16;
             if(required>capacity)capacity=required;
         }
+        if(is_jorge(p)) capacity+=((bg_jorge_fp_model.vertex_count+1)&~1u)*16;
         firstperson[slot][p] = malloc_uncached(capacity);
         assertf(firstperson[slot][p], "First-person mesh allocation");
         firstperson_bytes[slot][p] = capacity;
@@ -1170,7 +1270,7 @@ static void animate_firstperson(unsigned p) {
         return;
     bg_player *player = &bg_players[p];
     unsigned w = player->weapon;
-    if (player->vehicle >= 0 || player->health <= 0 || player->zoom || p >= views)
+    if (!bg_player_firstperson_weapon(player))
         return;
     int carried=objective_kind(p);
     if(carried>=0){animate_objective(p,carried);return;}
@@ -1180,7 +1280,13 @@ static void animate_firstperson(unsigned p) {
     T3DVertPacked *output = CachedAddr(firstperson[slot][p]);
     if (firstperson_weapon[slot][p] != (int)w) {
         memcpy(output, m->vertices, bytes);
-        tint_team(output, m->vertex_count, bg_fp_team_masks[w], p);
+        if(is_jorge(p)) {
+            bg_jorge_firstperson_tint(output,w,bg_player_color(p));
+            T3DVertPacked *arms=(T3DVertPacked *)((uint8_t *)output+((bg_fp_max_vertices+1)&~1u)*16);
+            memcpy(arms,bg_jorge_fp_model.vertices,((bg_jorge_fp_model.vertex_count+1)&~1u)*16);
+            tint_jorge(arms,bg_jorge_fp_model.vertex_count,NULL,p);
+        }
+        else tint_team(output, m->vertex_count, bg_fp_team_masks[w], p);
         /* The slot fence protects this buffer. Commands are shared and
          * select its address through the RSP's ordered segment table. */
         firstperson_weapon[slot][p] = w;
@@ -1270,6 +1376,14 @@ static void animate_firstperson(unsigned p) {
     }
     bg_fp_ammo_prepare(slot, p, w, clip, f0, f1, fraction, player->ammo, player->reserve,
                        player->reload > 0 ? seconds : -1, output);
+    if(is_jorge(p)) {
+        T3DVertPacked *arms=(T3DVertPacked *)((uint8_t *)output+((bg_fp_max_vertices+1)&~1u)*16);
+        bg_jorge_firstperson_pose(arms,output,w);
+        data_cache_hit_writeback(arms,((bg_jorge_fp_model.vertex_count+1)&~1u)*16);
+#ifdef BG_PROFILE
+        animated_vertices+=bg_jorge_fp_model.vertex_count;
+#endif
+    }
 }
 static void ensure_player_animation(unsigned p) {
     unsigned bit = 1u << p;
@@ -1555,9 +1669,15 @@ static void prepare_view(unsigned p) {
         if (bg_player_visibility(q) <= 0)
             continue;
 #if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA) && !defined(BG_PVE_MODEL_QA)
-        if (j == p && !bg_player_third_person(player) && player->health > 0)
-            continue;
+        bool self_firstperson=j==p&&!bg_player_third_person(player)&&player->health>0;
+#elif defined(BG_MODEL_QA)
+        bool self_firstperson=bg_qa_firstperson()&&j==p&&!bg_player_third_person(player)&&player->health>0;
+#else
+        bool self_firstperson=false;
 #endif
+        /* CE first person shows only the viewmodel, including for Jorge. */
+        if (self_firstperson)
+            continue;
         if (q->vehicle >= 0 && (bg_player_seat(q)->flags&1) &&
             q->seat_state == BG_SEAT_STABLE)
             continue;
@@ -1571,6 +1691,10 @@ static void prepare_view(unsigned p) {
         bool held = (carried>=0 || distance <= 16 || player->zoom) && q->health > 0 && personal;
         if (visible_bounds(vp, &body_bounds[j], cull_selected[p])) {
             unsigned lod = distance > (views >= 3 ? 4.f : 16.f) && player->zoom == 0;
+#ifdef BG_JORGE_QA
+            if (bg_qa_page() != 10 && j == p % 2)
+                assertf(lod == (p >= 2), "Jorge near/far QA selection");
+#endif
             body_lods[p][j] = lod + 1;
             wanted_lods[j] |= 1u << lod;
         }
@@ -2097,8 +2221,7 @@ static void draw_view(unsigned p) {
             }
             t3d_matrix_set(&transforms[slot][j], true);
             rspq_block_run(lod ? armor_lod_blocks[slot][j] : player_blocks[slot][j]);
-            triangles +=
-                lod ? bg_spartan_lod.triangle_count : bg_model_assets[BG_M_SPARTAN].triangle_count;
+            triangles += body_model(j, lod)->triangle_count;
             if (shield > 0) {
                 rdpq_sync_pipe();
                 if (fading)
@@ -2107,7 +2230,7 @@ static void draw_view(unsigned p) {
                     rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
             }
 #ifdef BG_PROFILE
-            submitted_vertices += lod ? spartan_lod_vertex_loads : model_vertex_loads[BG_M_SPARTAN];
+            submitted_vertices += is_jorge(j) ? body_model(j, lod)->vertex_count : lod ? spartan_lod_vertex_loads : model_vertex_loads[BG_M_SPARTAN];
 #endif
         }
         if ((held_masks[p] & (1u << j)) && objective_kind(j)<0)
@@ -2190,8 +2313,7 @@ static void draw_view(unsigned p) {
     category_triangles[4] += triangles - before;
     before = triangles;
 #endif
-    if (player->health > 0 && bg_player_personal_weapon(player) &&
-        !bg_player_third_person(player) && !player->zoom
+    if (bg_player_firstperson_weapon(player)
 #ifdef BG_INTERACTION_QA
         && BG_INTERACTION_QA < 2
 #endif
@@ -2250,6 +2372,15 @@ static void draw_view(unsigned p) {
             rdpq_mode_combiner(RDPQ_COMBINER_SHADE);
             rdpq_mode_alphacompare(0);
             t3d_state_set_drawflags(T3D_FLAG_SHADED | T3D_FLAG_DEPTH | T3D_FLAG_CULL_BACK);
+        }
+        if(is_jorge(p)) {
+            t3d_segment_set(T3D_SEGMENT_1,(uint8_t *)firstperson[slot][p]+((bg_fp_max_vertices+1)&~1u)*16);
+            rspq_block_run(jorge_firstperson_block);
+            triangles+=bg_jorge_fp_model.triangle_count;
+#ifdef BG_PROFILE
+            submitted_vertices+=model_load_count(&bg_jorge_fp_model,bg_jorge_fp_model.vertex_count,0,bg_jorge_fp_model.batch_count);
+#endif
+            t3d_segment_set(T3D_SEGMENT_1,firstperson[slot][p]);
         }
 #ifdef BG_PROFILE
         submitted_vertices += fp_vertex_loads[player->weapon];
@@ -2350,14 +2481,19 @@ const T3DViewport *bg_scene_viewport(unsigned player) {
     return &viewports[slot][player];
 }
 void bg_scene_profile_changed(unsigned player) {
-    const bg_model_asset *spartan = &bg_model_assets[BG_M_SPARTAN];
-    for (unsigned s = 0; s < BG_FRAME_SLOTS; s++) {
-        memcpy(armor[s][player], spartan->vertices, ((spartan->vertex_count + 1) & ~1u) * 16);
-        tint_team(armor[s][player], spartan->vertex_count, bg_spartan_team_mask, player);
-        memcpy(armor_lod[s][player], bg_spartan_lod.vertices,
-               ((bg_spartan_lod.vertex_count + 1) & ~1u) * 16);
-        tint_team(armor_lod[s][player], bg_spartan_lod.vertex_count, bg_spartan_lod_team_mask,
-                  player);
-        firstperson_weapon[s][player] = -1;
+    if (!armor[0][0]) return;
+    if (body_armors[player] != bg_player_armors[player]) {
+        firstperson_buffers_release();
+        body_buffers_release(); body_buffers_load();
     }
+    for (unsigned s = 0; s < BG_FRAME_SLOTS; s++) {
+        for (unsigned lod=0;lod<2;lod++) {
+            const bg_model_asset *model=body_model(player,lod);
+            T3DVertPacked *out=lod?armor_lod[s][player]:armor[s][player];
+            memcpy(out,model->vertices,((model->vertex_count+1)&~1u)*16);
+            if (is_jorge(player)) tint_jorge(out,model->vertex_count,lod?bg_jorge_lod_palette_mask:bg_jorge_palette_mask,player);
+            else tint_team(out,model->vertex_count,lod?bg_spartan_lod_team_mask:bg_spartan_team_mask,player);
+        }
+    }
+    for (unsigned s = 0; s < BG_FRAME_SLOTS; s++) firstperson_weapon[s][player] = -1;
 }

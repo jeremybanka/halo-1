@@ -42,6 +42,10 @@ void bg_front_qa_input(const bg_frontend *f,bg_control_state raw[4],uint64_t now
         for(p=0;p<4;p++)if(!f->joined[p]||!f->ready[p])break;
         if(p<4)button=f->joined[p]?BG_BUTTON_A:BG_BUTTON_START;else p=f->host;
         break;
+    case BG_FRONT_ARMOR:
+        for(p=0;p<4;p++)if(f->joined[p]&&!f->armor_ready[p])break;
+        if(p==4)p=f->host;
+        break;
     case BG_FRONT_MAP:if(f->map!=BG_MAP_WIZARD)button=BG_BUTTON_D_RIGHT;break;
     case BG_FRONT_TYPE:if(f->type!=mode)button=BG_BUTTON_D_RIGHT;break;
     case BG_FRONT_PREGAME:if(f->deadline<=now+1500000)return;break;

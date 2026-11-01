@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "game.c"
+#include "visr.h"
+#include "shields.h"
 static void advance(unsigned ticks){bg_input in[4]={0};for(unsigned n=0;n<ticks;n++)bg_tick(in,1.f/30);}
 static void clear_enemies(void){for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[4+i].health>0&&bg_pve_actors[i].arrival!=1)damage_player_profile(4+i,0,100000,false,false,0,false,false,1);}
 #ifdef BG_PVE_ROSTER
@@ -24,6 +26,16 @@ int main(void){
     assert(bg_players[0].health<71);
     ff_resupply();assert(bg_players[0].health==100&&bg_players[0].shield==200&&bg_players[1].shield==100);
     kill(0,-1);ff_resupply();assert(bg_players[0].armor==BG_ARMOR_JORGE&&bg_players[0].shield==200);
+    bg_set_player_armor(0,BG_ARMOR_ODST);bg_ff_start(2);
+    assert(bg_players[0].armor==BG_ARMOR_ODST&&bg_players[0].shield==0);
+    pve_spawn_actor(0,BG_PVE_ELITE,BG_W_PLASMA_RIFLE,0,foe,0);
+    bg_players[4].invisibility=10;bg_players[4].camo_opacity=0;
+    bg_players[0].flashlight_on=true;
+    assert(bg_visr_active(&bg_players[0])&&!bg_visr_enemy(0,1)&&bg_visr_enemy(0,4));
+    damage_player_profile(0,4,10,false,false,BG_D_AR,false,false,1);
+    assert(bg_players[0].health<100&&bg_players[0].shield==0&&bg_shield_sounds(&bg_players[0])==0);
+    ff_resupply();assert(bg_players[0].health==100&&bg_players[0].shield==0);
+    kill(0,-1);ff_resupply();assert(bg_players[0].armor==BG_ARMOR_ODST&&bg_players[0].shield==0);
     bg_set_player_armor(0,BG_ARMOR_SPARTAN);
     puts("PASS Jorge PvE launch, NPC explosions/bullets, friendly-fire guard, resupply and respawn");
     for(unsigned players=1;players<=4;players++){

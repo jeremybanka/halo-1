@@ -29,6 +29,7 @@ int main(void){
     bg_frontend f;
     bg_front_set_memory_size(4*1024*1024);
     for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i)==(i==0||i==5||i==6||i==9||i==10));
+    assert(!bg_front_armor_available(BG_ARMOR_ODST));
     assert(!bg_front_armor_available(BG_ARMOR_JORGE));
     assert(bg_front_armor_available(BG_ARMOR_SPARTAN));
     assert(!bg_front_armor_available(BG_ARMOR_COUNT));
@@ -37,6 +38,7 @@ int main(void){
     press(&f,0,BG_BUTTON_D_RIGHT);assert(f.armor[0]==BG_ARMOR_JORGE);
     press(&f,0,BG_BUTTON_A);assert(!f.armor_ready[0]&&f.sound==BG_FRONT_BEEP);
     bg_front_set_memory_size(8*1024*1024);
+    assert(bg_front_armor_available(BG_ARMOR_ODST));
     assert(bg_front_armor_available(BG_ARMOR_JORGE));
     press(&f,0,BG_BUTTON_A);assert(f.armor_ready[0]);
     press(&f,0,BG_BUTTON_D_RIGHT);assert(f.armor[0]==BG_ARMOR_JORGE);

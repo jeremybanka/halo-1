@@ -1,0 +1,77 @@
+{
+  "base_pr": 13,
+  "base_commit": "95305547a7913776fc8f711d0d54682f8f18961f",
+  "asset_policy": "port/n64/CHARACTER_DEMAKE.md",
+  "prior_odst_meshes_used": false,
+  "body_bank_sha256": "f68614dd36021433df2533891fd302874f9c913ff3b3cf5df55796e2ca0fc67c",
+  "roms": {
+    "multiplayer": {
+      "file": "halo-64-paced30-rspq32k.z64",
+      "bytes": 64241664,
+      "sha256": "26060d7790241ccae9c93eb562d203455bb6afc4fd5b575226fdba506bdad82b"
+    },
+    "firefight": {
+      "file": "halo-64-firefight-paced30-rspq32k.z64",
+      "bytes": 66928640,
+      "sha256": "aecb08e1bb30b213783cbd50929b9c30d58519eef537f213fa4ec8ed51c65f89"
+    }
+  },
+  "body_costs": [
+    {
+      "vertices": 3656,
+      "triangles": 3350,
+      "batches": 85,
+      "tracks": 1957,
+      "bytes": 79296,
+      "frame_cache_bytes": 13312
+    },
+    {
+      "vertices": 2048,
+      "triangles": 1781,
+      "batches": 46,
+      "tracks": 1179,
+      "bytes": 43840,
+      "frame_cache_bytes": 8064
+    }
+  ],
+  "validation": {
+    "coverage_probes": 128,
+    "new_enclosed_pixels": 0,
+    "rig_samples_per_lod": 454,
+    "glb_authored_key_samples": 390,
+    "glb_clock_samples": 390,
+    "c_decode_cases": 4680,
+    "firstperson_pose_cases": 1409
+  },
+  "host_checks": [
+    "ASan/UBSan armor damage, shieldless recharge/pickups/respawn and VISR/enemy/team filtering",
+    "ASan/UBSan all roster/host front-end combinations, with and without Firefight",
+    "13 maps / 26 multiplayer modes recertified",
+    "1-4 player Firefight lifecycle, ODST vitals/NPC damage/cloaking/resupply/respawn",
+    "Existing Jorge C decoder, palette and first-person checks"
+  ],
+  "native_checks": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "frontend_steps": 35,
+    "frontend_completed": true,
+    "rdpq_errors": 0,
+    "rdpq_warnings": 0,
+    "views": [
+      "VISR isolated to wearer view",
+      "living zero-opacity enemies visible as silhouettes",
+      "cloaked teammates excluded",
+      "normal neighboring views preserved",
+      "first-person source forearms",
+      "four-player selection / combat / death / respawn / 15-kill results / settings",
+      "all four profile crown stripes, protected cyan visor, neutral armor, near/far"
+    ]
+  },
+  "limits": [
+    "Emulator validation only; no physical-console performance qualification",
+    "No full-match peak-memory measurement",
+    "Coverage samples four poses, eight directions and two display sizes, not every animation frame",
+    "Inherited gunner>0 replay fixture fails on unchanged parent/main too; full regression pass not claimed"
+  ],
+  "asset_commit": "e61534fb770095777adbb155e5200145e901fdac"
+}

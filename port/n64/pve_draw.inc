@@ -212,9 +212,9 @@ static void pve_prepare(void){
         uint32_t section=PVE_PREP_NOW();
         bg_pve_actor*a=&bg_pve_actors[i];bg_player*p=&bg_players[BG_PLAYERS+i];unsigned wanted=0,render_clip=bg_pve_render_clip(a);
         if(!a->occupied||(p->health<=0&&a->death_time>15))continue;
-        if(a->arrival==1&&bg_ff_dropship.door<.05f)continue;
+        if(a->arrival==1&&bg_ff_dropship.door<.05f&&!bg_visr_any(views))continue;
 #ifdef BG_ENEMY_VEHICLES
-        if(p->vehicle>=0&&(bg_player_seat(p)->flags&1)){pve_trim_actor(i,0);continue;}
+        if(p->vehicle>=0&&(bg_player_seat(p)->flags&1)&&!bg_visr_any(views)){pve_trim_actor(i,0);continue;}
 #endif
         bg_cull_bounds bounds;float center[3]={p->pos[0],p->pos[1]+.4f,p->pos[2]};prepare_effect_bounds(&bounds,center,2.f);
 #if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
@@ -231,6 +231,12 @@ static void pve_prepare(void){
         bg_bounds_quantize(&lod_bounds,&world_lod);
 #endif
         for(unsigned v=0;v<views;v++){
+            bool visr=bg_visr_active(&bg_players[v]);
+            if(visr&&!bg_visr_enemy(v,BG_PLAYERS+i))continue;
+            if(!visr&&a->arrival==1&&bg_ff_dropship.door<.05f)continue;
+#ifdef BG_ENEMY_VEHICLES
+            if(!visr&&p->vehicle>=0&&(bg_player_seat(p)->flags&1))continue;
+#endif
             T3DViewport*vp=&viewports[slot][v];if(!visible_bounds(vp,&bounds,cull_selected[v]))continue;
             float dx=p->pos[0]-bg_players[v].pos[0],dy=p->pos[1]-bg_players[v].pos[1],dz=p->pos[2]-bg_players[v].pos[2];
             unsigned lod=dx*dx+dy*dy+dz*dz>(views==1?36:16)&&!bg_players[v].zoom;

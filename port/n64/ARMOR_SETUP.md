@@ -17,6 +17,7 @@ mode selection. Unjoined controllers cannot alter the page.
 |---|---|---:|---:|---|
 | Spartan | MJOLNIR Mk V | 100 | 100 | Standard ammunition and damage |
 | Jorge | MJOLNIR Mk IV [G-052] | 100 | 200 | Unlimited rocket reserve; explosion damage cannot remove health |
+| ODST | Halo 3: ODST | 100 | 0 | Flashlight toggles enemy-only VISR |
 
 Jorge still needs to find a rocket launcher. Its two-round magazine, firing
 cadence, reload duration, weapon-ready time and reload cancellation are
@@ -46,7 +47,7 @@ vitals, and enemy damage retains its difficulty and hit-region rules.
   memory requirements. `BG_PROFILE_COUNT` stays four as armor choices grow.
 - `frontend.h` stores profile and armor separately per physical port. Launch
   packs both through the same host-first port mapping. Capability checks run
-  on selection and again at launch; Jorge requires 8 MiB.
+  on selection and again at launch; Jorge and ODST require 8 MiB.
 - `bg_set_player_armor()` records the match choice before `bg_reset()`.
   Spawn copies it into `bg_player.armor`, so death and restart preserve it.
 - Damage, regeneration, reloads, pickups and HUD read the armor definition,
@@ -133,3 +134,16 @@ build of untouched `f40fefee` reproduces the failure with identical telemetry
 fixtures pass on both. This is an inherited test failure, not a passing full
 regression suite. Native emulator validation has not been repeated for the
 rebased revision.
+
+## ODST armor
+
+ODST has no shields, cannot consume overshields, and keeps zero shields through
+respawn and Firefight resupply. Its normal flashlight button toggles a deep green
+VISR viewport: only living hostile silhouettes remain, including cloaked and
+world-occluded enemies. Allies, scenery, weapons and HUD disappear in that
+view alone. The cyan visor and neutral armor are protected from palette changes;
+only the original helmet crown stripe carries profile or team color.
+
+The fresh Halo 3: ODST extraction, component demake, independent checkpoints,
+near/far costs, custom forearms and scoped validation are recorded in
+[ODST.md](ODST.md). The discarded earlier ODST mesh is not an input.

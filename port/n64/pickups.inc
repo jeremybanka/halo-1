@@ -103,7 +103,7 @@ static void collect_nearby(unsigned owner){
             int kind=q->weapon==BG_PICK_PLASMA,space=4-p->grenades[kind];amount=space<q->quantity?space:q->quantity;
             p->grenades[kind]+=amount;q->quantity-=amount;consume=q->quantity==0;
         }else if(q->weapon==BG_PICK_HEALTH&&p->health<bg_armor_def(p->armor)->health){p->health=bg_armor_def(p->armor)->health;consume=true;amount=1;
-        }else if(q->weapon==BG_PICK_OVERSHIELD&&p->shield<=bg_armor_def(p->armor)->shield&&!p->shield_overcharging){
+        }else if(q->weapon==BG_PICK_OVERSHIELD&&bg_armor_def(p->armor)->shield>0&&p->shield<=bg_armor_def(p->armor)->shield&&!p->shield_overcharging){
             p->shield=fmaxf(1,p->shield);p->shield_delay=0;p->shield_overcharging=p->shield_charging=true;consume=true;amount=1;
             event(BG_EVENT_SHIELD,owner,p->weapon,p->pos,1);
         }else if(q->weapon==BG_PICK_CAMO){if(p->invisibility<=0){p->camo_opacity=1;p->camo_quiet=0;}p->invisibility=bg_camo_duration;consume=true;amount=1;}

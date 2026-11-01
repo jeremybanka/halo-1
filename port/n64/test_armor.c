@@ -2,6 +2,8 @@
  * advance real simulation ticks for recharge, pickups and respawn. */
 #include "game.c"
 #include "shield_fixture.h"
+#include "visr.h"
+#include "shields.h"
 #include <assert.h>
 #include <stdio.h>
 static void close_to(float a,float b){assert(fabsf(a-b)<.005f);}
@@ -77,7 +79,25 @@ static void vehicle_tests(void){
         damage_vehicle(id,1,1000);
         assert(!v->active&&v->occupants[0]==-1&&p->vehicle==-1);
         assert(p->shield==0&&p->health==(armor==BG_ARMOR_JORGE?71:0));
-        assert(bg_match_stats()->deaths[0]==(armor==BG_ARMOR_SPARTAN));
+        assert(bg_match_stats()->deaths[0]==(armor!=BG_ARMOR_JORGE));
     }
 }
-int main(void){shield_tests();damage_tests();ammo_tests();vehicle_tests();puts("PASS: armor identity, 200 shield recharge/overshield/respawn, blast-only health resistance, finite magazines/infinite reserve, pickups, switching and all vehicle rider exits");}
+static void odst_tests(void){
+    setup(BG_ARMOR_ODST);bg_player*p=&bg_players[0];
+    assert(p->armor==BG_ARMOR_ODST&&p->health==100&&p->shield==0);
+    assert(bg_shield_sounds(p)==0);shield_fixture_ticks(400);assert(p->shield==0);
+    int id=bg_add_pickup(BG_PICK_OVERSHIELD,p->pos);shield_fixture_ticks(2);
+    assert(bg_pickups[id].active&&p->shield==0&&!p->shield_overcharging);
+    bg_input in[4]={0};in[0].flashlight=true;bg_tick(in,1.f/30);
+    assert(bg_visr_active(p)&&!bg_visr_active(&bg_players[1]));
+    bg_players[1].invisibility=10;bg_players[1].camo_opacity=0;
+    assert(bg_visr_enemy(0,1)&&!bg_visr_enemy(0,0));
+    bg_players[2].health=0;assert(!bg_visr_enemy(0,2));
+    uint8_t teams[4]={0,0,1,1};bg_configure_mode(BG_MODE_TEAM_SLAYER,teams);
+    assert(!bg_visr_enemy(0,1)&&bg_visr_enemy(0,3));
+    bg_tick(in,1.f/30);assert(!bg_visr_active(p));
+    damage_player_profile(0,3,1000,false,false,BG_D_ROCKET,false,false,1);
+    assert(p->health==0&&!bg_visr_active(p));
+    shield_fixture_ticks(400);assert(p->health==100&&p->shield==0&&p->armor==BG_ARMOR_ODST&&!p->flashlight_on);
+}
+int main(void){shield_tests();damage_tests();ammo_tests();vehicle_tests();odst_tests();puts("PASS: armor identity, 200 shield recharge/overshield/respawn, blast-only health resistance, finite magazines/infinite reserve, pickups, switching and all vehicle rider exits");}

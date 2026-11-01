@@ -1,5 +1,6 @@
 #include "frontend_draw.h"
 #include "asset_jorge.h"
+#include "asset_odst.h"
 #include "asset_frontend.h"
 #include "menu_draw.h"
 #include <libdragon.h>
@@ -188,8 +189,9 @@ static void character_portrait(unsigned profile, float x, float y, float w, floa
 }
 static void armor_portrait(unsigned armor, unsigned profile, float x, float y, float w, float h) {
     if (armor==BG_ARMOR_SPARTAN) { character_portrait(profile,x,y,w,h); return; }
-    surface_t image = surface_make((void *)bg_jorge_portraits[profile], FMT_RGBA16, 32, 40, 64);
-    data_cache_hit_writeback((void *)bg_jorge_portraits[profile], sizeof(bg_jorge_portraits[profile]));
+    const uint16_t *pixels = armor==BG_ARMOR_ODST ? bg_odst_portraits[profile] : bg_jorge_portraits[profile];
+    surface_t image = surface_make((void *)pixels, FMT_RGBA16, 32, 40, 64);
+    data_cache_hit_writeback((void *)pixels, sizeof(bg_jorge_portraits[profile]));
     rdpq_set_mode_standard(); rdpq_mode_alphacompare(0);
     rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
     rdpq_tex_blit(&image, x * .5f, y * .5f,

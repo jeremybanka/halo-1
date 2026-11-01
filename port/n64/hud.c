@@ -4,6 +4,7 @@
 #include "asset_hud.h"
 #include "asset_prompt_icons.h"
 #include "game.h"
+#include "visr.h"
 #include "scene.h"
 #include "map.h"
 #include "camouflage.h"
@@ -224,11 +225,12 @@ static void hud_number(int value, int x, int y, unsigned places, color_t color) 
     hud_text(text + at, x, y, color);
 }
 static void hud_vitals(const bg_player *p, int x, int y) {
+    float base = bg_armor_def(p->armor)->shield;
+    if (base > 0) {
     /* A one-pixel step at either end echoes Halo without its long diagonals. */
     hud_sprite(0, 72, 46, 7, x + 1, y + 1, hud_shadow);
     hud_sprite(0, 72, 46, 7, x, y, p->shield <= 0 ? red : hud_cyan);
     pixel(x + 2, y + 2, 42, 3, hud_dim);
-    float base = bg_armor_def(p->armor)->shield;
     int fill = (int)ceilf(fminf(fmaxf(p->shield, 0), base) * (42.f/base));
     if (fill)
         pixel(x + 2, y + 2, fill, 3, hud_cyan);
@@ -239,6 +241,7 @@ static void hud_vitals(const bg_player *p, int x, int y) {
     if (p->shield > base + 100) {
         fill = (int)ceilf(fminf(p->shield - base - 100, 100) * .42f);
         pixel(x + 2, y + 2, fill, 3, RGBA32(48, 255, 64, 255));
+    }
     }
     /* Eight upright health cells, aligned to the shield's right edge. */
     pixel(x + 12, y + 7, 33, 5, hud_backing);
@@ -624,6 +627,7 @@ static void damage_indicators(const bg_player *p,int x,int y,int w,int h,unsigne
 
 void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control_style style) {
     const bg_player *p = &bg_players[index];
+    if (bg_visr_active(p)) return;
     float scale = width < 200 ? .45f : .5f;
     int margin = width < 200 ? 5 : 9;
     unsigned weapon = (unsigned)p->weapon < BG_WEAPON_COUNT ? (unsigned)p->weapon : BG_W_AR;

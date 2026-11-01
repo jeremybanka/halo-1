@@ -141,7 +141,9 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
         if (now-armor_entered<3000000) return;
         bool ready=true;
         for (unsigned p=0;p<4;p++) if(f->joined[p]) {
-#ifdef BG_JORGE_FRONTEND_QA
+#if defined(BG_ODST_FRONTEND_QA)
+            unsigned wanted=BG_ARMOR_ODST;
+#elif defined(BG_JORGE_FRONTEND_QA)
             unsigned wanted=BG_ARMOR_JORGE;
 #else
             unsigned wanted=BG_ARMOR_SPARTAN;
@@ -158,6 +160,10 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
         return;
     }
 
+#ifdef BG_ODST_FRONTEND_QA
+    if(f->page==BG_FRONT_PREGAME || f->page==BG_FRONT_PLAY || f->page==BG_FRONT_RESULTS)
+        assert(f->armor[f->host]==BG_ARMOR_ODST);
+#endif
 #ifdef BG_JORGE_FRONTEND_QA
     if(f->page==BG_FRONT_PREGAME || f->page==BG_FRONT_PLAY || f->page==BG_FRONT_RESULTS)
         assert(f->armor[f->host]==BG_ARMOR_JORGE);
@@ -173,7 +179,7 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
     }
     if(!entered)entered=now;
     unsigned dwell=s->seconds;
-#if defined(BG_MAPS_CYCLE) || defined(BG_JORGE_FRONTEND_QA)
+#if defined(BG_MAPS_CYCLE) || defined(BG_JORGE_FRONTEND_QA) || defined(BG_ODST_FRONTEND_QA)
     if(s->page!=BG_FRONT_PLAY&&s->page!=BG_FRONT_QUIT&&dwell>1)dwell=1;
 #endif
     if(now-entered<dwell*1000000ull)return;

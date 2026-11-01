@@ -2517,7 +2517,9 @@ static void tick_player_resources(unsigned player_index, const bg_input *input, 
     float over_shield = base_shield + 200;
     bool was_charging = player->shield_charging;
     player->shield_charging = false;
-    if (player->shield_overcharging) {
+    if (base_shield <= 0) {
+        player->shield = 0; player->shield_overcharging = false;
+    } else if (player->shield_overcharging) {
         player->shield = fminf(over_shield, player->shield + 100 * dt);
         if (player->shield > over_shield - .001f)
             player->shield = over_shield;

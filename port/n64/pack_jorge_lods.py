@@ -34,6 +34,17 @@ def pack_lod(lod,bank):
     mesh=indexed_mesh(rest[corners].tolist(),colors.tolist(),[0]*len(corners),[keys[v] for v in corners],
                       color_tolerance=48,segments=segments)
     sources=corners[mesh['sources']];start=len(bank);assert start%16==0
+    cloth={'pelvis','waist','neck','torso-backing','knee-l','knee-r',
+           'armpit-l','armpit-r','ankle-l','ankle-r','elbow-l','elbow-r'}
+    components=np.array(meta['components'])[order]
+    secondary={'chest','thigh-l','thigh-r','boot-l','boot-r','glove-l','glove-r'}
+    accent={'helmet','shoulder-l','shoulder-r','forearm-l','forearm-r','codpiece'}
+    def palette_class(component,color):
+        # Stable IDs from armor_palette.h: keep, base, gray bag, secondary, accent.
+        if component in {'pack','pack-backing'}:return 2
+        if component=='visor' or component in cloth or max(color)<=65:return 0
+        return 3 if component in secondary else 4 if component in accent else 1
+    palette_mask=[palette_class(components[i],v[1]) for i,v in zip(mesh['sources'],mesh['vertices'])]
     for i in range(0,len(mesh['vertices']),2):
         a,b=mesh['vertices'][i:i+2]
         def rgba(rgb):return (rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255
@@ -67,14 +78,17 @@ def pack_lod(lod,bank):
                         **{'grips_'+str(i):d['grips_'+str(i)] for i in range(len(clips))})
     (folder/'runtime-report.json').write_text(json.dumps(report,indent=2)+'\n')
     print(lod,{k:report[k] for k in ('vertices','native_vertices','triangles','batches','mesh_bytes','frame_cache_bytes','rom_bytes')})
-    return report
+    return report,palette_mask
 
 def run(publish=False):
-    bank=bytearray();reports=[pack_lod(lod,bank) for lod in ('near','far')]
+    bank=bytearray();packed=[pack_lod(lod,bank) for lod in ('near','far')]
+    reports=[p[0] for p in packed]
     floats=lambda a:'{'+','.join(f'{float(x):.7f}f' for x in a)+'}'
     bounds=lambda b:'{'+','.join(floats(a) for a in b)+'}'
     lines=['/* Generated Jorge near/far LODs from the owned Reach/CE source. */','#include "asset_jorge.h"']
     for r,suffix in zip(reports,('','_lod')):
+        mask=packed[bool(suffix)][1]
+        lines.append('const uint8_t bg_jorge'+suffix+'_palette_mask[]={'+','.join(map(str,mask))+'};')
         lines.append(f'const bg_jorge_mesh_info bg_jorge{suffix}_mesh={{'+
                      ','.join(str(r[k]) for k in ('bank_offset','mesh_bytes','indices_offset','batches_offset','vertices','batches','triangles'))+
                      f',{r["radius"]:.7f}f}};')

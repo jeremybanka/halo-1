@@ -18,9 +18,11 @@ typedef struct {
 } bg_jorge_clip;
 extern const bg_jorge_mesh_info bg_jorge_mesh;
 extern const bg_jorge_mesh_info bg_jorge_lod_mesh;
+extern const uint8_t bg_jorge_palette_mask[], bg_jorge_lod_palette_mask[];
 extern const bg_jorge_clip bg_jorge_clips[BG_J_CLIP_COUNT];
 extern const bg_jorge_clip bg_jorge_lod_clips[BG_J_CLIP_COUNT];
 extern const uint16_t bg_jorge_portrait[32 * 40];
+extern const uint16_t bg_jorge_portraits[BG_PROFILE_COUNT][32 * 40];
 extern bg_model_asset bg_jorge_model;
 extern bg_model_asset bg_jorge_lod_model;
 /* Both meshes are resident; one shared cache streams the selected LOD's two

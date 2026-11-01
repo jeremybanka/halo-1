@@ -59,6 +59,7 @@ def validate(out, regenerate=False):
         'game': ['port/n64/test_game.c', *shared],
         'combat-geometry': ['port/n64/test_combat_geometry.c', *shared],
         'combat': ['port/n64/test_combat.c', *shared],
+        'armor': ['port/n64/test_armor.c', *[s for s in shared if s != 'port/n64/game.c']],
         'grenades': ['port/n64/test_grenades.c', *shared],
         'fidelity': ['port/n64/test_fidelity.c', *shared],
         'pickups': ['port/n64/test_pickups.c', *shared],

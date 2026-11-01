@@ -111,6 +111,12 @@ static unsigned kill_chain[BG_PLAYERS], kill_spree[BG_PLAYERS];
 static int match_winner = -1;
 static bg_match_statistics statistics;
 unsigned bg_player_profiles[BG_PLAYERS] = {0, 1, 2, 3};
+unsigned bg_player_armors[BG_PLAYERS];
+void bg_set_player_armor(unsigned player, unsigned armor) {
+    if (player >= BG_PLAYERS || armor >= BG_ARMOR_COUNT) return;
+    bg_player_armors[player] = armor;
+    bg_players[player].armor = (bg_armor)armor;
+}
 static float damage_history[4][4];
 static bool mode_spawn_eligible(unsigned player,unsigned index);
 static const float *mode_spawn_position(unsigned index);
@@ -491,8 +497,9 @@ static void spawn(unsigned player) {
     p->exit_vehicle = -1;
     p->fire_ticks[0] = p->fire_ticks[1] = 65535;
     p->score = score;
-    p->health = 100;
-    p->shield = 100;
+    p->armor = (bg_armor)bg_player_armors[player];
+    p->health = bg_armor_def(p->armor)->health;
+    p->shield = bg_armor_def(p->armor)->shield;
     int weapons[2],grenades[2];mode_loadout(weapons,grenades);
     for (int j = 0; j < 2; j++) {
         int w = p->inventory[j] = weapons[j];
@@ -909,9 +916,9 @@ static void kill(unsigned victim, int owner) {
     if(owner>=BG_PLAYERS&&owner<(int)bg_unit_count())pve_say(owner-BG_PLAYERS,PVE_V_KILL);
 #endif
 }
-static void damage_player_region(unsigned victim, int owner, float damage, bool plasma,
+static void damage_player(unsigned victim, int owner, float damage, bool plasma,
                                   bool headshot, unsigned profile, bool legs, bool behind,
-                                  float energy,int region) {
+                                  float energy, int region, bool blast) {
     bg_player *p = &bg_players[victim];
     if (bg_match_finished() || p->health <= 0 || damage <= 0)
         return;
@@ -938,9 +945,10 @@ static void damage_player_region(unsigned victim, int owner, float damage, bool 
         event(BG_EVENT_SHIELD_HIT, victim, p->weapon, p->pos, 0);
         return;
     }
-    if (owner >= 0 && owner < (int)active_players && owner != (int)victim)
-        damage_history[victim][owner] += damage * (profile ? 100.f / bg_combat_body_max : 1);
+    bool protected_health = blast && (bg_armor_def(p->armor)->abilities & BG_ARMOR_BLAST_HEALTH_IMMUNE);
     float old_shield = p->shield, old_health = p->health;
+    if (!protected_health && owner >= 0 && owner < (int)active_players && owner != (int)victim)
+        damage_history[victim][owner] += damage * (profile ? 100.f / bg_combat_body_max : 1);
     p->shield_charging = false;
     if (profile && bg_damage_profiles[profile].stun > 0) {
         const bg_damage_profile *d = &bg_damage_profiles[profile];
@@ -969,6 +977,12 @@ static void damage_player_region(unsigned victim, int owner, float damage, bool 
         if (damage > 0)
             p->health = fmaxf(0, p->health - damage);
     }
+    if (protected_health) {
+        p->health = old_health;
+        damage = 0;
+        if (owner >= 0 && owner < (int)active_players && owner != (int)victim)
+            damage_history[victim][owner] += fmaxf(0, old_shield - p->shield);
+    }
     if(p->shield<old_shield || p->health<old_health)bg_damage_flash_start(p,profile,energy);
     if(owner>=0 && owner<(int)bg_unit_count() && owner!=(int)victim &&
        (p->shield<old_shield || p->health<old_health)) {
@@ -993,6 +1007,12 @@ static void damage_player_region(unsigned victim, int owner, float damage, bool 
         kill(victim, owner);
     }
 }
+static void damage_player_region(unsigned victim, int owner, float damage, bool plasma,
+                                 bool headshot, unsigned profile, bool legs, bool behind,
+                                 float energy, int region) {
+    damage_player(victim, owner, damage, plasma, headshot, profile, legs, behind, energy, region,
+                  profile && (bg_damage_profiles[profile].flags & BG_DAMAGE_EXPLOSIVE));
+}
 static void damage_player_profile(unsigned victim,int owner,float damage,bool plasma,bool headshot,unsigned profile,bool legs,bool behind,float energy){
     damage_player_region(victim,owner,damage,plasma,headshot,profile,legs,behind,energy,0);
 }
@@ -1012,9 +1032,17 @@ static void damage_vehicle(unsigned index, int owner, float amount) {
     v->health -= amount;
     if (v->health > 0)
         return;
-    for (int seat = 0; seat < bg_seat_counts[v->kind]; seat++)
-        if (v->occupants[seat] >= 0)
-            kill(v->occupants[seat], owner);
+    for (int seat = 0; seat < bg_seat_counts[v->kind]; seat++) {
+        int rider = v->occupants[seat];
+        if (rider < 0) continue;
+        if (bg_armor_def(bg_players[rider].armor)->abilities & BG_ARMOR_BLAST_HEALTH_IMMUNE) {
+            /* The old destruction path killed riders directly, bypassing
+             * shields. Route the resistant rider through blast damage and
+             * the normal forced exit so a wreck cannot retain a living seat. */
+            damage_player(rider, owner, 400, false, false, BG_D_LEGACY, false, false, 1, 0, true);
+            eject(rider, true);
+        } else kill(rider, owner);
+    }
     v->active = false;
     v->respawn = 20;
     v->wreck_time = BG_WRECK_LIFE;
@@ -1144,7 +1172,7 @@ static void explode_profile(const float pos[3], int owner, float damage, float r
             if(i<BG_PLAYERS)amount*=100.f/bg_combat_body_max;
         }
 #endif
-        damage_player_profile(i, owner, amount, false, false, profile, false, false, scale);
+        damage_player(i, owner, amount, false, false, profile, false, false, scale, 0, true);
         if (p->vehicle < 0) {
             float direction[3];
             sub(direction, target, pos);
@@ -2366,9 +2394,10 @@ static void load_rounds(bg_player *p) {
     int n = bg_weapon_defs[p->weapon].magazine - p->ammo;
     if (p->weapon == BG_W_SHOTGUN)
         n = 1;
-    n = n > p->reserve ? p->reserve : n;
+    bool infinite = bg_infinite_reserve(p, p->weapon);
+    if (!infinite) n = n > p->reserve ? p->reserve : n;
     p->ammo += n;
-    p->reserve -= n;
+    if (!infinite) p->reserve -= n;
 }
 static void stop_reload(bg_player *p) {
     /* Original reset retains a magazine only after passing halfway through
@@ -2381,7 +2410,7 @@ static void start_reload(unsigned i) {
     bg_player *p = &bg_players[i];
     const bg_weapon_def *w = &bg_weapon_defs[p->weapon];
     if (p->reload > 0 || p->melee_time > 0 || w->energy || p->ammo >= w->magazine ||
-        p->reserve <= 0)
+        (p->reserve <= 0 && !bg_infinite_reserve(p, p->weapon)))
         return;
     const bg_trigger_profile *t = &bg_trigger_profiles[p->weapon];
     unsigned frames = t->reload_empty;
@@ -2483,21 +2512,23 @@ static void tick_player_timers(unsigned player_index, float dt) {
 static void tick_player_resources(unsigned player_index, const bg_input *input, float dt) {
     bg_player *player = &bg_players[player_index];
     if(input->flashlight)player->flashlight_on=!player->flashlight_on;
+    float base_shield = bg_armor_def(player->armor)->shield;
+    float over_shield = base_shield + 200;
     bool was_charging = player->shield_charging;
     player->shield_charging = false;
     if (player->shield_overcharging) {
-        player->shield = fminf(300, player->shield + 100 * dt);
-        if (player->shield > 299.999f)
-            player->shield = 300;
-        player->shield_overcharging = player->shield < 300;
+        player->shield = fminf(over_shield, player->shield + 100 * dt);
+        if (player->shield > over_shield - .001f)
+            player->shield = over_shield;
+        player->shield_overcharging = player->shield < over_shield;
         player->shield_charging = player->shield_overcharging;
-    } else if (player->shield > 100)
-        player->shield = fmaxf(100, player->shield - dt * (100.f / 45));
+    } else if (player->shield > base_shield)
+        player->shield = fmaxf(base_shield, player->shield - dt * (100.f / 45));
     else if (player->shield_delay > 0)
         player->shield_delay = fmaxf(0, player->shield_delay - dt);
-    else if (player->shield < 100) {
-        player->shield = fminf(100, player->shield + 25 * dt);
-        player->shield_charging = player->shield < 100;
+    else if (player->shield < base_shield) {
+        player->shield = fminf(base_shield, player->shield + 25 * dt);
+        player->shield_charging = player->shield < base_shield;
     }
     if (player->shield_charging && !was_charging)
         event(BG_EVENT_SHIELD, player_index, player->weapon, player->pos, 1);
@@ -2664,7 +2695,7 @@ static void tick_player_weapons(unsigned player_index, const bg_input *input, fl
                    (bg_trigger_profiles[player->weapon].automatic || !player->fire_held) && ready)
             fire(player_index, false);
         if (input->fire && player->ammo <= 0 && player->cooldown <= 0) {
-            if (player->reserve > 0)
+            if (player->reserve > 0 || bg_infinite_reserve(player, player->weapon))
                 start_reload(player_index);
             else {
                 event(BG_EVENT_EMPTY, player_index, player->weapon, player->pos, 1);

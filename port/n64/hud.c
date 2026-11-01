@@ -228,25 +228,27 @@ static void hud_vitals(const bg_player *p, int x, int y) {
     hud_sprite(0, 72, 46, 7, x + 1, y + 1, hud_shadow);
     hud_sprite(0, 72, 46, 7, x, y, p->shield <= 0 ? red : hud_cyan);
     pixel(x + 2, y + 2, 42, 3, hud_dim);
-    int fill = (int)ceilf(fminf(fmaxf(p->shield, 0), 100) * .42f);
+    float base = bg_armor_def(p->armor)->shield;
+    int fill = (int)ceilf(fminf(fmaxf(p->shield, 0), base) * (42.f/base));
     if (fill)
         pixel(x + 2, y + 2, fill, 3, hud_cyan);
-    if (p->shield > 100) {
-        fill = (int)ceilf(fminf(p->shield - 100, 100) * .42f);
+    if (p->shield > base) {
+        fill = (int)ceilf(fminf(p->shield - base, 100) * .42f);
         pixel(x + 2, y + 2, fill, 3, RGBA32(255, 48, 48, 255));
     }
-    if (p->shield > 200) {
-        fill = (int)ceilf(fminf(p->shield - 200, 100) * .42f);
+    if (p->shield > base + 100) {
+        fill = (int)ceilf(fminf(p->shield - base - 100, 100) * .42f);
         pixel(x + 2, y + 2, fill, 3, RGBA32(48, 255, 64, 255));
     }
     /* Eight upright health cells, aligned to the shield's right edge. */
     pixel(x + 12, y + 7, 33, 5, hud_backing);
     hud_sprite(0, 67, 31, 3, x + 13, y + 8, hud_dim);
-    int cells = (int)ceilf(fminf(fmaxf(p->health, 0), 100) * .08f);
+    float health = p->health * 100 / bg_armor_def(p->armor)->health;
+    int cells = (int)ceilf(fminf(fmaxf(health, 0), 100) * .08f);
     if (cells)
         hud_sprite(0, 67, cells * 4 - 1, 3, x + 13, y + 8,
-                   p->health <= 33   ? red
-                   : p->health <= 67 ? RGBA32(255, 217, 65, 255)
+                   health <= 33   ? red
+                   : health <= 67 ? RGBA32(255, 217, 65, 255)
                                      : hud_cyan);
 }
 static void hud_ammunition(const bg_player *p, unsigned weapon, int x, int y) {
@@ -317,7 +319,8 @@ static void hud_ammunition(const bg_player *p, unsigned weapon, int x, int y) {
         hud_sprite(0, v, full, 5, x, my, hud_dim);
         if (filled)
             hud_sprite(0, v, filled, 5, x, my, hud_cyan);
-        hud_number(p->reserve < 0 ? 0 : p->reserve, x, my + 7, 3, hud_cyan);
+        if (bg_infinite_reserve(p, weapon)) hud_text("INF", x, my + 7, hud_cyan);
+        else hud_number(p->reserve < 0 ? 0 : p->reserve, x, my + 7, 3, hud_cyan);
     }
 }
 

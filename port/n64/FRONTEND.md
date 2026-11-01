@@ -24,6 +24,7 @@ Main Menu
 │  │  ├─ Select Profile — join/ready 1–4 controllers, choose unique profiles
 │  │  ├─ Select Map — all 13 Xbox maps (8 MiB for the full roster)
 │  │  ├─ Select Game Type — all 26 Xbox presets (8 MiB for new modes)
+│  │  ├─ Select Armor — Spartan or Jorge, independently per player
 │  │  ├─ Pregame — roster/teams, map/type, preset goal, countdown
 │  │  ├─ Match — one, two, three, or four local views
 │  │  │  └─ Start → Resume / Setup / Controls
@@ -56,9 +57,14 @@ All controller subsets work, including ports 1, 2 and 4. The host occupies the
 first game viewport; remaining joined controllers follow in port order.
 Profile names, armor colors and controls follow the selected profile.
 
+After mode selection, the four-card armor page lets each player select Spartan
+or Jorge. Suits may repeat; profiles remain unique. A selects armor, B unreadies,
+and the ready host's A continues once everyone has selected. The unready host's
+B returns to mode. See [ARMOR_SETUP.md](ARMOR_SETUP.md) for abilities and palettes.
+
 The original 10.999-second countdown uses the original countdown sound. A or
 Start advances it by five seconds, with a 0.999-second minimum; C-left takes
-the original Xbox X function and adds five seconds. B cancels. Menu actions
+the original Xbox X function and adds five seconds. B returns to armor. Menu actions
 are consumed before gameplay input, including match launch and quit/resume.
 
 Team modes let each joined controller change teams with left/right in pregame.

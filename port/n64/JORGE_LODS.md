@@ -4,6 +4,8 @@ The current third-person body comes from
 `halo64-assets/assets/jorge/playable-lods/`. The accepted `playable-personal`
 source remains unchanged. First person still uses the personal arms and hides
 the local body, including the legs.
+Armor now selects the model independently of profile; see
+[ARMOR_SETUP.md](ARMOR_SETUP.md) for the four palettes and suit abilities.
 
 | Body | Native / GLB vertices | Packed N64 vertices | Triangles | Batches |
 |---|---:|---:|---:|---:|
@@ -46,7 +48,8 @@ A cheaper visor sank behind the shell and broke the gold opening into patches;
 that candidate was rejected. The black band is retained with one deliberate
 dark/olive value per vertex instead of many corner-color splits. The distant
 pack uses two inspected source contour rings, preserving its paired crown,
-central saddle, shoulders, depth and tapered base. Both packs remain matte brown.
+central saddle, shoulders, depth and tapered base. The later palette pass gives
+all profiles the same matte gray pack while retaining its original shading.
 
 Packing starts new cache batches at component boundaries and welds only identical
 quantized animation trajectories with bounded color differences. Rigid components

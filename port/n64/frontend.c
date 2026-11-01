@@ -5,7 +5,7 @@ unsigned bg_front_map_memory_requirement(unsigned map){
     return map==0||map==5||map==6||map==9||map==10?4*1024*1024:8*1024*1024;
 }
 void bg_front_set_memory_size(unsigned bytes){memory_size=bytes;}
-bool bg_front_character_available(unsigned profile){return profile<BG_CHARACTER_COUNT && (profile!=BG_PROFILE_JORGE || memory_size>=8*1024*1024);}
+bool bg_front_armor_available(unsigned armor){return armor<BG_ARMOR_COUNT && memory_size>=bg_armor_def(armor)->memory_bytes;}
 bool bg_front_map_needs_expansion(unsigned map){return memory_size<bg_front_map_memory_requirement(map);}
 const bg_front_entry bg_front_maps[13] = {
     {"Battle Creek", true}, {"Sidewinder", true}, {"Damnation", true},
@@ -93,7 +93,14 @@ static bool all_ready(const bg_frontend *f) {
     if (!bg_front_joined(f))
         return false;
     for (unsigned p = 0; p < 4; p++)
-        if (f->joined[p] && (!f->ready[p] || !bg_front_character_available(f->profile[p])))
+        if (f->joined[p] && (!f->ready[p] || f->profile[p]>=BG_PROFILE_COUNT))
+            return false;
+    return true;
+}
+static bool armor_ready(const bg_frontend *f) {
+    if (!all_ready(f)) return false;
+    for (unsigned p=0;p<4;p++)
+        if (f->joined[p] && (!f->armor_ready[p] || !bg_front_armor_available(f->armor[p])))
             return false;
     return true;
 }
@@ -151,8 +158,8 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
             }
             if (d && f->joined[p] && !f->ready[p]) {
                 unsigned candidate = f->profile[p];
-                for (unsigned attempt = 0; attempt < BG_CHARACTER_COUNT; attempt++) {
-                    candidate = cycle(candidate, BG_CHARACTER_COUNT, d);
+                for (unsigned attempt = 0; attempt < BG_PROFILE_COUNT; attempt++) {
+                    candidate = cycle(candidate, BG_PROFILE_COUNT, d);
                     bool used = false;
                     for (unsigned q = 0; q < 4; q++)
                         if (q != p && f->joined[q] && f->profile[q] == candidate)
@@ -169,20 +176,16 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
                 if (!f->joined[p]) {
                     f->joined[p] = true;
                     f->ready[p] = false;
-                    for (unsigned k = 0; k < BG_CHARACTER_COUNT; k++) {
+                    for (unsigned k = 0; k < BG_PROFILE_COUNT; k++) {
                         bool used = false;
                         for (unsigned q = 0; q < 4; q++)
                             if (q != p && f->joined[q] && f->profile[q] == f->profile[p])
                                 used = true;
                         if (!used)
                             break;
-                        f->profile[p] = (f->profile[p] + 1) % BG_CHARACTER_COUNT;
+                        f->profile[p] = (f->profile[p] + 1) % BG_PROFILE_COUNT;
                     }
                 } else if (!f->ready[p]) {
-                    if (!bg_front_character_available(f->profile[p])) {
-                        f->sound = BG_FRONT_BEEP;
-                        continue;
-                    }
                     f->ready[p] = true;
                 } else if (p == f->host && all_ready(f)) {
                     pack_players(f);
@@ -192,6 +195,38 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
                 /* The accepting poll cannot be reused on the newly opened page. */
                 if (f->page != BG_FRONT_JOIN)
                     return BG_FRONT_NONE;
+            }
+        }
+        return BG_FRONT_NONE;
+    }
+    if (f->page == BG_FRONT_ARMOR) {
+        for (unsigned p=0;p<4;p++) {
+            if (!f->joined[p]) continue;
+            uint32_t b=in[p].pressed;
+            int d=direction(&in[p],true);
+            if (b & BG_BUTTON_B) {
+                if (f->armor_ready[p]) f->armor_ready[p]=false;
+                else if (p==f->host) {
+                    page(f,f->firefight?BG_FRONT_FIGHT:BG_FRONT_TYPE);
+                    f->sound=BG_FRONT_BACK;
+                    return BG_FRONT_NONE;
+                }
+                f->sound=BG_FRONT_BACK;
+            } else if (d && !f->armor_ready[p]) {
+                f->armor[p]=cycle(f->armor[p],BG_ARMOR_COUNT,d);
+                f->sound=BG_FRONT_CURSOR;
+            } else if (b & (BG_BUTTON_A | BG_BUTTON_START)) {
+                if (!bg_front_armor_available(f->armor[p])) f->sound=BG_FRONT_BEEP;
+                else if (!f->armor_ready[p]) {
+                    f->armor_ready[p]=true;
+                    f->sound=BG_FRONT_ACCEPT;
+                } else if (p==f->host && armor_ready(f)) {
+                    page(f,BG_FRONT_PREGAME);
+                    f->deadline=now+10999000;
+                    f->countdown=10;
+                    f->sound=BG_FRONT_ACCEPT;
+                    return BG_FRONT_NONE;
+                }
             }
         }
         return BG_FRONT_NONE;
@@ -206,7 +241,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
                     f->sound=BG_FRONT_CURSOR;
                 }
                 if (in[p].pressed & BG_BUTTON_B) {
-                    page(f, f->firefight ? BG_FRONT_FIGHT : BG_FRONT_TYPE);
+                    page(f, BG_FRONT_ARMOR);
                     f->sound = BG_FRONT_BACK;
                     return BG_FRONT_NONE;
                 }
@@ -225,7 +260,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
             f->sound = BG_FRONT_ACCEPT;
         if (now >= f->deadline) {
             /* Check capabilities again at launch, independent of earlier navigation. */
-            if (!all_ready(f) || !bg_front_session_available(f, BG_FRONT_MAP, f->map) ||
+            if (!armor_ready(f) || !bg_front_session_available(f, BG_FRONT_MAP, f->map) ||
                 (f->firefight ? !bg_front_session_available(f,BG_FRONT_FIGHT,f->fight)
                               : !bg_front_available(BG_FRONT_TYPE, f->type))) {
                 page(f, BG_FRONT_JOIN);
@@ -282,7 +317,8 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
     if(f->page==BG_FRONT_FIGHT){
         if(v||h){f->fight=cycle(f->fight,BG_FF_FIGHTS,v?v:h);f->sound=BG_FRONT_CURSOR;}
         else if(accept&&bg_front_session_available(f,BG_FRONT_FIGHT,f->fight)){
-            page(f,BG_FRONT_PREGAME);f->deadline=now+10999000;f->countdown=10;f->sound=BG_FRONT_ACCEPT;
+            memset(f->armor_ready,0,sizeof(f->armor_ready));
+            page(f,BG_FRONT_ARMOR);f->sound=BG_FRONT_ACCEPT;
         }
         return BG_FRONT_NONE;
     }
@@ -302,9 +338,8 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
             if (f->page == BG_FRONT_MAP)
                 page(f, f->firefight?BG_FRONT_FIGHT:BG_FRONT_TYPE);
             else {
-                page(f, BG_FRONT_PREGAME);
-                f->deadline = now + 10999000;
-                f->countdown = 10;
+                memset(f->armor_ready,0,sizeof(f->armor_ready));
+                page(f, BG_FRONT_ARMOR);
             }
             f->sound = BG_FRONT_ACCEPT;
         }
@@ -320,7 +355,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
     }
     if (f->page == BG_FRONT_SETTINGS) {
         if (h) {
-            f->settings_profile = cycle(f->settings_profile, BG_CHARACTER_COUNT, h);
+            f->settings_profile = cycle(f->settings_profile, BG_PROFILE_COUNT, h);
             if (h < 0 && f->row)
                 f->row--;
             else if (h > 0 && f->row < 2)

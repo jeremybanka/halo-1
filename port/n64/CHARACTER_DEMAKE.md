@@ -20,6 +20,8 @@ brings packed vertex counts close to CE's, retaining this checkpoint unchanged.
 Presentation update, 2026-11-01: first-person legs were subsequently removed to
 match CE. The historical experiment and its camera/coverage lessons below remain
 part of the trace. The custom arms and complete third-person body are retained.
+Setup update: [armor selection](ARMOR_SETUP.md) now separates Jorge's suit from
+the four color/control profiles, replacing the earlier fifth-profile approach.
 
 ## The route we actually took
 

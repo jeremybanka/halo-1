@@ -7,7 +7,7 @@
 typedef struct { const char *name; bool available; } bg_front_entry;
 extern const bg_front_entry bg_front_maps[13],bg_front_types[26];
 typedef enum { BG_FRONT_MAIN, BG_FRONT_MULTIPLAYER, BG_FRONT_JOIN,
- BG_FRONT_MAP, BG_FRONT_TYPE, BG_FRONT_PREGAME, BG_FRONT_PLAY,
+ BG_FRONT_MAP, BG_FRONT_TYPE, BG_FRONT_ARMOR, BG_FRONT_PREGAME, BG_FRONT_PLAY,
  BG_FRONT_RESULTS, BG_FRONT_SETTINGS, BG_FRONT_PROFILE, BG_FRONT_CONTROLS, BG_FRONT_QUIT,
  BG_FRONT_FIGHT } bg_front_page;
 typedef enum { BG_FRONT_NONE, BG_FRONT_START_MATCH, BG_FRONT_RESUME_MATCH,
@@ -20,7 +20,8 @@ typedef struct {
  bool firefight; /* Session kind, separate from competitive mode presets. */
  bool joined[4],ready[4]; unsigned profile[4],ports[4];
  uint8_t teams[4]; /* Physical controller slots; packed at match launch. */
- bg_control_style styles[BG_CHARACTER_COUNT];
+ bool armor_ready[4]; unsigned armor[4];
+ bg_control_style styles[BG_PROFILE_COUNT];
  int final_scores[4],winner;
  bg_match_statistics statistics;
  uint64_t deadline; int countdown,last_beep;
@@ -35,7 +36,7 @@ bool bg_front_session_available(const bg_frontend *f,bg_front_page page,unsigned
 unsigned bg_front_map_memory_requirement(unsigned map);
 void bg_front_set_memory_size(unsigned bytes);
 bool bg_front_map_needs_expansion(unsigned map);
-bool bg_front_character_available(unsigned profile);
+bool bg_front_armor_available(unsigned armor);
 void bg_front_results(bg_frontend *f,const int scores[4],int winner);
 void bg_front_quit(bg_frontend *f);
 void bg_front_map_controls(const bg_frontend *f,const bg_control_state physical[4],bg_control_state logical[4]);

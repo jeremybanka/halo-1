@@ -38,9 +38,6 @@ static const step script[]={
  {BG_FRONT_MAIN,2,1,BG_BUTTON_D_DOWN},{BG_FRONT_MAIN,2,1,BG_BUTTON_A},
  {BG_FRONT_MULTIPLAYER,4,1,BG_BUTTON_A},
  {BG_FRONT_JOIN,4,ALL,BG_BUTTON_START},
-#ifdef BG_JORGE_FRONTEND_QA
- {BG_FRONT_JOIN,2,1,BG_BUTTON_D_LEFT},
-#endif
  {BG_FRONT_JOIN,3,ALL,BG_BUTTON_A},
  {BG_FRONT_JOIN,4,1,BG_BUTTON_A},
  {BG_FRONT_MAP,4,1,MAP_PROBE},{BG_FRONT_MAP,2,1,MAP_RETURN},
@@ -48,7 +45,7 @@ static const step script[]={
  {BG_FRONT_TYPE,4,1,BG_BUTTON_D_RIGHT},
  {BG_FRONT_TYPE,2,1,BG_BUTTON_D_LEFT},{BG_FRONT_TYPE,2,1,BG_BUTTON_A},
  {BG_FRONT_PREGAME,2,1,BG_BUTTON_C_LEFT},{BG_FRONT_PREGAME,2,1,BG_BUTTON_B},
- {BG_FRONT_TYPE,2,1,BG_BUTTON_A},{BG_FRONT_PREGAME,2,1,BG_BUTTON_A},
+ {BG_FRONT_ARMOR,2,1,BG_BUTTON_A},{BG_FRONT_PREGAME,2,1,BG_BUTTON_A},
  {BG_FRONT_PREGAME,1,1,BG_BUTTON_A},
  RESUME_CHECK
  {BG_FRONT_RESULTS,6,1,BG_BUTTON_A},
@@ -134,9 +131,36 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
     if(f->page==BG_FRONT_RESULTS)assert(!bg_map_loaded()&&bg_map_resident_bytes()==0);
 #endif
     const step*s=&script[current];
+    /* Every normal setup run now chooses armor between mode and countdown.
+     * Keep existing map-cycle scripts focused on map/quit behavior, but drive
+     * this page through production per-controller input too. */
+    static uint64_t armor_entered, armor_selected;
+    if (f->page!=BG_FRONT_ARMOR) armor_entered=armor_selected=0;
+    if (f->page==BG_FRONT_ARMOR && s->page!=BG_FRONT_ARMOR) {
+        if (!armor_entered) armor_entered=now;
+        if (now-armor_entered<3000000) return;
+        bool ready=true;
+        for (unsigned p=0;p<4;p++) if(f->joined[p]) {
+#ifdef BG_JORGE_FRONTEND_QA
+            unsigned wanted=BG_ARMOR_JORGE;
+#else
+            unsigned wanted=BG_ARMOR_SPARTAN;
+#endif
+            uint32_t button=0;
+            if (f->armor[p]!=wanted) button=f->armor_ready[p]?BG_BUTTON_B:BG_BUTTON_D_RIGHT;
+            else if (!f->armor_ready[p]) button=BG_BUTTON_A;
+            if (button) {raw[p].held=raw[p].pressed=button;ready=false;}
+        }
+        if(ready) {
+            if(!armor_selected) armor_selected=now;
+            if(now-armor_selected>=8000000) raw[f->host].held=raw[f->host].pressed=BG_BUTTON_A;
+        }
+        return;
+    }
+
 #ifdef BG_JORGE_FRONTEND_QA
     if(f->page==BG_FRONT_PREGAME || f->page==BG_FRONT_PLAY || f->page==BG_FRONT_RESULTS)
-        assert(f->profile[f->host]==BG_PROFILE_JORGE);
+        assert(f->armor[f->host]==BG_ARMOR_JORGE);
 #endif
     if(f->page!=s->page){
         /* Countdown completion may beat a final optional acceleration edge.

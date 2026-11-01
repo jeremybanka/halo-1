@@ -66,11 +66,15 @@ while(fread(header,sizeof(header),1,f)==1){unsigned w=header[0],n=header[1];asse
 T3DVertPacked *in=malloc(((n+1)/2)*sizeof(*in)),*out=malloc(((bg_jorge_fp_model.vertex_count+1)/2)*sizeof(*out));
 memcpy(in,bg_fp_models[w].vertices,((n+1)/2)*sizeof(*in));memcpy(out,bg_jorge_fp_model.vertices,((bg_jorge_fp_model.vertex_count+1)/2)*sizeof(*out));
 for(unsigned i=0;i<n;i++){int16_t point[3];assert(fread(point,sizeof(int16_t),3,f)==3);if(!seen[w])assert(memcmp(point,t3d_vertbuffer_get_pos(in,i),sizeof(point))==0);memcpy(t3d_vertbuffer_get_pos(in,i),point,sizeof(point));}seen[w]=true;
-bg_jorge_firstperson_pose(out,in,w);bg_jorge_firstperson_tint(in,w);
+bg_jorge_firstperson_pose(out,in,w);
+for(unsigned profile=0;profile<BG_PROFILE_COUNT;profile++){
+for(unsigned i=0;i<n;i++)*t3d_vertbuffer_get_color(in,i)=*t3d_vertbuffer_get_color(bg_fp_models[w].vertices,i);
+bg_jorge_firstperson_tint(in,w,profile);
+for(unsigned i=0;i<n;i++)if(!bg_jorge_fp_colors[w][i])assert(*t3d_vertbuffer_get_color(in,i)==*t3d_vertbuffer_get_color(bg_fp_models[w].vertices,i));}
 for(unsigned i=0;i<bg_jorge_fp_model.vertex_count;i++){float expected[3];assert(fread(expected,sizeof(float),3,f)==3);
 for(unsigned a=0;a<3;a++)assert(fabsf(t3d_vertbuffer_get_pos(out,i)[a]-expected[a])<.502f);}
 for(unsigned i=0;i<n;i++)if(!bg_jorge_fp_colors[w][i])assert(*t3d_vertbuffer_get_color(in,i)==*t3d_vertbuffer_get_color(bg_fp_models[w].vertices,i));
-free(in);free(out);tested++;}fclose(f);printf("PASS: %u actual production poses, C runtime binding and untouched weapon colors\\n",tested);return 0;}
+free(in);free(out);tested++;}fclose(f);printf("PASS: %u actual production poses, four profile palettes, C runtime binding and untouched weapon colors\\n",tested);return 0;}
 ''')
         subprocess.run(['clang','-std=c17','-Wall','-Wextra','-Werror','-fsanitize=address,undefined','-I'+str(tmp),'-I'+str(ROOT/'port/n64'),str(tmp/'test.c'),str(A/'generated/firstperson_data.c'),str(A/'generated/jorge_firstperson_data.c'),'-o',str(tmp/'test')],check=True)
         subprocess.run([str(tmp/'test'),str(tmp/'fixtures.bin')],check=True)

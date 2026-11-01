@@ -25,14 +25,14 @@ static void field_tick(bg_input in[4]){
 static void field_reset(void){
     bg_scene_release_firstperson();bg_set_players(model_qa_page>=26&&model_qa_page<38?1:4);bg_reset();bg_scene_reset();bg_set_score_limit(1000);
     bg_pickup_count=bg_vehicle_count=0;*qa.seconds=0;
-    for(unsigned p=0;p<4;p++)bg_player_profiles[p]=p;
-    bg_player_profiles[0]=BG_PROFILE_JORGE;bg_player_profiles[1]=3;
+    for(unsigned p=0;p<4;p++){bg_player_profiles[p]=p;bg_set_player_armor(p,BG_ARMOR_SPARTAN);}
+    bg_set_player_armor(0,BG_ARMOR_JORGE);
     if(model_qa_page>=38)
-        for(unsigned p=0;p<4;p++)bg_player_profiles[p]=(model_qa_page%2||p%2==0)?BG_PROFILE_JORGE:p;
+        for(unsigned p=0;p<4;p++)bg_set_player_armor(p,(model_qa_page%2||p%2==0)?BG_ARMOR_JORGE:BG_ARMOR_SPARTAN);
     for(unsigned p=0;p<4;p++)bg_scene_profile_changed(p);
     *qa.views=model_qa_page>=38?4:model_qa_page>=26?1:model_qa_firstperson()?2:4;model_qa_floor=bg_floor(0,4,100)+.015f;
     for(unsigned p=0;p<4;p++){
-        bg_player*q=&bg_players[p];q->pos[0]=0;q->pos[2]=4+p*7;q->pos[1]=bg_floor(0,q->pos[2],100)+.015f;
+        bg_player*q=&bg_players[p];q->shield=bg_armor_def(q->armor)->shield;q->pos[0]=0;q->pos[2]=4+p*7;q->pos[1]=bg_floor(0,q->pos[2],100)+.015f;
         q->yaw=q->pitch=0;q->invisibility=model_qa_page<38&&p>=2?1:0;q->weapon_ready=0;q->zoom=0;
         unsigned weapon=model_qa_page<18?model_qa_page%9:BG_W_AR;
         if(model_qa_page>=29&&model_qa_page<38)weapon=model_qa_page-29;

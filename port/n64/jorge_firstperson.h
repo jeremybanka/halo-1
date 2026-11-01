@@ -1,6 +1,7 @@
 #ifndef BG_JORGE_FIRSTPERSON_H
 #define BG_JORGE_FIRSTPERSON_H
 #include "asset_firstperson.h"
+#include "armor_palette.h"
 #include <math.h>
 typedef struct { const uint16_t *indices; const float *coefficients; uint16_t count; } bg_jorge_fp_frame;
 typedef struct { uint8_t frame; float affine[4]; } bg_jorge_fp_vertex;
@@ -30,13 +31,14 @@ static inline void bg_jorge_firstperson_pose(T3DVertPacked *out,
         }
     }
 }
-static inline void bg_jorge_firstperson_tint(T3DVertPacked *out,unsigned weapon) {
+static inline void bg_jorge_firstperson_tint(T3DVertPacked *out,unsigned weapon,unsigned profile) {
     static const unsigned tint[4][3]={{255,255,255},{175,175,165},{62,69,48},{145,126,82}};
     for(unsigned i=0;i<bg_fp_models[weapon].vertex_count;i++) {
         unsigned kind=bg_jorge_fp_colors[weapon][i];if(!kind)continue;
         uint32_t *c=t3d_vertbuffer_get_color(out,i),old=*c;
         *c=(((old>>24)*tint[kind][0]/255)<<24)|((((old>>16)&255)*tint[kind][1]/255)<<16)|
            ((((old>>8)&255)*tint[kind][2]/255)<<8)|255;
+        if (kind!=1) *c=bg_jorge_palette_color(*c,profile,BG_JORGE_SECONDARY);
     }
 }
 #endif

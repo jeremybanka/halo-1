@@ -15,8 +15,8 @@ static void model_qa_stage(uint64_t now){
         model_qa_floor=bg_floor(0,4,100)+.015f;
         for(unsigned i=0;i<bg_vehicle_count;i++)bg_vehicles[i].active=false;
         for(unsigned i=0;i<bg_pickup_count;i++)bg_pickups[i].active=false;
-        bg_player_profiles[0]=BG_PROFILE_JORGE;bg_scene_profile_changed(0);
-        bg_player_profiles[1]=3;bg_scene_profile_changed(1);
+        bg_player_profiles[0]=BG_PROFILE_GREEN;bg_set_player_armor(0,BG_ARMOR_JORGE);bg_scene_profile_changed(0);
+        bg_player_profiles[1]=BG_PROFILE_GREEN;bg_set_player_armor(1,BG_ARMOR_SPARTAN);bg_scene_profile_changed(1);
     }
     float seconds=(now-started)*.000001f;model_qa_seconds=seconds;model_qa_page=(unsigned)(seconds/4)%11;
     unsigned clips[]={BG_ANIM_IDLE,BG_ANIM_RUN,BG_ANIM_FIRE,BG_ANIM_RELOAD,BG_ANIM_DIE,BG_ANIM_JUMP,BG_ANIM_MELEE,BG_ANIM_IDLE,BG_ANIM_IDLE,BG_ANIM_IDLE,BG_ANIM_RUN};

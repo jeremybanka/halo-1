@@ -1,19 +1,29 @@
 """Compare production C tinting with review portraits for both packed LODs."""
 from pathlib import Path
-import subprocess, tempfile
+import json, subprocess, tempfile
 import numpy as np
 from review_armor_palettes import A, ROOT, masks, palette
 
 def run():
     cases=[]; expected=[]
     for lod in ('near','far'):
-        colors=np.load(A/f'assets/jorge/playable-lods/{lod}/packed-preview.npz')['colors']
+        folder=A/f'assets/jorge/playable-lods/{lod}'
+        packed=np.load(folder/'packed-preview.npz');colors=packed['colors']
         mask=masks(lod)
         kinds=mask&15;dark=(mask&16)!=0
         assert len(mask)==len(colors) and set(kinds)=={0,1,2,3,4,5,6} and dark.any()
         visor=np.all(colors==[255,224,18],axis=1)
         assert visor.any() and not mask[visor].any()
         assert not mask[(colors.max(axis=1)<=65)&(mask!=2)].any()
+        native=np.load(folder/'gameplay-poses.npz');meta=json.loads((folder/'gameplay-poses.json').read_text())
+        parts=np.empty(len(native['rest']),dtype=object)
+        parts[native['triangles'].ravel()]=meta['components']
+        parts=parts[packed['sources']]
+        # The tall left guard is a separate object from the rounded shoulder.
+        # Every visible armor vertex in the assembly must get its accent.
+        for component in ('shoulder-l','shoulder-r','neckguard'):
+            visible=(parts==component)&(colors.max(axis=1)>65)
+            assert visible.any() and np.all(kinds[visible]==6),(lod,component)
         variants=[]
         for p in range(4):
             result=palette(colors,mask,p)

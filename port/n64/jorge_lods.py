@@ -44,7 +44,7 @@ def recipe(lod):
         add('glove-l', 'arms-08:001 arms-07:002', 20, 'hull')
         add('pack', 'backpack-14:000', 72, 'open', True)
         add('pack-backing', 'backpack-14:000', 20, 'backing', True)
-        add('chest', 'body-00:000', 38, 'surface', True)
+        add('chest', 'body-00:000', 48, 'open', True)
         add('chest-backing', 'body-00:000', 12, 'backing', True)
         add('collar', 'body-09:000', 36, 'open', True)
         add('codpiece', 'body-09:001', 24, symmetric=True)
@@ -76,13 +76,15 @@ def recipe(lod):
         add('upperarm-l', 'arms-09:000 arms-10:000', 12, 'hull')
         add('upperarm-r', 'arms-09:001 arms-10:001', 12, 'hull')
         add('pack', 'backpack-14:000', 36, 'pack-envelope', True)
-        add('chest', 'body-00:000 body-09:013', 18, 'surface', True)
-        add('collar', 'body-09:000', 18, 'open', True)
+        add('chest', 'body-00:000', 32, 'open', True)
+        add('abdomen', 'body-09:013', 8)
+        add('collar', 'body-09:000', 28, 'open', True)
         add('torso-backing', 'body-10:002 body-10:003 body-10:004', 12, 'hull', True)
-        add('waist', 'body-10:001', 8, 'hull', True)
-        add('codpiece', 'body-09:001', 12, 'front', True)
-        add('pelvis', 'body-10:000', 16, 'hull', True)
-        rows[-1]['coverage_sources']=['body-09:001']
+        add('waist', 'body-10:001', 16, 'hull', True)
+        # Match the near plate and its fitted garment: a broad convex pelvis
+        # intersected the central plate even when the silhouette stayed solid.
+        add('codpiece', 'body-09:001', 24, symmetric=True)
+        add('pelvis', 'body-10:000', 32, 'surface', True)
         add('neckguard', 'body-02:002', 8)
         add('helmet', 'body-03:000', 89, 'open')
         add('visor-frame', 'body-03:001', 0, 'omit')
@@ -233,6 +235,17 @@ def build(lod):
             free=ob.vertex_groups.new(name='LOD surface freedom')
             anchors={f(me.vertices,key=lambda v:v.co[a]).index for a in range(3) for f in (min,max)}
             protected=set()
+            if row['name']=='codpiece':
+                # Preserve the original convex front surface: collapsing its
+                # shallow contour makes a chord that intersects the garment.
+                protected.update(v.index for v in me.vertices if v.co.y<-.10)
+            if row['name'] in ('chest','collar'):
+                # The original neck opening and panel rims are intentional.
+                # Closing/recollapsing them made caps intersect the next plate.
+                bm=bmesh.new();bm.from_mesh(me);bm.verts.ensure_lookup_table()
+                protected.update(v.index for e in bm.edges if e.is_boundary for v in e.verts);bm.free()
+                if row['name']=='collar':
+                    protected.update(v.index for v in me.vertices if v.co.z>1.85 and v.co.y<-.06)
             if row['name']=='pack' and lod=='near':
                 protected.update(v.index for v in me.vertices if v.co.z>2.04)
                 bm=bmesh.new();bm.from_mesh(me);bm.verts.ensure_lookup_table()
@@ -256,15 +269,54 @@ def build(lod):
             bm.to_mesh(ob.data);bm.free();ob.data.update()
         # Restore overlap at deforming garment interfaces. These are concealed
         # source-fitted backing surfaces, never replacement visible plates.
-        if row['name'] in ('waist','pelvis') and (lod=='far' or row['name']=='pelvis'):
+        if lod=='far' and row['name']=='waist':
+            # Retain the rear envelope while leaving clearance for the rigid
+            # front plate; expanding the whole waist hid the codpiece.
+            for v in ob.data.vertices:
+                if v.co.y<0:v.co.y+=.025
+            row['front_waist_recess_m']=.025
+        if row['name']=='pelvis':
             coords=np.array([v.co[:] for v in ob.data.vertices]);center=coords.mean(0)
             for v in ob.data.vertices:
+                # Preserve the concealed front clearance under the codpiece;
+                # expansion is needed only at the lower leg hems and rear.
+                if v.co.y<0 and v.co.z>1.15:continue
                 delta=v.co-Vector(center);length=delta.length
                 if length:v.co+=delta/length*min(.025,length*.10)
+            for v in ob.data.vertices:
+                if v.co.y<0 and v.co.z>1.1:
+                    v.co.y+=.020*min(1.,(v.co.z-1.1)/.12)
+            row['front_garment_recess_m']=.020
+        if row['name']=='codpiece':
+            # The coarse front triangles cut inside the original curved plate.
+            # Restore a small rigid clearance over the animated garment.
+            for v in ob.data.vertices:
+                if v.co.y<-.08:v.co.y-=.008
+            row['front_plate_clearance_m']=.008
+        if row['name']=='collar':
+            # The outer chest/collar ring owns the visible front surface.
+            # Keep its green structural support behind that ring in both LODs.
+            for v in ob.data.vertices:
+                if v.co.y<0 and v.co.z>1.70:v.co.y+=.022
+            row['front_support_recess_m']=.022
+        if row['name']=='chest-backing':
+            # This is a concealed filler, not another visible armor plate.
+            for v in ob.data.vertices:
+                v.co.x*=.80
+                if v.co.y<0:v.co.y+=.035
+                v.co.z=min(v.co.z,2.05)
+            row['front_backing_recess_m']=.035
         bm=bmesh.new();bm.from_mesh(ob.data)
         bmesh.ops.delete(bm,geom=[v for v in bm.verts if not v.link_faces],context='VERTS')
         bm.to_mesh(ob.data);bm.free();ob.data.update()
         error=attributes(ob,ref)
+        if row['name']=='pelvis':
+            # The upper garment belongs to the pelvis. Nearest-surface weight
+            # transfer otherwise lets leg jiggle bones pull it over the plate.
+            ids=[v.index for v in ob.data.vertices if v.co.z>1.15]
+            for group in ob.vertex_groups:group.remove(ids)
+            group=ob.vertex_groups.get('b_pelvis') or ob.vertex_groups.new(name='b_pelvis')
+            group.add(ids,1,'REPLACE');row['rigid_upper_garment_vertices']=len(ids)
         if lod=='far' and row['name']=='torso-backing':
             # This consolidated armor volume must move with the torso, not
             # stretch with the armpit/fixup weights of its source layers.

@@ -207,6 +207,17 @@ design reference and the last accepted stage; small errors can otherwise accumul
 
 ### 6. Construct continuity locally, then reduce again
 
+Later near/far palette review exposed a second failure that silhouette coverage
+cannot see: an expanded undersuit can hide an armor plate while leaving the
+assembled outline completely filled. A convex pelvis swallowed most of the far
+codpiece; collapsed chest caps and enlarged backing crossed the outer collar.
+Keep the visible curved plate and its opening intact, recess hidden support
+surfaces, and validate their depth ordering in motion. The upper garment also
+needed pelvis weights rather than nearest-source leg jiggle weights. Measure
+both background gaps and armor occlusion before spending the recovered budget.
+The concrete repair, costs and three-direction depth audit are documented in
+[JORGE_LODS.md](JORGE_LODS.md) and `audit_jorge_armor_clearance.py`.
+
 This was the useful middle ground: original visible armor plus simple fitted
 backing, return faces and overlap. Avoid replacing a nuanced plate with a box.
 Spend a few triangles where they preserve the whole character's solidity.

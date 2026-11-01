@@ -43,9 +43,9 @@ def pack_lod(lod,bank):
         # Stable IDs from armor_palette.h; flag 16 is a 20% darker shade.
         if component in {'pack','pack-backing'}:return 2
         if component=='visor' or component in cloth or max(color)<=65:return 0
-        kind=5 if component=='chest' else 6 if component in {'shoulder-l','shoulder-r'} else 3 if component in secondary else 4 if component in accent else 1
-        # Rest-space +X faces forward. Shade only the rear of the near codpiece;
-        # the far model already replaces that region with dark pelvis coverage.
+        kind=5 if component in {'chest','chest-backing'} else 6 if component in {'shoulder-l','shoulder-r','neckguard'} else 3 if component in secondary else 4 if component in accent else 1
+        # Rest-space +X faces forward. Both LODs retain the closed codpiece;
+        # shade its rear half while leaving the forward plate bright.
         dark=component.startswith(('calf-','boot-','kneecap-')) or (component=='codpiece' and point[0]<0)
         return kind | (16 if dark else 0)
     palette_mask=[palette_class(components[i],v[1],v[0]) for i,v in zip(mesh['sources'],mesh['vertices'])]
@@ -112,6 +112,7 @@ def run(publish=False):
     if publish:
         import shutil
         # Prevent an older export/coverage report from blessing a new bank.
+        clearance=json.loads((SOURCE/'armor-repair/clearance/codpiece-clearance.json').read_text())
         for r in reports:
             folder=SOURCE/r['lod']
             checked=json.loads((folder/'bank-validation.json').read_text())
@@ -121,6 +122,10 @@ def run(publish=False):
             assert exported['blend_sha256']==r['source_blend_sha256'], 'Export validation is stale'
             assert audited['pose_bank_sha256']==hashlib.sha256((folder/'gameplay-poses.npz').read_bytes()).hexdigest(), 'Coverage audit is stale'
             assert audited['samples']==2340 and exported['clips']==39
+            layers=clearance[r['lod']]
+            assert layers['pose_bank_sha256']==audited['pose_bank_sha256'], 'Armor clearance audit is stale'
+            assert layers['samples']==351 and layers['maximum_idle_occlusion']<=.02, 'Run the full armor clearance check'
+            assert not any(v['occluded_pixels'] for v in layers['chest_front_layering']), 'Chest supports cross the outer armor'
         for name,dest in [('jorge.bin','frontend-files'),('jorge_data.c','generated'),('jorge-report.json','generated')]:
             shutil.copy2(compiled/name,ASSETS/dest/name)
     print('PACKED',len(bank),'bytes; production published:',publish)

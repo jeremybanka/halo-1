@@ -1,6 +1,7 @@
 """Render the actual Jorge body palettes and build matching menu portraits.
 
-Run with Blender -b --factory-startup -P this_file. Geometry/banks are unchanged.
+Run with Blender -b --factory-startup -P this_file. Use -- --candidate
+to review the staged bank without replacing production portraits.
 """
 from pathlib import Path
 import sys, re
@@ -8,7 +9,9 @@ sys.path.insert(0,str(Path(__file__).resolve().parent))
 import numpy as np
 
 ROOT=Path(__file__).resolve().parents[2]
-A=ROOT/'halo64-assets';OUT=A/'assets/jorge/armor-palettes'
+A=ROOT/'halo64-assets';CANDIDATE='--candidate' in sys.argv
+COMPILED=A/'assets/jorge/playable-lods/compiled'
+OUT=COMPILED/'palette-review' if CANDIDATE else A/'assets/jorge/armor-palettes'
 NAMES=('red','blue','yellow','green')
 TONES=(((225,45,38),(169,43,68),(226,80,49),(235,110,32),(71,152,57)),
        ((39,92,215),(32,124,190),(84,77,190),(165,60,210),(235,110,32)),
@@ -30,7 +33,7 @@ def palette(colors,mask,profile):
     return result
 
 def masks(lod):
-    source=(A/'generated/jorge_data.c').read_text()
+    source=((COMPILED if CANDIDATE else A/'generated')/'jorge_data.c').read_text()
     name='bg_jorge'+('_lod' if lod=='far' else '')+'_palette_mask'
     return np.array(list(map(int,re.search(name+r'\[\]=\{([^}]+)\}',source)[1].split(','))))
 
@@ -47,7 +50,7 @@ def render():
             scene=bpy.data.scenes.new(lod+' '+name);bpy.context.window.scene=scene;studio.studio(scene)
             scene.view_settings.exposure=0;scene.cycles.samples=8
             scene.render.resolution_x=240;scene.render.resolution_y=300;scene.camera.data.ortho_scale=2.95
-            mesh=bpy.data.meshes.new('Unchanged packed body');mesh.from_pydata(d['frames_0'][0]/512@np.array(AXIS).T*3.048,[],d['triangles'])
+            mesh=bpy.data.meshes.new('Packed body');mesh.from_pydata(d['frames_0'][0]/512@np.array(AXIS).T*3.048,[],d['triangles'])
             colors=palette(d['colors'],masks(lod),profile)
             ca=mesh.color_attributes.new(name='Palette',type='FLOAT_COLOR',domain='CORNER')
             for loop,c in zip(mesh.loops,ca.data):c.color_srgb=(*colors[loop.vertex_index]/255,1)
@@ -85,7 +88,7 @@ def portraits():
         sheet.save(OUT/f'palette-{view}-comparison.png')
     # Keep the historical single-portrait symbol as the accepted green variant.
     array=lambda a:'{'+','.join(hex(int(v)) for v in a)+'}'
-    (A/'generated/jorge_portrait.c').write_text('#include "asset_jorge.h"\nconst uint16_t bg_jorge_portraits[BG_PROFILE_COUNT][32*40] __attribute__((aligned(16)))={'+','.join(array(a) for a in rows)+'};\nconst uint16_t bg_jorge_portrait[32*40] __attribute__((aligned(16)))='+array(rows[3])+';\n')
+    ((COMPILED if CANDIDATE else A/'generated')/'jorge_portrait.c').write_text('#include "asset_jorge.h"\nconst uint16_t bg_jorge_portraits[BG_PROFILE_COUNT][32*40] __attribute__((aligned(16)))={'+','.join(array(a) for a in rows)+'};\nconst uint16_t bg_jorge_portrait[32*40] __attribute__((aligned(16)))='+array(rows[3])+';\n')
 
 if __name__=='__main__':
     if '--portraits' in sys.argv:portraits()

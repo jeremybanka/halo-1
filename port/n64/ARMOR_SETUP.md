@@ -72,8 +72,9 @@ hues, with distinct chest and shoulder colors:
 
 Calves, knee plates, feet and the rear codpiece are 20% darker in every profile.
 The codpiece shade uses the rear half in the rest pose, leaving the front
-plate unchanged. The far model already replaces its rear codpiece with dark
-pelvis coverage. Other green armor retains the accepted colors. Gold visor, black
+plate unchanged. Both LODs retain the closed codpiece and its rear shading.
+The tall left guard beside the helmet shares the shoulder accent; concealed
+chest backing shares the chest accent. Other green armor retains the accepted colors. Gold visor, black
 undersuit and dark headband are protected by component-aware vertex masks. Both
 LODs and custom first-person plates use the same tint function. Weapon pixels
 and weapon vertex colors are unchanged. First-person legs remain hidden.
@@ -97,7 +98,7 @@ build/n64-python/bin/python port/n64/build.py --preset release --output-dir buil
 `test_frontend.c` covers every nonempty controller subset and host, independent
 profiles/controls, repeated suits, readiness/back navigation and memory guards.
 `test_armor.c` runs the actual damage, reload, pickup, vehicle and simulation
-paths under ASan/UBSan. Palette tests compare all 3,600 body vertex/color pairs
+paths under ASan/UBSan. Palette tests compare all 4,240 body vertex/color pairs
 with compiled C, and first-person tests cover 1,409 production poses in all
 four colors. Emulator presentation remains a separate visual check.
 
@@ -105,5 +106,5 @@ Ares v148 with the Expansion Pak enabled passed the scripted four-player
 setup/match/results/settings cycle (36/36). Visual checks cover the armor
 cards, all four first-person palettes, rocket `INF` readouts, mixed Spartan/
 Jorge views and single-player arms. The release ROM is
-`build/n64-armor-accents/release/halo-64-paced30-rspq32k.z64`; hashes and the validation
+`build/n64-jorge-region-repair/release/halo-64-paced30-rspq32k.z64`; hashes and the validation
 ledger are in `halo64-assets/assets/jorge/armor-palettes/validation.json`.

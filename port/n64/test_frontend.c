@@ -20,7 +20,23 @@ int main(void){
     bg_frontend f;
     bg_front_set_memory_size(4*1024*1024);
     for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i)==(i==0||i==5||i==6||i==9||i==10));
+    assert(!bg_front_character_available(BG_PROFILE_JORGE));
+    bg_front_init(&f);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);
+    press(&f,0,BG_BUTTON_START);press(&f,0,BG_BUTTON_D_LEFT);
+    assert(f.profile[0]==BG_PROFILE_JORGE);press(&f,0,BG_BUTTON_A);assert(!f.ready[0]);
     bg_front_set_memory_size(8*1024*1024);
+    assert(bg_front_character_available(BG_PROFILE_JORGE));
+    press(&f,0,BG_BUTTON_A);assert(f.ready[0]);
+    press(&f,1,BG_BUTTON_START);
+    for(unsigned k=0;k<BG_CHARACTER_COUNT*2;k++){
+        press(&f,1,BG_BUTTON_D_RIGHT);assert(f.profile[1]!=BG_PROFILE_JORGE);
+    }
+    press(&f,0,BG_BUTTON_B);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.profile[0]==0);
+    f.page=BG_FRONT_SETTINGS;f.settings_profile=3;press(&f,0,BG_BUTTON_D_RIGHT);
+    assert(f.settings_profile==BG_PROFILE_JORGE);
+    f.page=BG_FRONT_CONTROLS;press(&f,0,BG_BUTTON_D_RIGHT);
+    assert(f.styles[BG_PROFILE_JORGE]==BG_CONTROLS_XBOX && f.styles[0]==BG_CONTROLS_N64);
+
     for(unsigned mask=1;mask<16;mask++)for(unsigned host=0;host<4;host++)if(mask&(1u<<host)){
         joins(&f,mask,host);assert(f.count==(unsigned)__builtin_popcount(mask));assert(f.ports[0]==host);
         bg_control_state physical[4],mapped[4];

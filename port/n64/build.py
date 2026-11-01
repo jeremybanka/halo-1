@@ -51,6 +51,8 @@ def parse_args(argv=None):
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
+    parser.add_argument("--jorge-frontend-qa", action="store_true", help="Select Jorge through the real menus and exercise match lifecycle")
+    parser.add_argument("--jorge-qa", action="store_true", help="Compare playable Jorge and the standard Spartan")
     parser.add_argument(
         "--preset",
         choices=["release"],
@@ -398,6 +400,9 @@ def parse_args(argv=None):
             data=json.loads(args.world_pvs_data.read_text())
             if data.get('schema') not in (3,4,5,6,7,8,9,10,11,12):
                 parser.error('Changed geometry requires a newly remapped, hash-bound visibility sidecar')
+    if args.jorge_qa and args.jorge_frontend_qa: parser.error("Choose one Jorge QA mode")
+    if args.jorge_qa: args.model_qa = True
+    if args.jorge_frontend_qa: args.frontend_qa = 4
     if args.geometry_census and args.snapshot_tick is None:
         parser.error('--geometry-census requires --snapshot-tick')
     if args.world_coarse_cull:
@@ -610,6 +615,8 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_FLAG_CLOTH_QA"] if args.flag_cloth_qa else []),
         *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),
         *(["-DBG_OBJECTIVE_PHOTO="+str(args.objective_photo)] if args.objective_photo is not None else []),
+        *(["-DBG_JORGE_QA"] if args.jorge_qa else []),
+        *(["-DBG_JORGE_FRONTEND_QA"] if args.jorge_frontend_qa else []),
         *(
             ["-DBG_FRONTEND_QA", "-DBG_FRONTEND_QA_PLAYERS=" + str(args.frontend_qa)]
             if args.frontend_qa
@@ -747,8 +754,10 @@ def rom_name(args):
         name += "-movement" + str(args.movement_qa)
     if args.aim_qa is not None:
         name += "-aim" + str(args.aim_qa)
+    if args.jorge_frontend_qa:
+        name += "-jorge"
     if args.model_qa:
-        name += "-model-qa"
+        name += "-jorge-qa" if args.jorge_qa else "-model-qa"
     if args.spartan_motion_qa:
         name += "-spartan-motion-qa"
     if args.spartan_reload_qa:
@@ -1102,6 +1111,7 @@ def main():
         "terrain.c",
         "movement.c",
         "interaction_render.c",
+        "jorge_render.c",
         "weapon_effects.c",
         "weapon_effects_draw.c",
         "blam/vehicle_physics.c",
@@ -1165,6 +1175,8 @@ def main():
         "shield_data.c",
         "interaction_defs.c",
         "interaction_assets.c",
+        "jorge_data.c",
+        "jorge_portrait.c",
         "vehicle_visuals_data.c",
         "weapon_effects_data.c",
         "vehicle_data.c",

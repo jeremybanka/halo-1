@@ -2,6 +2,7 @@
 #define BG_FRONTEND_H
 #include "menu.h"
 #include "firefight_fights.h"
+#include "character.h"
 /* Availability belongs to the catalog, never to presentation/navigation. */
 typedef struct { const char *name; bool available; } bg_front_entry;
 extern const bg_front_entry bg_front_maps[13],bg_front_types[26];
@@ -19,7 +20,7 @@ typedef struct {
  bool firefight; /* Session kind, separate from competitive mode presets. */
  bool joined[4],ready[4]; unsigned profile[4],ports[4];
  uint8_t teams[4]; /* Physical controller slots; packed at match launch. */
- bg_control_style styles[4];
+ bg_control_style styles[BG_CHARACTER_COUNT];
  int final_scores[4],winner;
  bg_match_statistics statistics;
  uint64_t deadline; int countdown,last_beep;
@@ -34,6 +35,7 @@ bool bg_front_session_available(const bg_frontend *f,bg_front_page page,unsigned
 unsigned bg_front_map_memory_requirement(unsigned map);
 void bg_front_set_memory_size(unsigned bytes);
 bool bg_front_map_needs_expansion(unsigned map);
+bool bg_front_character_available(unsigned profile);
 void bg_front_results(bg_frontend *f,const int scores[4],int winner);
 void bg_front_quit(bg_frontend *f);
 void bg_front_map_controls(const bg_frontend *f,const bg_control_state physical[4],bg_control_state logical[4]);

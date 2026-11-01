@@ -26,6 +26,8 @@ static struct {
 #include "spartan_reload_qa.h"
 #elif defined(BG_SPARTAN_MOTION_QA)
 #include "spartan_motion_qa.h"
+#elif defined(BG_JORGE_QA)
+#include "jorge_qa.h"
 #elif defined(BG_MAP_QA)
 #include "map_qa.h"
 #elif defined(BG_WIZARD_QA)

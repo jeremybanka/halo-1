@@ -5,6 +5,7 @@ unsigned bg_front_map_memory_requirement(unsigned map){
     return map==0||map==5||map==6||map==9||map==10?4*1024*1024:8*1024*1024;
 }
 void bg_front_set_memory_size(unsigned bytes){memory_size=bytes;}
+bool bg_front_character_available(unsigned profile){return profile<BG_CHARACTER_COUNT && (profile!=BG_PROFILE_JORGE || memory_size>=8*1024*1024);}
 bool bg_front_map_needs_expansion(unsigned map){return memory_size<bg_front_map_memory_requirement(map);}
 const bg_front_entry bg_front_maps[13] = {
     {"Battle Creek", true}, {"Sidewinder", true}, {"Damnation", true},
@@ -92,7 +93,7 @@ static bool all_ready(const bg_frontend *f) {
     if (!bg_front_joined(f))
         return false;
     for (unsigned p = 0; p < 4; p++)
-        if (f->joined[p] && !f->ready[p])
+        if (f->joined[p] && (!f->ready[p] || !bg_front_character_available(f->profile[p])))
             return false;
     return true;
 }
@@ -150,8 +151,8 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
             }
             if (d && f->joined[p] && !f->ready[p]) {
                 unsigned candidate = f->profile[p];
-                for (unsigned attempt = 0; attempt < 4; attempt++) {
-                    candidate = cycle(candidate, 4, d);
+                for (unsigned attempt = 0; attempt < BG_CHARACTER_COUNT; attempt++) {
+                    candidate = cycle(candidate, BG_CHARACTER_COUNT, d);
                     bool used = false;
                     for (unsigned q = 0; q < 4; q++)
                         if (q != p && f->joined[q] && f->profile[q] == candidate)
@@ -168,18 +169,22 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
                 if (!f->joined[p]) {
                     f->joined[p] = true;
                     f->ready[p] = false;
-                    for (unsigned k = 0; k < 4; k++) {
+                    for (unsigned k = 0; k < BG_CHARACTER_COUNT; k++) {
                         bool used = false;
                         for (unsigned q = 0; q < 4; q++)
                             if (q != p && f->joined[q] && f->profile[q] == f->profile[p])
                                 used = true;
                         if (!used)
                             break;
-                        f->profile[p] = (f->profile[p] + 1) % 4;
+                        f->profile[p] = (f->profile[p] + 1) % BG_CHARACTER_COUNT;
                     }
-                } else if (!f->ready[p])
+                } else if (!f->ready[p]) {
+                    if (!bg_front_character_available(f->profile[p])) {
+                        f->sound = BG_FRONT_BEEP;
+                        continue;
+                    }
                     f->ready[p] = true;
-                else if (p == f->host && all_ready(f)) {
+                } else if (p == f->host && all_ready(f)) {
                     pack_players(f);
                     page(f, BG_FRONT_MAP);
                 }
@@ -315,7 +320,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
     }
     if (f->page == BG_FRONT_SETTINGS) {
         if (h) {
-            f->settings_profile = cycle(f->settings_profile, 4, h);
+            f->settings_profile = cycle(f->settings_profile, BG_CHARACTER_COUNT, h);
             if (h < 0 && f->row)
                 f->row--;
             else if (h > 0 && f->row < 2)

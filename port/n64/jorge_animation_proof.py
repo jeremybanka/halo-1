@@ -103,35 +103,37 @@ class Retarget:
                 name=f'b_{side}_{helper}';aname=f'b_{side}_{a}' if a else 'b_pelvis';bname=f'b_{side}_{b}';i=self.ji[name]
                 blended=skin(aname).to_quaternion().slerp(skin(bname).to_quaternion(),weight).to_matrix();rot[i]=blended@self.jb[i].to_3x3()
 
-    def pose(self,name,fi):
+    def pose(self,name,fi,*,support_weapon=True,ground=True,root_scale=None):
         cp=self.ce_globals(name,fi);rot={ji:cp[ci].to_3x3()@self.correction[ji] for ji,ci in self.mapping.items()}
         jmid=self.ji['b_spine2'];low=self.ji['b_spine1'];high=self.ji['b_spine3']
         a=(rot[low]@self.jb[low].to_3x3().inverted()).to_quaternion();b=(rot[high]@self.jb[high].to_3x3().inverted()).to_quaternion();rot[jmid]=a.slerp(b,.45).to_matrix()@self.jb[jmid].to_3x3()
-        jp=self.ji['b_pelvis'];root=self.jb[jp].translation+(cp[0].translation-self.cb[0].translation)*self.height_scale
+        jp=self.ji['b_pelvis'];root=self.jb[jp].translation+(cp[0].translation-self.cb[0].translation)*(self.height_scale if root_scale is None else root_scale)
         grip_amount=.65 if name=='reload' and .12<fi/max(1,len(self.ce['animations'][name]['frames'])-1)<.85 else 1
         self.helper_rotations(rot);pose=self.forward(rot,root,grip_amount)
         jr=self.ji['b_r_hand'];rg=self.ji['b_r_grip'];jl=self.ji['b_l_hand'];lg=self.ji['b_l_grip']
         weapon=(pose[jr].to_3x3()@self.correction[jr].inverted()@self.ce_right_marker.to_3x3()).to_4x4();weapon.translation=pose[rg].translation
         ce_weapon=cp[self.ci['r hand']]@self.ce_right_marker;relative=(ce_weapon.inverted()@cp[self.ci['l hand']]@self.ce_left_marker).translation
-        desired_grip=weapon@(self.ar_left+relative-self.base_left)
-        desired_wrist=desired_grip-rot[jl]@Vector(self.jn[lg]['p'])
-        # Two-link IK changes joint rotations only; bone lengths and source mesh stay fixed.
-        upper=self.ji['b_l_upperarm'];lower=self.ji['b_l_forearm'];a0=pose[upper].translation;b0=pose[lower].translation;c0=pose[jl].translation
-        l1=(b0-a0).length;l2=(c0-b0).length;v=desired_wrist-a0;distance=v.length;axis=v.normalized();d=max(abs(l1-l2)+1e-5,min(distance,l1+l2-1e-5))
-        along=(l1*l1-l2*l2+d*d)/(2*d);height=max(0,l1*l1-along*along)**.5
-        pole=b0-a0-axis*(b0-a0).dot(axis)
-        if pole.length<1e-6:pole=Vector((0,1,0))-axis*axis.y
-        elbow=a0+axis*along+pole.normalized()*height;wrist=a0+axis*d
-        rot[upper]=(b0-a0).rotation_difference(elbow-a0).to_matrix()@rot[upper]
-        rot[lower]=(c0-b0).rotation_difference(wrist-elbow).to_matrix()@rot[lower]
-        self.helper_rotations(rot);pose=self.forward(rot,root,grip_amount)
+        distance=d=0.;desired_grip=pose[lg].translation.copy()
+        if support_weapon:
+            desired_grip=weapon@(self.ar_left+relative-self.base_left)
+            desired_wrist=desired_grip-rot[jl]@Vector(self.jn[lg]['p'])
+            # Two-link IK changes joint rotations only; bone lengths and source mesh stay fixed.
+            upper=self.ji['b_l_upperarm'];lower=self.ji['b_l_forearm'];a0=pose[upper].translation;b0=pose[lower].translation;c0=pose[jl].translation
+            l1=(b0-a0).length;l2=(c0-b0).length;v=desired_wrist-a0;distance=v.length;axis=v.normalized();d=max(abs(l1-l2)+1e-5,min(distance,l1+l2-1e-5))
+            along=(l1*l1-l2*l2+d*d)/(2*d);height=max(0,l1*l1-along*along)**.5
+            pole=b0-a0-axis*(b0-a0).dot(axis)
+            if pole.length<1e-6:pole=Vector((0,1,0))-axis*axis.y
+            elbow=a0+axis*along+pole.normalized()*height;wrist=a0+axis*d
+            rot[upper]=(b0-a0).rotation_difference(elbow-a0).to_matrix()@rot[upper]
+            rot[lower]=(c0-b0).rotation_difference(wrist-elbow).to_matrix()@rot[lower]
+            self.helper_rotations(rot);pose=self.forward(rot,root,grip_amount)
         # The existing unweighted Reach grip node is the animated weapon socket.
         pose[rg]=weapon
         metrics={'support_reach_clamp_m':abs(distance-d)*SCALE,'support_grip_error_m':(pose[lg].translation-desired_grip).length*SCALE}
         skin=np.array(pose)@self.bind_inverse;boot=np.zeros((len(self.boot_vertices),3))
         for bi in np.flatnonzero(self.boot_weights.sum(axis=0)):
             boot+=(self.boot_vertices@skin[bi].T)[:,:3]*self.boot_weights[:,bi,None]
-        lift=max(0.,-float(boot[:,2].min()))
+        lift=max(0.,-float(boot[:,2].min())) if ground else 0.
         for m in pose:m.translation.z+=lift
         metrics['root_ground_lift_m']=lift*SCALE
         return pose,metrics

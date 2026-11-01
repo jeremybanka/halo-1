@@ -37,7 +37,11 @@ static const step script[]={
  {BG_FRONT_MAIN,4,1,BG_BUTTON_D_UP},{BG_FRONT_MAIN,2,1,BG_BUTTON_A},
  {BG_FRONT_MAIN,2,1,BG_BUTTON_D_DOWN},{BG_FRONT_MAIN,2,1,BG_BUTTON_A},
  {BG_FRONT_MULTIPLAYER,4,1,BG_BUTTON_A},
- {BG_FRONT_JOIN,4,ALL,BG_BUTTON_START},{BG_FRONT_JOIN,3,ALL,BG_BUTTON_A},
+ {BG_FRONT_JOIN,4,ALL,BG_BUTTON_START},
+#ifdef BG_JORGE_FRONTEND_QA
+ {BG_FRONT_JOIN,2,1,BG_BUTTON_D_LEFT},
+#endif
+ {BG_FRONT_JOIN,3,ALL,BG_BUTTON_A},
  {BG_FRONT_JOIN,4,1,BG_BUTTON_A},
  {BG_FRONT_MAP,4,1,MAP_PROBE},{BG_FRONT_MAP,2,1,MAP_RETURN},
  {BG_FRONT_MAP,2,1,BG_BUTTON_A},
@@ -130,6 +134,10 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
     if(f->page==BG_FRONT_RESULTS)assert(!bg_map_loaded()&&bg_map_resident_bytes()==0);
 #endif
     const step*s=&script[current];
+#ifdef BG_JORGE_FRONTEND_QA
+    if(f->page==BG_FRONT_PREGAME || f->page==BG_FRONT_PLAY || f->page==BG_FRONT_RESULTS)
+        assert(f->profile[f->host]==BG_PROFILE_JORGE);
+#endif
     if(f->page!=s->page){
         /* Countdown completion may beat a final optional acceleration edge.
          * Do not misdiagnose that ordinary launch as a map-loader failure. */
@@ -141,7 +149,7 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
     }
     if(!entered)entered=now;
     unsigned dwell=s->seconds;
-#ifdef BG_MAPS_CYCLE
+#if defined(BG_MAPS_CYCLE) || defined(BG_JORGE_FRONTEND_QA)
     if(s->page!=BG_FRONT_PLAY&&s->page!=BG_FRONT_QUIT&&dwell>1)dwell=1;
 #endif
     if(now-entered<dwell*1000000ull)return;

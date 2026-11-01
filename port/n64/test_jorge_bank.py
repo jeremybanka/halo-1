@@ -4,9 +4,10 @@ from pathlib import Path
 import numpy as np
 ROOT=Path(__file__).resolve().parents[2];A=ROOT/'halo64-assets';OUT=A/'assets/jorge/playable-half'
 def run():
-    report=json.loads((A/'generated/jorge-report.json').read_text());source=np.load(OUT/'gameplay-poses.npz');packed=np.load(OUT/'packed-preview.npz');bank=(A/'frontend-files/jorge.bin').read_bytes();n=report['vertices'];scale=report['position_scale']
+    global OUT
+    report=json.loads((A/'generated/jorge-report.json').read_text());OUT=ROOT/report.get('source_directory',str(OUT.relative_to(ROOT)));source=np.load(OUT/'gameplay-poses.npz');packed=np.load(OUT/'packed-preview.npz');bank=(A/'frontend-files/jorge.bin').read_bytes();n=report['vertices'];scale=report['position_scale']
     assert len(bank)==report['rom_bytes'] and len(report['clips'])==39
-    assert hashlib.sha256((OUT/'jorge-playable-half.blend').read_bytes()).hexdigest()==report['source_blend_sha256']
+    assert hashlib.sha256((OUT/(report.get('source_name','jorge-playable-half')+'.blend')).read_bytes()).hexdigest()==report['source_blend_sha256']
     assert len(packed['positions'])==n and len(packed['triangles'])==report['triangles']
     assert packed['triangles'].min()>=0 and packed['triangles'].max()<n
     max_quat_error=0

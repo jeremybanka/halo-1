@@ -53,6 +53,8 @@ def parse_args(argv=None):
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument("--jorge-frontend-qa", action="store_true", help="Select Jorge through the real menus and exercise match lifecycle")
     parser.add_argument("--jorge-qa", action="store_true", help="Compare playable Jorge and the standard Spartan")
+    parser.add_argument("--jorge-field-qa", action="store_true", help="Jorge first-person weapons and production vehicle interactions")
+    parser.add_argument("--jorge-field-start", type=int, choices=range(26), default=0, help="First page of the Jorge field inspection")
     parser.add_argument(
         "--preset",
         choices=["release"],
@@ -400,8 +402,9 @@ def parse_args(argv=None):
             data=json.loads(args.world_pvs_data.read_text())
             if data.get('schema') not in (3,4,5,6,7,8,9,10,11,12):
                 parser.error('Changed geometry requires a newly remapped, hash-bound visibility sidecar')
-    if args.jorge_qa and args.jorge_frontend_qa: parser.error("Choose one Jorge QA mode")
-    if args.jorge_qa: args.model_qa = True
+    if sum((args.jorge_qa,args.jorge_field_qa,args.jorge_frontend_qa))>1: parser.error("Choose one Jorge QA mode")
+    if args.jorge_qa or args.jorge_field_qa: args.model_qa = True
+    if args.jorge_field_start and not args.jorge_field_qa: parser.error("--jorge-field-start requires --jorge-field-qa")
     if args.jorge_frontend_qa: args.frontend_qa = 4
     if args.geometry_census and args.snapshot_tick is None:
         parser.error('--geometry-census requires --snapshot-tick')
@@ -616,6 +619,8 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),
         *(["-DBG_OBJECTIVE_PHOTO="+str(args.objective_photo)] if args.objective_photo is not None else []),
         *(["-DBG_JORGE_QA"] if args.jorge_qa else []),
+        *(["-DBG_JORGE_FIELD_QA"] if args.jorge_field_qa else []),
+        *(["-DBG_JORGE_FIELD_START="+str(args.jorge_field_start)] if args.jorge_field_qa else []),
         *(["-DBG_JORGE_FRONTEND_QA"] if args.jorge_frontend_qa else []),
         *(
             ["-DBG_FRONTEND_QA", "-DBG_FRONTEND_QA_PLAYERS=" + str(args.frontend_qa)]
@@ -757,7 +762,7 @@ def rom_name(args):
     if args.jorge_frontend_qa:
         name += "-jorge"
     if args.model_qa:
-        name += "-jorge-qa" if args.jorge_qa else "-model-qa"
+        name += "-jorge-field-qa" if args.jorge_field_qa else "-jorge-qa" if args.jorge_qa else "-model-qa"
     if args.spartan_motion_qa:
         name += "-spartan-motion-qa"
     if args.spartan_reload_qa:

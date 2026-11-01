@@ -1,5 +1,8 @@
 # Playable Jorge: intermediate reduction
 
+The current asset is the [metallic armor and symmetry refinement](JORGE_REFINEMENT.md).
+This document records the preceding half-budget checkpoint, which remains unchanged.
+
 Jorge is the fifth selectable profile in the multiplayer front end. Matches still
 support one to four controllers. His profile preserves the black helmet band,
 yellow breastplate, asymmetric shoulders, gray-brown backpack and quiet CE-derived

@@ -16,7 +16,8 @@ def run():
     rig.animation_data.action=None
     for action in list(bpy.data.actions):
         if action not in old.values():bpy.data.actions.remove(action)
-    points=[];weights=[];uv=[];triangles=[];components=[]
+    points=[];weights=[];uv=[];triangles=[];components=[];colors=[]
+    has_colors=all(o.data.color_attributes.get('CE metallic armor') for o in obs)
     for ob in obs:
         start=len(points);group={g.index:rt.ji.get(g.name) for g in ob.vertex_groups}
         for v in ob.data.vertices:
@@ -28,8 +29,10 @@ def run():
         for p in ob.data.polygons:
             assert len(p.vertices)==3
             triangles.append([i+start for i in p.vertices]);uv.extend([list(ob.data.uv_layers.active.data[l].uv) for l in p.loop_indices]);components.extend([ob['source_component']]*3)
+            if has_colors:colors.extend([list(ob.data.color_attributes['CE metallic armor'].data[l].color_srgb[:3]) for l in p.loop_indices])
     points=np.array(points);weights=np.array(weights);rest=np.array([rig.data.bones[n['name']].matrix_local for n in rt.jn]);inv=np.linalg.inv(rest)
     data={'rest':points[:,:3]@BASIS.T,'triangles':np.array(triangles),'uv':np.array(uv)};report={'components':components,'clips':[],'native_vertices':len(points),'triangles':len(triangles)}
+    if has_colors:data['colors']=np.rint(np.array(colors)*255).astype(np.uint8)
     rig.animation_data.use_nla=False
     bpy.context.preferences.edit.keyframe_new_interpolation_type='LINEAR'
     allactions=set(old.values())

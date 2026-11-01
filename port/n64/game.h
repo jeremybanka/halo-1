@@ -266,4 +266,9 @@ bg_use_target bg_interaction_target(unsigned player);
 const bg_seat_definition *bg_player_seat(const bg_player *player);
 bool bg_player_personal_weapon(const bg_player *player);
 bool bg_player_third_person(const bg_player *player);
+/* Animation and drawing must agree, including passengers using personal guns. */
+static inline bool bg_player_firstperson_weapon(const bg_player *p) {
+    return p->health > 0 && !p->zoom && bg_player_personal_weapon(p) &&
+           !bg_player_third_person(p);
+}
 #endif

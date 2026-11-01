@@ -1,11 +1,11 @@
 """Pack Jorge into an optional streamed bank using native Tiny3D batches."""
-import json,struct,hashlib,math
+import json,struct,hashlib,math,argparse
 from pathlib import Path
 import numpy as np
 from PIL import Image
 from pack_mesh import indexed_mesh
 ROOT=Path(__file__).resolve().parents[2];A=ROOT/'halo64-assets';OUT=A/'assets/jorge/playable-half';SCALE=512
-def run():
+def run(name='jorge-playable-half'):
     d=np.load(OUT/'gameplay-poses.npz');meta=json.loads((OUT/'gameplay-poses.json').read_text());corners=d['triangles'].flatten();rest=np.rint(d['rest']*SCALE).astype(int)
     image=np.array(Image.open(OUT/'textures/jorge-ce-atlas-256.png').convert('RGB'))
     colors=[]
@@ -13,12 +13,15 @@ def run():
         x=min(255,max(0,u*256-.5));y=min(255,max(0,(1-v)*256-.5));ix,iy=int(x),int(y);fx,fy=x-ix,y-iy
         a=image[iy,ix]*(1-fx)+image[iy,min(255,ix+1)]*fx;b=image[min(255,iy+1),ix]*(1-fx)+image[min(255,iy+1),min(255,ix+1)]*fx
         colors.append(np.rint(a*(1-fy)+b*fy).astype(int).tolist())
+    if 'colors' in d:colors=d['colors'].astype(int).tolist()
     # Match the standard Spartan's fixed CE vertex-light bake.
     tri=d['rest'][d['triangles']];normals=np.cross(tri[:,1]-tri[:,0],tri[:,2]-tri[:,0]);normals/=np.maximum(np.linalg.norm(normals,axis=1)[:,None],1e-12)
     light=.68+.32*np.maximum(0,normals@np.array([.25,.83,.49]))
     for i in range(len(colors)):
         if meta['components'][i]=='body-06:000':colors[i]=[255,224,18]
-        else:colors[i]=np.rint(np.array(colors[i])*light[i//3]).astype(int).tolist()
+        # Refined COLOR_0 already contains a continuous plate-normal response.
+        # A second per-face light bake breaks both the gradient and shared verts.
+        else:colors[i]=np.rint(np.array(colors[i])*(.85 if 'colors' in d else light[i//3])).astype(int).tolist()
     # Merge only identical complete quantized trajectories, never merely bind positions.
     frames=[np.rint(d['frames_'+str(i)]*SCALE).astype(np.int16) for i in range(len(meta['clips']))]
     keys=[hashlib.sha256(b''.join(f[:,vi].tobytes() for f in frames)).digest() for vi in range(len(rest))]
@@ -43,6 +46,7 @@ def run():
     for c in clips:lines.append('{'+f'{c["offset"]},{c["stride"]},{c["frames"]},{c["duration"]:.7f}f,'+bounds(c['bounds'])+','+bounds(c['grip_bounds'])+'},')
     lines.append('};');(A/'generated/jorge_data.c').write_text('\n'.join(lines)+'\n')
     np.savez_compressed(OUT/'packed-preview.npz',positions=np.array([v[0] for v in mesh['vertices']])/SCALE,colors=np.array([v[1] for v in mesh['vertices']]),triangles=np.array([[first+j for j in mesh['indices'][offset+k:offset+k+3]] for first,count,offset,n in mesh['batches'] for k in range(0,n,3)]),sources=sources,**{'frames_'+str(i):f[:,sources] for i,f in enumerate(frames)},**{'grips_'+str(i):d['grips_'+str(i)] for i in range(len(clips))})
-    report={'vertices':len(sources),'triangles':len(corners)//3,'native_vertices':len(rest),'mesh_bytes':mesh_bytes,'frame_cache_bytes':stride*2,'rom_bytes':len(bank),'position_scale':SCALE,'max_position_error_m':math.sqrt(3)*3.048/(2*SCALE),'color_tolerance':24,'clips':clips,'source_blend_sha256':hashlib.sha256((OUT/'jorge-playable-half.blend').read_bytes()).hexdigest()}
+    report={'vertices':len(sources),'triangles':len(corners)//3,'native_vertices':len(rest),'mesh_bytes':mesh_bytes,'frame_cache_bytes':stride*2,'rom_bytes':len(bank),'position_scale':SCALE,'max_position_error_m':math.sqrt(3)*3.048/(2*SCALE),'color_tolerance':24,'clips':clips,'source_blend_sha256':hashlib.sha256((OUT/(name+'.blend')).read_bytes()).hexdigest(),'source_directory':str(OUT.relative_to(ROOT)),'source_name':name}
     (A/'generated/jorge-report.json').write_text(json.dumps(report,indent=2)+'\n');(OUT/'runtime-report.json').write_text(json.dumps(report,indent=2)+'\n');print({k:v for k,v in report.items() if k!='clips'})
-if __name__=='__main__':run()
+if __name__=='__main__':
+    parser=argparse.ArgumentParser();parser.add_argument('--asset-dir',type=Path,default=OUT);parser.add_argument('--name',default='jorge-playable-half');args=parser.parse_args();OUT=args.asset_dir.resolve();run(args.name)

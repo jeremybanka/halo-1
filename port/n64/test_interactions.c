@@ -43,6 +43,7 @@ static void seats(void){
         p->crouched=true;p->crouch_amount=1;
         input[0].interact=true;tick(1);
         assert(p->vehicle==vi&&p->seat==(int)seat&&p->seat_state==BG_SEAT_ENTERING&&v->occupants[seat]==0);
+        assert(!bg_player_firstperson_weapon(p));
         assert(!p->crouched&&p->crouch_amount==0);
         input[0].fire=input[0].secondary_fire=true;input[0].forward=1;tick(1);assert(v->flash==0&&v->cooldown==0);
         input[0].fire=input[0].secondary_fire=false;input[0].forward=0;
@@ -50,15 +51,20 @@ static void seats(void){
         assert(bg_interaction_target(0).kind==BG_USE_EXIT);
         bool passenger=!(bg_seat_definitions[kind][seat].flags&12);
         assert(bg_player_personal_weapon(p)==passenger);
+        assert(bg_player_firstperson_weapon(p)==(passenger&&!bg_player_third_person(p)));
+        p->zoom=1;assert(!bg_player_firstperson_weapon(p));p->zoom=0;
+        p->health=0;assert(!bg_player_firstperson_weapon(p));p->health=100;
         if(passenger){
             int ammo=p->ammo;input[0].fire=true;tick(1);input[0].fire=false;
             assert(p->ammo==ammo-1);
         }
         input[0].interact=false;tick(1);input[0].interact=true;tick(1);
         assert(p->seat_state==BG_SEAT_EXITING&&v->occupants[seat]==0);
+        assert(!bg_player_firstperson_weapon(p));
         unsigned frames=(unsigned)lroundf(bg_seat_definitions[kind][seat].exit_time*30);
         tick(frames-1);assert(p->vehicle==vi);tick(1);
         assert(p->vehicle==-1&&v->occupants[seat]==-1&&p->weapon_ready>0);
+        assert(bg_player_firstperson_weapon(p));
         for(unsigned a=0;a<3;a++)assert(isfinite(p->pos[a]));
     }
     /* A contested single-seat vehicle reserves its occupant before animation. */

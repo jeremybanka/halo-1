@@ -1252,7 +1252,7 @@ static void animate_firstperson(unsigned p) {
         return;
     bg_player *player = &bg_players[p];
     unsigned w = player->weapon;
-    if (player->vehicle >= 0 || player->health <= 0 || player->zoom || p >= views)
+    if (!bg_player_firstperson_weapon(player))
         return;
     int carried=objective_kind(p);
     if(carried>=0){animate_objective(p,carried);return;}
@@ -1638,6 +1638,10 @@ static void prepare_view(unsigned p) {
             continue;
 #if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA) && !defined(BG_PVE_MODEL_QA)
         if (j == p && !bg_player_third_person(player) && player->health > 0)
+            continue;
+#elif defined(BG_MODEL_QA)
+        /* First-person inspection uses the same self-body exclusion as play. */
+        if (bg_qa_firstperson() && j == p && !bg_player_third_person(player) && player->health > 0)
             continue;
 #endif
         if (q->vehicle >= 0 && (bg_player_seat(q)->flags&1) &&
@@ -2271,8 +2275,7 @@ static void draw_view(unsigned p) {
     category_triangles[4] += triangles - before;
     before = triangles;
 #endif
-    if (player->health > 0 && bg_player_personal_weapon(player) &&
-        !bg_player_third_person(player) && !player->zoom
+    if (bg_player_firstperson_weapon(player)
 #ifdef BG_INTERACTION_QA
         && BG_INTERACTION_QA < 2
 #endif

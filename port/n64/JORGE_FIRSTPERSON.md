@@ -1,6 +1,8 @@
 # Jorge: matte pack, warm shoulder and personal first-person views
 
-Current source: `halo64-assets/assets/jorge/playable-personal/`.
+Source for this appearance/first-person checkpoint: `halo64-assets/assets/jorge/playable-personal/`.
+The current third-person body uses the subsequent [near/far LODs](JORGE_LODS.md).
+The custom first-person arms and CE-style hidden local body remain as described here.
 The accepted `playable-refined` checkpoint remains unchanged.
 The [critical path and reusable workflow](CHARACTER_DEMAKE.md) traces how the
 source reached this result and which steps to carry forward to other characters.
@@ -42,7 +44,7 @@ crouching, in both single-player and split-screen views. The former 783-triangle
 leg draw, its command blocks and its placement matrices were removed on
 2026-11-01. Other players and third-person cameras still see the complete body.
 
-The body asset is unchanged. Two inset cloth caps from the earlier leg-view
+At the first-person removal checkpoint the body asset was unchanged. Two inset cloth caps from the earlier leg-view
 experiment remain in its thigh openings (15 native vertices / 11 triangles).
 They remain useful coverage geometry; removing the first-person draw does not
 require another model reduction or animation bake.
@@ -55,8 +57,9 @@ require another model reduction or animation bake.
 | Packed N64 vertices | 2,282 | 2,264 |
 | Components / bones / clips | 49 / 85 / 39 | 51 / 85 / 39 |
 
-Component budgets remain in `component-budgets.csv`. The body still has one
-near/far mesh. The final reduction and dedicated distant LOD remain separate work.
+Component budgets for this preserved checkpoint remain in `component-budgets.csv`.
+The later LOD pass replaces its shared near/far body in the game bank; this table
+continues to describe the appearance checkpoint, not the current runtime cost.
 
 ## Validation
 

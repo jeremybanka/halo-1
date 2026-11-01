@@ -9,12 +9,13 @@ subtle shapes while making substantial reductions possible.
 This is the reusable process and its evidence, through code commit `cb7c8591`
 and private asset commit `9e7a9f2`. It records the successful intermediate playable
 asset, **not completion of the eventual approximately 700-triangle budget**.
-Current source is [playable-personal](../../halo64-assets/assets/jorge/playable-personal/):
+The accepted source at that checkpoint was [playable-personal](../../halo64-assets/assets/jorge/playable-personal/):
 1,387 GLB vertices, 1,334 native vertices, 2,108 triangles and 2,264 packed N64
 vertices, including the backpack. Jorge is the fifth selectable profile, shares
 CE motion, has personal first-person arms, and has passed visual
-checks in single-player and four-player layouts at 8 MiB. Near and far still use
-the same mesh; a dedicated low LOD and further optimization remain open.
+checks in single-player and four-player layouts at 8 MiB. That checkpoint used
+the same mesh near and far. The subsequent [near/far reduction](JORGE_LODS.md)
+brings packed vertex counts close to CE's, retaining this checkpoint unchanged.
 
 Presentation update, 2026-11-01: first-person legs were subsequently removed to
 match CE. The historical experiment and its camera/coverage lessons below remain

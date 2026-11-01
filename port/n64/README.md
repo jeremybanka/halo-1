@@ -120,7 +120,8 @@ The original-style front end opens first. Follow **Multiplayer → Split Screen 
 Select Profile → map → game type**. Join and ready one to four controllers;
 three players use three quadrants. **Jorge** is the fifth selectable profile on
 an 8 MiB system, with his Reach armor, CE-derived colors and shared Spartan
-animations. See [JORGE_FIRSTPERSON.md](JORGE_FIRSTPERSON.md) for the current
+animations. See [JORGE_LODS.md](JORGE_LODS.md) for the close/distant body budgets
+and [JORGE_FIRSTPERSON.md](JORGE_FIRSTPERSON.md) for the
 asset and validation, and [CHARACTER_DEMAKE.md](CHARACTER_DEMAKE.md) for the
 reusable Reach-to-N64 workflow. Assign Gamepads to controller ports 1–4 in ares,
 then configure physical controllers or keyboard mappings in Settings → Input.

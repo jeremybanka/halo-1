@@ -1,6 +1,6 @@
 # Playable Jorge: intermediate reduction
 
-The current asset is the [metallic armor and symmetry refinement](JORGE_REFINEMENT.md).
+The current asset has [Jorge first-person arms, visible legs and revised materials](JORGE_FIRSTPERSON.md).
 This document records the preceding half-budget checkpoint, which remains unchanged.
 
 Jorge is the fifth selectable profile in the multiplayer front end. Matches still

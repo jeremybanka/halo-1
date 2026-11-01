@@ -1,6 +1,7 @@
 # Jorge: metallic armor, central forms and first-person views
 
-The current bank comes from `halo64-assets/assets/jorge/playable-refined/`.
+This checkpoint is preserved in `halo64-assets/assets/jorge/playable-refined/`.
+The current bank is the [first-person and material update](JORGE_FIRSTPERSON.md).
 The accepted `playable-half` checkpoint and earlier source models are unchanged.
 Jorge remains the fifth profile, with the same gameplay dimensions, CE movement,
 and shared first-person Spartan arms. This pass adds no character abilities.

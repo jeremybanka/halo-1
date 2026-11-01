@@ -5,6 +5,9 @@ import numpy as np
 from PIL import Image
 from pack_mesh import indexed_mesh
 ROOT=Path(__file__).resolve().parents[2];A=ROOT/'halo64-assets';OUT=A/'assets/jorge/playable-half';SCALE=512
+LEG_COMPONENTS={*(f'body-02:{i:03d}' for i in (0,1,3,4)),
+                *(f'body-09:{i:03d}' for i in range(2,12)),
+                'body-10:000',*(f'body-10:{i:03d}' for i in range(5,13))}
 def run(name='jorge-playable-half'):
     d=np.load(OUT/'gameplay-poses.npz');meta=json.loads((OUT/'gameplay-poses.json').read_text());corners=d['triangles'].flatten();rest=np.rint(d['rest']*SCALE).astype(int)
     image=np.array(Image.open(OUT/'textures/jorge-ce-atlas-256.png').convert('RGB'))
@@ -25,7 +28,15 @@ def run(name='jorge-playable-half'):
     # Merge only identical complete quantized trajectories, never merely bind positions.
     frames=[np.rint(d['frames_'+str(i)]*SCALE).astype(np.int16) for i in range(len(meta['clips']))]
     keys=[hashlib.sha256(b''.join(f[:,vi].tobytes() for f in frames)).digest() for vi in range(len(rest))]
-    mesh=indexed_mesh(rest[corners].tolist(),colors,[0]*len(corners),[keys[i] for i in corners],color_tolerance=24)
+    # Isolate lower-body batches so the local first-person camera can reuse
+    # the exact animated legs without drawing the torso/head around its eye.
+    legs=np.array([c in LEG_COMPONENTS for c in meta['components'][::3]])
+    breaks=[0]+[i*3 for i in range(1,len(legs)) if legs[i]!=legs[i-1]]+[len(corners)]
+    segments=[(a,b-a) for a,b in zip(breaks,breaks[1:])]
+    mesh=indexed_mesh(rest[corners].tolist(),colors,[0]*len(corners),[keys[i] for i in corners],color_tolerance=24,segments=segments)
+    leg_batches=[0]*len(mesh['batches'])
+    for (first,count),(b,n) in zip(segments,mesh['segments']):
+        for bi in range(b,b+n):leg_batches[bi]=int(legs[first//3])
     sources=corners[mesh['sources']];bank=bytearray()
     for i in range(0,len(mesh['vertices']),2):
         a,b=mesh['vertices'][i:i+2];rgba=lambda rgb:(rgb[0]<<24)|(rgb[1]<<16)|(rgb[2]<<8)|255
@@ -44,7 +55,10 @@ def run(name='jorge-playable-half'):
     radius=float(np.linalg.norm(d['rest'],axis=1).max())
     lines=['/* Generated from locally supplied Reach/CE data. */','#include "asset_jorge.h"',f'const bg_jorge_mesh_info bg_jorge_mesh={{{mesh_bytes},{indices_offset},{batch_offset},{len(sources)},{len(mesh["batches"])},{len(corners)//3},{radius:.7f}f}};',f'const bg_jorge_clip bg_jorge_clips[BG_J_CLIP_COUNT]={{']
     for c in clips:lines.append('{'+f'{c["offset"]},{c["stride"]},{c["frames"]},{c["duration"]:.7f}f,'+bounds(c['bounds'])+','+bounds(c['grip_bounds'])+'},')
-    lines.append('};');(A/'generated/jorge_data.c').write_text('\n'.join(lines)+'\n')
+    lines.append('};')
+    lines.append('const uint8_t bg_jorge_leg_batches[]={'+','.join(map(str,leg_batches))+'};')
+    lines.append(f'const unsigned bg_jorge_leg_triangles={int(legs.sum())};')
+    (A/'generated/jorge_data.c').write_text('\n'.join(lines)+'\n')
     np.savez_compressed(OUT/'packed-preview.npz',positions=np.array([v[0] for v in mesh['vertices']])/SCALE,colors=np.array([v[1] for v in mesh['vertices']]),triangles=np.array([[first+j for j in mesh['indices'][offset+k:offset+k+3]] for first,count,offset,n in mesh['batches'] for k in range(0,n,3)]),sources=sources,**{'frames_'+str(i):f[:,sources] for i,f in enumerate(frames)},**{'grips_'+str(i):d['grips_'+str(i)] for i in range(len(clips))})
     report={'vertices':len(sources),'triangles':len(corners)//3,'native_vertices':len(rest),'mesh_bytes':mesh_bytes,'frame_cache_bytes':stride*2,'rom_bytes':len(bank),'position_scale':SCALE,'max_position_error_m':math.sqrt(3)*3.048/(2*SCALE),'color_tolerance':24,'clips':clips,'source_blend_sha256':hashlib.sha256((OUT/(name+'.blend')).read_bytes()).hexdigest(),'source_directory':str(OUT.relative_to(ROOT)),'source_name':name}
     (A/'generated/jorge-report.json').write_text(json.dumps(report,indent=2)+'\n');(OUT/'runtime-report.json').write_text(json.dumps(report,indent=2)+'\n');print({k:v for k,v in report.items() if k!='clips'})

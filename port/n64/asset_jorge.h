@@ -20,6 +20,8 @@ extern const bg_jorge_mesh_info bg_jorge_mesh;
 extern const bg_jorge_clip bg_jorge_clips[BG_J_CLIP_COUNT];
 extern const uint16_t bg_jorge_portrait[32 * 40];
 extern bg_model_asset bg_jorge_model;
+extern const uint8_t bg_jorge_leg_batches[];
+extern const unsigned bg_jorge_leg_triangles;
 /* Optional bank lives in ROM. Only the mesh and two endpoints are resident.
  * Jorge deliberately uses this mesh at both distances until his LOD pass. */
 bool bg_jorge_load(void);

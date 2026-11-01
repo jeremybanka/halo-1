@@ -54,7 +54,7 @@ def parse_args(argv=None):
     parser.add_argument("--jorge-frontend-qa", action="store_true", help="Select Jorge through the real menus and exercise match lifecycle")
     parser.add_argument("--jorge-qa", action="store_true", help="Compare playable Jorge and the standard Spartan")
     parser.add_argument("--jorge-field-qa", action="store_true", help="Jorge first-person weapons and production vehicle interactions")
-    parser.add_argument("--jorge-field-start", type=int, choices=range(26), default=0, help="First page of the Jorge field inspection")
+    parser.add_argument("--jorge-field-start", type=int, choices=range(50), default=0, help="First page of the Jorge field inspection")
     parser.add_argument(
         "--preset",
         choices=["release"],
@@ -1181,6 +1181,7 @@ def main():
         "interaction_defs.c",
         "interaction_assets.c",
         "jorge_data.c",
+        "jorge_firstperson_data.c",
         "jorge_portrait.c",
         "vehicle_visuals_data.c",
         "weapon_effects_data.c",

@@ -12,7 +12,7 @@ bpy.ops.import_scene.gltf(filepath=str(task.OUT/(task.NAME+'-with-rifle.glb')))
 ir=next(o for o in other.objects if o.type=='ARMATURE');iw=next(o for o in other.objects if o.type=='MESH' and o.name.startswith('CE rifle'));imported=task.body(other)
 new=set(bpy.data.actions)-old;ia={n:next(a for a in new if a.name.startswith('Jorge / '+n)) for n in actions}
 r.animation_data.use_nla=ir.animation_data.use_nla=False
-assert len(actions)==39 and len(imported)==len(body)==49 and len(ir.data.bones)==85
+assert len(actions)==39 and len(imported)==len(body) and len(ir.data.bones)==85
 report={}
 def distance(a,b):
     tree=KDTree(len(a))

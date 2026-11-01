@@ -37,6 +37,9 @@ static void field_reset(void){
         unsigned weapon=model_qa_page<18?model_qa_page%9:BG_W_AR;
         if(model_qa_page>=29&&model_qa_page<38)weapon=model_qa_page-29;
         if(model_qa_page>=38)weapon=(model_qa_page-38+(unsigned[]){0,1,5,7}[p])%9;
+        /* Looking down must not turn a rocket/flamethrower pose check into
+         * self-damage and replace the remaining samples with a death camera. */
+        if(model_qa_page>=47)weapon=(unsigned[]){BG_W_AR,BG_W_PISTOL,BG_W_SHOTGUN,BG_W_SNIPER}[p];
         bg_give_weapon(p,weapon);q->weapon=weapon;q->ammo=bg_weapon_defs[weapon].magazine;
         q->weapon_ready=0;q->reserve=bg_weapon_defs[weapon].reserve;
         if((model_qa_page>=26&&model_qa_page<=28)||model_qa_page>=47)q->pitch=-1.48f;

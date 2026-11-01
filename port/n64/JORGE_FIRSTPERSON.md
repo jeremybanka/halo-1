@@ -64,15 +64,28 @@ near/far mesh. The final reduction and dedicated distant LOD remain separate wor
   on **1,409 production poses**: 198 core frames and 1,211 ready/service frames.
 - Quantized forearm frame scale remains between 0.926 and 1.077 across those
   poses; no plate collapse or explosive extrapolation. Weapon colors are unchanged.
-- Single-player field QA shows all nine weapon choices and standing/walking/crouching legs.
+- Single-player and four-player field QA pass at **8 MiB** with all nine weapon
+  choices, firing, reload/service and melee, plus standing/walking/crouching legs.
   The existing production flamethrower-to-AR viewmodel alias is retained.
-- The selectable Jorge profile still requires 8 MiB. These visual tests use the
-  existing 4 MiB Ares setting. The four-player first-person test reached a black
-  screen on its first page at 4 MiB; the 8 MiB test is pending permission to
-  temporarily enable Ares's Expansion Pak. Four-player rendering and production
-  memory/frame timing are not yet qualified.
+- Four-player pages alternate mixed Jorge/CE profiles with four Jorges. Different
+  weapons and staggered actions verify per-player buffers/colors; profile changes
+  and the return to two views complete without allocation failure or a black screen.
+- Look-down cases use non-explosive weapons so scripted fire into the ground cannot
+  kill a player before the crouch/reload samples. Each Jorge sees his own legs;
+  standard Spartans retain their existing first-person presentation.
+- The earlier four-player black screen at 4 MiB does not recur at 8 MiB. Ares's
+  Expansion Pak is enabled and remains on, as requested for Halo. These are visual
+  acceptance checks, not physical-console performance or full-match memory profiling.
+
+`firstperson-layout-comparison.png` compares the single/four-player layouts.
+`firstperson-weapons.mp4` and `firstperson-legs.mp4` show single-player;
+`four-player-weapons.mp4` and `four-player-legs.mp4` show four-player.
+Capture ranges and ROM/source hashes are in `firstperson-capture-report.json`.
 
 ## Reproduce
+
+Enable Ares **Settings → Options → 4MB Expansion Pak** for 8 MiB total RAM.
+Keep it enabled for Halo; this is the user-approved working configuration.
 
 In background Blender, open the preserved `playable-refined` BLEND, add
 `port/n64` to `sys.path`, and run `personalize_jorge.py`. It writes the new BLEND,
@@ -96,6 +109,8 @@ build/n64-python/bin/python port/n64/build.py --jorge-field-qa --jorge-field-sta
 build/n64-python/bin/python port/n64/build.py --preset release \
   --output-dir build/n64-jorge-personal-release
 ```
+
+Use `--jorge-field-start 38` to begin directly with four-player first person.
 
 Field pages 26–28 show the full-screen look-down view while standing, walking
 and crouching with one active player. Pages 29–37 exercise all nine weapons in

@@ -2,6 +2,8 @@
 
 Current source: `halo64-assets/assets/jorge/playable-personal/`.
 The accepted `playable-refined` checkpoint remains unchanged.
+The [critical path and reusable workflow](CHARACTER_DEMAKE.md) traces how the
+source reached this result and which steps to carry forward to other characters.
 
 ## Appearance
 

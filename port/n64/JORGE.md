@@ -1,5 +1,11 @@
 # Jorge semantic demake
 
+> Historical rejected reconstruction. The inspection below remains useful, but
+> the 600-triangle primitive model lost the armor's identity and is not the
+> accepted asset or reduction recipe. Follow the
+> [critical path and reusable workflow](CHARACTER_DEMAKE.md) and
+> [current playable asset](JORGE_FIRSTPERSON.md).
+
 The user-supplied retail Reach archive is read without modification. The
 character is extracted from `m05.map`, with resources from the associated
 retail caches. The field pack is a separate render model attached using the

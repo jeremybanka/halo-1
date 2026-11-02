@@ -1,0 +1,484 @@
+{
+  "schema": 2,
+  "base_pr": 13,
+  "base_commit": "95305547a7913776fc8f711d0d54682f8f18961f",
+  "asset_policy": [
+    "port/n64/CHARACTER_DEMAKE.md",
+    "port/n64/JORGE_LODS.md"
+  ],
+  "prior_pre_policy_odst_meshes_used": false,
+  "asset_commit": "870f40777627c58b232c5c7129eaaa3226aee254",
+  "body_bank_sha256": "695a89de54abb07cee6e4e58d878f1740009e6ceb95179d3408049b55e912e67",
+  "body_bank_bytes": 828496,
+  "body_costs": [
+    {
+      "vertices": 754,
+      "triangles": 789,
+      "batches": 20,
+      "tracks": 629,
+      "bytes": 16960,
+      "frame_cache_bytes": 4320,
+      "native_vertices": 648,
+      "glb_vertices": 2361
+    },
+    {
+      "vertices": 492,
+      "triangles": 476,
+      "batches": 13,
+      "tracks": 406,
+      "bytes": 10848,
+      "frame_cache_bytes": 2816,
+      "native_vertices": 423,
+      "glb_vertices": 1423
+    }
+  ],
+  "spartan_packed_vertices": [
+    562,
+    250
+  ],
+  "jorge_packed_vertices": [
+    670,
+    390
+  ],
+  "previous_odst_packed_vertices": [
+    3656,
+    2048
+  ],
+  "roms": {
+    "multiplayer": {
+      "file": "halo-64-paced30-rspq32k.z64",
+      "bytes": 62554112,
+      "sha256": "8360e8eb3cb9b5c496243143f4cb749f5d3d9364198d8d8e1a2968b52494c196",
+      "build_manifest_sha256": "2b2766056e564b23ba14fcb87ac349437b0ac78134f824c78613363672383ff8",
+      "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+      "compiled_source_fingerprints_match": true,
+      "preset": "release"
+    },
+    "firefight": {
+      "file": "halo-64-firefight-paced30-rspq32k.z64",
+      "bytes": 65241088,
+      "sha256": "2c6be043b92e3be6d5df580f373a2e286791720dc7dff3f9aba1154e75ee40ca",
+      "build_manifest_sha256": "c6d5b9d2821a2da183de1d4637d04e609e74c3db8c167befad6746411319cae5",
+      "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+      "compiled_source_fingerprints_match": true,
+      "preset": "release"
+    }
+  },
+  "renderer": {
+    "background": "#004411",
+    "enemy": "#bbffcc",
+    "hud_visible": true,
+    "environmental_depth_retained": true,
+    "cloak_opacity_ignored_for_living_silhouettes": true,
+    "grid": "inverse barrel mapping; densest at center",
+    "grid_cache_bytes": 48000,
+    "three_player_grid_builds": [
+      [
+        160,
+        120
+      ],
+      [
+        320,
+        120
+      ]
+    ],
+    "hud_active": "#64dcff",
+    "hud_inactive": "#193e4d",
+    "friendly_and_viewmodel": "#3f8da6"
+  },
+  "validation": {
+    "coverage_probes": 128,
+    "new_enclosed_pixels": 0,
+    "armor_clearance_probes": 96,
+    "broad_front_backing_pixels": 0,
+    "rig_samples_per_lod": 454,
+    "glb_authored_key_samples": 390,
+    "glb_clock_samples": 390,
+    "c_decode_cases": 4680,
+    "firstperson_pose_cases": 1409
+  },
+  "maximum_glb_roundtrip_error_m": 0.0004744750913232565,
+  "current_host_checks": [
+    "ASan/UBSan armor abilities and shieldless spawn/recharge/damage/pickups/respawn",
+    "Actual pistol/sniper/rocket/unsupported AR zoom input cycles with VISR on and off; expected weapon and viewmodel availability asserted",
+    "4680 actual C ODST streamed decoder/LOD/endpoint/loop/blend/socket/reload cases",
+    "1409 actual C first-person poses / four palettes, unchanged weapon colors",
+    "Existing Jorge C LOD decoder / 4680 cases",
+    "SWAT/Team SWAT: ASan/UBSan 364 map/preset combinations, ODST setup/runtime enforcement, pistol-only spawns/respawns, no radar, no weapon/grenade pickups or drops, team scores and ordinary-mode restoration",
+    "Reach SWAT / Slayer: named permutation provenance and exact PCM conversion; both mode routes and all 26 original announcement routes; 3655061 streamed/resident stereo frames byte-identical"
+  ],
+  "retained_initial_pr_checks": [
+    "All roster/host menu combinations, with and without extended roster",
+    "13 maps / 26 mode presets",
+    "1-4 player Firefight lifecycle, NPC damage/cloaking/resupply/respawn",
+    "Original 35-step four-player native frontend/combat/results/settings lifecycle; retained in private native/"
+  ],
+  "native_checks": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "scope": "Historical frozen multiplayer VISR/depth/zoom/grid fixtures; final low vertex helmets and muted profile/team plate palettes are checked in native_helmet_update",
+    "fixtures": [
+      {
+        "page": 0,
+        "label": "palettes-lods",
+        "rom": "halo-64-model-qa-odst-qa0-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "ed10a32994eab514b284b18a23906ad9ebc87593dc4e65c1664d301a65b10cf5",
+        "capture": "qa0-palettes-lods.png",
+        "capture_sha256": "180817e3a021a8d498d58dcfb5df1c3a58a2defd6ff75f7d3f2ef42ed417e857",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": null,
+        "occlusion": null
+      },
+      {
+        "page": 1,
+        "label": "cloaked-enemies",
+        "rom": "halo-64-model-qa-odst-qa1-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "bafdaeabe817bf8a9055c9c31ad0875f76200223b8e23ae872af81bdeb427b11",
+        "capture": "qa1-cloaked-enemies.png",
+        "capture_sha256": "fbb8efcdd7f50c193f950af357859397cbcd194c39bbebcebd2a80cc80cccc50",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": null,
+        "occlusion": null
+      },
+      {
+        "page": 3,
+        "label": "allies-enemies",
+        "rom": "halo-64-model-qa-odst-qa3-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "583c6970623fbfb1d06a929fb6a4cd68abda5f7ef620bec56e3c3f866e0264e4",
+        "capture": "qa3-allies-enemies.png",
+        "capture_sha256": "ab112aa216d5b61939af069101a126665ac79e42c421220f5a2596cef94fbd5e",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": null,
+        "occlusion": null
+      },
+      {
+        "page": 4,
+        "label": "hud-viewmodel-grid",
+        "rom": "halo-64-model-qa-odst-qa4-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "cc0f1b1f734bfb6f5c2b62f0c9543e4e692ae6e5d035713b6f392a0fdf7db3e8",
+        "capture": "qa4-hud-viewmodel-grid.png",
+        "capture_sha256": "23440c6e654024c4df4fa083cfdadd952e86e8dab8dda262e5834c98fd6e7690",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": null
+      },
+      {
+        "page": 5,
+        "label": "pistol-2x",
+        "rom": "halo-64-model-qa-odst-qa5-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "22fa35a41c10e8cdc627018ab1ade431664dd1614055d9081749ca8bbd9deb35",
+        "capture": "qa5-pistol-2x.png",
+        "capture_sha256": "3939d5ff8162d07ae004dae26851b9736f3906dcec73e62bed6b201c70b91a7c",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=2 focal=2.502379,3.336505 normal=2.502379,3.336505 viewmodel=0",
+        "occlusion": null
+      },
+      {
+        "page": 6,
+        "label": "sniper-2x",
+        "rom": "halo-64-model-qa-odst-qa6-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "6576f4d2ec2988474591a032eb33cae18ea8aa63ac4153038d956bf2b8eb45a6",
+        "capture": "qa6-sniper-2x.png",
+        "capture_sha256": "8d885af042b31993f5d9568757928e6b5ca5d5ebd132b10d325458ea9ea66e88",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=2 focal=2.502379,3.336505 normal=2.502379,3.336505 viewmodel=0",
+        "occlusion": null
+      },
+      {
+        "page": 7,
+        "label": "sniper-10x",
+        "rom": "halo-64-model-qa-odst-qa7-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "f07b35121114a38b26e11fb5ea225ee8165c014b4e6dd67e08754903afaa1fb8",
+        "capture": "qa7-sniper-10x.png",
+        "capture_sha256": "4d6ecae77ae813a3d37bad34154443254396381d91afeb317dc1e92021ac46e1",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=10 focal=12.511893,16.682524 normal=12.511893,16.682524 viewmodel=0",
+        "occlusion": null
+      },
+      {
+        "page": 8,
+        "label": "ally-partial-enemy-hidden",
+        "rom": "halo-64-model-qa-odst-qa8-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "ca7c4215c85056ee64d04ba075cdfc91ceab592ebebb1799dc9956a57606f3b8",
+        "capture": "qa8-ally-partial-enemy-hidden.png",
+        "capture_sha256": "55809e7388e1edc4fb75ce1ae335ab9100624d9503d0825be785d0f961b5e683",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": "VISR_OCCLUSION partial=2/9 total=9/9"
+      },
+      {
+        "page": 9,
+        "label": "enemy-partial-ally-hidden",
+        "rom": "halo-64-model-qa-odst-qa9-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "b07c1c6c755c022895a7a4ab3c6a0911fa5ac4cd82aee9e34100190153ad49f7",
+        "capture": "qa9-enemy-partial-ally-hidden.png",
+        "capture_sha256": "ba803f89695afedbae52d8f515ea746e2fc6b695b9b460ae8d40c5a56de91fec",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": "VISR_OCCLUSION partial=2/9 total=9/9"
+      },
+      {
+        "page": 10,
+        "label": "three-player-grid-cache",
+        "rom": "halo-64-model-qa-odst-qa10-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "5cbb15613a770b5f689306e0ec3ec8907a8f80e84087a5f855bf149568d1e4ea",
+        "capture": "qa10-three-player-grid-cache.png",
+        "capture_sha256": "91c3bfa66d37e5cb498a0fbabd59ea729c6c946c689a692876dbac900fcee106",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [
+          [
+            "160",
+            "120"
+          ],
+          [
+            "320",
+            "120"
+          ]
+        ],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": null
+      }
+    ]
+  },
+  "limits": [
+    "Native checks use frozen multiplayer inspection fixtures in Ares v148 at 8 MiB; Firefight renderer is release-build verified",
+    "No physical-console performance or full-match peak-memory qualification",
+    "Coverage samples four poses / eight directions / two sizes; no exhaustive animation-pixel coverage claim",
+    "Broad plate-front clearance is separate from oblique cuff-return overlap, reported in the private depth audit",
+    "Inherited gunner>0 replay fixture fails on unchanged parent/main too; full regression-suite pass not claimed"
+  ],
+  "native_color_update": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "hud_active_rgb": [
+      100,
+      220,
+      255
+    ],
+    "hud_inactive_rgb": [
+      25,
+      62,
+      77
+    ],
+    "friendly_and_viewmodel_rgb": [
+      63,
+      141,
+      166
+    ],
+    "framebuffer_quantized_rgb": [
+      56,
+      136,
+      160
+    ],
+    "enemy_rgb": [
+      187,
+      255,
+      204
+    ],
+    "fixtures": [
+      {
+        "page": 3,
+        "label": "friendly-enemy-colors",
+        "rom": "halo-64-model-qa-odst-qa3-validation-rspq32k.z64",
+        "rom_sha256": "314aa15ec6bde6ca734ffa588d41e5064759a5ab9ee568a87c86f74c2a63ab8a",
+        "capture": "qa3-friendly-enemy-colors.png",
+        "capture_sha256": "e5ddf11e654902c765ea687ee301d7f12d2aba021560b254a99b9c2268e8e40b",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "visr_midpoint_cyan_pixels": 1201
+      },
+      {
+        "page": 4,
+        "label": "firstperson-cyan",
+        "rom": "halo-64-model-qa-odst-qa4-validation-rspq32k.z64",
+        "rom_sha256": "8217caf5afb52838ba1bfaa2e8f7c7a79a320c409b807d20ba4d8b998c1c6f92",
+        "capture": "qa4-firstperson-cyan.png",
+        "capture_sha256": "8acba5644a177b86523b102e42d189c3ab613b81370646b41e249911eadf4c5a",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "visr_midpoint_cyan_pixels": 6587
+      }
+    ]
+  },
+  "helmet_refinement": {
+    "stage": "helmet-budget",
+    "parent_body": "game-scale",
+    "helmet_geometry_source": "untouched retail extraction",
+    "original_packed_helmet_vertices": [
+      72,
+      51
+    ],
+    "previous_smooth_packed_helmet_vertices": [
+      196,
+      191
+    ],
+    "current_packed_helmet_vertices": [
+      80,
+      65
+    ],
+    "native_helmet_vertices": [
+      48,
+      40
+    ],
+    "helmet_triangles": [
+      82,
+      66
+    ],
+    "independent_helmet_lods": true,
+    "crown_stripe_triangles": [
+      12,
+      12
+    ],
+    "mirror_error_halo": 0.0,
+    "packed_geometry_and_colors_symmetric": true,
+    "crown_stripe_connected_after_quantization": true,
+    "crown_profile_team_invariant": true,
+    "existing_body_and_neck_junction_preserved": true,
+    "restored_original_junction_faces": [
+      [
+        8550,
+        2800
+      ],
+      [
+        4126,
+        4150,
+        8550
+      ]
+    ],
+    "restored_original_forehead_face_per_side": 7620,
+    "helmet_fit": {
+      "fraction": 0.08,
+      "axes": [
+        1,
+        1.6,
+        1
+      ],
+      "maximum_offset_m": 0.016
+    },
+    "source_surface_fitted_p95_error_m": [
+      0.015999934650957583,
+      0.024459822066128255
+    ]
+  },
+  "armor_palette": {
+    "crown": "neutral grey",
+    "visor": "bright cyan",
+    "team_regions": [
+      "chest",
+      "left shoulder",
+      "right shoulder"
+    ],
+    "team_mask_amount": 80,
+    "maximum_mask": 255,
+    "other_regions_neutral": true
+  },
+  "native_previous_helmet_update": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "page": 0,
+    "label": "symmetric-helmet-palettes-lods",
+    "rom": "halo-64-model-qa-odst-qa0-validation-rspq32k.z64",
+    "rom_bytes": 62455808,
+    "rom_sha256": "8c7ca34b1be7df29c4b97d6a68fde7fd5ed24e77ffe5e238818864c9f1754839",
+    "capture": "qa0-palettes-lods.png",
+    "capture_sha256": "4a42d136733e5ffc179afb4045f223fb32a84b48a2620fd4eeb2a4eb6f54df55",
+    "rdpq_errors": 0,
+    "rdpq_warnings": 0,
+    "scope": "Final packed helmet in four profile palettes, near and far gameplay LODs; restored centered stripe and bright cyan visor"
+  },
+  "native_helmet_update": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "body_bank_sha256": "695a89de54abb07cee6e4e58d878f1740009e6ceb95179d3408049b55e912e67",
+    "crown": "neutral grey; no profile/team mask",
+    "team_regions": [
+      "chest",
+      "left shoulder",
+      "right shoulder"
+    ],
+    "team_amount": 80,
+    "fixtures": [
+      {
+        "page": 0,
+        "label": "profile-palettes-lods",
+        "rom": "halo-64-model-qa-odst-qa0-validation-rspq32k.z64",
+        "rom_bytes": 62341120,
+        "rom_sha256": "6011408125ca8c40cbdba6aa4c25645776db9bbb3c305904209445b742e52c7f",
+        "capture": "qa0-profile-palettes-lods.png",
+        "capture_sha256": "0fdebdab40f9502a4143ae3bb9a1c5a76be40838724f60ac9807f9e738f0f6f9",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "team_palette_routing": null
+      },
+      {
+        "page": 11,
+        "label": "muted-team-plates",
+        "rom": "halo-64-model-qa-odst-qa11-validation-rspq32k.z64",
+        "rom_bytes": 62341120,
+        "rom_sha256": "bc260a0546633aa6decc28249c498c9342469980b4fe42d59ed1ce7340db4c8e",
+        "capture": "qa11-muted-team-plates.png",
+        "capture_sha256": "4fe365be1ab87cfb4c5df76654e88d4fe0cf9a489753810344739df543285c24",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "team_palette_routing": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            1
+          ]
+        ]
+      }
+    ]
+  },
+  "swat_update": {
+    "validation": "swat-validation.json",
+    "sha256": "2ea54c8570a93311d79e750eee6adfb264437d1e5480c9daabf274c543e226bc",
+    "private_evidence": "halo64-assets/assets/odst-policy/native-swat/",
+    "body_bank_unchanged": true,
+    "modes": [
+      "SWAT",
+      "Team SWAT"
+    ],
+    "announcement": "Original Reach SWAT. Slayer. recordings"
+  }
+}

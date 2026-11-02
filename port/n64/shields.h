@@ -9,7 +9,7 @@ static inline float bg_shield_glow(const bg_player*p){
 }
 enum { BG_SHIELD_CHARGE=1, BG_SHIELD_LOW=2, BG_SHIELD_DOWN=4 };
 static inline unsigned bg_shield_sounds(const bg_player*p){
-    if(p->health<=0)return 0;
+    if(p->health<=0||bg_armor_def(p->armor)->shield<=0)return 0;
     return (p->shield_charging?BG_SHIELD_CHARGE:0)|
         (p->shield<=0?BG_SHIELD_DOWN:p->shield<25?BG_SHIELD_LOW:0);
 }

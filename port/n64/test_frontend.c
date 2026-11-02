@@ -10,7 +10,7 @@ static bg_front_action press(bg_frontend*f,unsigned p,uint32_t button){
 static void select_armor(bg_frontend*f) {
     assert(f->page==BG_FRONT_ARMOR);
     for(unsigned p=0;p<4;p++)if(f->joined[p]) {
-        press(f,p,BG_BUTTON_D_RIGHT); /* Repeating Jorge suits are allowed. */
+        press(f,p,BG_BUTTON_D_RIGHT); /* Cycle freely; SWAT remains locked to ODST. */
         press(f,p,BG_BUTTON_A);assert(f->armor_ready[p]);
     }
     assert(f->page==BG_FRONT_ARMOR);
@@ -25,10 +25,32 @@ static void joins(bg_frontend*f,unsigned mask,unsigned host){
     }
     press(f,host,BG_BUTTON_A);assert(f->page==BG_FRONT_MAP);
 }
+static void swat_setup(void) {
+    const unsigned modes[]={BG_MODE_SWAT,BG_MODE_TEAM_SWAT};
+    for(unsigned mode=0;mode<2;mode++) {
+        bg_frontend f;joins(&f,5,2);press(&f,2,BG_BUTTON_A);
+        for(unsigned n=0;n<modes[mode];n++)press(&f,2,BG_BUTTON_D_RIGHT);
+        assert(f.type==modes[mode]);press(&f,2,BG_BUTTON_A);assert(f.page==BG_FRONT_ARMOR);
+        assert(!bg_front_armor_allowed(&f,BG_ARMOR_SPARTAN)&&!bg_front_armor_allowed(&f,BG_ARMOR_JORGE));
+        for(unsigned p=0;p<4;p+=2) {
+            assert(f.armor[p]==BG_ARMOR_ODST&&bg_front_armor_allowed(&f,BG_ARMOR_ODST));
+            press(&f,p,BG_BUTTON_D_LEFT);press(&f,p,BG_BUTTON_D_RIGHT);assert(f.armor[p]==BG_ARMOR_ODST);
+            f.armor[p]=BG_ARMOR_JORGE;press(&f,p,BG_BUTTON_A);assert(!f.armor_ready[p]);
+            f.armor[p]=BG_ARMOR_ODST;press(&f,p,BG_BUTTON_A);assert(f.armor_ready[p]);
+        }
+        press(&f,1,BG_BUTTON_D_RIGHT);press(&f,1,BG_BUTTON_A);assert(!f.armor_ready[1]);
+        press(&f,2,BG_BUTTON_A);assert(f.page==BG_FRONT_PREGAME);
+        f.armor[0]=BG_ARMOR_SPARTAN;bg_control_state empty[4]={0};
+        assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_NONE&&f.page==BG_FRONT_JOIN);
+        f.type=BG_MODE_SLAYER;
+        assert(bg_front_armor_allowed(&f,BG_ARMOR_SPARTAN)&&bg_front_armor_allowed(&f,BG_ARMOR_JORGE));
+    }
+}
 int main(void){
     bg_frontend f;
     bg_front_set_memory_size(4*1024*1024);
     for(unsigned i=0;i<13;i++)assert(bg_front_available(BG_FRONT_MAP,i)==(i==0||i==5||i==6||i==9||i==10));
+    assert(!bg_front_armor_available(BG_ARMOR_ODST));
     assert(!bg_front_armor_available(BG_ARMOR_JORGE));
     assert(bg_front_armor_available(BG_ARMOR_SPARTAN));
     assert(!bg_front_armor_available(BG_ARMOR_COUNT));
@@ -37,6 +59,7 @@ int main(void){
     press(&f,0,BG_BUTTON_D_RIGHT);assert(f.armor[0]==BG_ARMOR_JORGE);
     press(&f,0,BG_BUTTON_A);assert(!f.armor_ready[0]&&f.sound==BG_FRONT_BEEP);
     bg_front_set_memory_size(8*1024*1024);
+    assert(bg_front_armor_available(BG_ARMOR_ODST));
     assert(bg_front_armor_available(BG_ARMOR_JORGE));
     press(&f,0,BG_BUTTON_A);assert(f.armor_ready[0]);
     press(&f,0,BG_BUTTON_D_RIGHT);assert(f.armor[0]==BG_ARMOR_JORGE);
@@ -59,7 +82,7 @@ int main(void){
         unsigned packed=0;for(unsigned p=0;p<f.count;p++)packed|=1u<<f.ports[p];assert(packed==mask);
         press(&f,host,BG_BUTTON_D_LEFT);assert(f.map==8);
         press(&f,host,BG_BUTTON_D_RIGHT);assert(f.map==9);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_TYPE&&f.type==0);
-        for(unsigned i=1;i<26;i++){
+        for(unsigned i=1;i<BG_MODE_COUNT;i++){
             press(&f,host,BG_BUTTON_D_RIGHT);assert(f.type==i);
             press(&f,host,BG_BUTTON_A);select_armor(&f);
             if(bg_mode_preset(i)->teams)for(unsigned p=0;p<4;p++)if(mask&(1u<<p)){
@@ -83,7 +106,7 @@ int main(void){
     press(&f,0,BG_BUTTON_B);press(&f,0,BG_BUTTON_B);assert(f.styles[0]==BG_CONTROLS_BOND);
     joins(&f,3,0);press(&f,0,BG_BUTTON_A);press(&f,0,BG_BUTTON_A);select_armor(&f);for(unsigned p=0;p<4;p++)f.armor[p]=BG_ARMOR_SPARTAN;f.type=1;
     bg_front_set_memory_size(4*1024*1024);
-    for(unsigned i=0;i<26;i++)assert(bg_front_available(BG_FRONT_TYPE,i)==(i==0));
+    for(unsigned i=0;i<BG_MODE_COUNT;i++)assert(bg_front_available(BG_FRONT_TYPE,i)==(i==0));
     bg_control_state empty[4]={0};assert(bg_front_update(&f,empty,f.deadline)==BG_FRONT_NONE&&f.page==BG_FRONT_JOIN);
     bg_front_set_memory_size(8*1024*1024);
     joins(&f,15,0);press(&f,0,BG_BUTTON_D_RIGHT);assert(f.map==10);
@@ -108,5 +131,6 @@ int main(void){
     joins(&f,5,2);press(&f,2,BG_BUTTON_A);press(&f,2,BG_BUTTON_A);
     press(&f,1,BG_BUTTON_D_RIGHT);press(&f,1,BG_BUTTON_A);assert(!f.armor_ready[1]&&f.armor[1]==BG_ARMOR_SPARTAN);
     press(&f,2,BG_BUTTON_A);press(&f,2,BG_BUTTON_A);assert(f.page==BG_FRONT_ARMOR);
-    puts("front-end: all rosters/hosts, thirteen maps, 26 presets, capability guards, countdown, cancel, results, controls PASS");
+    swat_setup();
+    puts("front-end: all rosters/hosts, thirteen maps, 28 presets, capability guards, countdown, cancel, results, controls PASS");
 }

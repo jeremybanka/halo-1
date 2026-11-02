@@ -1,5 +1,6 @@
 #include "frontend_draw.h"
 #include "asset_jorge.h"
+#include "asset_odst.h"
 #include "asset_frontend.h"
 #include "menu_draw.h"
 #include <libdragon.h>
@@ -188,8 +189,9 @@ static void character_portrait(unsigned profile, float x, float y, float w, floa
 }
 static void armor_portrait(unsigned armor, unsigned profile, float x, float y, float w, float h) {
     if (armor==BG_ARMOR_SPARTAN) { character_portrait(profile,x,y,w,h); return; }
-    surface_t image = surface_make((void *)bg_jorge_portraits[profile], FMT_RGBA16, 32, 40, 64);
-    data_cache_hit_writeback((void *)bg_jorge_portraits[profile], sizeof(bg_jorge_portraits[profile]));
+    const uint16_t *pixels = armor==BG_ARMOR_ODST ? bg_odst_portraits[profile] : bg_jorge_portraits[profile];
+    surface_t image = surface_make((void *)pixels, FMT_RGBA16, 32, 40, 64);
+    data_cache_hit_writeback((void *)pixels, sizeof(bg_jorge_portraits[profile]));
     rdpq_set_mode_standard(); rdpq_mode_alphacompare(0);
     rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
     rdpq_tex_blit(&image, x * .5f, y * .5f,
@@ -382,15 +384,8 @@ static void backdrop(uint64_t now, bg_front_page page) {
     rdpq_set_scissor(0, 0, 320, 240);
 }
 static unsigned type_icon(unsigned type) {
-    if (type <= 6 || type == 25)
-        return 2;
-    if (type <= 11 || type == 23)
-        return 3;
-    if (type <= 14 || type == 24)
-        return 1;
-    if (type <= 16 || type == 21 || type == 22)
-        return 4;
-    return 0;
+    static const unsigned icons[BG_ENGINE_COUNT]={2,0,3,1,4};
+    return icons[bg_mode_preset(type)->engine];
 }
 void bg_front_draw(const bg_frontend *f, uint64_t now) {
     /* This front end is unpaced. Waiting protects the single camera and page
@@ -490,6 +485,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
             text(1,x+101,y+53,145,65,0,blue,suit->description);
             const char *state=!bg_front_armor_available(f->armor[p])?"Expansion Pak required":
                 f->armor_ready[p]?(p==f->host?"Ready\nA = Continue":"Ready\nB = Change"):
+                !f->firefight&&(bg_mode_preset(f->type)->flags&BG_MODE_ODST_ONLY)?"ODST only\nA = Select":
                 "< > Change\nA = Select";
             text(1,x+101,y+123,145,37,0,white,state);
         }
@@ -499,7 +495,7 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
     case BG_FRONT_MAP:
     case BG_FRONT_TYPE: {
         bool map = f->page == BG_FRONT_MAP;
-        unsigned selected = map ? f->map : f->type, count = map ? 13 : 26;
+        unsigned selected = map ? f->map : f->type, count = map ? 13 : BG_MODE_COUNT;
         art(map ? 576 : 559, 0, 0, 0, 255);
         const unsigned cards[2][3] = {{545, 551, 555}, {563, 568, 572}};
         for (unsigned col = 0; col < 3; col++) {
@@ -507,7 +503,8 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
             bool avail = bg_front_session_available(f, f->page, item), focus = col == f->row;
             art(tag, focus ? 1 : 0, 0, 0, avail ? 255 : 140);
             art(tag + 2, map ? item : type_icon(item), 0, 0, avail ? 255 : 140);
-            label(tag + 1, 0, 0, map ? bg_front_maps[item].name : bg_shell_type_names[item],
+            label(tag + 1, 0, 0, map ? bg_front_maps[item].name :
+                  item<BG_SOURCE_MODE_COUNT?bg_shell_type_names[item]:bg_front_types[item].name,
                   color(avail, focus));
             const char *description;
             if (map && f->firefight)
@@ -517,7 +514,8 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
                 description = bg_front_map_needs_expansion(item) ? "Expansion Pak required"
                                                                 : bg_shell_map_descriptions[item];
             else
-                description = avail ? bg_shell_type_descriptions[item] : "Expansion Pak required";
+                description = !avail?"Expansion Pak required":item<BG_SOURCE_MODE_COUNT?
+                    bg_shell_type_descriptions[item]:"ODST only.\nPistol starts.\nNo map weapons.\nNo grenades.\nNo radar.";
             label(tag + 3, 0, 0, description, color(avail, false));
         }
         buttons(bg_front_session_available(f, f->page, selected));

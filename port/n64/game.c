@@ -114,6 +114,7 @@ unsigned bg_player_profiles[BG_PLAYERS] = {0, 1, 2, 3};
 unsigned bg_player_armors[BG_PLAYERS];
 void bg_set_player_armor(unsigned player, unsigned armor) {
     if (player >= BG_PLAYERS || armor >= BG_ARMOR_COUNT) return;
+    if (bg_current_rules()->flags & BG_MODE_ODST_ONLY) armor = BG_ARMOR_ODST;
     bg_player_armors[player] = armor;
     bg_players[player].armor = (bg_armor)armor;
 }
@@ -497,6 +498,7 @@ static void spawn(unsigned player) {
     p->exit_vehicle = -1;
     p->fire_ticks[0] = p->fire_ticks[1] = 65535;
     p->score = score;
+    bg_set_player_armor(player,bg_player_armors[player]);
     p->armor = (bg_armor)bg_player_armors[player];
     p->health = bg_armor_def(p->armor)->health;
     p->shield = bg_armor_def(p->armor)->shield;
@@ -2517,7 +2519,9 @@ static void tick_player_resources(unsigned player_index, const bg_input *input, 
     float over_shield = base_shield + 200;
     bool was_charging = player->shield_charging;
     player->shield_charging = false;
-    if (player->shield_overcharging) {
+    if (base_shield <= 0) {
+        player->shield = 0; player->shield_overcharging = false;
+    } else if (player->shield_overcharging) {
         player->shield = fminf(over_shield, player->shield + 100 * dt);
         if (player->shield > over_shield - .001f)
             player->shield = over_shield;

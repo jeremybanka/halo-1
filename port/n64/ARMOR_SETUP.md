@@ -3,6 +3,8 @@
 Setup is **Profile → Map → Mode → Armor → Countdown**. Four profiles retain
 their red, blue, yellow and green palettes and individual controls. Armor is
 an independent choice; any number of players can choose the same suit.
+SWAT and Team SWAT preselect and require ODST; the armor page explains this
+restriction, and both countdown and gameplay enforce it.
 Firefight uses **Profile → Map → Fight → Armor → Countdown**, with the same
 per-controller confirmation and a back path to fight selection.
 
@@ -17,6 +19,7 @@ mode selection. Unjoined controllers cannot alter the page.
 |---|---|---:|---:|---|
 | Spartan | MJOLNIR Mk V | 100 | 100 | Standard ammunition and damage |
 | Jorge | MJOLNIR Mk IV [G-052] | 100 | 200 | Unlimited rocket reserve; explosion damage cannot remove health |
+| ODST | ODST BDU | 100 | 0 | Flashlight toggles VISR |
 
 Jorge still needs to find a rocket launcher. Its two-round magazine, firing
 cadence, reload duration, weapon-ready time and reload cancellation are
@@ -46,7 +49,7 @@ vitals, and enemy damage retains its difficulty and hit-region rules.
   memory requirements. `BG_PROFILE_COUNT` stays four as armor choices grow.
 - `frontend.h` stores profile and armor separately per physical port. Launch
   packs both through the same host-first port mapping. Capability checks run
-  on selection and again at launch; Jorge requires 8 MiB.
+  on selection and again at launch; Jorge and ODST require 8 MiB.
 - `bg_set_player_armor()` records the match choice before `bg_reset()`.
   Spawn copies it into `bg_player.armor`, so death and restart preserve it.
 - Damage, regeneration, reloads, pickups and HUD read the armor definition,
@@ -133,3 +136,22 @@ build of untouched `f40fefee` reproduces the failure with identical telemetry
 fixtures pass on both. This is an inherited test failure, not a passing full
 regression suite. Native emulator validation has not been repeated for the
 rebased revision.
+
+## ODST armor
+
+ODST has no shields, cannot consume overshields, and keeps zero shields through
+respawn and Firefight resupply. Its normal flashlight button toggles a deep green
+VISR viewport with a subtly curved grid, densest at the center. Living enemies,
+including cloaked enemies, are bright green silhouettes. Allies and the wearer's
+arms/weapon use a cyan halfway between active and inactive HUD colors; the HUD
+remains visible. World depth
+partially or completely occludes both friendly and hostile units. Normal weapon
+zoom and neighboring viewports retain their usual behavior.
+The visor, fabric, backpack and forearm plates stay independent of palette changes;
+the crown stripe remains neutral grey. Muted profile/team tint appears on the
+chest and shoulder plates. The near and far helmets are independently reduced;
+both preserve symmetry and the centered stripe.
+
+The fresh Halo 3: ODST extraction, component demake, independent checkpoints,
+near/far costs, custom forearms and scoped validation are recorded in
+[ODST.md](ODST.md). The discarded earlier ODST mesh is not an input.

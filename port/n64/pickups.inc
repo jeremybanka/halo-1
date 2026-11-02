@@ -9,7 +9,7 @@ static void refill_pickup(bg_pickup*q){
             q->weapon=second_weight?(choice<q->first_weight+second_weight?q->alternate&255:(q->alternate>>8)&255):q->alternate;
         }
     }
-    q->active=true;q->age=q->unseen=q->heat=0;q->overheated=false;q->generation=++pickup_generation;
+    q->active=bg_mode_pickup_allowed(q->weapon);q->age=q->unseen=q->heat=0;q->overheated=false;q->generation=++pickup_generation;
     q->quantity=1;
     if(q->weapon<BG_WEAPON_COUNT){q->ammo=bg_ammo_rules[q->weapon].loaded;q->reserve=bg_ammo_rules[q->weapon].reserve;}
 }
@@ -44,6 +44,7 @@ static int drop_slot(void){
 }
 static void drop_item(unsigned owner,int weapon,int ammo,int reserve,float heat,bool overheated,int quantity,unsigned offset){
     if(weapon<0||(weapon<BG_WEAPON_COUNT&&ammo+reserve<=0)||quantity<=0)return;
+    if(!bg_mode_pickup_allowed(weapon))return;
     int index=drop_slot();if(index<0)return;
     bg_pickup*q=&bg_pickups[index];bg_player*p=&bg_players[owner];memset(q,0,sizeof(*q));
     q->active=q->dropped=true;q->generation=++pickup_generation;q->weapon=q->base_weapon=weapon;
@@ -103,7 +104,7 @@ static void collect_nearby(unsigned owner){
             int kind=q->weapon==BG_PICK_PLASMA,space=4-p->grenades[kind];amount=space<q->quantity?space:q->quantity;
             p->grenades[kind]+=amount;q->quantity-=amount;consume=q->quantity==0;
         }else if(q->weapon==BG_PICK_HEALTH&&p->health<bg_armor_def(p->armor)->health){p->health=bg_armor_def(p->armor)->health;consume=true;amount=1;
-        }else if(q->weapon==BG_PICK_OVERSHIELD&&p->shield<=bg_armor_def(p->armor)->shield&&!p->shield_overcharging){
+        }else if(q->weapon==BG_PICK_OVERSHIELD&&bg_armor_def(p->armor)->shield>0&&p->shield<=bg_armor_def(p->armor)->shield&&!p->shield_overcharging){
             p->shield=fmaxf(1,p->shield);p->shield_delay=0;p->shield_overcharging=p->shield_charging=true;consume=true;amount=1;
             event(BG_EVENT_SHIELD,owner,p->weapon,p->pos,1);
         }else if(q->weapon==BG_PICK_CAMO){if(p->invisibility<=0){p->camo_opacity=1;p->camo_quiet=0;}p->invisibility=bg_camo_duration;consume=true;amount=1;}

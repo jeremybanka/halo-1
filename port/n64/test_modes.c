@@ -7,7 +7,9 @@
 static const unsigned ids[]={9,10,5,6,0,1,2,3,4,7,8,11,12};
 static void start(unsigned mode) {
     const uint8_t teams[]={0,1,0,1};
-    bg_set_players(4);bg_configure_mode(mode,teams);bg_reset();
+    bg_set_players(4);bg_configure_mode(mode,teams);
+    for(unsigned p=0;p<4;p++)bg_set_player_armor(p,BG_ARMOR_SPARTAN);
+    bg_reset();
     for(unsigned p=0;p<4;p++)assert(bg_players[p].health>0);
 }
 #include "test_spawn_weights.inc"
@@ -51,6 +53,11 @@ static void catalog_and_maps(void) {
             for(unsigned p=0;p<4;p++) {
                 assert(bg_players[p].weapon>=0&&bg_players[p].weapon<BG_WEAPON_COUNT);
                 if(r->weapon>=0)assert(bg_players[p].weapon==r->weapon);
+                if(r->flags&BG_MODE_ODST_ONLY) {
+                    assert(bg_players[p].armor==BG_ARMOR_ODST&&bg_players[p].shield==0);
+                    assert(bg_players[p].inventory[1]==-1&&!bg_players[p].grenades[0]&&!bg_players[p].grenades[1]);
+                    assert(!bg_mode_radar());
+                }
                 int spawn=bg_select_spawn(p);assert(spawn>=0&&mode_spawn_eligible(p,spawn));
                 if(r->engine==BG_ENGINE_CTF)assert(bg_spawns[spawn].team==(int)mode_teams[p]);
             }
@@ -58,13 +65,15 @@ static void catalog_and_maps(void) {
             if(mode!=BG_MODE_SLAYER&&r->vehicles)for(unsigned i=0;i<bg_vehicle_count;i++)
                 assert(bg_vehicles[i].kind==(r->vehicles==2?BG_V_SCORPION:BG_V_WARTHOG));
             bg_input in[4]={0};for(unsigned tick=0;tick<15;tick++)bg_tick(in,1.f/30);
+            if(r->flags&BG_MODE_NO_WEAPON_PICKUPS)for(unsigned q=0;q<bg_pickup_count;q++)
+                assert(!bg_pickups[q].active||bg_mode_pickup_allowed(bg_pickups[q].weapon));
             assert(bg_objective_count<=BG_MAX_OBJECTIVES);
             assert(!bg_match_finished());
         }
         reachable_hills();
         spawn_map_checks();
         bg_map_unload();assert(!bg_current_mode_map());
-        printf("PASS map%u: all 26 presets, source starts, loadouts, objectives and unload\n",ids[map]);
+        printf("PASS map%u: all %u presets, source starts, loadouts, objectives and unload\n",ids[map],BG_MODE_COUNT);
     }
     bg_map_load(9);
 }
@@ -89,6 +98,54 @@ static void slayer_and_lives(void) {
     start(BG_MODE_SNIPERS);kill(1,0);spawn(1);kill(1,0);
     assert(bg_players[1].respawn==5&&mode_penalty[1]==300);
     start(BG_MODE_IRON_CTF);assert(mode_damage(1,0)==.5f);
+}
+static void swat(void) {
+    const unsigned modes[]={BG_MODE_SWAT,BG_MODE_TEAM_SWAT};
+    for(unsigned i=0;i<2;i++) {
+        start(modes[i]);assert(bg_mode_has_teams()==(i==1));
+        assert(!bg_mode_radar()&&bg_current_rules()->radar==2&&bg_vehicle_count==0);
+        for(unsigned p=0;p<4;p++) {
+            bg_set_player_armor(p,BG_ARMOR_JORGE);
+            assert(bg_player_armors[p]==BG_ARMOR_ODST&&bg_players[p].armor==BG_ARMOR_ODST);
+            assert(bg_players[p].health==100&&bg_players[p].shield==0);
+            assert(bg_players[p].inventory[0]==BG_W_PISTOL&&bg_players[p].inventory[1]==-1);
+            assert(bg_players[p].ammo==bg_ammo_rules[BG_W_PISTOL].loaded);
+            assert(bg_players[p].reserve==bg_ammo_rules[BG_W_PISTOL].reserve);
+            assert(!bg_players[p].grenades[0]&&!bg_players[p].grenades[1]);
+        }
+        unsigned count=bg_pickup_count;kill(1,0);assert(bg_pickup_count==count);
+        assert(bg_display_score(0)==1);spawn(1);
+        assert(bg_players[1].armor==BG_ARMOR_ODST&&bg_players[1].shield==0);
+        assert(bg_players[1].weapon==BG_W_PISTOL&&bg_players[1].inventory[1]==-1);
+        assert(!bg_players[1].grenades[0]&&!bg_players[1].grenades[1]);
+        bg_player_armors[2]=BG_ARMOR_SPARTAN;spawn(2);
+        assert(bg_player_armors[2]==BG_ARMOR_ODST&&bg_players[2].shield==0);
+        update_pickups(181);
+        for(unsigned q=0;q<bg_pickup_count;q++)
+            assert(!bg_pickups[q].active||bg_mode_pickup_allowed(bg_pickups[q].weapon));
+        assert(!bg_mode_pickup_allowed(BG_W_PISTOL)&&!bg_mode_pickup_allowed(BG_W_ROCKET));
+        assert(!bg_mode_pickup_allowed(BG_PICK_FRAG)&&!bg_mode_pickup_allowed(BG_PICK_PLASMA));
+        assert(bg_mode_pickup_allowed(BG_PICK_HEALTH)&&bg_mode_pickup_allowed(BG_PICK_CAMO));
+        bg_pickup mixed={.base_weapon=BG_W_ROCKET,.alternate=BG_PICK_HEALTH,.first_weight=1,.total_weight=2};
+        unsigned health=0,weapon=0;
+        for(unsigned n=0;n<64;n++) {
+            refill_pickup(&mixed);assert(mixed.active==(mixed.weapon==BG_PICK_HEALTH));
+            health+=mixed.weapon==BG_PICK_HEALTH;weapon+=mixed.weapon==BG_W_ROCKET;
+        }
+        assert(health&&weapon);
+        kill(2,0);assert(bg_display_score(0)==(i?0:2));
+        assert(bg_mode_speed(0)==1&&bg_mode_speed(1)==1);
+        bg_reset();bg_clear_events();bg_input in[4]={0};
+        in[0].switch_weapon=in[0].grenade=true;bg_tick(in,1.f/30);
+        assert(bg_players[0].weapon==BG_W_PISTOL&&!events(BG_EVENT_GRENADE));
+        bg_set_score_limit(1);kill(1,0);
+        assert(bg_match_finished()&&bg_match_winner()==0&&bg_player_is_winner(0));
+        assert(bg_player_is_winner(2)==(i==1));
+    }
+    start(BG_MODE_SLAYER);
+    assert(bg_players[0].armor==BG_ARMOR_SPARTAN&&bg_players[0].shield==100&&bg_mode_radar());
+    assert(bg_mode_pickup_allowed(BG_W_ROCKET)&&bg_mode_pickup_allowed(BG_PICK_FRAG));
+    puts("PASS: SWAT/Team SWAT ODST enforcement, pistol-only spawns/respawns, no weapon/grenade spawns or drops, no radar, team scoring and ordinary-mode restoration");
 }
 static void ctf(void) {
     start(BG_MODE_CTF);bg_set_score_limit(1);bg_clear_events();
@@ -206,7 +263,7 @@ static void export_clearance(const char *path) {
 }
 int main(void) {
     const char *path=getenv("BG_MODE_CLEARANCE_OUTPUT");if(path){export_clearance(path);return 0;}
-    catalog_and_maps();spawn_boundaries();spawn_clock();slayer_and_lives();ctf();balls();objective_controls();hill_and_race();bg_map_unload();
+    catalog_and_maps();spawn_boundaries();spawn_clock();slayer_and_lives();swat();ctf();balls();objective_controls();hill_and_race();bg_map_unload();
     printf("PASS: %u exact source spawn ratings, %u identical seeded selections, distance/bonus boundaries, Invasion flag mapping and 30/31-tick warmup\n",spawn_comparisons,spawn_selections);
     puts("PASS: mode scoring, team penalties, targets, lives, respawn growth, CTF variants, ball transfers/traits, hills and ordered/team races");
 }

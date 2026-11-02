@@ -1,4 +1,4 @@
-/* Generated from source/game/game_engine.c; do not edit by hand. */
+/* Generated from source/game/game_engine.c and port presets; do not edit by hand. */
 BG_MODE(0, SLAYER, "Slayer", 0, 0, 0, 1, -1, 1.0f, 15, 0, 0, 300, 0, BG_MODE_SENSOR, 0, 0, 0, 0, 0, 0, 0)
 BG_MODE(1, SLAYER_PRO, "Slayer Pro", 0, 0, 0, 1, -1, 1.0f, 25, 0, 0, 450, 0, BG_MODE_GENERIC|BG_MODE_SENSOR|BG_MODE_NO_DEATH_BONUS|BG_MODE_NO_KILL_PENALTY, 0, 0, 0, 0, 0, 0, 0)
 BG_MODE(2, ELIMINATION, "Elimination", 0, 0, 0, 1, -1, 1.0f, 25, 1, 0, 300, 0, BG_MODE_SENSOR, 0, 0, 0, 0, 0, 0, 0)
@@ -25,3 +25,5 @@ BG_MODE(22, TEAM_RALLY, "Team Rally", 4, 1, 1, 1, -1, 1.0f, 5, 0, 0, 300, 0, BG_
 BG_MODE(23, TEAM_ODDBALL, "Team Ball", 2, 1, 1, 0, -1, 1.0f, 2, 0, 300, 150, 0, BG_MODE_GENERIC|BG_MODE_SENSOR, 0, 1, 0, 0, 0, 0, 0)
 BG_MODE(24, TEAM_KING, "Team King", 3, 1, 1, 1, -1, 1.0f, 2, 0, 300, 150, 0, BG_MODE_SENSOR|BG_MODE_MOVING_HILL, 0, 0, 0, 0, 0, 0, 0)
 BG_MODE(25, TEAM_SLAYER, "Team Slayer", 0, 1, 0, 1, -1, 1.0f, 50, 0, 300, 300, 0, BG_MODE_SENSOR, 0, 0, 0, 0, 0, 0, 0)
+BG_MODE(26, SWAT, "SWAT", 0, 0, 2, 0, 1, 1.0f, 15, 0, 0, 300, 0, BG_MODE_ODST_ONLY|BG_MODE_NO_WEAPON_PICKUPS|BG_MODE_NO_GRENADES|BG_MODE_NO_DEATH_BONUS|BG_MODE_NO_KILL_PENALTY, 0, 0, 0, 0, 0, 0, 0)
+BG_MODE(27, TEAM_SWAT, "Team SWAT", 0, 1, 2, 0, 1, 1.0f, 50, 0, 300, 300, 0, BG_MODE_ODST_ONLY|BG_MODE_NO_WEAPON_PICKUPS|BG_MODE_NO_GRENADES|BG_MODE_NO_DEATH_BONUS|BG_MODE_NO_KILL_PENALTY, 0, 0, 0, 0, 0, 0, 0)

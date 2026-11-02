@@ -7,12 +7,14 @@ enum { BG_ENGINE_SLAYER, BG_ENGINE_CTF, BG_ENGINE_BALL, BG_ENGINE_KING, BG_ENGIN
 enum { BG_MODE_INVISIBLE=1, BG_MODE_GENERIC=2, BG_MODE_SENSOR=4, BG_MODE_ODD_MAN=8,
        BG_MODE_NO_DEATH_BONUS=16, BG_MODE_NO_KILL_PENALTY=32, BG_MODE_TARGETS=64,
        BG_MODE_MOVING_HILL=128, BG_MODE_ASSAULT=256, BG_MODE_FLAG_HOME=512,
-       BG_MODE_FLAG_RESET=1024 };
+       BG_MODE_FLAG_RESET=1024, BG_MODE_ODST_ONLY=2048,
+       BG_MODE_NO_WEAPON_PICKUPS=4096, BG_MODE_NO_GRENADES=8192 };
 enum {
 #define BG_MODE(id,key,...) BG_MODE_##key=id,
 #include "game_modes.def"
 #undef BG_MODE
-    BG_MODE_COUNT=26
+    BG_MODE_COUNT,
+    BG_SOURCE_MODE_COUNT=26
 };
 typedef struct {
     const char *name;
@@ -67,6 +69,7 @@ bool bg_player_waiting(unsigned player);
 float bg_mode_speed(unsigned player);
 float bg_player_melee_duration(unsigned player);
 bool bg_mode_radar(void);
+bool bg_mode_pickup_allowed(int kind);
 bool bg_mode_navpoint(unsigned viewer,unsigned index,float pos[3],unsigned *kind,unsigned *team);
 bool bg_mode_hill_point(unsigned index,float out[3]);
 bool bg_player_in_hill(unsigned player);

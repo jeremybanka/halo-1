@@ -7,29 +7,29 @@
     "port/n64/JORGE_LODS.md"
   ],
   "prior_pre_policy_odst_meshes_used": false,
-  "asset_commit": "40385b31b914ec2b13126b4f10f990152693e940",
-  "body_bank_sha256": "aaca270064d8049580b7f1934fd21a34792f51ab972c8b7f51d1915655887256",
-  "body_bank_bytes": 802784,
+  "asset_commit": "3fc81aa7096e6fa2af5bda3271ee1eece43274a5",
+  "body_bank_sha256": "de3f7fb5b72328604d97364bf81d1d7a9ad63c96a4be71a247886ed8403061d4",
+  "body_bank_bytes": 941168,
   "body_costs": [
     {
-      "vertices": 738,
-      "triangles": 770,
-      "batches": 20,
-      "tracks": 606,
-      "bytes": 16592,
-      "frame_cache_bytes": 4192,
-      "native_vertices": 625,
-      "glb_vertices": 2305
+      "vertices": 876,
+      "triangles": 922,
+      "batches": 24,
+      "tracks": 698,
+      "bytes": 19744,
+      "frame_cache_bytes": 4800,
+      "native_vertices": 740,
+      "glb_vertices": 2761
     },
     {
-      "vertices": 464,
-      "triangles": 447,
-      "batches": 12,
-      "tracks": 388,
-      "bytes": 10208,
-      "frame_cache_bytes": 2720,
-      "native_vertices": 402,
-      "glb_vertices": 1337
+      "vertices": 616,
+      "triangles": 626,
+      "batches": 16,
+      "tracks": 486,
+      "bytes": 13744,
+      "frame_cache_bytes": 3360,
+      "native_vertices": 528,
+      "glb_vertices": 1874
     }
   ],
   "spartan_packed_vertices": [
@@ -47,20 +47,20 @@
   "roms": {
     "multiplayer": {
       "file": "halo-64-paced30-rspq32k.z64",
-      "bytes": 62488576,
-      "sha256": "848486f905704c026c85e6a7c4458750d41213a2eb1654e6dd3178e3433aa0c5",
+      "bytes": 62636032,
+      "sha256": "acafb4ba38f6955f4e49f78a8447cef3e15a7a5f07d861e2201c39cb7a2f61fa",
       "preset": "release",
-      "build_manifest_sha256": "5ddb2bbc99ab69bcdc6cdd16dc7e91bd5e53c370ee4c95feedf5cc6e8471732e",
-      "built_asset_commit": "94c97e22c5b40a1dfcdbaa50e991f2c7677d43fe",
+      "build_manifest_sha256": "255e70c55b23d42d670f59fe0102a0edda15cb65af1fe8567f1bdcf57e0c86b7",
+      "built_asset_commit": "88708bba50b487d953c56cc07475fcdf9b6f7921",
       "compiled_source_fingerprints_match": true
     },
     "firefight": {
       "file": "halo-64-firefight-paced30-rspq32k.z64",
-      "bytes": 65175552,
-      "sha256": "2c1dc2203a55590dbc8faea03faffe7585b66d9fdfb80470f4c74a35da736cee",
+      "bytes": 65323008,
+      "sha256": "2c5e35f4bc9d5e81e29757e848e44fed11f12449d7cf0bfce8359448a8c0e482",
       "preset": "release",
-      "build_manifest_sha256": "9b2580b8a4df78099991a6129cc87959ae7594037ccc2d936dbb91b926946931",
-      "built_asset_commit": "94c97e22c5b40a1dfcdbaa50e991f2c7677d43fe",
+      "build_manifest_sha256": "0a392b64084e5af0e839991292a1be061b48d9409171f56ffc4934171f73b837",
+      "built_asset_commit": "88708bba50b487d953c56cc07475fcdf9b6f7921",
       "compiled_source_fingerprints_match": true
     }
   },
@@ -114,7 +114,7 @@
   "native_checks": {
     "emulator": "Ares v148 / paraLLEl-RDP",
     "ram_bytes": 8388608,
-    "scope": "Broader frozen multiplayer geometry/depth/zoom/grid fixtures, captured before the friendly-cyan brightness update; latest color checks are in native_color_update",
+    "scope": "Retained pre-helmet frozen multiplayer geometry/depth/zoom/grid fixtures; final helmet and brighter friendly cyan are checked separately in native_helmet_update and native_color_update",
     "fixtures": [
       {
         "page": 0,
@@ -326,5 +326,48 @@
         "visr_midpoint_cyan_pixels": 6587
       }
     ]
+  },
+  "helmet_refinement": {
+    "stage": "helmet-symmetric",
+    "parent": "game-scale",
+    "parent_packed_vertices": [
+      738,
+      464
+    ],
+    "added_packed_vertices": [
+      138,
+      152
+    ],
+    "shared_head_between_lods": true,
+    "head_triangles_per_lod": 216,
+    "crown_stripe_triangles_per_lod": 42,
+    "mirror_error_halo": 0.0,
+    "packed_geometry_and_colors_symmetric": true,
+    "crown_stripe_connected_after_quantization": true,
+    "existing_body_and_neck_junction_preserved": true,
+    "restored_original_junction_faces": [
+      [
+        8550
+      ],
+      [
+        4126,
+        4150,
+        8550
+      ]
+    ]
+  },
+  "native_helmet_update": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "page": 0,
+    "label": "symmetric-helmet-palettes-lods",
+    "rom": "halo-64-model-qa-odst-qa0-validation-rspq32k.z64",
+    "rom_bytes": 62455808,
+    "rom_sha256": "8c7ca34b1be7df29c4b97d6a68fde7fd5ed24e77ffe5e238818864c9f1754839",
+    "capture": "qa0-palettes-lods.png",
+    "capture_sha256": "4a42d136733e5ffc179afb4045f223fb32a84b48a2620fd4eeb2a4eb6f54df55",
+    "rdpq_errors": 0,
+    "rdpq_warnings": 0,
+    "scope": "Final packed helmet in four profile palettes, near and far gameplay LODs; restored centered stripe and bright cyan visor"
   }
 }

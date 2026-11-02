@@ -147,6 +147,8 @@ partially or completely occludes both friendly and hostile units. Normal weapon
 zoom and neighboring viewports retain their usual behavior.
 The cyan visor and neutral armor are protected from palette changes;
 only the original helmet crown stripe carries profile or team color.
+Both LODs use the same symmetric helmet, with the complete centered stripe
+protected during reduction and packing.
 
 The fresh Halo 3: ODST extraction, component demake, independent checkpoints,
 near/far costs, custom forearms and scoped validation are recorded in

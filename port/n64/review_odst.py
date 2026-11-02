@@ -63,10 +63,11 @@ def source_face(mesh,bounds,direction,size,y,x):
     z=w0*depth[:,0]+w1*depth[:,1]+w2*depth[:,2]
     return int(np.argmax(np.where(valid,z,-np.inf)))
 
-def run(folder,packed,output,candidate="covered"):
+def run(folder,packed,output,candidate="covered",baseline_packed=None,baseline_candidate="game-scale"):
     output.mkdir(parents=True,exist_ok=True)
     raw=json.loads((folder/'source/odst-ce-raw.json').read_text());model=raw['models']['spartan']
     data=json.loads((folder/candidate/'solid.json').read_text());pv=[np.load(packed/f'odst-{lod}-preview.npz') for lod in range(2)]
+    baseline=[np.load(baseline_packed/f'odst-{lod}-preview.npz') for lod in range(2)] if baseline_packed else None
     rows=[];metrics=[];coverage=[];repairs=[set(),set()]
     for name,fraction in [('idle',0),('run',.4),('melee',.4),('passenger',.5)]:
         ci=next(i for i,c in enumerate(data['lods'][0]['animations']) if c['name']==name)
@@ -75,7 +76,7 @@ def run(folder,packed,output,candidate="covered"):
         sample=round(fraction*(len(authored)-1))
         original_index=round(sample*(len(original['frames'])-1)/max(1,len(authored)-1))
         src=source_mesh(model,original_pose(model,original['frames'][original_index]))
-        native=[]
+        native=[];prior=[]
         for lod,p in enumerate(pv):
             frames=np.load(folder/candidate/f'poses-{lod}.npz')['frames_'+str(ci)]
             # Match the exact source skeleton sample, using production mesh
@@ -83,8 +84,16 @@ def run(folder,packed,output,candidate="covered"):
             # the independent bank/decoder check.
             points=np.rint(frames[sample,p['sources']]*512)[p['triangles']]/512
             native.append(Mesh(points,rgb=palette(p['colors'],p['mask'],0)[p['triangles']]))
+        if baseline:
+            for lod,p in enumerate(baseline):
+                frames=np.load(folder/baseline_candidate/f'poses-{lod}.npz')['frames_'+str(ci)]
+                points=np.rint(frames[sample,p['sources']]*512)[p['triangles']]/512
+                prior.append(Mesh(points,rgb=palette(p['colors'],p['mask'],0)[p['triangles']]))
         for angle,direction in ANGLES:
-            bounds=matching_bounds([src,*native],direction);ims=[];masks=[]
+            # Keep the accepted source/parent camera fixed during a local
+            # refinement. A larger helmet must not resample unchanged boots,
+            # sleeves or backpack seams onto a different pixel grid.
+            bounds=matching_bounds([src,*(prior if baseline else native)],direction);ims=[];masks=[]
             for mesh in [src,*native]:
                 im,mask=render(mesh,bounds,direction,width=160,height=160);ims.append(im);masks.append(mask)
             metrics.append(dict(pose=name,angle=angle,near_iou=float((masks[0]&masks[1]).sum()/max(1,(masks[0]|masks[1]).sum())),far_iou=float((masks[0]&masks[2]).sum()/max(1,(masks[0]|masks[2]).sum()))))
@@ -152,5 +161,5 @@ def compare_ce(folder,packed,output):
     sheet.save(output/'standard-game-comparison.png')
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('folder',type=Path);p.add_argument('packed',type=Path);p.add_argument('output',type=Path);p.add_argument('--candidate',default='covered');p.add_argument('--ce-only',action='store_true');a=p.parse_args();compare_ce(a.folder,a.packed,a.output)
-    if not a.ce_only:run(a.folder,a.packed,a.output,a.candidate)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('folder',type=Path);p.add_argument('packed',type=Path);p.add_argument('output',type=Path);p.add_argument('--candidate',default='covered');p.add_argument('--ce-only',action='store_true');p.add_argument('--baseline-packed',type=Path);p.add_argument('--baseline-candidate',default='game-scale');a=p.parse_args();compare_ce(a.folder,a.packed,a.output)
+    if not a.ce_only:run(a.folder,a.packed,a.output,a.candidate,a.baseline_packed,a.baseline_candidate)

@@ -13,6 +13,7 @@ def corner_colors(tri,materials,textures):
     role=materials[tri["material"]]["path"].split("\\")[-1]
     if role=="odst_crown_stripe":return [[235,235,235]]*3,[255]*3
     if role=="odst_visor":return [[24,230,255]]*3,[0]*3
+    if tri.get('corner_color_override'):return tri['corner_color_override'],[0]*3
     image=textures.get(tri["material"]);light=.68+.32*max(0,np.dot(normal([position(p,(0,0,0)) for p in tri["p"]]),(.25,.83,.49)))
     rgb=[]
     for uv in tri["uv"]:

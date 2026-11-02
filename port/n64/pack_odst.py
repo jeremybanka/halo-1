@@ -28,6 +28,7 @@ def corner_colors(tri, materials, textures):
     if role == 'odst_visor':
         # Intentional cyan adaptation, protected from all profile/team tints.
         return [[24,230,255]]*3, [0]*3
+    if tri.get('corner_color_override'):return tri['corner_color_override'],[0]*3
     image = textures.get(tri['material'])
     light = .68 + .32 * max(0, np.dot(normal([position(p,(0,0,0)) for p in tri['p']]), (.25,.83,.49)))
     colors = []

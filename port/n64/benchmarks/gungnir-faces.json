@@ -204,14 +204,14 @@
   },
   "geometry_scope": "Face projection preserves the original art UVs and reuses current body geometry. The requested optic geometry and clean silver coloring are independently audited in gungnir-optic.json; body BLEND/GLB and geometry proofs are refreshed. Editable paint remains beside the body library.",
   "combined_release": {
-    "kind": "gungnir-faces-release-v1",
-    "rom_bytes": 66732032,
-    "rom_sha256": "6f290bcbbff64cf7d4b84dca583e66b60003f6d05da3cd3e09814302c8f7ef0f",
-    "manifest_sha256": "de9c5aefd0fd07daf4a9b2513b5958245e7d5e9c687e385927974a5cc35b83e0",
-    "source_commit": "60bf322d19c9a177c5f3496e64ed78d48745c3cd",
-    "asset_commit": "b7c93a4b3cf024c908c36cb64b17a386fb54b985",
+    "kind": "gungnir-optic-release-v1",
+    "rom_bytes": 66715648,
+    "rom_sha256": "eed0f3c7b514335bbd9357d6588ff15157c5ced562a14ff5f64943516d334ae1",
+    "manifest_sha256": "08c5a0eeb9c0eb0ebd89d9225b92b1793104fd77af3eac610dae343c83b80086",
+    "source_commit": "721cbdc8776a7c64e6bf8fea3d8b09f3114348bc",
+    "asset_commit": "4628fa411ff057924ca7c291add3802ed5d61050",
     "native_visual_inspection": true,
-    "capture_sha256": "1ee1b45b4a19395d60c0367951d5bea936cf4a35e74a434955ac5872c957079c",
-    "scope": "Clean committed combined Multiplayer/SWAT/Firefight cartridge with the four supplied face decals; menu boot and cartridge size verified in Ares. Separate native RDP face-material cycles and sanitized memory/state cases are recorded in gungnir-faces.json."
+    "capture_sha256": "534efb5d15d0bed92db3a9c44f9fea227a4d2b04533cda612c38753c62de1c7f",
+    "scope": "Clean committed combined Multiplayer/SWAT/Firefight cartridge with refined hexagonal optic and clean silver helmet. Ares combined-menu boot and cartridge size verified; near/far material inspection and source/skin/GLB/runtime proofs recorded separately. ROM and captures remain local."
   }
 }

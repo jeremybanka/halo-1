@@ -21,6 +21,8 @@ def main(output=None):
         files.append(dict(path=name,bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()))
     commit=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
     target=Path(output) if output else BANK/'bank-manifest.json'
+    target.parent.mkdir(parents=True,exist_ok=True)
+    if output and target.exists():raise FileExistsError(target)
     target.write_text(json.dumps(dict(source_commit=commit,files=files,total_bytes=sum(f['bytes'] for f in files)),indent=2)+'\n')
     print('Recorded',len(files),'private payload files')
 

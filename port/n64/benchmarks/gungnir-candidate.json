@@ -210,6 +210,22 @@
       "native_visual_inspection": true,
       "scope": "Normal combined Multiplayer/SWAT/Firefight cartridge boot after viewport correction; reticle alignment and zoom validated separately in the 1\u20134-view native fixtures.",
       "capture_sha256": "7649672829db69b5f9ad43798b762d916bb3735a0234316f179442a265d7f6ea"
+    },
+    {
+      "kind": "gungnir-shell-release-v1",
+      "rom_bytes": 66715648,
+      "rom_sha256": "fdd784bf5f028b15de934534471e5d4ffbc653792a61d348aa45ccd9ebad4a2b",
+      "manifest_sha256": "0c4eb3fa52dd6f9fe9da9e5a20ba6ece6b5072468f5f2b75cf294ce0ee687a9d",
+      "source_commit": "c66cec6e6674409b385e59e143a7d5f46f3f94b1",
+      "asset_commit_in_manifest": "7e761ba70478c051792ebd223ccc0a554529381e",
+      "resolved_asset_commit": "0ec3099",
+      "asset_bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+      "native_visual_inspection": true,
+      "capture_sha256": "5630db9fc656bfabbc05b8bdb083124408a9a87699c2189557591ad091a5696e",
+      "scope": "Local combined Multiplayer/SWAT/Firefight size and menu-boot smoke check. Existing uncommitted Firefight rendering edits are present; this ROM is not an exact clean PR-head build.",
+      "local_source_overrides": {
+        "port/n64/pve_draw.inc": "866b5bddd7e5fedc7948866b79ccfdb85adc9e72d8835101c2e654cfe5b56cd8"
+      }
     }
   ],
   "damage_tiling": {
@@ -217,7 +233,7 @@
     "synchronized_uploads": 120,
     "maximum_screen_coordinate_error_pixels": 0.0001
   },
-  "combined_release_rom_bytes": 66551808,
+  "combined_release_rom_bytes": 66715648,
   "combined_release_required_ram_mib": 8,
   "hud_status": {
     "label": "AUTO",
@@ -392,6 +408,8 @@
         "before_lowest_halo_units": 0.36330895716593653,
         "after_lowest_halo_units": 0.3293713927268982
       }
-    ]
-  }
+    ],
+    "report": "port/n64/benchmarks/gungnir-shells.json"
+  },
+  "combined_release_scope": "Local combined Multiplayer/SWAT/Firefight size and menu-boot smoke check. Existing uncommitted Firefight rendering edits are present; this ROM is not an exact clean PR-head build."
 }

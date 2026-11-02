@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+  "private_asset_commit": "0ec3099",
+  "packed_vertices": [
+    1064,
+    784
+  ],
+  "triangles": [
+    1298,
+    893
+  ],
+  "source_side_validation": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "parent_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+    "source_sha256": "988da535240a74d4618e77232985e0fd80061f39f6718056495ed772a4c765b6",
+    "method": "Front-face culled isolated rear frame, three views per LOD, one-pixel source rim excluded; actual exterior armor geometry unchanged; source lower codpiece extremum retained",
+    "views": [
+      {
+        "lod": 0,
+        "angle": "front",
+        "source_interior_pixels": 7317,
+        "before_covered_pixels": 22,
+        "after_covered_pixels": 7131,
+        "coverage_fraction": 0.974579745797458
+      },
+      {
+        "lod": 0,
+        "angle": "front-left",
+        "source_interior_pixels": 6829,
+        "before_covered_pixels": 115,
+        "after_covered_pixels": 6566,
+        "coverage_fraction": 0.9614877727339288
+      },
+      {
+        "lod": 0,
+        "angle": "front-right",
+        "source_interior_pixels": 6853,
+        "before_covered_pixels": 171,
+        "after_covered_pixels": 6542,
+        "coverage_fraction": 0.9546184152925726
+      },
+      {
+        "lod": 1,
+        "angle": "front",
+        "source_interior_pixels": 7317,
+        "before_covered_pixels": 0,
+        "after_covered_pixels": 7131,
+        "coverage_fraction": 0.974579745797458
+      },
+      {
+        "lod": 1,
+        "angle": "front-left",
+        "source_interior_pixels": 6829,
+        "before_covered_pixels": 71,
+        "after_covered_pixels": 6527,
+        "coverage_fraction": 0.9557768340899107
+      },
+      {
+        "lod": 1,
+        "angle": "front-right",
+        "source_interior_pixels": 6853,
+        "before_covered_pixels": 68,
+        "after_covered_pixels": 6542,
+        "coverage_fraction": 0.9546184152925726
+      }
+    ],
+    "codpiece_contours": [
+      {
+        "lod": 0,
+        "source_lowest_halo_units": 0.3293713796032613,
+        "before_lowest_halo_units": 0.3634496351406829,
+        "after_lowest_halo_units": 0.3293713927268982
+      },
+      {
+        "lod": 1,
+        "source_lowest_halo_units": 0.3293713796032613,
+        "before_lowest_halo_units": 0.36330895716593653,
+        "after_lowest_halo_units": 0.3293713927268982
+      }
+    ]
+  },
+  "native_validation": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "emulator": "Ares v148",
+    "rdram_mib": 8,
+    "physical_console_tested": false,
+    "checks": [
+      "Single-camera close body: restored silver codpiece contour and inward rear surfaces inspected from front-oblique and rear-oblique views.",
+      "Four-camera native inspection: near upper views, far lower views, all four profiles, silver exterior and held weapon inspected; 0 RDP errors and warnings."
+    ],
+    "prior_functional_validation": {
+      "private_commit": "7e761ba70478c051792ebd223ccc0a554529381e",
+      "candidate_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+      "scope": "Inherited controls, autoaim, movement, viewport/zoom, first-person services and combined game lifecycle. This asset-only revision rechecks geometry/packing/skin/exports and body rendering; it does not claim to rerun every earlier native encounter."
+    },
+    "shell_update": {
+      "bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+      "views": [
+        1,
+        4
+      ],
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "captures": [
+        {
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-1.png",
+          "sha256": "fed36a107d57e8cc3e8a4cd742086aa56db299b789ca8e3d77fa3ea59ba3d4db"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-2.png",
+          "sha256": "381293d1e1dfb11ede9b7b45fc5c537fd2140539a5b19df14ab0b57a9c59f6b0"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-orbit-1.png",
+          "sha256": "fd6514e79d85bdcedcf9ff58d3c4937b13e9f5a306d70475dd687e723183e76f"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-side.png",
+          "sha256": "ef72e07fcc3b3be46fe308a2a950243b730b4ec0afdab5a1fd09c8a66d2889ed"
+        }
+      ]
+    },
+    "limits": [
+      "Finite native camera/idle views, not every native animation or physical-console performance.",
+      "ROMs and screen captures remain local; this report records their hashes."
+    ]
+  },
+  "local_combined_build": {
+    "kind": "gungnir-shell-release-v1",
+    "rom_bytes": 66715648,
+    "rom_sha256": "fdd784bf5f028b15de934534471e5d4ffbc653792a61d348aa45ccd9ebad4a2b",
+    "manifest_sha256": "0c4eb3fa52dd6f9fe9da9e5a20ba6ece6b5072468f5f2b75cf294ce0ee687a9d",
+    "source_commit": "c66cec6e6674409b385e59e143a7d5f46f3f94b1",
+    "asset_commit_in_manifest": "7e761ba70478c051792ebd223ccc0a554529381e",
+    "resolved_asset_commit": "0ec3099",
+    "asset_bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+    "native_visual_inspection": true,
+    "capture_sha256": "5630db9fc656bfabbc05b8bdb083124408a9a87699c2189557591ad091a5696e",
+    "scope": "Local combined Multiplayer/SWAT/Firefight size and menu-boot smoke check. Existing uncommitted Firefight rendering edits are present; this ROM is not an exact clean PR-head build.",
+    "local_source_overrides": {
+      "port/n64/pve_draw.inc": "866b5bddd7e5fedc7948866b79ccfdb85adc9e72d8835101c2e654cfe5b56cd8"
+    }
+  }
+}

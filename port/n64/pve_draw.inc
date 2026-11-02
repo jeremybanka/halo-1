@@ -76,7 +76,6 @@ static rspq_block_t *pve_alpha_blocks[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS]
 #include "pve_crunch_lod.h"
 static bg_pve_crunch_state pve_crunch_states[4][BG_PVE_MAX];
 #endif
-#ifdef BG_ENEMY_VEHICLES
 /* The current geometry slot is fenced by main.c before preparation. Discard
  * representations no camera needs; a cache is never a lifetime allocation. */
 static void pve_drop_buffer(unsigned frame,unsigned actor,unsigned lod){
@@ -104,9 +103,6 @@ static T3DVertPacked*pve_allocate(unsigned actor,unsigned bytes){
 #endif
     return result;
 }
-#else
-#define pve_allocate(actor,bytes) malloc_uncached(bytes)
-#endif
 static void pve_release(void){
     rspq_wait();
 #ifdef BG_PVE_JACKAL_SHIELDS
@@ -173,10 +169,8 @@ static void pve_prepare(void){
     memset(&bg_pve_prepare_profile,0,sizeof(bg_pve_prepare_profile));
 #endif
     memset(pve_lods,0,sizeof(pve_lods));memset(pve_ship_visible,0,sizeof(pve_ship_visible));
-#ifdef BG_ENEMY_VEHICLES
     for(unsigned i=0;i<BG_PVE_MAX;i++)if(i>=bg_pve_count||!bg_pve_actors[i].occupied||(bg_players[4+i].health<=0&&bg_pve_actors[i].death_time>15))pve_trim_actor(i,0);
     if(!bg_ff_dropship.phase)pve_trim_actor(BG_PVE_MAX,0);
-#endif
 #ifndef BG_PVE_PREP_BASELINE
     memset(pve_frame_keys,0,sizeof(pve_frame_keys));
     for(unsigned i=0;i<=BG_PVE_MAX;i++)for(unsigned l=0;l<BG_PVE_LODS;l++)pve_pose_owner[i][l]=i;
@@ -201,10 +195,6 @@ static void pve_prepare(void){
         pve_initialized=true;
     }
     memset(pve_lods,0,sizeof(pve_lods));memset(pve_ship_visible,0,sizeof(pve_ship_visible));
-#ifdef BG_ENEMY_VEHICLES
-    for(unsigned i=0;i<BG_PVE_MAX;i++)if(i>=bg_pve_count||!bg_pve_actors[i].occupied||(bg_players[4+i].health<=0&&bg_pve_actors[i].death_time>15))pve_trim_actor(i,0);
-    if(!bg_ff_dropship.phase)pve_trim_actor(BG_PVE_MAX,0);
-#endif
     for(unsigned i=0;i<bg_pve_count;i++){
 #ifdef BG_PVE_JACKAL_SHIELDS
         jackal_shield_track(i);
@@ -251,9 +241,7 @@ static void pve_prepare(void){
             pve_lods[v][i]=lod+1;wanted|=1u<<lod;
         }
         PVE_PREP_COUNT(visibility_us,PVE_PREP_NOW()-section);section=PVE_PREP_NOW();
-        #ifdef BG_ENEMY_VEHICLES
         pve_trim_actor(i,wanted);
-#endif
         if(!wanted)continue;
         matrix(&pve_matrices[slot][i],BG_SCALE/BG_PVE_SCALE,p->yaw,0,p->pos);
 #ifdef BG_ENEMY_VEHICLES
@@ -274,9 +262,7 @@ static void pve_prepare(void){
 #ifndef BG_PVE_PREP_BASELINE
             pve_pose_owner[i][lod]=pve_shared_pose(i,lod,key);
             if(pve_pose_owner[i][lod]!=i){
-#ifdef BG_ENEMY_VEHICLES
                 pve_drop_buffer(slot,i,lod);
-#endif
                 PVE_PREP_COUNT(shared_poses,1);PVE_PREP_COUNT(buffers_us,PVE_PREP_NOW()-section);continue;}
 #endif
             if(pve_vertices[slot][i][lod]&&pve_buffer_kind[slot][i][lod]!=pve_appearance(a)){

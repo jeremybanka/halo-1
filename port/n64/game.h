@@ -254,6 +254,10 @@ const bg_match_statistics *bg_match_stats(void);
 void bg_reset(void);
 void bg_set_players(unsigned count);
 unsigned bg_player_count(void);
+/* Presentation can use fewer cameras than there are active human actors.
+ * bg_set_players defaults this to the normal matching split-screen layout. */
+void bg_set_view_count(unsigned count);
+unsigned bg_view_count(void);
 void bg_clear_events(void);
 bool bg_match_finished(void);
 int bg_match_winner(void);

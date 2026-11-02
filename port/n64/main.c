@@ -1177,6 +1177,7 @@ int main(void) {
             bg_pve_qa_input(in);
 #endif
 #ifndef BG_PVE_PHOTO_TICK
+            bg_set_view_count(views);
             bg_tick(in, BLAM_TICK_SECONDS);
 #endif
             bg_hud_messages_update();

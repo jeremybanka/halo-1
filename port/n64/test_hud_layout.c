@@ -50,6 +50,8 @@ int main(void)
         float width=rect.w,height=rect.h,x=rect.x,y=rect.y,cx,cy,rx,ry,px,py;
         source_reference(views,p,&rx,&ry,&px,&py);
         bg_hud_aim_point(views,p,x,y,width,height,&cx,&cy);
+        float vx,vy;bg_hud_aim_point_for_view(rect,&vx,&vy);
+        assert(fabsf(vx-cx)<.0001f&&fabsf(vy-cy)<.0001f);
         assert(fabsf(cx-expected[l][p][0])<.0001f);
         assert(fabsf(cy-expected[l][p][1])<.0001f);
         assert(fabsf((cx-x)/width-rx)<.000001f);
@@ -59,6 +61,9 @@ int main(void)
             matrix[0][0]=1.7f*zoom;matrix[1][1]=2.1f*zoom;
             matrix[2][2]=-1.001f;matrix[2][3]=-1;matrix[3][2]=-2.8f;
             memcpy(before,matrix,sizeof(matrix));bg_hud_aim_projection(matrix,views,p);
+            float viewport_projection[4][4];memcpy(viewport_projection,before,sizeof(before));
+            bg_hud_aim_projection_for_view(viewport_projection,rect);
+            assert(!memcmp(matrix,viewport_projection,sizeof(matrix)));
             assert(fabsf(matrix[2][0]-px)<.000001f);
             assert(fabsf(matrix[2][1]-py)<.000001f);
             for(unsigned a=0;a<4;a++)for(unsigned b=0;b<4;b++)
@@ -82,6 +87,17 @@ int main(void)
         float ax,ay;bg_hud_aim_point(views,p,17,23,width*2,height*2,&ax,&ay);
         assert(fabsf(ax-(17+2*(cx-x)))<.0001f);
         assert(fabsf(ay-(23+2*(cy-y)))<.0001f);
+    }
+    /* Reproduce the main/recording caller mismatch: four human actors do not
+     * make a full-width camera a quarter-screen camera. Actual geometry wins
+     * for full screen, either wide half, and three-player's wide bottom view. */
+    for(unsigned views=1;views<=3;views++)for(unsigned p=0;p<views;p++){
+        bg_view_rect r=bg_view_area(views,p);float ax,ay,old_x,old_y;
+        bg_hud_aim_point_for_view(r,&ax,&ay);
+        assert(fabsf(ax-expected[views-1][p][0])<.0001f);
+        assert(fabsf(ay-expected[views-1][p][1])<.0001f);
+        bg_hud_aim_point(4,p,r.x,r.y,r.w,r.h,&old_x,&old_y);
+        if(r.w==320)assert(fabsf(old_x-ax)>20);
     }
     printf("PASS: original safe-window centers, ten viewports, 10 zoom scales, %u forward rays and fixed projection rounding\n",projected);
 }

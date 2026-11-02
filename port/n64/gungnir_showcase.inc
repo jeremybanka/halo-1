@@ -36,6 +36,7 @@ void bg_showcase_begin(bg_showcase_kind kind){
     demo_frame=demo_aim_frames=demo_auto_frames=demo_auto_shots=demo_damage_events=0;
     demo_toggle_sent=demo_command_sent=demo_off_sent=false;demo_now=0;memset(&demo_stats,0,sizeof(demo_stats));
     bg_set_players(4);bg_set_score_limit(1000);
+    bg_set_view_count(1);
     bg_configure_mode(demo_mode==1?BG_MODE_TEAM_SLAYER:BG_MODE_SLAYER,demo_mode==1?(uint8_t[]){0,0,1,1}:(uint8_t[]){0,1,2,3});
     for(unsigned p=0;p<4;p++)bg_set_player_armor(p,p==0?BG_ARMOR_GUNGNIR:BG_ARMOR_SPARTAN);
     bg_reset();bg_vehicle_count=bg_pickup_count=0;

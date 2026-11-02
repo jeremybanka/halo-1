@@ -193,8 +193,8 @@ The maintained checks are:
 - `test_gungnir_firstperson.py`: 1,409 production poses through the C binding,
   all four palettes and preservation of weapon colors.
 
-Native inspection fixtures use `--gungnir-qa 0..4` for body/LODs, off-axis
-aiming, normal zoom, personal weapon services and rear armor. `--gungnir-qa-views 1..4`
+Native inspection fixtures use `--gungnir-qa 0..5` for body/LODs, off-axis
+aiming, normal zoom, personal weapon services, rear armor and viewport alignment. `--gungnir-qa-views 1..4`
 selects the viewport layout. Bank overrides require an isolated QA build.
 `--gungnir-frontend-qa` drives mixed armor and movement through the real menus;
 `--gungnir-field-qa` reuses the production weapon/vehicle inspection against CE.
@@ -212,3 +212,14 @@ four encounters under ASan/UBSan, including manual fire during autopilot.
 
 Keep ROM builds and gameplay videos local. The private asset repository receives
 only the inputs and validation data required to build; do not upload ROM payloads.
+
+Reticle placement uses the actual viewport's original Halo safe-window center.
+HUD sprites, the acquisition circle, world projection and viewmodel projection
+share that anchor. Camera count is separate from human actor count for aim-cone
+selection. This matters for single-camera encounters with four human actors and
+for the wide bottom viewport in three-player mode. The old count-based HUD call
+already existed on main in `f40fefee` (#12); GUNGNIR's recording scenes exposed
+its mismatch. Normal matching one/two/three/four-player layouts retain their
+original safe-window offsets. QA page 5 keeps four combatants with 1–4 cameras,
+projects the actual forward ray through Tiny3D, and asserts its marker stays
+within 0.1 pixel of the reticle while cycling unzoomed, 2x and 10x views.

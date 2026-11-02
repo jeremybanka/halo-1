@@ -1703,7 +1703,7 @@ static void prepare_view(unsigned p) {
         if (close_scope) near=4.f;
         t3d_viewport_set_projection(vp, fov, near, far);
         t3d_viewport_set_w_normalize(vp, 0, BG_CAMERA_NORMALIZE_SUM);
-        bg_hud_aim_projection(vp->matProj.m, views, p);
+        bg_hud_aim_projection_for_view(vp->matProj.m, area);
     }
 #if defined(BG_ODST_QA) && BG_ODST_QA >= 4 && BG_ODST_QA <= 10
     /* Reticle offsets differ by split-screen port; focal lengths must agree. */
@@ -1748,7 +1748,7 @@ static void prepare_view(unsigned p) {
     if (projection_changed) {
         t3d_viewport_set_projection(gun_vp, fov, .125f, 128.f);
         t3d_viewport_set_w_normalize(gun_vp, 0, BG_CAMERA_NORMALIZE_SUM);
-        bg_hud_aim_projection(gun_vp->matProj.m, views, p);
+        bg_hud_aim_projection_for_view(gun_vp->matProj.m, area);
         projection_keys[slot][p] = projection_key;
     } else {
         gun_vp->matProj = previous_gun_projection;
@@ -2615,6 +2615,7 @@ void bg_scene_release_firstperson(void) {
 void bg_scene_prepare(unsigned frame_slot, unsigned view_count, float seconds) {
     slot = frame_slot;
     views = view_count;
+    bg_set_view_count(view_count);
     game_time = seconds;
     prepare_frame();
     triangles = 0;

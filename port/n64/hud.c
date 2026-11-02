@@ -682,8 +682,9 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     bool carrying=bg_player_objective(index)>=0;
     bool personal = bg_player_personal_weapon(p)&&!carrying;
     float aim_x, aim_y;
-    unsigned views = bg_player_count();
-    bg_hud_aim_point(views, index, x, y, width, height, &aim_x, &aim_y);
+    bg_view_rect area={x,y,width,height};
+    unsigned views = bg_view_count();
+    bg_hud_aim_point_for_view(area,&aim_x,&aim_y);
     current_combiner = current_filter = -1;
     rdpq_mode_begin();
     rdpq_set_mode_standard();
@@ -740,6 +741,17 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         if(target>=0){char label[24];snprintf(label,sizeof(label),"Target: P%u",bg_player_profiles[target]+1);hud_text(label,x+margin,y+20,hud_cyan);}
     }
     if (p->health > 0) {
+#if defined(BG_GUNGNIR_QA) && BG_GUNGNIR_QA == 5
+        /* Independently project the gameplay forward ray through Tiny3D's
+         * actual camera matrix, including its fixed viewport transforms. */
+        float cp=cosf(p->pitch);
+        T3DVec3 ray={{(p->pos[0]+cosf(p->yaw)*cp*8)*BG_SCALE,
+            (p->pos[1]+bg_eye_height(p)+sinf(p->pitch)*8)*BG_SCALE,
+            (p->pos[2]-sinf(p->yaw)*cp*8)*BG_SCALE}},screen={{0}};
+        t3d_viewport_calc_viewspace_pos((T3DViewport*)bg_scene_viewport(index),&screen,&ray);
+        assertf(fabsf(screen.v[0]-aim_x)<.1f&&fabsf(screen.v[1]-aim_y)<.1f,"Viewport reticle/forward ray mismatch");
+        pixel((int)roundf(screen.v[0])-1,(int)roundf(screen.v[1])-1,3,3,RGBA32(255,0,255,255));
+#endif
         const bg_seat_definition *seat = bg_player_seat(p);
         int id = personal                    ? (int)reticles[weapon]
                  : seat && (seat->flags & 8) ? vehicle_reticles[vehicle->kind]

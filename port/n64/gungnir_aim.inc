@@ -10,7 +10,7 @@ bg_aim_target bg_gungnir_target(unsigned owner) {
     bg_aim_target best={.player=-1,.distance=1e9f};
     if(owner>=active_players)return best;
     const bg_player *p=&bg_players[owner];if(!bg_gungnir_aim_active(p)||bg_player_objective(owner)>=0)return best;
-    bg_view_rect view=bg_view_area(active_players,owner);
+    bg_view_rect view=bg_view_area(bg_view_count(),owner);
     float fov=view.w==320&&view.h==120?.72f:1.08f;
     float radius=2*BG_GUNGNIR_RADIUS*tanf(fov*.5f)*fminf(view.w,view.h)/view.h;
     float cp=cosf(p->pitch),sp=sinf(p->pitch),cy=cosf(p->yaw),sy=sinf(p->yaw);

@@ -57,7 +57,7 @@ def parse_args(argv=None):
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
-    parser.add_argument("--gungnir-qa",type=int,choices=range(5),help="Native GUNGNIR LOD, off-axis aim, zoom, personal-arm and rear-armor inspection")
+    parser.add_argument("--gungnir-qa",type=int,choices=range(6),help="Native GUNGNIR LOD, aim, zoom, personal-arm, rear-armor and viewport alignment inspection")
     parser.add_argument("--gungnir-frontend-qa",action="store_true",help="Mixed armor selection, live movement autopilot and match lifecycle through production menus")
     parser.add_argument("--gungnir-field-qa",action="store_true",help="GUNGNIR weapons and production vehicle interactions against the CE reference")
     parser.add_argument("--gungnir-qa-views",type=int,choices=range(1,5),help="GUNGNIR inspection viewport layout")

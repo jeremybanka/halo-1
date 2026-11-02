@@ -80,6 +80,7 @@ bg_pickup bg_pickups[BG_MAX_PICKUPS];
 bg_event bg_events[BG_MAX_EVENTS];
 unsigned bg_vehicle_count, bg_pickup_count, bg_event_count;
 static unsigned active_players = 4;
+static unsigned active_views = 4;
 unsigned bg_unit_count(void) {
 #ifdef BG_PVE
     if(bg_pve_is_active())return BG_PLAYERS+bg_pve_count;
@@ -172,9 +173,16 @@ static float random_signed(void) {
 }
 void bg_set_players(unsigned count) {
     active_players = count < 1 ? 1 : count > 4 ? 4 : count;
+    active_views = active_players;
 }
 unsigned bg_player_count(void) {
     return active_players;
+}
+void bg_set_view_count(unsigned count) {
+    active_views = count < 1 ? 1 : count > 4 ? 4 : count;
+}
+unsigned bg_view_count(void) {
+    return active_views;
 }
 void bg_clear_events(void) {
     bg_event_count = 0;

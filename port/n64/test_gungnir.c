@@ -59,6 +59,29 @@ static void aiming(void){
     assert(passenger&&driver);p->vehicle=-1;bg_vehicle_count=0;
     puts("PASS: nearest screen-center enemy, off-axis shot/gun agreement, unchanged camera, allies/cloak/terrain/vehicle occlusion, passengers, 1-4 layouts and zoom exclusion");
 }
+static void viewport_aim(void){
+    setup(BG_MAP_BLOOD_GULCH);
+    for(unsigned views=1;views<=4;views++)for(unsigned owner=0;owner<views;owner++){
+        unsigned enemy=(owner+1)%4;
+        for(unsigned i=0;i<4;i++)bg_players[i].health=0;
+        bg_player *p=&bg_players[owner],*q=&bg_players[enemy];
+        p->health=q->health=100;p->armor=BG_ARMOR_GUNGNIR;q->armor=BG_ARMOR_SPARTAN;
+        memcpy(p->pos,(float[]){0,bg_floor(0,0,20)+.015f,0},12);
+        p->yaw=p->pitch=0;p->zoom=0;p->vehicle=-1;p->weapon=BG_W_AR;
+        memcpy(q->pos,(float[]){6,p->pos[1]+bg_eye_height(p)-bg_body_height(q)*.7f,1.65f},12);
+        q->vehicle=-1;q->invisibility=0;
+        bg_set_view_count(views);assert(bg_player_count()==4&&bg_view_count()==views);
+        bg_view_rect rect=bg_view_area(views,owner);
+        bool wide=rect.w==320&&rect.h==120;
+        /* This tangent lies inside the full/quarter-screen ring, outside
+         * the wide half-screen ring. Four actors stay active in every case. */
+        assert(bg_gungnir_target(owner).player==(wide?-1:(int)enemy));
+        q->pos[2]=.6f;assert(bg_gungnir_target(owner).player==(int)enemy);
+        p->zoom=1;assert(bg_gungnir_target(owner).player==-1);p->zoom=0;
+    }
+    bg_set_players(2);assert(bg_view_count()==2);bg_set_players(4);
+    puts("PASS: aim cone uses the rendered 1/2/3/4-view layout with four live actor slots, including wide P3 and zoom exclusion");
+}
 static void navigation(void){
     unsigned moving_maps=0;
     for(unsigned map=0;map<13;map++){
@@ -126,4 +149,4 @@ static void mode_commands(void){
     inputs[0].fire=false;tick(1);assert(p->ammo==9);
     puts("PASS: D-pad mode transitions, persistent follow identity, manual movement restored on toggle and four simultaneous bounded pilots");
 }
-int main(void){shields_controls();aiming();strategies();mode_commands();navigation();puts("PASS: GUNGNIR gameplay and all-map movement autopilot");}
+int main(void){shields_controls();aiming();viewport_aim();strategies();mode_commands();navigation();puts("PASS: GUNGNIR gameplay and all-map movement autopilot");}

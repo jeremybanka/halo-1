@@ -7,7 +7,7 @@ decay back to 150. SWAT and Team SWAT continue to require ODST.
 
 The normal cartridge remains one game: `halo-64.z64` includes local multiplayer,
 SWAT and Firefight together. The combined cartridge fits within 64 MiB; the
-paced release is approximately 63.4 MiB. Smaller multiplayer-only builds are explicit
+paced release is approximately 63.5 MiB. Smaller multiplayer-only builds are explicit
 diagnostics through `--no-firefight`, rather than a separate release.
 
 The flashlight action toggles movement autopilot. Duke maps that action to B.

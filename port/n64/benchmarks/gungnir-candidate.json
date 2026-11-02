@@ -123,7 +123,22 @@
     "limits": [
       "Finite rear/camera/idle samples and release boot; not every native animation or physical-console performance.",
       "Host library checks independently cover all adapted clips. Free-heap samples are not peak memory."
-    ]
+    ],
+    "release_boot": {
+      "schema": 1,
+      "rom_bytes": 66551808,
+      "rom_sha256": "7f728ce20e9b7e79225e11cedd22d4500e4b1f6b4fc005280c3ce62543ed3353",
+      "compressed_bytes": 22222254,
+      "compressed_sha256": "6f3e2b3c7c3399a87a146be680fb86f07335a89a6dc33bed3dc612248bb1948d",
+      "manifest_sha256": "1ee565f789e35f1bee7b647049aa56d3cd5739f88f031edb8cb48ec70fc4d784",
+      "source_commit": "9cc80bd6ff70c8b533040c9247ad460a6fb621ef",
+      "asset_commit": "e7c7b54da7195c81b151a07335b6b4a515328bd3",
+      "single_combined_cartridge": true,
+      "required_ram_mib": 8,
+      "native_boot_passed": true,
+      "scope": "Ares v148: final combined menu boot with Multiplayer and Firefight visible. Rear near/far QA is separately recorded in the demake review. No fresh full native functional matrix or hardware benchmark is claimed.",
+      "capture_sha256": "76d98e2081499a4605f758a601232ac63cf26de96030c175e81ab066a7e7b974"
+    }
   },
   "verification": "Runtime/export integrity and finite source/native appearance review passed. Raw nonzero projection/depth observations and diagnostic history remain in the private snapshot.",
   "builds": [
@@ -180,6 +195,16 @@
       "asset_commit": "6e1fc3610c8c592b42ec90e90319d0bddc8c24b3",
       "native_visual_inspection": true,
       "scope": "Enabled-only top-center AUTO; native one/three-view checks and combined paced release boot"
+    },
+    {
+      "kind": "gungnir-rear-release-v1",
+      "rom_bytes": 66551808,
+      "rom_sha256": "7f728ce20e9b7e79225e11cedd22d4500e4b1f6b4fc005280c3ce62543ed3353",
+      "manifest_sha256": "1ee565f789e35f1bee7b647049aa56d3cd5739f88f031edb8cb48ec70fc4d784",
+      "source_commit": "9cc80bd6ff70c8b533040c9247ad460a6fb621ef",
+      "asset_commit": "e7c7b54da7195c81b151a07335b6b4a515328bd3",
+      "native_visual_inspection": true,
+      "scope": "Ares v148: final combined menu boot with Multiplayer and Firefight visible. Rear near/far QA is separately recorded in the demake review. No fresh full native functional matrix or hardware benchmark is claimed."
     }
   ],
   "damage_tiling": {
@@ -187,7 +212,7 @@
     "synchronized_uploads": 120,
     "maximum_screen_coordinate_error_pixels": 0.0001
   },
-  "combined_release_rom_bytes": 66469888,
+  "combined_release_rom_bytes": 66551808,
   "combined_release_required_ram_mib": 8,
   "hud_status": {
     "label": "AUTO",

@@ -166,8 +166,8 @@ static T3DMat4FP transforms[BG_FRAME_SLOTS][4], guns[BG_FRAME_SLOTS][4],
 static T3DMat4FP held_matrices[BG_FRAME_SLOTS][4];
 static unsigned slot, views = 4, triangles;
 static unsigned rendered_humans(void) {
-#ifdef BG_GUNGNIR_QA
-    /* A single-camera inspection can retain the other three human actors. */
+#if defined(BG_GUNGNIR_QA) || defined(BG_GUNGNIR_SHOWCASE)
+    /* Single-camera inspections and recordings retain every human actor. */
     return bg_player_count();
 #else
     return views;

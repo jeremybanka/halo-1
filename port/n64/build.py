@@ -21,6 +21,10 @@ SHOWCASES = [
     "shotgun-kill",
     "needler-supercombine",
     "needler-homing",
+    "gungnir-aim",
+    "gungnir-follow",
+    "gungnir-elite",
+    "gungnir-panic",
 ]
 
 
@@ -633,6 +637,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_MOVEMENT_QA=" + str(args.movement_qa)] if args.movement_qa is not None else []),
         *(["-DBG_DEMO"] if args.demo else []),
         *(["-DBG_SHOWCASE=" + str(SHOWCASES.index(args.showcase))] if args.showcase else []),
+        *(["-DBG_GUNGNIR_SHOWCASE"] if args.showcase and args.showcase.startswith("gungnir-") else []),
         *(["-DBG_MENU_QA"] if args.menu_qa else []),
         *(["-DBG_FLAG_CLOTH_QA"] if args.flag_cloth_qa else []),
         *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),

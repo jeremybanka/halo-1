@@ -200,3 +200,15 @@ selects the viewport layout. Bank overrides require an isolated QA build.
 `--gungnir-field-qa` reuses the production weapon/vehicle inspection against CE.
 Native visual, memory and RDP results must be identified separately from host
 tests and successful ROM compilation.
+
+`--showcase gungnir-aim`, `gungnir-follow`, `gungnir-elite` and `gungnir-panic`
+stage labeled, single-camera recording encounters. Other local players supply
+the opponents and friendly leader. Camera, firing and opponent inputs are
+scripted; GUNGNIR supplies its actual aim and movement assistance. Weapon
+damage, shields, reloads, navigation and deaths use the production simulation.
+The aim scene holds the camera still. Follow selects a friendly and then looks
+away while continuing to follow. `test_maps.py --gungnir-showcase` checks all
+four encounters under ASan/UBSan, including manual fire during autopilot.
+
+Keep ROM builds and gameplay videos local. The private asset repository receives
+only the inputs and validation data required to build; do not upload ROM payloads.

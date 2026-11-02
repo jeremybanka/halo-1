@@ -1,3 +1,6 @@
+#ifdef BG_GUNGNIR_SHOWCASE
+#include "gungnir_showcase.inc"
+#else
 #include "showcase.h"
 #include "rifle_fixture.h"
 #include <math.h>
@@ -165,3 +168,4 @@ const char*bg_showcase_caption(void){
     return now<2?"FULL SHIELDS / LIVE DAMAGE":"LIVE WEAPON FIRE";
 }
 const bg_showcase_stats*bg_showcase_telemetry(void){return &stats;}
+#endif

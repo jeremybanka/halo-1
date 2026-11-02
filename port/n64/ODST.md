@@ -16,7 +16,8 @@ The normal flashlight control toggles VISR for that viewport:
   makes the grid densest at the center and spreads it toward the edges.
 - Living enemies, including fully cloaked enemies, are flat `#bbffcc` silhouettes.
 - Allies and the wearer's arms, weapon or carried objective are flat
-  `#193e4d`, the shared inactive HUD / unselected grenade color.
+  `#3f8da6`, halfway between active HUD cyan (`#64dcff`) and inactive HUD cyan
+  (`#193e4d`). Both HUD colors retain their existing brightness.
 - The normal HUD stays visible. Terrain, scenery, vehicles and dropship hulls
   retain their normal depth, so both friendly and hostile silhouettes are
   partially or completely hidden by obstacles. Other world color/effects vanish.
@@ -105,11 +106,12 @@ original durations, ODST-specific sockets and conservative bounds are retained.
   Custom first-person binding passes 1,409 production poses.
 - Gameplay input tests cycle pistol, sniper, rocket and unsupported AR zoom
   with VISR on/off. Native fixtures compare ordinary/VISR focal lengths and
-  exercise unzoomed, 2× and 10× views, HUD, inactive allies/viewmodels,
+  exercise unzoomed, 2× and 10× views, HUD, cyan allies/viewmodels,
   camouflage, and partial/total environmental occlusion.
 
 Ares v148 / paraLLEl-RDP checks use 8 MiB. Captures, logs and ROM hashes are
-in `native-game-scale/`. Multiplayer and Firefight releases are 62,488,576 and
+in `native-game-scale/`, with the latest friendly/viewmodel cyan checks in
+`native-friendly-cyan/`. Multiplayer and Firefight releases are 62,488,576 and
 65,175,552 bytes, within 64 MiB. These are emulator and asset-allocation checks,
 not physical-console performance or full-match peak-memory qualification.
 The inherited `gunner>0` replay fixture still fails on unchanged parent/main;

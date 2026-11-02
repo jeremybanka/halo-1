@@ -7,7 +7,7 @@
     "port/n64/JORGE_LODS.md"
   ],
   "prior_pre_policy_odst_meshes_used": false,
-  "asset_commit": "94c97e22c5b40a1dfcdbaa50e991f2c7677d43fe",
+  "asset_commit": "40385b31b914ec2b13126b4f10f990152693e940",
   "body_bank_sha256": "aaca270064d8049580b7f1934fd21a34792f51ab972c8b7f51d1915655887256",
   "body_bank_bytes": 802784,
   "body_costs": [
@@ -48,26 +48,25 @@
     "multiplayer": {
       "file": "halo-64-paced30-rspq32k.z64",
       "bytes": 62488576,
-      "sha256": "3e2b261ff9dd755fae4e549241e0df0d50a51d2d2d8d6b29c959a82a84c34dc7",
+      "sha256": "848486f905704c026c85e6a7c4458750d41213a2eb1654e6dd3178e3433aa0c5",
       "preset": "release",
-      "build_manifest_sha256": "82f4e0b1856fc2ce0fc45fc4c3cc8fae1559e766fe5c0e16bbc4376cc36e9d7d",
-      "built_asset_commit": "e7ec321d796389773a34e398124b10eafb9bfa4f",
+      "build_manifest_sha256": "5ddb2bbc99ab69bcdc6cdd16dc7e91bd5e53c370ee4c95feedf5cc6e8471732e",
+      "built_asset_commit": "94c97e22c5b40a1dfcdbaa50e991f2c7677d43fe",
       "compiled_source_fingerprints_match": true
     },
     "firefight": {
       "file": "halo-64-firefight-paced30-rspq32k.z64",
       "bytes": 65175552,
-      "sha256": "51b04d3c8df72c326a60e21a141c430b10606f71e0fe7b455949e767d36ba25f",
+      "sha256": "2c1dc2203a55590dbc8faea03faffe7585b66d9fdfb80470f4c74a35da736cee",
       "preset": "release",
-      "build_manifest_sha256": "42cf93e4d08261a6686ec3d45e462c2043f91b533d5736a89a6a29d4f444708d",
-      "built_asset_commit": "e7ec321d796389773a34e398124b10eafb9bfa4f",
+      "build_manifest_sha256": "9b2580b8a4df78099991a6129cc87959ae7594037ccc2d936dbb91b926946931",
+      "built_asset_commit": "94c97e22c5b40a1dfcdbaa50e991f2c7677d43fe",
       "compiled_source_fingerprints_match": true
     }
   },
   "renderer": {
     "background": "#004411",
     "enemy": "#bbffcc",
-    "inactive": "#193e4d",
     "hud_visible": true,
     "environmental_depth_retained": true,
     "cloak_opacity_ignored_for_living_silhouettes": true,
@@ -82,7 +81,10 @@
         320,
         120
       ]
-    ]
+    ],
+    "hud_active": "#64dcff",
+    "hud_inactive": "#193e4d",
+    "friendly_and_viewmodel": "#3f8da6"
   },
   "validation": {
     "coverage_probes": 128,
@@ -112,7 +114,7 @@
   "native_checks": {
     "emulator": "Ares v148 / paraLLEl-RDP",
     "ram_bytes": 8388608,
-    "scope": "Frozen multiplayer inspection fixtures; no FPS or full-match peak-memory claim",
+    "scope": "Broader frozen multiplayer geometry/depth/zoom/grid fixtures, captured before the friendly-cyan brightness update; latest color checks are in native_color_update",
     "fixtures": [
       {
         "page": 0,
@@ -271,5 +273,58 @@
     "Coverage samples four poses / eight directions / two sizes; no exhaustive animation-pixel coverage claim",
     "Broad plate-front clearance is separate from oblique cuff-return overlap, reported in the private depth audit",
     "Inherited gunner>0 replay fixture fails on unchanged parent/main too; full regression-suite pass not claimed"
-  ]
+  ],
+  "native_color_update": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "hud_active_rgb": [
+      100,
+      220,
+      255
+    ],
+    "hud_inactive_rgb": [
+      25,
+      62,
+      77
+    ],
+    "friendly_and_viewmodel_rgb": [
+      63,
+      141,
+      166
+    ],
+    "framebuffer_quantized_rgb": [
+      56,
+      136,
+      160
+    ],
+    "enemy_rgb": [
+      187,
+      255,
+      204
+    ],
+    "fixtures": [
+      {
+        "page": 3,
+        "label": "friendly-enemy-colors",
+        "rom": "halo-64-model-qa-odst-qa3-validation-rspq32k.z64",
+        "rom_sha256": "314aa15ec6bde6ca734ffa588d41e5064759a5ab9ee568a87c86f74c2a63ab8a",
+        "capture": "qa3-friendly-enemy-colors.png",
+        "capture_sha256": "e5ddf11e654902c765ea687ee301d7f12d2aba021560b254a99b9c2268e8e40b",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "visr_midpoint_cyan_pixels": 1201
+      },
+      {
+        "page": 4,
+        "label": "firstperson-cyan",
+        "rom": "halo-64-model-qa-odst-qa4-validation-rspq32k.z64",
+        "rom_sha256": "8217caf5afb52838ba1bfaa2e8f7c7a79a320c409b807d20ba4d8b998c1c6f92",
+        "capture": "qa4-firstperson-cyan.png",
+        "capture_sha256": "8acba5644a177b86523b102e42d189c3ab613b81370646b41e249911eadf4c5a",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "visr_midpoint_cyan_pixels": 6587
+      }
+    ]
+  }
 }

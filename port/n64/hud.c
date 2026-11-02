@@ -140,7 +140,7 @@ static void pixel(int x, int y, int w, int h, color_t c) {
 }
 
 /* This bank stays resident through all counters, bars and labels in a view. */
-static const color_t hud_cyan = {100, 220, 255, 255};
+static const color_t hud_cyan = {BG_HUD_ACTIVE_R, BG_HUD_ACTIVE_G, BG_HUD_ACTIVE_B, 255};
 static const color_t hud_dim = {BG_HUD_INACTIVE_R, BG_HUD_INACTIVE_G, BG_HUD_INACTIVE_B, 255};
 static const color_t hud_shadow = {3, 13, 22, 235};
 static const color_t hud_backing = {3, 13, 22, 150};

@@ -1,5 +1,11 @@
 #ifndef BG_HUD_PALETTE_H
 #define BG_HUD_PALETTE_H
-/* Shared with VISR allies and viewmodels: the unselected grenade color. */
-enum { BG_HUD_INACTIVE_R=25, BG_HUD_INACTIVE_G=62, BG_HUD_INACTIVE_B=77 };
+/* VISR friendlies/viewmodels sit halfway between active and inactive HUD cyan. */
+enum {
+    BG_HUD_ACTIVE_R=100, BG_HUD_ACTIVE_G=220, BG_HUD_ACTIVE_B=255,
+    BG_HUD_INACTIVE_R=25, BG_HUD_INACTIVE_G=62, BG_HUD_INACTIVE_B=77,
+    BG_VISR_FRIENDLY_R=(BG_HUD_ACTIVE_R+BG_HUD_INACTIVE_R+1)/2,
+    BG_VISR_FRIENDLY_G=(BG_HUD_ACTIVE_G+BG_HUD_INACTIVE_G+1)/2,
+    BG_VISR_FRIENDLY_B=(BG_HUD_ACTIVE_B+BG_HUD_INACTIVE_B+1)/2
+};
 #endif

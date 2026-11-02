@@ -42,7 +42,7 @@ static void visr_color(bool enemy){
     rdpq_sync_pipe();rdpq_mode_zbuf(true,true);rdpq_mode_blender(0);
     rdpq_mode_alphacompare(0);rdpq_mode_tlut(TLUT_NONE);
     rdpq_mode_combiner(RDPQ_COMBINER1((0,0,0,PRIM),(0,0,0,SHADE)));
-    rdpq_set_prim_color(enemy?RGBA32(187,255,204,255):RGBA32(BG_HUD_INACTIVE_R,BG_HUD_INACTIVE_G,BG_HUD_INACTIVE_B,255));
+    rdpq_set_prim_color(enemy?RGBA32(187,255,204,255):RGBA32(BG_VISR_FRIENDLY_R,BG_VISR_FRIENDLY_G,BG_VISR_FRIENDLY_B,255));
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
 }
 static void draw_visr_units(unsigned viewer,T3DViewport *vp){

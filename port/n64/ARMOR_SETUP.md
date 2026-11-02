@@ -141,7 +141,8 @@ ODST has no shields, cannot consume overshields, and keeps zero shields through
 respawn and Firefight resupply. Its normal flashlight button toggles a deep green
 VISR viewport with a subtly curved grid, densest at the center. Living enemies,
 including cloaked enemies, are bright green silhouettes. Allies and the wearer's
-arms/weapon use the inactive HUD color; the HUD remains visible. World depth
+arms/weapon use a cyan halfway between active and inactive HUD colors; the HUD
+remains visible. World depth
 partially or completely occludes both friendly and hostile units. Normal weapon
 zoom and neighboring viewports retain their usual behavior.
 The cyan visor and neutral armor are protected from palette changes;

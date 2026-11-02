@@ -41,10 +41,10 @@
     0.08,
     0.09
   ],
-  "body_bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
+  "body_bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
   "body_vertices": [
-    1062,
-    780
+    1060,
+    792
   ],
   "body_triangles": [
     1292,
@@ -66,8 +66,8 @@
       32
     ],
     "additional_vertex_loads": [
-      72,
-      48
+      66,
+      44
     ],
     "sanitized_state_cases": 96,
     "native_rdp_errors": 0,
@@ -77,9 +77,9 @@
     "schema": 1,
     "passed": true,
     "source_candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
-    "body_bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
-    "generated_data_sha256": "c7c37e5de48f30c8b6c34424efda856d06a2327ea524bbca6268ffe332210105",
-    "metadata_sha256": "dd387c19d246a60b3d45188bf1bbbb838aa1dee828f36539d27b5825b705d6d8",
+    "body_bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
+    "generated_data_sha256": "de5cc5703a785b497f5ccb4e56e79d97ce35bfe2ec1e83f3fef6297f647d759e",
+    "metadata_sha256": "1b83a98289e6dac7eebcfc0b2d5c662e4b793ba09e145ec2052a726027e61918",
     "sanitizers_passed": true,
     "state_cases": 96,
     "tmem_bytes": 4096,
@@ -116,8 +116,8 @@
       32
     ],
     "extra_vertex_loads": [
-      72,
-      48
+      66,
+      44
     ],
     "inputs": {
       "port/n64/gungnir_faces.c": "dddc8b902247e477d48f2c3bdc6eade1af4d9748b3132344fd15581ad42ba118",
@@ -131,8 +131,8 @@
     "schema": 1,
     "passed": true,
     "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
-    "body_bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
-    "generated_data_sha256": "c7c37e5de48f30c8b6c34424efda856d06a2327ea524bbca6268ffe332210105",
+    "body_bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
+    "generated_data_sha256": "de5cc5703a785b497f5ccb4e56e79d97ce35bfe2ec1e83f3fef6297f647d759e",
     "emulator": "Ares v148",
     "rdram_mib": 8,
     "physical_console_tested": false,
@@ -148,22 +148,13 @@
       3
     ],
     "fixture": "--gungnir-qa 7 --gungnir-qa-views 4",
-    "material_cycle": [
-      "ordinary",
-      "shield glow",
-      "partial camouflage",
-      "shield glow plus partial camouflage",
-      "fully invisible"
-    ],
     "visually_captured_states": [
       "ordinary",
-      "partial camouflage",
       "shield glow"
     ],
     "checks": [
-      "Current near/far optic and scrawls inspected in native four-view fixture.",
-      "Repeated rendering and material cycles retain 0 RDP errors and warnings.",
-      "HUD and weapons remain visible with restored rendering state."
+      "Current crown, cheek and underside jaw blocking and four original scrawls inspected at near/far LODs.",
+      "Current native render retains 0 RDP errors and warnings; HUD and held weapons remain visible."
     ],
     "inputs": {
       "port/n64/scene.c": "9eb48cd7215a4f6fcaca289badd3592bb1b285110804abd1a3f74ffbc0848952",
@@ -171,35 +162,22 @@
       "port/n64/gungnir_faces.h": "13b926899022f6c59d21278452e8745b95a7f025409b8e800a0e2427444f5127",
       "port/n64/gungnir_qa.h": "c0a3de5c3754d41f3a4dbb6b1cdefee04772fdfcd0d6b2f71054d7e15961ba07"
     },
-    "manifest_sha256": "62a72449b55909e3c8589f61fc9311fc162e058994b9ca082a7b2cc4c49e3854",
-    "rom_sha256": "0a1bde3c8697836debf3a9aeef1132dc86adfcd50511b194a5fc8d515358f4bc",
+    "manifest_sha256": "fa397d2b66b63fd8a4687134e296ad014dd22f09536e6a2e8d3f16e39a6a1d01",
+    "rom_sha256": "b1f2093405a234d485ffebb86ff24e96bbd12306efa0fe55844f568279c8c9a7",
     "captures": [
       {
-        "local_path": "build/gungnir-optic-native-v1/optic-check-1.png",
-        "sha256": "558016fa66a8f0255e0416110014915a96ef41c6ad26f98df3d0a7190bca0dbe"
+        "local_path": "build/gungnir-panels-native-v1/helmet-check-1.png",
+        "sha256": "b3495c323dc85d98eba6eee0c24ff3a5a9d63eec4a9c7e0c490d90bc36e1f7be"
       },
       {
-        "local_path": "build/gungnir-optic-native-v1/optic-check-2.png",
-        "sha256": "cdf5712b75413cbb5a1b23f9fd04b88eb7d7541b914b5cb29a06127836b58315"
-      },
-      {
-        "local_path": "build/gungnir-optic-native-v1/optic-check-3.png",
-        "sha256": "5f754c1dca3b5fb1081b22b0ccd5e51e25380e56977b6a90c16e6ae81c89a8b4"
-      },
-      {
-        "local_path": "build/gungnir-optic-native-v1/optic-check-4.png",
-        "sha256": "dcc31968754ac30e8111d9fdc39bc884e0ffa864a670570f56b9ca473b33eacb"
-      },
-      {
-        "local_path": "build/gungnir-optic-native-v1/optic-check-5.png",
-        "sha256": "226535ec5d346822a9414f9bab7d4fb37bbedd8b164a4c2f22353681b92f191c"
+        "local_path": "build/gungnir-panels-native-v1/helmet-check-2.png",
+        "sha256": "e863949ff9d0990f905654debb93880ef13bd6adfe76939bcb5970805f24dc41"
       }
     ],
     "limits": [
-      "Finite close head/camera/material inspection; no physical-console test.",
-      "The optic is partly occluded by the held weapon in this native camera; clean frontal host renders inspect the complete design.",
-      "Source, geometry, skin and export proofs rerun for the current body. Earlier full gameplay/material checks are inherited from private b7c93a4b3cf024c908c36cb64b17a386fb54b985.",
-      "ROM and captures remain local."
+      "Finite close head cameras; the held weapon partly occludes the drawings. Clean frontal/three-quarter host galleries inspect all four complete heads.",
+      "Earlier full material-cycle, functional, viewport/zoom and body/shell checks are inherited from private 4628fa411ff057924ca7c291add3802ed5d61050.",
+      "No physical-console test. ROM and captures remain local."
     ]
   },
   "geometry_scope": "Face projection preserves the original art UVs and reuses current body geometry. The requested optic geometry and clean silver coloring are independently audited in gungnir-optic.json; body BLEND/GLB and geometry proofs are refreshed. Editable paint remains beside the body library.",

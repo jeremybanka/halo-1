@@ -50,6 +50,12 @@ def run(output):
     for row in optic['lods']:
         assert row['helmet_shell_geometry_unchanged'] and row['closed_convex_shell'] and row['source_art_uv_unchanged'] and row['source_uv_stains_removed']
         assert row['flat_topped_hex_corners']==6 and row['quantized_pose_samples']==454 and row['quantized_optic_degenerate_triangles']==0
+    helmet=read(F/'review/helmet-validation.json')
+    assert helmet['passed'] and helmet['candidate_sha256']==sha(candidate) and helmet['bank_sha256']==report['bank_sha256']
+    assert helmet['source_recipe_sha256']==sha(ROOT/'port/n64/pack_gungnir.py')
+    for row in helmet['lods']:
+        assert all(row['panels'][name]>0 for name in ('crown','cheek','jaw','faceplate'))
+        assert row['all_39_clip_packed_topology_and_motion_unchanged'] and row['all_weapon_sockets_unchanged'] and row['nonhelmet_authored_colors_unchanged']
     codpiece=[r for r in clearance['rows'] if r['region']=='codpiece']
     assert len(codpiece)==24 and max(r['new_broad_plate_occlusion_pixels'] for r in codpiece)<=3
     faces=read(F/'face-art/faces.json');face_test=read(F/'review/faces-validation.json')
@@ -74,6 +80,7 @@ def run(output):
     inputs.update(ROOT/'port/n64'/n for n in ('build.py','frontend_qa.c','jorge_field_qa.h','menu_draw.c','test_maps.c','test_maps.py','test_build_defaults.py','test_damage_tiling.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('repair_gungnir_back.py','audit_gungnir_rear.py','repair_gungnir_shells.py','audit_gungnir_shells.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('refine_gungnir_optic.py','audit_gungnir_optic.py'))
+    inputs.add(ROOT/'port/n64/review_gungnir_helmet.py')
     inputs.update(ROOT/'port/n64'/n for n in ('hud_layout.h','test_hud_layout.c'))
     inputs.update(ROOT/'port/n64'/n for n in ('test_gungnir_faces.py','stage_gungnir_bank.py'))
     inputs.update((ROOT/'port/n64').glob('gungnir*.h'));inputs.update((ROOT/'port/n64').glob('gungnir*.c'));inputs.update((ROOT/'port/n64').glob('gungnir*.py'));inputs.update((ROOT/'port/n64').glob('gungnir*.inc'));inputs.update((ROOT/'port/n64').glob('autopilot*.[ch]'))

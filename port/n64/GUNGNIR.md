@@ -47,8 +47,8 @@ alpha and dark ink within the 4-bit intensity quantization. Each texture uses
 4,096 bytes of TMEM; the four profiles occupy 16,384 shared bytes. The material
 uses depth-tested coplanar decal mode with depth writes off. There are no new
 resident body vertices, changed trajectories or offset helmet shells. Near/far
-body counts remain 1,062/780 vertices and 1,292/887 triangles. The extra draw
-pass submits 34/32 existing triangles and 72/48 vertex loads per visible head.
+body counts remain 1,060/792 vertices and 1,292/887 triangles. The extra draw
+pass submits 34/32 existing triangles and 66/44 vertex loads per visible head.
 
 Decals share shield glow and partial camouflage, disappear with a fully
 invisible body, and are suppressed for ODST VISR silhouettes. The renderer
@@ -84,6 +84,27 @@ and six distinct quantized optic corners without optic degeneracy through
 454 poses at each LOD. All body, packed, runtime, independent rig and GLB
 checks are rerun. Native near/far inspection in Ares reports zero RDP errors
 and warnings. Earlier full functional checks remain inherited as recorded.
+
+## Helmet color blocking
+
+The original helmet supplies three broad material cues: a darker crown panel,
+angular side/cheek plates and the underside jaw rim. They use 82%, 88% and 78%
+of the clean silver albedo respectively, with the existing smooth lighting.
+The frontal writing surface stays silver and the original drawings keep their
+alpha and coordinates. Existing triangle planes define these broad panels;
+protected color boundaries preserve them during bounded vertex-color welding.
+There are no added source vertices, triangles or changes to skin or silhouette.
+
+`review_gungnir_helmet.py` produces matched front/three-quarter galleries for
+all four faces at both LODs. It compares the complete oriented packed triangle
+trajectories and sockets across all 39 sparse clips with the accepted parent,
+and verifies that authored colors outside the helmet remain exact. The usual
+24-level packed color bound remains in place. Parent private revision
+`4628fa411ff057924ca7c291add3802ed5d61050` preserves the previous bank/library.
+Body geometry reports remain applicable; current packed, runtime, face-art and
+independent colored export checks are refreshed. Native head inspection in
+Ares reports zero RDP errors/warnings; earlier full functional and material
+checks remain inherited as recorded. Galleries and ROMs remain local.
 
 ## Movement implementation
 
@@ -155,15 +176,15 @@ all positive and negative audit observations are retained there.
 
 | Body | Native vertices | GLB vertices | Packed vertices | Triangles |
 |---|---:|---:|---:|---:|
-| GUNGNIR near | 889 | 895 | 1,062 | 1,292 |
-| GUNGNIR far | 672 | 675 | 780 | 887 |
+| GUNGNIR near | 889 | 932 | 1,060 | 1,292 |
+| GUNGNIR far | 672 | 699 | 792 | 887 |
 | Standard Spartan near / far | — | — | 562 / 250 | 328 / 135 |
 | Jorge near / far | 603 / 349 | 603 / 349 | 670 / 390 | 949 / 556 |
 | ODST near / far | — | — | 754 / 492 | 789 / 476 |
 
 All costs exclude the separately drawn 140-triangle production rifle. GUNGNIR
 has a separately reduced far mesh; these counts do not establish equal rendering
-cost. Its 1,220,192-byte animation/mesh bank uses its own trajectories and sockets.
+cost. Its 1,220,352-byte animation/mesh bank uses its own trajectories and sockets.
 
 The bank passes 2,967,798 independent Blender/bake vertex comparisons,
 780 colored GLB reimport samples, 4,680 sanitized streamed C decode cases and

@@ -85,7 +85,21 @@ def prepare_broad_colors(data,textures):
                     # The source diffuse includes an optic-shaped dark stain.
                     # Preserve the convex surface and its smooth geometric
                     # lighting, with one clean silver material under the ink.
-                    for tri in tris:tri['broad_vertex_rgb']=[rgb.tolist()]*3
+                    for tri in tris:
+                        # Retain the original broad crown, side armor and jaw
+                        # identities using existing faces. The central silver
+                        # writing surface stays clear; no source grime returns.
+                        x,y,z=(np.mean(tri['p'],axis=0)-center)/radii
+                        p=np.array(tri['p']);surface=np.cross(p[1]-p[0],p[2]-p[0]);surface/=np.linalg.norm(surface)
+                        panel='faceplate';amount=1.
+                        if surface[2]>.80 and surface[0]<.30:
+                            panel='crown';amount=.82
+                        elif surface[2]<-.82:
+                            panel='jaw';amount=.78
+                        elif abs(surface[1])>.75 and -.58<z<.55 and x>-.60:
+                            panel='cheek';amount=.88
+                        tri['helmet_panel']=panel
+                        tri['broad_vertex_rgb']=[(rgb*amount).tolist()]*3
 
 
 def pack(source, output):
@@ -120,7 +134,13 @@ def pack(source, output):
         for t in model['triangles']:
             rgb,amount = corner_colors(t,data['materials'],textures)
             colors.extend(rgb); mask.extend(amount)
-        render_signatures=signatures
+        # Color simplification may merge nearby silver values inside a panel,
+        # but must retain the deliberate plate boundaries. Animation tracks
+        # still share their original complete-motion signatures.
+        render_signatures=[]
+        for i,sig in enumerate(signatures):
+            panel=model['triangles'][i//3].get('helmet_panel')
+            render_signatures.append(sig+(b'|helmet:'+panel.encode() if panel else b''))
         if data.get('opaque_motion_reorder'):
             # These vertex-colored surfaces are opaque. Use the complete
             # runtime trajectory as an immutable identity in the static cache

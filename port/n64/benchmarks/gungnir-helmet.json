@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "passed": true,
+  "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+  "parent_bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
+  "bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
+  "source_recipe_sha256": "f7e3bb2dee7944e628186347e583d564fb52c0dfdd728e307e631da03320f1da",
+  "lods": [
+    {
+      "lod": 0,
+      "panels": {
+        "jaw": 9,
+        "faceplate": 55,
+        "cheek": 14,
+        "crown": 14
+      },
+      "protected_front_triangles": 16,
+      "packed_vertices": 1060,
+      "triangles": 1292,
+      "all_39_clip_packed_topology_and_motion_unchanged": true,
+      "all_weapon_sockets_unchanged": true,
+      "nonhelmet_authored_colors_unchanged": true
+    },
+    {
+      "lod": 1,
+      "panels": {
+        "jaw": 3,
+        "faceplate": 40,
+        "cheek": 10,
+        "crown": 11
+      },
+      "protected_front_triangles": 14,
+      "packed_vertices": 792,
+      "triangles": 887,
+      "all_39_clip_packed_topology_and_motion_unchanged": true,
+      "all_weapon_sockets_unchanged": true,
+      "nonhelmet_authored_colors_unchanged": true
+    }
+  ],
+  "scope": "Color-only crown, cheek and underside jaw blocking on retained source surfaces. Exact oriented packed triangle trajectories across all 39 sparse clips, sockets compare to the accepted parent. Nonhelmet authored colors remain exact; packed color welding retains its existing 24-level channel bound. Frontal faces remain silver; original art alpha/UV and native appearance are separate checks.",
+  "parent_private_commit": "4628fa411ff057924ca7c291add3802ed5d61050",
+  "body_bank_bytes": 1220352,
+  "native_validation": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "body_bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
+    "generated_data_sha256": "de5cc5703a785b497f5ccb4e56e79d97ce35bfe2ec1e83f3fef6297f647d759e",
+    "emulator": "Ares v148",
+    "rdram_mib": 8,
+    "physical_console_tested": false,
+    "rdp_errors": 0,
+    "rdp_warnings": 0,
+    "views": 4,
+    "near_profiles": [
+      0,
+      1
+    ],
+    "far_profiles": [
+      2,
+      3
+    ],
+    "fixture": "--gungnir-qa 7 --gungnir-qa-views 4",
+    "visually_captured_states": [
+      "ordinary",
+      "shield glow"
+    ],
+    "checks": [
+      "Current crown, cheek and underside jaw blocking and four original scrawls inspected at near/far LODs.",
+      "Current native render retains 0 RDP errors and warnings; HUD and held weapons remain visible."
+    ],
+    "inputs": {
+      "port/n64/scene.c": "9eb48cd7215a4f6fcaca289badd3592bb1b285110804abd1a3f74ffbc0848952",
+      "port/n64/gungnir_faces.c": "dddc8b902247e477d48f2c3bdc6eade1af4d9748b3132344fd15581ad42ba118",
+      "port/n64/gungnir_faces.h": "13b926899022f6c59d21278452e8745b95a7f025409b8e800a0e2427444f5127",
+      "port/n64/gungnir_qa.h": "c0a3de5c3754d41f3a4dbb6b1cdefee04772fdfcd0d6b2f71054d7e15961ba07"
+    },
+    "manifest_sha256": "fa397d2b66b63fd8a4687134e296ad014dd22f09536e6a2e8d3f16e39a6a1d01",
+    "rom_sha256": "b1f2093405a234d485ffebb86ff24e96bbd12306efa0fe55844f568279c8c9a7",
+    "captures": [
+      {
+        "local_path": "build/gungnir-panels-native-v1/helmet-check-1.png",
+        "sha256": "b3495c323dc85d98eba6eee0c24ff3a5a9d63eec4a9c7e0c490d90bc36e1f7be"
+      },
+      {
+        "local_path": "build/gungnir-panels-native-v1/helmet-check-2.png",
+        "sha256": "e863949ff9d0990f905654debb93880ef13bd6adfe76939bcb5970805f24dc41"
+      }
+    ],
+    "limits": [
+      "Finite close head cameras; the held weapon partly occludes the drawings. Clean frontal/three-quarter host galleries inspect all four complete heads.",
+      "Earlier full material-cycle, functional, viewport/zoom and body/shell checks are inherited from private 4628fa411ff057924ca7c291add3802ed5d61050.",
+      "No physical-console test. ROM and captures remain local."
+    ]
+  },
+  "library_vertices": [
+    {
+      "native": 889,
+      "glb": 932
+    },
+    {
+      "native": 672,
+      "glb": 699
+    }
+  ]
+}

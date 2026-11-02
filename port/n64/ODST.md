@@ -99,7 +99,7 @@ original durations, ODST-specific sockets and conservative bounds are retained.
   alone does not pass this check.
 - Both independent editable LODs pass 454 Blender skinning samples. Body-only,
   meter-unit GLBs round-trip all 39 clips across 390 authored-key and 390
-  intermediate samples, with maximum error 0.474 mm against a 1 mm gate.
+  playback-clock samples, with maximum error 0.474 mm against a 1 mm gate.
 - Actual C streamed loader/decoder under ASan/UBSan: 4,680 cases, both LODs,
   four phases, endpoints, looping, clamping, blending, sockets and reloads.
   Custom first-person binding passes 1,409 production poses.

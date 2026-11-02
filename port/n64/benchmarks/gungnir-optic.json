@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "passed": true,
+  "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+  "parent_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+  "lods": [
+    {
+      "lod": 0,
+      "helmet_shell_geometry_unchanged": true,
+      "closed_convex_shell": true,
+      "flat_topped_hex_corners": 6,
+      "orange_rgb": [
+        255,
+        149,
+        25
+      ],
+      "housing_rgb": [
+        76,
+        76,
+        76
+      ],
+      "source_art_uv_unchanged": true,
+      "source_uv_stains_removed": true,
+      "quantized_pose_samples": 454,
+      "quantized_optic_degenerate_triangles": 0,
+      "width_increase_ratio": 1.3520806368773275
+    },
+    {
+      "lod": 1,
+      "helmet_shell_geometry_unchanged": true,
+      "closed_convex_shell": true,
+      "flat_topped_hex_corners": 6,
+      "orange_rgb": [
+        255,
+        149,
+        25
+      ],
+      "housing_rgb": [
+        76,
+        76,
+        76
+      ],
+      "source_art_uv_unchanged": true,
+      "source_uv_stains_removed": true,
+      "quantized_pose_samples": 454,
+      "quantized_optic_degenerate_triangles": 0,
+      "width_increase_ratio": 1.12673386406444
+    }
+  ],
+  "scope": "All unrelated geometry and original scrawls retain their coordinates. Helmet remains closed/convex. Albedo is independent of source UV stains; all 39 clips retain six quantized optic corners. Native appearance and rendering are separate.",
+  "body_bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
+  "body_bank_bytes": 1220192,
+  "packed_vertices": [
+    1062,
+    780
+  ],
+  "triangles": [
+    1292,
+    887
+  ],
+  "rig_comparisons": 2967798,
+  "native_validation": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "body_bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
+    "generated_data_sha256": "c7c37e5de48f30c8b6c34424efda856d06a2327ea524bbca6268ffe332210105",
+    "emulator": "Ares v148",
+    "rdram_mib": 8,
+    "physical_console_tested": false,
+    "rdp_errors": 0,
+    "rdp_warnings": 0,
+    "views": 4,
+    "near_profiles": [
+      0,
+      1
+    ],
+    "far_profiles": [
+      2,
+      3
+    ],
+    "fixture": "--gungnir-qa 7 --gungnir-qa-views 4",
+    "material_cycle": [
+      "ordinary",
+      "shield glow",
+      "partial camouflage",
+      "shield glow plus partial camouflage",
+      "fully invisible"
+    ],
+    "visually_captured_states": [
+      "ordinary",
+      "partial camouflage",
+      "shield glow"
+    ],
+    "checks": [
+      "Current near/far optic and scrawls inspected in native four-view fixture.",
+      "Repeated rendering and material cycles retain 0 RDP errors and warnings.",
+      "HUD and weapons remain visible with restored rendering state."
+    ],
+    "inputs": {
+      "port/n64/scene.c": "9eb48cd7215a4f6fcaca289badd3592bb1b285110804abd1a3f74ffbc0848952",
+      "port/n64/gungnir_faces.c": "dddc8b902247e477d48f2c3bdc6eade1af4d9748b3132344fd15581ad42ba118",
+      "port/n64/gungnir_faces.h": "13b926899022f6c59d21278452e8745b95a7f025409b8e800a0e2427444f5127",
+      "port/n64/gungnir_qa.h": "c0a3de5c3754d41f3a4dbb6b1cdefee04772fdfcd0d6b2f71054d7e15961ba07"
+    },
+    "manifest_sha256": "62a72449b55909e3c8589f61fc9311fc162e058994b9ca082a7b2cc4c49e3854",
+    "rom_sha256": "0a1bde3c8697836debf3a9aeef1132dc86adfcd50511b194a5fc8d515358f4bc",
+    "captures": [
+      {
+        "local_path": "build/gungnir-optic-native-v1/optic-check-1.png",
+        "sha256": "558016fa66a8f0255e0416110014915a96ef41c6ad26f98df3d0a7190bca0dbe"
+      },
+      {
+        "local_path": "build/gungnir-optic-native-v1/optic-check-2.png",
+        "sha256": "cdf5712b75413cbb5a1b23f9fd04b88eb7d7541b914b5cb29a06127836b58315"
+      },
+      {
+        "local_path": "build/gungnir-optic-native-v1/optic-check-3.png",
+        "sha256": "5f754c1dca3b5fb1081b22b0ccd5e51e25380e56977b6a90c16e6ae81c89a8b4"
+      },
+      {
+        "local_path": "build/gungnir-optic-native-v1/optic-check-4.png",
+        "sha256": "dcc31968754ac30e8111d9fdc39bc884e0ffa864a670570f56b9ca473b33eacb"
+      },
+      {
+        "local_path": "build/gungnir-optic-native-v1/optic-check-5.png",
+        "sha256": "226535ec5d346822a9414f9bab7d4fb37bbedd8b164a4c2f22353681b92f191c"
+      }
+    ],
+    "limits": [
+      "Finite close head/camera/material inspection; no physical-console test.",
+      "The optic is partly occluded by the held weapon in this native camera; clean frontal host renders inspect the complete design.",
+      "Source, geometry, skin and export proofs rerun for the current body. Earlier full gameplay/material checks are inherited from private b7c93a4b3cf024c908c36cb64b17a386fb54b985.",
+      "ROM and captures remain local."
+    ]
+  },
+  "reference_sha256": "c55e902aac05e4d9322238ce7efe4c4af013e1e9a9d7983ef56a8dabf9475d52"
+}

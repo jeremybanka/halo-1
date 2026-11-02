@@ -43,7 +43,8 @@ def run(source, inventory, parent, candidate, output):
             assert new/count>=.90,'Rear frame lost a broad inward surface'
             sheet.save(output/f'{lod}-{angle}.png')
         # All retained exterior armor and the approved helmet are unchanged.
-        unaffected=lambda d:[t for t in d['lods'][lod]['triangles'] if not t['component'].startswith(('garment-','torso-back')) and t['component']!='belt']
+        intentional_optic=bool(after.get('optic_refinement'))
+        unaffected=lambda d:[t for t in d['lods'][lod]['triangles'] if not t['component'].startswith(('garment-','torso-back')) and t['component']!='belt' and not(intentional_optic and t['component'] in ('helmet-lens','helmet-optic-frame'))]
         # Recessing backing appends provenance only; compare actual armor data.
         def geometry(ts):return [(t['component'],t['p'],t['uv'],t['weights'],t['material']) for t in ts]
         assert geometry(unaffected(before))==geometry(unaffected(after))

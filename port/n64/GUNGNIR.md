@@ -37,7 +37,7 @@ assistance; vehicle-mounted weapons retain their normal controls.
 
 Each GUNGNIR profile keeps one supplied scrawl: artboards 1–4 map to red,
 blue, gold and green. The original 64×64 transparent PNGs are preserved in
-`assets/gungnir/demake-20261102/face-art/`. The gold optic is separate geometry
+`assets/gungnir/demake-20261102/face-art/`. The orange hexagonal optic is separate geometry
 and stays clear. Face identity follows the player's profile, independently of
 team colors on the armor plates.
 
@@ -47,16 +47,15 @@ alpha and dark ink within the 4-bit intensity quantization. Each texture uses
 4,096 bytes of TMEM; the four profiles occupy 16,384 shared bytes. The material
 uses depth-tested coplanar decal mode with depth writes off. There are no new
 resident body vertices, changed trajectories or offset helmet shells. Near/far
-body counts remain 1,064/784 vertices and 1,298/893 triangles. The extra draw
-pass submits 34/32 existing triangles and 70/48 vertex loads per visible head.
+body counts remain 1,062/780 vertices and 1,292/887 triangles. The extra draw
+pass submits 34/32 existing triangles and 72/48 vertex loads per visible head.
 
 Decals share shield glow and partial camouflage, disappear with a fully
 invisible body, and are suppressed for ODST VISR silhouettes. The renderer
 restores the RDP mode and Tiny3D draw flags before subsequent bodies, weapons
 and HUD. Face blocks follow the owning body buffer's allocation and release.
-Menu portraits use the same projected art. The native-rig body BLEND/GLBs and
-all geometry proofs remain unchanged; editable paint PNGs and their projection
-recipe are stored alongside that library.
+Menu portraits use the same projected art. The native-rig body BLEND/GLBs carry the current optic and clean silver colors;
+editable paint PNGs and their projection recipe are stored alongside that library.
 
 Regenerate the face asset with `gungnir_faces.py <solid.json> <packed-bank>
 <png-folder> <fresh-output>`, then use `stage_gungnir_bank.py ... --faces
@@ -66,6 +65,25 @@ certificate. `test_gungnir_faces.py` checks the original alpha, packed surface
 indices, absence of optic painting and unchanged positions/colors, and runs
 96 sanitized real C calls for profile/fade/shield state with substituted RDP/RSP
 APIs. Native RDP validation and appearance inspection are recorded separately.
+
+## Hexagonal optic refinement
+
+The requested optic uses a flat-topped orange hexagon (`#ff9519`) over a
+charcoal rectangular housing (`#4c4c4c`), matching the supplied reference.
+It is wider than the previous optic by 35% near and 13% far. Only its small
+optical component changes; the closed convex helmet shell and original face
+art coordinates stay fixed. Helmet albedo no longer samples the old dark
+source-texture stain. A smooth radial lighting field follows the retained
+shell bounds, giving the silver surface a clean convex finish.
+
+The prior body is preserved at `stages/gungnir-optic-parent-v1`.
+`refine_gungnir_optic.py` records original source-face correspondence and the
+requested design change. `audit_gungnir_optic.py` verifies unrelated geometry,
+closed convex shell, stable art coordinates, UV-independent silver coloring,
+and six distinct quantized optic corners without optic degeneracy through
+454 poses at each LOD. All body, packed, runtime, independent rig and GLB
+checks are rerun. Native near/far inspection in Ares reports zero RDP errors
+and warnings. Earlier full functional checks remain inherited as recorded.
 
 ## Movement implementation
 
@@ -137,17 +155,17 @@ all positive and negative audit observations are retained there.
 
 | Body | Native vertices | GLB vertices | Packed vertices | Triangles |
 |---|---:|---:|---:|---:|
-| GUNGNIR near | 892 | 898 | 1,064 | 1,298 |
-| GUNGNIR far | 675 | 678 | 784 | 893 |
+| GUNGNIR near | 889 | 895 | 1,062 | 1,292 |
+| GUNGNIR far | 672 | 675 | 780 | 887 |
 | Standard Spartan near / far | — | — | 562 / 250 | 328 / 135 |
 | Jorge near / far | 603 / 349 | 603 / 349 | 670 / 390 | 949 / 556 |
 | ODST near / far | — | — | 754 / 492 | 789 / 476 |
 
 All costs exclude the separately drawn 140-triangle production rifle. GUNGNIR
 has a separately reduced far mesh; these counts do not establish equal rendering
-cost. Its 1,227,168-byte animation/mesh bank uses its own trajectories and sockets.
+cost. Its 1,220,192-byte animation/mesh bank uses its own trajectories and sockets.
 
-The bank passes 2,984,142 independent Blender/bake vertex comparisons,
+The bank passes 2,967,798 independent Blender/bake vertex comparisons,
 780 colored GLB reimport samples, 4,680 sanitized streamed C decode cases and
 1,409 production first-person poses. The largest Blender/bake coordinate error
 is under 0.004 mm. Manual firing while autopilot runs is tested through the

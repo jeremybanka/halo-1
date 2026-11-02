@@ -2,16 +2,16 @@
   "schema": 1,
   "quality_state": "accepted",
   "publication_approved": true,
-  "bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+  "bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
   "packed_vertices": [
-    1064,
-    784
+    1062,
+    780
   ],
   "triangles": [
-    1298,
-    893
+    1292,
+    887
   ],
-  "rig_comparisons": 2984142,
+  "rig_comparisons": 2967798,
   "glb_samples": 780,
   "c_decode_cases": 4680,
   "firstperson_pose_cases": 1409,
@@ -25,15 +25,15 @@
     "quantized_geometry": [
       {
         "lod": 0,
-        "authoring_triangle_pose_samples": 589292,
-        "quantized_degenerate_triangle_samples": 1739,
+        "authoring_triangle_pose_samples": 586568,
+        "quantized_degenerate_triangle_samples": 1640,
         "maximum_quantized_coordinate": 696,
         "normalized_four_influence_weights": true
       },
       {
         "lod": 1,
-        "authoring_triangle_pose_samples": 405422,
-        "quantized_degenerate_triangle_samples": 1454,
+        "authoring_triangle_pose_samples": 402698,
+        "quantized_degenerate_triangle_samples": 1448,
         "maximum_quantized_coordinate": 696,
         "normalized_four_influence_weights": true
       }
@@ -59,8 +59,8 @@
       },
       {
         "armor": "GUNGNIR",
-        "vertices": 1064,
-        "triangles": 1298
+        "vertices": 1062,
+        "triangles": 1292
       }
     ],
     [
@@ -81,67 +81,64 @@
       },
       {
         "armor": "GUNGNIR",
-        "vertices": 784,
-        "triangles": 893
+        "vertices": 780,
+        "triangles": 887
       }
     ]
   ],
   "native_validation": {
     "schema": 1,
     "passed": true,
-    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
     "emulator": "Ares v148",
     "rdram_mib": 8,
     "physical_console_tested": false,
     "checks": [
-      "Single-camera close body: restored silver codpiece contour and inward rear surfaces inspected from front-oblique and rear-oblique views.",
-      "Four-camera native inspection: near upper views, far lower views, all four profiles, silver exterior and held weapon inspected; 0 RDP errors and warnings."
+      "Current near/far optic and scrawls inspected in native four-view fixture.",
+      "Repeated rendering and material cycles retain 0 RDP errors and warnings.",
+      "HUD and weapons remain visible with restored rendering state."
     ],
     "prior_functional_validation": {
-      "private_commit": "7e761ba70478c051792ebd223ccc0a554529381e",
-      "candidate_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
-      "scope": "Inherited controls, autoaim, movement, viewport/zoom, first-person services and combined game lifecycle. This asset-only revision rechecks geometry/packing/skin/exports and body rendering; it does not claim to rerun every earlier native encounter."
+      "private_commit": "b7c93a4b3cf024c908c36cb64b17a386fb54b985",
+      "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+      "scope": "Earlier controls, aim, movement, viewport/zoom, weapon services, rear/shell body and combined lifecycle remain inherited. Current asset-only update reruns body/source/packed/skin/GLB and near/far head inspection."
     },
-    "shell_update": {
-      "bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
-      "views": [
-        1,
-        4
-      ],
+    "optic_update": {
+      "bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
+      "views": 4,
       "rdp_errors": 0,
       "rdp_warnings": 0,
       "captures": [
         {
-          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-1.png",
-          "sha256": "fed36a107d57e8cc3e8a4cd742086aa56db299b789ca8e3d77fa3ea59ba3d4db"
+          "local_path": "build/gungnir-optic-native-v1/optic-check-1.png",
+          "sha256": "558016fa66a8f0255e0416110014915a96ef41c6ad26f98df3d0a7190bca0dbe"
         },
         {
-          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-2.png",
-          "sha256": "381293d1e1dfb11ede9b7b45fc5c537fd2140539a5b19df14ab0b57a9c59f6b0"
+          "local_path": "build/gungnir-optic-native-v1/optic-check-2.png",
+          "sha256": "cdf5712b75413cbb5a1b23f9fd04b88eb7d7541b914b5cb29a06127836b58315"
         },
         {
-          "local_path": "build/gungnir-shell-native-four-v1/armor-orbit-1.png",
-          "sha256": "fd6514e79d85bdcedcf9ff58d3c4937b13e9f5a306d70475dd687e723183e76f"
+          "local_path": "build/gungnir-optic-native-v1/optic-check-3.png",
+          "sha256": "5f754c1dca3b5fb1081b22b0ccd5e51e25380e56977b6a90c16e6ae81c89a8b4"
         },
         {
-          "local_path": "build/gungnir-shell-native-four-v1/armor-side.png",
-          "sha256": "ef72e07fcc3b3be46fe308a2a950243b730b4ec0afdab5a1fd09c8a66d2889ed"
+          "local_path": "build/gungnir-optic-native-v1/optic-check-4.png",
+          "sha256": "dcc31968754ac30e8111d9fdc39bc884e0ffa864a670570f56b9ca473b33eacb"
+        },
+        {
+          "local_path": "build/gungnir-optic-native-v1/optic-check-5.png",
+          "sha256": "226535ec5d346822a9414f9bab7d4fb37bbedd8b164a4c2f22353681b92f191c"
         }
       ]
     },
     "limits": [
-      "Finite native camera/idle views, not every native animation or physical-console performance.",
-      "ROMs and screen captures remain local; this report records their hashes."
-    ],
-    "face_art": {
-      "report": "faces-native-validation.json",
-      "generated_data_sha256": "dc40b89ab2d4e8a0b39213de04231a059dd0d6227abbd9aad33d724f807f6b5c",
-      "rdp_errors": 0,
-      "rdp_warnings": 0,
-      "scope": "Additional current face-art material inspection; the existing body geometry and earlier functional native records remain as scoped."
-    }
+      "Finite close head/camera/material inspection; no physical-console test.",
+      "The optic is partly occluded by the held weapon in this native camera; clean frontal host renders inspect the complete design.",
+      "Source, geometry, skin and export proofs rerun for the current body. Earlier full gameplay/material checks are inherited from private b7c93a4b3cf024c908c36cb64b17a386fb54b985.",
+      "ROM and captures remain local."
+    ]
   },
-  "verification": "Asset runtime/export integrity and finite shell/codpiece source/native appearance review accepted. Raw nonzero body/depth observations remain explicit; prior functional native checks are inherited as recorded.",
+  "verification": "Current source/packed/skin/GLB/runtime and original-face-art proofs pass; finite near/far Ares appearance accepted. Raw nonzero body/depth observations and inherited functional checks remain scoped.",
   "builds": [
     {
       "kind": "gungnir-unified-v1",
@@ -290,10 +287,10 @@
   "rear_armor": {
     "schema": 1,
     "passed": true,
-    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
     "baseline_candidate_sha256": "f9edb75aaccd2b66412b8062d79cb5e1cbd22a99d4a269d9837cd779af6857a7",
     "baseline_private_commit": "4d4c53c7d813945f4efe9a32473018da2e39b252",
-    "clearance_sha256": "f056b196939373c6a908c8e483168b8402ff6f07351f94b23a12ed2657b53497",
+    "clearance_sha256": "36f7848d262e8699a4a1c67b566a0fe95b0d85689a1b440a592f0cd8558508f6",
     "source_control_maximum_lost_pixels": 0,
     "rear_probes": 24,
     "maximum_rear_source_plate_loss_fraction_before": [
@@ -339,7 +336,8 @@
           "local_path": "build/gungnir-shell-native-four-v1/armor-side.png",
           "sha256": "ef72e07fcc3b3be46fe308a2a950243b730b4ec0afdab5a1fd09c8a66d2889ed"
         }
-      ]
+      ],
+      "scope": "Historical shell/codpiece inspection from the previous body; rear geometry unchanged by the optic update. Current source/packed depth and culling checks rerun."
     }
   },
   "viewport_alignment": {
@@ -359,7 +357,7 @@
   "shells": {
     "schema": 1,
     "passed": true,
-    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
     "parent_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
     "source_sha256": "988da535240a74d4618e77232985e0fd80061f39f6718056495ed772a4c765b6",
     "method": "Front-face culled isolated rear frame, three views per LOD, one-pixel source rim excluded; actual exterior armor geometry unchanged; source lower codpiece extremum retained",
@@ -427,7 +425,7 @@
         "after_lowest_halo_units": 0.3293713927268982
       }
     ],
-    "report": "port/n64/benchmarks/gungnir-shells.json"
+    "report": "port/n64/benchmarks/gungnir-shells.json (historical parent comparison; current hash-bound rerun in private review)"
   },
   "combined_release_scope": "Clean committed combined Multiplayer/SWAT/Firefight cartridge with the four supplied face decals; menu boot and cartridge size verified in Ares. Separate native RDP face-material cycles and sanitized memory/state cases are recorded in gungnir-faces.json.",
   "face_art": {
@@ -446,12 +444,64 @@
       32
     ],
     "additional_vertex_loads": [
-      70,
+      72,
       48
     ],
     "sanitized_state_cases": 96,
     "native_rdp_errors": 0,
     "native_rdp_warnings": 0,
     "report": "port/n64/benchmarks/gungnir-faces.json"
+  },
+  "optic": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "parent_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "lods": [
+      {
+        "lod": 0,
+        "helmet_shell_geometry_unchanged": true,
+        "closed_convex_shell": true,
+        "flat_topped_hex_corners": 6,
+        "orange_rgb": [
+          255,
+          149,
+          25
+        ],
+        "housing_rgb": [
+          76,
+          76,
+          76
+        ],
+        "source_art_uv_unchanged": true,
+        "source_uv_stains_removed": true,
+        "quantized_pose_samples": 454,
+        "quantized_optic_degenerate_triangles": 0,
+        "width_increase_ratio": 1.3520806368773275
+      },
+      {
+        "lod": 1,
+        "helmet_shell_geometry_unchanged": true,
+        "closed_convex_shell": true,
+        "flat_topped_hex_corners": 6,
+        "orange_rgb": [
+          255,
+          149,
+          25
+        ],
+        "housing_rgb": [
+          76,
+          76,
+          76
+        ],
+        "source_art_uv_unchanged": true,
+        "source_uv_stains_removed": true,
+        "quantized_pose_samples": 454,
+        "quantized_optic_degenerate_triangles": 0,
+        "width_increase_ratio": 1.12673386406444
+      }
+    ],
+    "scope": "All unrelated geometry and original scrawls retain their coordinates. Helmet remains closed/convex. Albedo is independent of source UV stains; all 39 clips retain six quantized optic corners. Native appearance and rendering are separate.",
+    "report": "port/n64/benchmarks/gungnir-optic.json"
   }
 }

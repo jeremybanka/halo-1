@@ -44,6 +44,12 @@ def run(output):
     shells=read(F/'review/shell-validation.json')
     assert shells['passed'] and shells['candidate_sha256']==sha(candidate)
     assert len(shells['views'])==6 and all(r['coverage_fraction']>=.90 for r in shells['views'])
+    optic=read(F/'review/optic-validation.json')
+    assert optic['passed'] and optic['candidate_sha256']==sha(candidate)
+    assert len(optic['lods'])==2
+    for row in optic['lods']:
+        assert row['helmet_shell_geometry_unchanged'] and row['closed_convex_shell'] and row['source_art_uv_unchanged'] and row['source_uv_stains_removed']
+        assert row['flat_topped_hex_corners']==6 and row['quantized_pose_samples']==454 and row['quantized_optic_degenerate_triangles']==0
     codpiece=[r for r in clearance['rows'] if r['region']=='codpiece']
     assert len(codpiece)==24 and max(r['new_broad_plate_occlusion_pixels'] for r in codpiece)<=3
     faces=read(F/'face-art/faces.json');face_test=read(F/'review/faces-validation.json')
@@ -67,6 +73,7 @@ def run(output):
     inputs=set(ROOT/'port/n64'/n for n in ('character.h','game.h','game.c','controls.h','controls.c','main.c','map.c','hud.c','scene.c','scene_flashlight.inc','frontend_draw.c','runtime_qa.c','combat_geometry.c','combat_geometry.h','camouflage.h','view_layout.h','prepare_gungnir_strategy.py','bake_autopilot_nav.c','demake_gungnir.py','refine_gungnir_contacts.py','fit_gungnir_surfaces.py','recess_gungnir_cloth.py','pack_gungnir.py','pack_gungnir_firstperson.py','gungnir_library.py','validate_gungnir_exports.py','audit_gungnir_clearance.py','review_gungnir.py','certify_gungnir.py','test_gungnir.c','test_gungnir_runtime.py','test_gungnir_firstperson.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('build.py','frontend_qa.c','jorge_field_qa.h','menu_draw.c','test_maps.c','test_maps.py','test_build_defaults.py','test_damage_tiling.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('repair_gungnir_back.py','audit_gungnir_rear.py','repair_gungnir_shells.py','audit_gungnir_shells.py'))
+    inputs.update(ROOT/'port/n64'/n for n in ('refine_gungnir_optic.py','audit_gungnir_optic.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('hud_layout.h','test_hud_layout.c'))
     inputs.update(ROOT/'port/n64'/n for n in ('test_gungnir_faces.py','stage_gungnir_bank.py'))
     inputs.update((ROOT/'port/n64').glob('gungnir*.h'));inputs.update((ROOT/'port/n64').glob('gungnir*.c'));inputs.update((ROOT/'port/n64').glob('gungnir*.py'));inputs.update((ROOT/'port/n64').glob('gungnir*.inc'));inputs.update((ROOT/'port/n64').glob('autopilot*.[ch]'))

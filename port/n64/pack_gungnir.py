@@ -74,16 +74,18 @@ def prepare_broad_colors(data,textures):
                     p=np.array(tri['p']);n=np.cross(p[1]-p[0],p[2]-p[0])
                     for point in tri['p']:
                         key=tuple(round(x,6) for x in point);normals[key]=normals.get(key,np.zeros(3))+n
+                if family=='helmet-shell':
+                    points=np.array([p for t in tris for p in t['p']]);low=points.min(0);high=points.max(0);center=(low+high)/2;radii=(high-low)/2
+                    # A smooth convex normal field avoids triangulation-valence
+                    # pinches around the optic on the deliberately coarse shell.
+                    normals={tuple(round(x,6) for x in p):(p-center)/(radii*radii) for p in points}
                 for tri in tris:
                     tri['broad_rgb']=rgb.tolist();tri['broad_normals']=[normals[tuple(round(x,6) for x in point)].tolist() for point in tri['p']]
                 if family=='helmet-shell':
-                    per_point={}
-                    for tri in tris:
-                        image=textures[tri['material']]
-                        for point,uv in zip(tri['p'],tri['uv']):
-                            pixel=np.array(image.getpixel((int(uv[0]%1*image.width),int(uv[1]%1*image.height))));key=tuple(round(x,6) for x in point);per_point.setdefault(key,[]).append(pixel)
-                    per_point={key:(np.median(values,axis=0)*.55+90).tolist() for key,values in per_point.items()}
-                    for tri in tris:tri['broad_vertex_rgb']=[per_point[tuple(round(x,6) for x in point)] for point in tri['p']]
+                    # The source diffuse includes an optic-shaped dark stain.
+                    # Preserve the convex surface and its smooth geometric
+                    # lighting, with one clean silver material under the ink.
+                    for tri in tris:tri['broad_vertex_rgb']=[rgb.tolist()]*3
 
 
 def pack(source, output):

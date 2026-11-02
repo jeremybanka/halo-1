@@ -27,6 +27,7 @@ def textures_from_pngs(pngs):
 
 def face_uv(source,engine_positions):
     lens=np.array([t['p'] for t in source['lods'][0]['triangles'] if t['component']=='helmet-lens']).mean((0,1))
+    lens=np.array(source.get('optic_refinement',{}).get('art_anchor',lens))
     p=np.asarray(engine_positions)
     return np.stack(((-p[...,2]-lens[1])/FACE_SIZE[0]+EYE_UV[0],
                      (lens[2]-p[...,1])/FACE_SIZE[1]+EYE_UV[1]),axis=-1)

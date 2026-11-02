@@ -91,7 +91,7 @@ void rdpq_mode_zbuf(bool c,bool u){compare=c;update=u;}
 void rdpq_change_other_modes_raw(uint64_t mask,uint64_t v){assert(mask==SOM_ZMODE_MASK);zmode=v;}
 int rdpq_tex_upload(int tile,const surface_t*t,const void*p){assert(tile==TILE0&&t->format==FMT_IA8&&t->width==64&&t->height==64&&!p&&t->buffer==(void*)bg_gungnir_face_textures[expected_profile]);uploads++;return 4096;}
 int main(void){
-unsigned counts[2]={1064,784};
+unsigned counts[2]={PACKED_COUNTS};
 for(unsigned cycle=0;cycle<3;cycle++)for(unsigned lod=0;lod<2;lod++){
  bound_count=counts[lod];bound=malloc(bound_count*16);uint8_t*original=malloc(bound_count*16);
  for(unsigned i=0;i<bound_count*16;i++)((uint8_t*)bound)[i]=(i*17+lod)&255;
@@ -104,7 +104,7 @@ for(unsigned cycle=0;cycle<3;cycle++)for(unsigned lod=0;lod<2;lod++){
 }
 assert(conversions==bg_gungnir_faces[0].batch_count+bg_gungnir_faces[1].batch_count);assert(uploads==96);puts("PASS: exact-sized UV updates preserve positions/colors, reload-safe indices, 96 profile/fade/shield decal calls, 4096-byte textures and restored draw flags");return 0;
 }
-''')
+'''.replace('PACKED_COUNTS',','.join(str(r['vertices']) for r in body['lods'])))
     exe=output/'test';command=['clang','-std=gnu17','-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-Wall','-Wextra','-Werror','-I'+str(stub),'-I'+str(ROOT/'port/n64'),str(test),str(ROOT/'port/n64/gungnir_faces.c'),str(art/'gungnir_faces_data.c'),'-o',str(exe)]
     subprocess.run(command,check=True);subprocess.run([str(exe)],check=True)
     result=dict(schema=1,passed=True,source_candidate_sha256=sha(source),body_bank_sha256=sha(bank/'gungnir.bin'),generated_data_sha256=sha(art/'gungnir_faces_data.c'),metadata_sha256=sha(art/'faces.json'),sanitizers_passed=True,state_cases=96,tmem_bytes=4096,body_geometry_unchanged=True,original_alpha_unchanged=True,profiles=metadata['profiles'],overlay_triangles=[r['overlay_triangles'] for r in metadata['lods']],extra_vertex_loads=[r['extra_vertex_loads'] for r in metadata['lods']],inputs={str(p.relative_to(ROOT)):sha(p) for p in [ROOT/'port/n64/gungnir_faces.c',ROOT/'port/n64/gungnir_faces.h',ROOT/'port/n64/gungnir_faces.py',ROOT/'port/n64/test_gungnir_faces.py']},scope='Host source/packed-index/UV/alpha evidence and real C memory/state calls with substituted RDP/RSP APIs. Native RDP/appearance remains separate.')

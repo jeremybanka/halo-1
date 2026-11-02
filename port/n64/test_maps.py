@@ -11,8 +11,9 @@ from asset_ids import map_ids
 
 ROOT = Path(__file__).resolve().parents[2]
 
-def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False,target_math=False,pve=False,with_pve=False,firefight=False,navigation=False,spartan_motion=False,collision=False,roster=False,enemy_vehicles=False,gungnir=False,bake_autonav=False,autonav_directory=None):
+def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=False,maps_cycle=False,map_directory=None,world_cells=False,mode_tests=False,target_math=False,pve=False,with_pve=False,firefight=False,navigation=False,spartan_motion=False,collision=False,roster=False,enemy_vehicles=False,gungnir=False,bake_autonav=False,autonav_directory=None,gungnir_frontend=False):
     output = output.resolve(); output.mkdir(parents=True, exist_ok=True)
+    if gungnir_frontend:frontend_cycle=True;with_pve=True
     solver = output/'solver'; solver.mkdir(exist_ok=True)
     for script in ('prepare_vehicle.py','export_vehicle.py'):
         args=[str(ROOT/'port/n64/blam'/script),'--output',str(solver)]
@@ -26,6 +27,7 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
            '-fno-strict-aliasing','-fwrapv','-DBG_BODY_CANDIDATES','-DBG_STREAM_MAPS',
            '-fsanitize=address,undefined','-Iport/n64','-Ibuild/n64/blam-core','-I'+str(solver)]
     if world_cells:flags.append('-DBG_WORLD_CELLS')
+    if gungnir_frontend:flags+=['-DBG_GUNGNIR_FRONTEND_QA','-DBG_FIREFIGHT']
     sources=['port/n64/test_maps.c','halo64-assets/generated/hud_damage_data.c','port/n64/map.c','halo64-assets/generated/maps/common_data.c',
              'port/n64/game.c','port/n64/terrain.c','port/n64/movement.c','port/n64/combat_geometry.c',
              'build/n64/generated/combat_data.c','build/n64/generated/movement_data.c',
@@ -108,7 +110,14 @@ def run(output, blam_bsp=False, frontend_cycle=False,export_spawn_clearance=Fals
         directory=Path(map_directory).resolve() if map_directory else ROOT/'halo64-assets/generated/maps'
         environment={**os.environ,'BG_MAP_DIRECTORY':str(directory)}
         if gungnir:environment['BG_AUTONAV_DIRECTORY']=str(Path(autonav_directory).resolve() if autonav_directory else ROOT/'halo64-assets/generated/gungnir')
-        result=subprocess.run([str(binary)],cwd=ROOT,env=environment,check=True,capture_output=gungnir,text=gungnir)
+        if gungnir_frontend:environment['BG_AUTONAV_DIRECTORY']=str(Path(autonav_directory).resolve() if autonav_directory else ROOT/'halo64-assets/generated/gungnir')
+        capture=gungnir or gungnir_frontend
+        result=subprocess.run([str(binary)],cwd=ROOT,env=environment,check=False,capture_output=capture,text=capture)
+        if capture and result.returncode:
+            log=result.stdout+result.stderr;print(log,end='');(output/'failed.log').write_text(log)
+        result.check_returncode()
+        if gungnir_frontend:
+            log=result.stdout+result.stderr;print(log,end='');(output/'frontend.log').write_text(log)
         if gungnir:
             import hashlib
             log=result.stdout+result.stderr;print(log,end='');(output/'gameplay.log').write_text(log)
@@ -121,6 +130,7 @@ if __name__=='__main__':
     parser.add_argument('--output-dir',type=Path,default=ROOT/'build/n64-wizard-audit/maps-tests')
     parser.add_argument('--blam-bsp', action='store_true', help='Also exercise the optional Blood Gulch source BSP')
     parser.add_argument('--gungnir',action='store_true')
+    parser.add_argument('--gungnir-frontend',action='store_true')
     parser.add_argument('--autonav-directory',type=Path,help='GUNGNIR host-test navigation bank override')
     parser.add_argument('--bake-autonav',action='store_true')
     parser.add_argument('--navigation',action='store_true',help='Exact shortest-distance, scheduling and cache-lifecycle navigation checks')
@@ -142,4 +152,4 @@ if __name__=='__main__':
     if args.enemy_vehicles:args.with_pve=True;args.roster=True
     if args.export_spawn_clearance and args.map_directory:parser.error('Spawn export uses only the canonical banks')
     if args.target_math and not (args.modes or args.collision):parser.error('--target-math requires --modes or --collision')
-    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes,args.target_math,args.pve,args.with_pve or args.firefight or args.navigation or args.collision,args.firefight,args.navigation,args.spartan_motion,args.collision,args.roster,args.enemy_vehicles,args.gungnir,args.bake_autonav,args.autonav_directory)
+    run(args.output_dir, args.blam_bsp, args.frontend_cycle,args.export_spawn_clearance,args.maps_cycle,args.map_directory,args.world_cells,args.modes,args.target_math,args.pve,args.with_pve or args.firefight or args.navigation or args.collision,args.firefight,args.navigation,args.spartan_motion,args.collision,args.roster,args.enemy_vehicles,args.gungnir,args.bake_autonav,args.autonav_directory,args.gungnir_frontend)

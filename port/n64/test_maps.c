@@ -34,6 +34,9 @@ static void frontend_cycle(void) {
                 bg_map_unload();
                 bg_map_load(front.map);
                 bg_set_players(front.count);
+                uint8_t teams[4];
+                for (unsigned p=0;p<4;p++) teams[p]=front.teams[front.ports[p]];
+                bg_configure_mode(front.type,teams);
                 for (unsigned p=0;p<4;p++) {
                     bg_player_profiles[p]=p<front.count?front.profile[front.ports[p]]:p;
                     bg_set_player_armor(p,p<front.count?front.armor[front.ports[p]]:BG_ARMOR_SPARTAN);

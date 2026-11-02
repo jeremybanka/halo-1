@@ -2,19 +2,26 @@
 #define BG_JORGE_FIELD_QA_H
 /* Jorge and CE reference through production weapon and seat state machines. */
 #include "asset_jorge.h"
+#ifdef BG_GUNGNIR_FIELD_QA
+#define FIELD_ARMOR BG_ARMOR_GUNGNIR
+#define FIELD_NAME "GUNGNIR"
+#else
+#define FIELD_ARMOR BG_ARMOR_JORGE
+#define FIELD_NAME "JORGE"
+#endif
 #ifndef BG_JORGE_FIELD_START
 #define BG_JORGE_FIELD_START 0
 #endif
 static unsigned model_qa_page;
 static float model_qa_floor;
 static const char *const model_qa_labels[]={
- "JORGE FP: AR", "JORGE FP: PISTOL", "JORGE FP: PLASMA PISTOL", "JORGE FP: PLASMA RIFLE",
- "JORGE FP: NEEDLER", "JORGE FP: SHOTGUN", "JORGE FP: SNIPER", "JORGE FP: ROCKET", "JORGE FP: FLAMETHROWER",
+ FIELD_NAME " FP: AR", FIELD_NAME " FP: PISTOL", FIELD_NAME " FP: PLASMA PISTOL", FIELD_NAME " FP: PLASMA RIFLE",
+ FIELD_NAME " FP: NEEDLER", FIELD_NAME " FP: SHOTGUN", FIELD_NAME " FP: SNIPER", FIELD_NAME " FP: ROCKET", FIELD_NAME " FP: FLAMETHROWER",
  "HELD AR", "HELD PISTOL", "HELD PLASMA PISTOL", "HELD PLASMA RIFLE", "HELD NEEDLER", "HELD SHOTGUN", "HELD SNIPER", "HELD ROCKET", "HELD FLAMETHROWER",
  "WARTHOG DRIVER", "WARTHOG GUNNER", "WARTHOG PASSENGER", "GHOST", "SCORPION DRIVER", "SCORPION PASSENGER", "BANSHEE", "PASSENGER FIRST PERSON",
  "LOOK DOWN: STANDING", "LOOK DOWN: WALKING", "LOOK DOWN: CROUCHING",
  "1P: AR", "1P: PISTOL", "1P: PLASMA PISTOL", "1P: PLASMA RIFLE", "1P: NEEDLER", "1P: SHOTGUN", "1P: SNIPER", "1P: ROCKET", "1P: FLAMETHROWER",
- "4P: MIXED AR", "4P: ALL JORGE PISTOL", "4P: MIXED PLASMA PISTOL", "4P: ALL JORGE PLASMA RIFLE", "4P: MIXED NEEDLER", "4P: ALL JORGE SHOTGUN", "4P: MIXED SNIPER", "4P: ALL JORGE ROCKET", "4P: MIXED FLAMETHROWER",
+ "4P: MIXED AR", "4P: ALL " FIELD_NAME " PISTOL", "4P: MIXED PLASMA PISTOL", "4P: ALL " FIELD_NAME " PLASMA RIFLE", "4P: MIXED NEEDLER", "4P: ALL " FIELD_NAME " SHOTGUN", "4P: MIXED SNIPER", "4P: ALL " FIELD_NAME " ROCKET", "4P: MIXED FLAMETHROWER",
  "4P LOOK DOWN: STANDING", "4P LOOK DOWN: WALKING", "4P LOOK DOWN: CROUCHING"};
 static int field_vehicles[2];
 static bool model_qa_firstperson(void){return model_qa_page<9 || model_qa_page>=25;}
@@ -26,9 +33,9 @@ static void field_reset(void){
     bg_scene_release_firstperson();bg_set_players(model_qa_page>=26&&model_qa_page<38?1:4);bg_reset();bg_scene_reset();bg_set_score_limit(1000);
     bg_pickup_count=bg_vehicle_count=0;*qa.seconds=0;
     for(unsigned p=0;p<4;p++){bg_player_profiles[p]=p;bg_set_player_armor(p,BG_ARMOR_SPARTAN);}
-    bg_set_player_armor(0,BG_ARMOR_JORGE);
+    bg_set_player_armor(0,FIELD_ARMOR);
     if(model_qa_page>=38)
-        for(unsigned p=0;p<4;p++)bg_set_player_armor(p,(model_qa_page%2||p%2==0)?BG_ARMOR_JORGE:BG_ARMOR_SPARTAN);
+        for(unsigned p=0;p<4;p++)bg_set_player_armor(p,(model_qa_page%2||p%2==0)?FIELD_ARMOR:BG_ARMOR_SPARTAN);
     for(unsigned p=0;p<4;p++)bg_scene_profile_changed(p);
     *qa.views=model_qa_page>=38?4:model_qa_page>=26?1:model_qa_firstperson()?2:4;model_qa_floor=bg_floor(0,4,100)+.015f;
     for(unsigned p=0;p<4;p++){

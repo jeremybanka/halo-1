@@ -25,7 +25,7 @@ static void model_qa_stage(uint64_t now){
 }
 static void model_qa_camera(unsigned p,T3DVec3 *eye,T3DVec3 *target){
     if(BG_GUNGNIR_QA!=0)return;
-    float radius=p<2?1.25f:3.3f,angle=p%2?.7f:2.4f;
+    float radius=p<2?1.25f:3.3f,angle=p%2?-.7f:2.4f;
     for(unsigned a=0;a<3;a++){target->v[a]=(bg_players[p].pos[a]+(a==1?.40f:0))*BG_SCALE;eye->v[a]=target->v[a]+(float[]){cosf(angle),.2f,sinf(angle)}[a]*radius*BG_SCALE;}
 }
 #endif

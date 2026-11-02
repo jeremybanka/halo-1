@@ -165,6 +165,14 @@ static T3DMat4FP transforms[BG_FRAME_SLOTS][4], guns[BG_FRAME_SLOTS][4],
     projectile_matrices[BG_FRAME_SLOTS][BG_MAX_PROJECTILES];
 static T3DMat4FP held_matrices[BG_FRAME_SLOTS][4];
 static unsigned slot, views = 4, triangles;
+static unsigned rendered_humans(void) {
+#ifdef BG_GUNGNIR_QA
+    /* A single-camera inspection can retain the other three human actors. */
+    return bg_player_count();
+#else
+    return views;
+#endif
+}
 static float game_time;
 static int16_t triangle_lists[20][64] __attribute__((aligned(16)));
 static bg_motion_track *motion_tracks;
@@ -1508,7 +1516,7 @@ static void prepare_frame(void) {
     wanted_held = 0;
     /* Matrix construction precedes visibility so culling uses the exact pose
      * later submitted, once per frame rather than once per viewport. */
-    for (unsigned p = 0; p < views; p++)
+    for (unsigned p = 0; p < rendered_humans(); p++)
         prepare_player_bounds(p);
 #ifdef BG_PROFILE
     bg_scene_profile.body_prepare_us = get_ticks_us() - begin;
@@ -1748,7 +1756,7 @@ static void prepare_view(unsigned p) {
     }
     view_eyes[p] = eye;
     held_masks[p] = 0;
-    for (unsigned j = 0; j < views; j++) {
+    for (unsigned j = 0; j < rendered_humans(); j++) {
         bg_player *q = &bg_players[j];
         body_lods[p][j] = 0;
         if (bg_visr_active(player) && q->health<=0) continue;
@@ -2282,7 +2290,7 @@ static void draw_view(unsigned p) {
 #endif
         goto firstperson_pass;
     }
-    for (unsigned j = 0; j < views; j++) {
+    for (unsigned j = 0; j < rendered_humans(); j++) {
         if (body_lods[p][j] || (held_masks[p] & (1u << j)))
             ensure_player_animation(j);
         float opacity = bg_player_visibility(&bg_players[j]);
@@ -2391,7 +2399,7 @@ static void draw_view(unsigned p) {
     unsigned fx_triangles = draw_flashlights();
     fx_triangles += bg_fx_draw_blasts();
     fx_triangles += bg_fx_draw_trails(game_time);
-    for (unsigned j = 0; j < views; j++)
+    for (unsigned j = 0; j < rendered_humans(); j++)
         if ((held_masks[p] & (1u << j)) && objective_kind(j)<0)
             fx_triangles +=
                 bg_fx_draw_weapon(j, &held_matrices[slot][j], BG_OBJECT_SCALE, false, game_time);

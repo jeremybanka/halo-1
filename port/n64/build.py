@@ -30,7 +30,8 @@ def parse_args(argv=None):
     parser.add_argument("--scope-qa",action="store_true",help="Native close-ground and distant zoom regression photos")
     parser.add_argument("--m64-polish-qa",action="store_true",help="Frozen 1–4 viewport, controls, damage and flashlight photos")
     parser.add_argument("--pve-squad",action="store_true",help="Boot directly into the squad diagnostic")
-    parser.add_argument("--firefight",action="store_true",help="Enable the Firefight menu and squad encounter (8 MiB)")
+    parser.add_argument("--firefight",action=argparse.BooleanOptionalAction,default=None,
+                        help="Include Firefight alongside multiplayer (default; 8 MiB). --no-firefight is a lean diagnostic build")
     parser.add_argument("--firefight-photo",choices=("main","join","map"),help="Hold a Firefight QA menu for a native photograph")
     parser.add_argument("--firefight-qa",type=int,choices=range(1,5),help="Exercise Firefight menus with 1–4 controllers")
     parser.add_argument("--pve-players",type=int,choices=(1,2,3,4),default=4)
@@ -53,6 +54,8 @@ def parse_args(argv=None):
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument("--gungnir-qa",type=int,choices=range(4),help="Native GUNGNIR LOD, off-axis aim, zoom and personal-arm inspection")
+    parser.add_argument("--gungnir-frontend-qa",action="store_true",help="Mixed armor selection, live movement autopilot and match lifecycle through production menus")
+    parser.add_argument("--gungnir-field-qa",action="store_true",help="GUNGNIR weapons and production vehicle interactions against the CE reference")
     parser.add_argument("--gungnir-qa-views",type=int,choices=range(1,5),help="GUNGNIR inspection viewport layout")
     parser.add_argument("--gungnir-bank",type=Path,help="Isolated GUNGNIR authoring candidate for native QA")
     parser.add_argument("--autonav-bank",type=Path,help="Isolated all-map autopilot graph candidate for native QA")
@@ -65,7 +68,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--preset",
         choices=["release"],
-        help="Maintained 4 MiB release: paced presentation, three surfaces, 32 KiB queues",
+        help="Maintained release: paced presentation, three surfaces, 32 KiB queues (combined game requires 8 MiB)",
     )
     parser.add_argument("--initial-map", choices=tuple(map_ids()), default="bloodgulch",
                         help="Default menu selection; QA/replay starts with this map")
@@ -341,6 +344,11 @@ def parse_args(argv=None):
     parser.add_argument('--vehicle-cost-audit',action='store_true',help='Isolated vehicle cost instrumentation; never a playable build')
     parser.add_argument("--vehicle-query-verify",action="store_true",help="Diagnostic only: scalar query/trajectory oracles and per-tick state hashes")
     args = parser.parse_args(argv)
+    if args.firefight is None:
+        args.firefight=not args.pve_squad
+    if args.gungnir_field_qa:
+        if args.jorge_field_qa:parser.error("Choose one field inspection armor")
+        args.jorge_field_qa=True
     if args.vehicle_lod_qa:args.enemy_vehicle_qa=True
     if args.vehicle_query_verify and not args.vehicle_cost_audit:parser.error("--vehicle-query-verify requires --vehicle-cost-audit")
     if args.vehicle_query_baseline and not (args.enemy_vehicle_bank and args.output_dir):parser.error("--vehicle-query-baseline requires an isolated enemy-vehicle build")
@@ -409,13 +417,13 @@ def parse_args(argv=None):
             data=json.loads(args.world_pvs_data.read_text())
             if data.get('schema') not in (3,4,5,6,7,8,9,10,11,12):
                 parser.error('Changed geometry requires a newly remapped, hash-bound visibility sidecar')
-    if sum((args.jorge_qa,args.jorge_field_qa,args.jorge_frontend_qa,args.odst_qa is not None,args.odst_frontend_qa,args.gungnir_qa is not None))>1: parser.error("Choose one armor QA mode")
+    if sum((args.jorge_qa,args.jorge_field_qa,args.jorge_frontend_qa,args.odst_qa is not None,args.odst_frontend_qa,args.gungnir_qa is not None,args.gungnir_frontend_qa))>1: parser.error("Choose one armor QA mode")
     if (args.gungnir_bank or args.autonav_bank) and not (args.output_dir and args.gungnir_qa is not None):
         parser.error('GUNGNIR bank overrides require an isolated --gungnir-qa output')
     if args.gungnir_qa_views is not None and args.gungnir_qa is None:parser.error('--gungnir-qa-views requires --gungnir-qa')
     if args.jorge_qa or args.jorge_field_qa or args.odst_qa is not None or args.gungnir_qa is not None: args.model_qa = True
     if args.jorge_field_start and not args.jorge_field_qa: parser.error("--jorge-field-start requires --jorge-field-qa")
-    if args.jorge_frontend_qa or args.odst_frontend_qa: args.frontend_qa = 4
+    if args.jorge_frontend_qa or args.odst_frontend_qa or args.gungnir_frontend_qa: args.frontend_qa = 4
     if args.geometry_census and args.snapshot_tick is None:
         parser.error('--geometry-census requires --snapshot-tick')
     if args.world_coarse_cull:
@@ -634,8 +642,10 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_ODST_QA="+str(args.odst_qa)] if args.odst_qa is not None else []),
         *(["-DBG_JORGE_QA"] if args.jorge_qa else []),
         *(["-DBG_JORGE_FIELD_QA"] if args.jorge_field_qa else []),
+        *(["-DBG_GUNGNIR_FIELD_QA"] if args.gungnir_field_qa else []),
         *(["-DBG_JORGE_FIELD_START="+str(args.jorge_field_start)] if args.jorge_field_qa else []),
         *(["-DBG_ODST_FRONTEND_QA"] if args.odst_frontend_qa else []),
+        *(["-DBG_GUNGNIR_FRONTEND_QA"] if args.gungnir_frontend_qa else []),
         *(["-DBG_JORGE_FRONTEND_QA"] if args.jorge_frontend_qa else []),
         *(
             ["-DBG_FRONTEND_QA", "-DBG_FRONTEND_QA_PLAYERS=" + str(args.frontend_qa)]
@@ -777,7 +787,7 @@ def rom_name(args):
     if args.jorge_frontend_qa:
         name += "-jorge"
     if args.model_qa:
-        name += "-jorge-field-qa" if args.jorge_field_qa else "-jorge-qa" if args.jorge_qa else "-model-qa"
+        name += "-gungnir-field-qa" if args.gungnir_field_qa else "-jorge-field-qa" if args.jorge_field_qa else "-jorge-qa" if args.jorge_qa else "-model-qa"
     if args.spartan_motion_qa:
         name += "-spartan-motion-qa"
     if args.spartan_reload_qa:
@@ -815,7 +825,7 @@ def rom_name(args):
         name += "-objective-photo"+str(args.objective_photo)
     if args.odst_frontend_qa: name += "-odst"
     if args.odst_qa is not None: name += "-odst-qa"+str(args.odst_qa)
-    if args.firefight:name += "-firefight"
+    if not args.firefight and not args.pve_squad:name += "-multiplayer-only"
     if args.firefight_photo:name += "-photo-"+args.firefight_photo
     if args.frontend_qa:
         name += "-frontend-qa" + str(args.frontend_qa)

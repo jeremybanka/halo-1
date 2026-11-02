@@ -187,6 +187,9 @@ static void diagnostic_rdp_complete(void *unused) {
 static unsigned validation_errors, validation_warnings;
 static char validation_line[192], validation_message[96];
 static unsigned validation_length;
+#ifdef BG_GUNGNIR_FIELD_QA
+static int validation_first_page=-1;
+#endif
 static int validation_write(void *cookie, const char *text, int length) {
     for (int i = 0; i < length; i++) {
         if (text[i] == '\n') {
@@ -196,9 +199,12 @@ static int validation_write(void *cookie, const char *text, int length) {
                     validation_errors++;
                 if (strstr(validation_line, "WARN:"))
                     validation_warnings++;
-                if (strstr(validation_line, "ERROR:") || strstr(validation_line, "WARN:"))
+                if (strstr(validation_line, "ERROR:") || strstr(validation_line, "CRASH:") || strstr(validation_line, "WARN:"))
                     snprintf(validation_message, sizeof(validation_message), "%.95s",
                              validation_line + 18);
+#ifdef BG_GUNGNIR_FIELD_QA
+                if(validation_first_page<0&&(strstr(validation_line,"ERROR:")||strstr(validation_line,"CRASH:")))validation_first_page=bg_qa_page();
+#endif
             }
             validation_length = 0;
         } else if (validation_length + 1 < sizeof(validation_line))
@@ -1434,6 +1440,14 @@ int main(void) {
 #endif
         if (validation_errors || validation_warnings)
             rdpq_text_print(NULL, 1, 4, 225, validation_message);
+#ifdef BG_GUNGNIR_FIELD_QA
+        if(validation_errors){
+            fill(0,24,320,38,RGBA32(0,0,0,255));rdpq_set_mode_standard();
+            rdpq_text_printf(NULL,1,4,34,"FIRST RDP ERROR: PAGE %d",validation_first_page);
+            rdpq_text_printf(NULL,1,4,46,"%.48s",validation_message);
+            rdpq_text_printf(NULL,1,4,58,"%.47s",strlen(validation_message)>48?validation_message+48:"");
+        }
+#endif
 #endif
 #ifndef BG_FRONTEND
         if (bg_match_finished())

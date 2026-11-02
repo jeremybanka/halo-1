@@ -46,6 +46,20 @@ def run(output):
     assert len(shells['views'])==6 and all(r['coverage_fraction']>=.90 for r in shells['views'])
     codpiece=[r for r in clearance['rows'] if r['region']=='codpiece']
     assert len(codpiece)==24 and max(r['new_broad_plate_occlusion_pixels'] for r in codpiece)<=3
+    faces=read(F/'face-art/faces.json');face_test=read(F/'review/faces-validation.json')
+    assert faces['source_candidate_sha256']==face_test['source_candidate_sha256']==sha(candidate)
+    assert faces['body_bank_sha256']==face_test['body_bank_sha256']==report['bank_sha256']
+    assert face_test['passed'] and face_test['sanitizers_passed'] and face_test['state_cases']==96
+    assert face_test['generated_data_sha256']==sha(G/'gungnir_faces_data.c')
+    assert face_test['metadata_sha256']==sha(F/'face-art/faces.json')==sha(G/'gungnir-faces.json')
+    assert face_test['body_geometry_unchanged'] and face_test['original_alpha_unchanged']
+    assert faces['format']=='IA8' and faces['tmem_bytes']==4096
+    for row in faces['profiles']:assert sha(F/'face-art'/row['file'])==row['sha256']
+    for name,expected in face_test['inputs'].items():assert sha(ROOT/name)==expected,name
+    face_native=read(F/'review/faces-native-validation.json')
+    assert face_native['passed'] and face_native['generated_data_sha256']==face_test['generated_data_sha256']
+    assert face_native['rdp_errors']==face_native['rdp_warnings']==0
+    for name,expected in face_native['inputs'].items():assert sha(ROOT/name)==expected,name
     # Preserve observations, including failures. Only an actual review can
     # decide whether remaining projection changes are acceptable in context.
     appearance=F/'review/appearance-validation.json';native=F/'review/native-validation.json'
@@ -54,11 +68,13 @@ def run(output):
     inputs.update(ROOT/'port/n64'/n for n in ('build.py','frontend_qa.c','jorge_field_qa.h','menu_draw.c','test_maps.c','test_maps.py','test_build_defaults.py','test_damage_tiling.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('repair_gungnir_back.py','audit_gungnir_rear.py','repair_gungnir_shells.py','audit_gungnir_shells.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('hud_layout.h','test_hud_layout.c'))
+    inputs.update(ROOT/'port/n64'/n for n in ('test_gungnir_faces.py','stage_gungnir_bank.py'))
     inputs.update((ROOT/'port/n64').glob('gungnir*.h'));inputs.update((ROOT/'port/n64').glob('gungnir*.c'));inputs.update((ROOT/'port/n64').glob('gungnir*.py'));inputs.update((ROOT/'port/n64').glob('gungnir*.inc'));inputs.update((ROOT/'port/n64').glob('autopilot*.[ch]'))
     inputs.update(ROOT/'source/ai'/n for n in ('actions.c','actor_type_elite.c','actor_type_grunt.c'))
     files=[p for p in F.rglob('*') if p.is_file()]+[p for p in G.iterdir() if p.is_file() and p.name!='gungnir-validation.json']+[A/'frontend-files/gungnir.bin',A/'generated/pve/pve_defs.c']
     fingerprint=lambda paths:{str(p.relative_to(ROOT)):sha(p) for p in sorted(paths)}
     result=dict(schema=1,quality_state='accepted' if accepted else 'candidate: appearance and native inspection pending',publication_approved=bool(accepted),inputs=fingerprint(inputs),files=fingerprint(files),bank_sha256=report['bank_sha256'],packed_vertices=[r['vertices'] for r in report['lods']],triangles=[r['triangles'] for r in report['lods']],rig_comparisons=sum(r['skin_vertex_comparisons'] for r in library),glb_samples=780,c_decode_cases=4680,firstperson_pose_cases=1409,navigation_maximum_bytes=navigation['maximum_runtime_allocation_bytes'],appearance_observations=dict(body_coverage_probes=coverage['samples'],maximum_new_enclosed_pixels=coverage['maximum_new_enclosed_pixels'],packed_maximum_new_enclosed_pixels=packed['maximum_new_enclosed_pixels'],clearance_probes=clearance['samples'],maximum_new_broad_plate_occlusion_pixels=clearance['maximum_new_broad_plate_occlusion_pixels'],quantized_geometry=shape['geometry']))
+    result['face_art']=dict(profiles=[r['file'] for r in faces['profiles']],format='IA8',tmem_bytes=4096,total_texture_bytes=faces['total_texture_bytes'],additional_resident_body_vertices=0,additional_draw_triangles=face_test['overlay_triangles'],additional_vertex_loads=face_test['extra_vertex_loads'],sanitized_state_cases=96,native_rdp_errors=0,native_rdp_warnings=0)
     output.write_text(json.dumps(result,indent=2)+'\n');print('Certified integrity/runtime evidence;',result['quality_state'])
 
 if __name__=='__main__':

@@ -132,7 +132,14 @@
     "limits": [
       "Finite native camera/idle views, not every native animation or physical-console performance.",
       "ROMs and screen captures remain local; this report records their hashes."
-    ]
+    ],
+    "face_art": {
+      "report": "faces-native-validation.json",
+      "generated_data_sha256": "dc40b89ab2d4e8a0b39213de04231a059dd0d6227abbd9aad33d724f807f6b5c",
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "scope": "Additional current face-art material inspection; the existing body geometry and earlier functional native records remain as scoped."
+    }
   },
   "verification": "Asset runtime/export integrity and finite shell/codpiece source/native appearance review accepted. Raw nonzero body/depth observations remain explicit; prior functional native checks are inherited as recorded.",
   "builds": [
@@ -411,5 +418,29 @@
     ],
     "report": "port/n64/benchmarks/gungnir-shells.json"
   },
-  "combined_release_scope": "Local combined Multiplayer/SWAT/Firefight size and menu-boot smoke check. Existing uncommitted Firefight rendering edits are present; this ROM is not an exact clean PR-head build."
+  "combined_release_scope": "Local combined Multiplayer/SWAT/Firefight size and menu-boot smoke check. Existing uncommitted Firefight rendering edits are present; this ROM is not an exact clean PR-head build.",
+  "face_art": {
+    "profiles": [
+      "Artboard 1.png",
+      "Artboard 2.png",
+      "Artboard 3.png",
+      "Artboard 4.png"
+    ],
+    "format": "IA8",
+    "tmem_bytes": 4096,
+    "total_texture_bytes": 16384,
+    "additional_resident_body_vertices": 0,
+    "additional_draw_triangles": [
+      34,
+      32
+    ],
+    "additional_vertex_loads": [
+      70,
+      48
+    ],
+    "sanitized_state_cases": 96,
+    "native_rdp_errors": 0,
+    "native_rdp_warnings": 0,
+    "report": "port/n64/benchmarks/gungnir-faces.json"
+  }
 }

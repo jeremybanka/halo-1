@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "quality_state": "accepted",
+  "source_art": [
+    {
+      "profile": 0,
+      "file": "Artboard 1.png",
+      "sha256": "3f35369d0df4642f5595438a198de3ad522e5ec97b15ff92b4aac12bcd08a42b",
+      "ink_pixels": 373
+    },
+    {
+      "profile": 1,
+      "file": "Artboard 2.png",
+      "sha256": "d486f5bd487169b424b30a652670e2b96be48353b721ac0e451edb7f85a5ad4b",
+      "ink_pixels": 557
+    },
+    {
+      "profile": 2,
+      "file": "Artboard 3.png",
+      "sha256": "07bf3542ea9d01d9bdf9bda624b1dee101d777cc9e69daf24dae516891f4687a",
+      "ink_pixels": 301
+    },
+    {
+      "profile": 3,
+      "file": "Artboard 4.png",
+      "sha256": "cdd6a839e57c4d4a05139b7b274b2737444c1b3b7ffa17c54db05b9ec072c2e9",
+      "ink_pixels": 592
+    }
+  ],
+  "profile_assignment": [
+    "red",
+    "blue",
+    "gold",
+    "green"
+  ],
+  "eye_anchor_uv": [
+    0.66,
+    0.46
+  ],
+  "face_extent_halo_units": [
+    0.08,
+    0.09
+  ],
+  "body_bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+  "body_vertices": [
+    1064,
+    784
+  ],
+  "body_triangles": [
+    1298,
+    893
+  ],
+  "cost": {
+    "profiles": [
+      "Artboard 1.png",
+      "Artboard 2.png",
+      "Artboard 3.png",
+      "Artboard 4.png"
+    ],
+    "format": "IA8",
+    "tmem_bytes": 4096,
+    "total_texture_bytes": 16384,
+    "additional_resident_body_vertices": 0,
+    "additional_draw_triangles": [
+      34,
+      32
+    ],
+    "additional_vertex_loads": [
+      70,
+      48
+    ],
+    "sanitized_state_cases": 96,
+    "native_rdp_errors": 0,
+    "native_rdp_warnings": 0
+  },
+  "host_validation": {
+    "schema": 1,
+    "passed": true,
+    "source_candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "body_bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+    "generated_data_sha256": "dc40b89ab2d4e8a0b39213de04231a059dd0d6227abbd9aad33d724f807f6b5c",
+    "metadata_sha256": "a47bd190495d0baaa1ce748af45781fbff699fea53aabe8039c766948adc88af",
+    "sanitizers_passed": true,
+    "state_cases": 96,
+    "tmem_bytes": 4096,
+    "body_geometry_unchanged": true,
+    "original_alpha_unchanged": true,
+    "profiles": [
+      {
+        "profile": 0,
+        "file": "Artboard 1.png",
+        "sha256": "3f35369d0df4642f5595438a198de3ad522e5ec97b15ff92b4aac12bcd08a42b",
+        "ink_pixels": 373
+      },
+      {
+        "profile": 1,
+        "file": "Artboard 2.png",
+        "sha256": "d486f5bd487169b424b30a652670e2b96be48353b721ac0e451edb7f85a5ad4b",
+        "ink_pixels": 557
+      },
+      {
+        "profile": 2,
+        "file": "Artboard 3.png",
+        "sha256": "07bf3542ea9d01d9bdf9bda624b1dee101d777cc9e69daf24dae516891f4687a",
+        "ink_pixels": 301
+      },
+      {
+        "profile": 3,
+        "file": "Artboard 4.png",
+        "sha256": "cdd6a839e57c4d4a05139b7b274b2737444c1b3b7ffa17c54db05b9ec072c2e9",
+        "ink_pixels": 592
+      }
+    ],
+    "overlay_triangles": [
+      34,
+      32
+    ],
+    "extra_vertex_loads": [
+      70,
+      48
+    ],
+    "inputs": {
+      "port/n64/gungnir_faces.c": "dddc8b902247e477d48f2c3bdc6eade1af4d9748b3132344fd15581ad42ba118",
+      "port/n64/gungnir_faces.h": "13b926899022f6c59d21278452e8745b95a7f025409b8e800a0e2427444f5127",
+      "port/n64/gungnir_faces.py": "ef16f37673ab04d61f8d8d1d1c548c213116466507f79e8ba912bcec4cdf3f27",
+      "port/n64/test_gungnir_faces.py": "dfc78e0ba3621b2dcdb8b72fafb33fe529c10d030a9947092dce3df54515ac31"
+    },
+    "scope": "Host source/packed-index/UV/alpha evidence and real C memory/state calls with substituted RDP/RSP APIs. Native RDP/appearance remains separate."
+  },
+  "native_validation": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "body_bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+    "generated_data_sha256": "dc40b89ab2d4e8a0b39213de04231a059dd0d6227abbd9aad33d724f807f6b5c",
+    "emulator": "Ares v148",
+    "rdram_mib": 8,
+    "physical_console_tested": false,
+    "rdp_errors": 0,
+    "rdp_warnings": 0,
+    "views": 4,
+    "near_profiles": [
+      0,
+      1
+    ],
+    "far_profiles": [
+      2,
+      3
+    ],
+    "fixture": "--gungnir-qa 7 --gungnir-qa-views 4",
+    "material_cycle": [
+      "ordinary",
+      "shield glow",
+      "partial camouflage",
+      "shield glow plus partial camouflage",
+      "fully invisible"
+    ],
+    "visually_captured_states": [
+      "ordinary",
+      "shield glow plus partial camouflage",
+      "fully invisible"
+    ],
+    "checks": [
+      "All four original scrawls map to their profile with the source gold optic preserved.",
+      "Real near/far helmets reuse the same skinned vertices; close inspection deliberately shows both LODs at equal screen size.",
+      "Repeated native material cycles retain 0 RDP errors/warnings. Captured combined shield/camouflage and fully hidden views show no floating paint.",
+      "RDP mode and Tiny3D draw flags restore for subsequent weapons and HUD."
+    ],
+    "inputs": {
+      "port/n64/scene.c": "9eb48cd7215a4f6fcaca289badd3592bb1b285110804abd1a3f74ffbc0848952",
+      "port/n64/gungnir_faces.c": "dddc8b902247e477d48f2c3bdc6eade1af4d9748b3132344fd15581ad42ba118",
+      "port/n64/gungnir_faces.h": "13b926899022f6c59d21278452e8745b95a7f025409b8e800a0e2427444f5127",
+      "port/n64/gungnir_qa.h": "c0a3de5c3754d41f3a4dbb6b1cdefee04772fdfcd0d6b2f71054d7e15961ba07"
+    },
+    "manifest_sha256": "77b33ac09f1f922c9875dec0be97578890374a6403e530cbf178dd8bbfd30b18",
+    "rom_sha256": "3ce8ad5008326c45ce08650d6813a008895a7a2c29498284571ce5356dfdabb9",
+    "captures": [
+      {
+        "local_path": "build/gungnir-face-native-v4/faces-check-1.png",
+        "sha256": "1dd6b634c27c01a6a13709506254d668375949bbd6fb540ed80d1917900a313a"
+      },
+      {
+        "local_path": "build/gungnir-face-native-v4/faces-check-2.png",
+        "sha256": "bd00fa91cd932f3a5e1b6b66994d912ceeec379feb953716f2bf9fca0941d77e"
+      },
+      {
+        "local_path": "build/gungnir-face-native-v4/faces-check-3.png",
+        "sha256": "e7ad30e4d615ef6e51a52ee68c863518bd0998605209d875c56927359f97564c"
+      }
+    ],
+    "limits": [
+      "Finite close head/camera/material inspection, not every gameplay camera or physical-console performance.",
+      "Source/geometry/GLB proofs are inherited unchanged because body positions, skin, colors, triangles and animation bank are unchanged.",
+      "ROM and captures remain local."
+    ]
+  },
+  "geometry_scope": "Existing source helmet vertices and trajectories are reused exactly. Body geometry/skin/BLEND/GLB and earlier geometry proofs remain unchanged; original editable PNGs and their projection recipe are retained beside the body library."
+}

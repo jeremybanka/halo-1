@@ -57,7 +57,7 @@ def parse_args(argv=None):
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
-    parser.add_argument("--gungnir-qa",type=int,choices=range(7),help="Native GUNGNIR LOD, aim, zoom, personal-arm, rear-armor, viewport alignment and shell inspection")
+    parser.add_argument("--gungnir-qa",type=int,choices=range(8),help="Native GUNGNIR LOD, aim, zoom, personal-arm, rear-armor, viewport alignment, shell and face-art inspection")
     parser.add_argument("--gungnir-frontend-qa",action="store_true",help="Mixed armor selection, live movement autopilot and match lifecycle through production menus")
     parser.add_argument("--gungnir-field-qa",action="store_true",help="GUNGNIR weapons and production vehicle interactions against the CE reference")
     parser.add_argument("--gungnir-qa-views",type=int,choices=range(1,5),help="GUNGNIR inspection viewport layout")
@@ -1180,6 +1180,7 @@ def main():
         "jorge_render.c",
         "odst_render.c",
         "gungnir_render.c",
+        "gungnir_faces.c",
         "gungnir_movement.c",
         "autopilot_strategy.c",
         "autopilot_nav.c",
@@ -1252,6 +1253,7 @@ def main():
         "odst/odst_firstperson_data.c",
         "gungnir/gungnir_data.c",
         "gungnir/gungnir_portraits.c",
+        "gungnir/gungnir_faces_data.c",
         "gungnir/gungnir_firstperson_data.c",
         "pve/pve_defs.c",
         "jorge_firstperson_data.c",

@@ -58,6 +58,7 @@ static uint64_t world_camera_masks[4];
 #include "jorge_firstperson.h"
 #include "odst_firstperson.h"
 #include "gungnir_firstperson.h"
+#include "gungnir_faces.h"
 #include "map.h"
 #include "runtime_qa.h"
 #ifdef BG_GEOMETRY_CENSUS
@@ -133,6 +134,7 @@ static rspq_block_t *armor_lod_blocks[BG_FRAME_SLOTS][4];
  * fenced player/slot buffers. Segment 1 is reserved for these draw calls. */
 static rspq_block_t *firstperson_blocks[BG_FP_WEAPONS];
 static rspq_block_t *jorge_firstperson_block, *odst_firstperson_block, *gungnir_firstperson_block;
+static rspq_block_t *gungnir_face_blocks[BG_FRAME_SLOTS][4][2];
 static float fired_at[4] = {-100, -100, -100, -100};
 static bool body_firing[4], body_reloading[4];
 static rspq_block_t *world_blocks[BG_WORLD_CHUNK_CAPACITY], *player_blocks[BG_FRAME_SLOTS][4], *models[BG_M_COUNT],
@@ -1233,7 +1235,11 @@ static void body_buffers_load(void) {
     }
     bool gungnir_needed=false;
     for(unsigned p=0;p<BG_PLAYERS;p++)gungnir_needed|=is_gungnir(p);
-    if(gungnir_needed&&bg_gungnir_load()){prepare_model(&bg_gungnir_model);prepare_model(&bg_gungnir_lod_model);}
+    if(gungnir_needed&&bg_gungnir_load()){
+        bg_gungnir_faces_prepare(&bg_gungnir_model,0);
+        bg_gungnir_faces_prepare(&bg_gungnir_lod_model,1);
+        prepare_model(&bg_gungnir_model);prepare_model(&bg_gungnir_lod_model);
+    }
     bool odst_needed = false;
     for (unsigned p = 0; p < BG_PLAYERS; p++) odst_needed |= is_odst(p);
     if (odst_needed && bg_odst_load()) {
@@ -1253,6 +1259,7 @@ static void body_buffers_load(void) {
             else if (is_odst(p)) tint_team(armor[s][p], near->vertex_count, bg_odst_team_masks[0], p);
             else tint_team(armor[s][p], near->vertex_count, bg_spartan_team_mask, p);
             player_blocks[s][p] = record_model(near, armor[s][p]);
+            if(is_gungnir(p))gungnir_face_blocks[s][p][0]=bg_gungnir_faces_record(armor[s][p],0);
             armor_lod[s][p] = malloc_uncached(lod_bytes);
             assertf(armor_lod[s][p], "Character LOD allocation");
             memcpy(armor_lod[s][p], far->vertices, lod_bytes);
@@ -1261,6 +1268,7 @@ static void body_buffers_load(void) {
             else if (is_odst(p)) tint_team(armor_lod[s][p], far->vertex_count, bg_odst_team_masks[1], p);
             else tint_team(armor_lod[s][p], far->vertex_count, bg_spartan_lod_team_mask, p);
             armor_lod_blocks[s][p] = record_model(far, armor_lod[s][p]);
+            if(is_gungnir(p))gungnir_face_blocks[s][p][1]=bg_gungnir_faces_record(armor_lod[s][p],1);
         }
     }
 }
@@ -1273,6 +1281,9 @@ static void body_buffers_release(void) {
     rspq_wait();
     for (unsigned s = 0; s < BG_FRAME_SLOTS; s++)
         for (unsigned p = 0; p < 4; p++) {
+            for(unsigned lod=0;lod<2;lod++)if(gungnir_face_blocks[s][p][lod]){
+                rspq_block_free(gungnir_face_blocks[s][p][lod]);gungnir_face_blocks[s][p][lod]=NULL;
+            }
             if (armor_lod_blocks[s][p] != player_blocks[s][p]) rspq_block_free(armor_lod_blocks[s][p]);
             if (armor_lod[s][p] != armor[s][p]) free_uncached(armor_lod[s][p]);
             rspq_block_free(player_blocks[s][p]); free_uncached(armor[s][p]);
@@ -1785,6 +1796,9 @@ static void prepare_view(unsigned p) {
         bool held = (carried>=0 || distance <= 16 || player->zoom) && q->health > 0 && personal;
         if (visible_bounds(vp, &body_bounds[j], cull_selected[p])) {
             unsigned lod = distance > (views >= 3 ? 4.f : 16.f) && player->zoom == 0;
+#if defined(BG_GUNGNIR_QA) && BG_GUNGNIR_QA==7
+            lod=p>=2; /* Close inspection of each real mesh, at equal screen size. */
+#endif
 #ifdef BG_JORGE_QA
             if (bg_qa_page() != 10 && j == p % 2)
                 assertf(lod == (p >= 2), "Jorge near/far QA selection");
@@ -2335,6 +2349,14 @@ static void draw_view(unsigned p) {
 #ifdef BG_PROFILE
             submitted_vertices += is_custom(j) ? body_model(j, lod)->vertex_count : lod ? spartan_lod_vertex_loads : model_vertex_loads[BG_M_SPARTAN];
 #endif
+            if(is_gungnir(j) && !bg_visr_active(player)) {
+                bg_gungnir_faces_draw(gungnir_face_blocks[slot][j][lod],
+                                      bg_player_profiles[j],fading,shield>0);
+                triangles+=bg_gungnir_faces[lod].triangles;
+#ifdef BG_PROFILE
+                submitted_vertices+=bg_gungnir_faces[lod].vertex_loads;
+#endif
+            }
         }
         if ((held_masks[p] & (1u << j)) && objective_kind(j)<0)
             small_model_instance(weapon_model(bg_players[j].weapon), &held_matrices[slot][j], vp,

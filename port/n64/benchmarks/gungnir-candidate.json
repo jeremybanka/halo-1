@@ -147,11 +147,33 @@
       "manifest_sha256": "ab2a7d1961e16371c324dcf5d72e883469da1751ee651f12e7c5d07e3c71e600",
       "native_visual_inspection": true,
       "scope": "Four-player Firefight restart/quit/cancel/cleanup and multiplayer return; RDP 0 errors/0 warnings"
+    },
+    {
+      "kind": "gungnir-unified-release-final-v1",
+      "rom_bytes": 66469888,
+      "rom_sha256": "2b659d360927b396d0871f73657828fdd39376249e640564802a28768d08d4ee",
+      "manifest_sha256": "be0230982bab996f9ed91dd6648a4feb0e5f87493ce83a32db9e73803c64ea09",
+      "source_commit": "af4896e7f55767116c362086801c50c8c0895a1e",
+      "asset_commit": "2ba83291c367fdf75b21aa98eb9b6cbfcdb1ad7b",
+      "native_visual_inspection": true,
+      "scope": "Final paced combined cartridge boot; Multiplayer and Firefight in one menu"
+    },
+    {
+      "kind": "gungnir-native-final-aim4-v2",
+      "rom_bytes": 65880064,
+      "rom_sha256": "2b044e7bf589e92ab0e787e0911af1bbd9b28ea130461bfc26d657e8737e2fe9",
+      "manifest_sha256": "58336e7b44b56c83bd4b24b06308aab213f342bb8efca62727d0f74e519f5d9d",
+      "source_commit": "af4896e7f55767116c362086801c50c8c0895a1e",
+      "asset_commit": "2ba83291c367fdf75b21aa98eb9b6cbfcdb1ad7b",
+      "native_visual_inspection": true,
+      "scope": "Final accepted GUNGNIR four-view aim/HUD; RDP 0 errors/0 warnings"
     }
   ],
   "damage_tiling": {
     "sanitized_cases": 48,
     "synchronized_uploads": 120,
     "maximum_screen_coordinate_error_pixels": 0.0001
-  }
+  },
+  "combined_release_rom_bytes": 66469888,
+  "combined_release_required_ram_mib": 8
 }

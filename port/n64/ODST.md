@@ -1,150 +1,145 @@
-# Halo 3: ODST armor
+# ODST BDU armor
 
-Stacked on the Jorge armor PR (#13). ODST is an independent, repeatable armor
-choice for the four existing profiles, available with 8 MiB RAM. It has 100
-health and **zero shields** on spawn, recharge, respawn and Firefight resupply.
-It cannot consume overshields, has no shield bar or shield warning/charge audio,
-and uses ordinary weapon, health and damage rules.
+Stacked on Jorge (#13), ODST is an independent armor choice for all four
+profiles at 8 MiB. It has 100 health and **zero shields**, including on respawn
+and Firefight resupply. It cannot consume overshields. Ordinary ammunition,
+health, damage and weapon zoom rules still apply.
 
-The normal flashlight control toggles VISR for its wearer. That viewport becomes
-`#004411` with a subtle eight-pixel grid. Only living hostile units appear, as
-flat `#bbffcc` silhouettes, including enemies with zero camouflage opacity and
-occupants of closed vehicles. Allies, corpses, scenery, vehicles, weapons,
-effects and HUD disappear. World depth is deliberately omitted: enemies remain
-visible through walls. Each split-screen viewport makes this choice independently.
+The standard Halo 3: ODST helmet/body supplies the design. Its visor stays
+bright cyan. Only the original crown stripe carries profile or team color;
+armor, fabric, backpack and personal forearm plates remain neutral. The armor
+selection summary reads **ODST BDU**. Collision and hit regions still use CE.
 
-The body uses the standard helmeted **Halo 3: ODST** design. The visor is bright
-cyan in every palette. Only the original painted crown stripe changes with
-profile color, or red/blue team assignment. Armor, undersuit, pack and personal
-first-person plates remain neutral. First person retains CE's animated glove and
-sleeve backing with four original ODST forearm components; weapon colors and
-clocks are unchanged.
+The normal flashlight control toggles VISR for that viewport:
 
-## Fresh source and demake
+- Background `#004411`, with a faint eight-pixel grid. An inverse barrel map
+  makes the grid densest at the center and spreads it toward the edges.
+- Living enemies, including fully cloaked enemies, are flat `#bbffcc` silhouettes.
+- Allies and the wearer's arms, weapon or carried objective are flat
+  `#193e4d`, the shared inactive HUD / unselected grenade color.
+- The normal HUD stays visible. Terrain, scenery, vehicles and dropship hulls
+  retain their normal depth, so both friendly and hostile silhouettes are
+  partially or completely hidden by obstacles. Other world color/effects vanish.
+- Pistol 2×, sniper 2×/10× and rocket zoom use the ordinary camera projection,
+  scope HUD and viewmodel visibility predicate. Neighboring normal views are
+  independent. The grid caches wide/narrow textures separately for mixed three-player
+  layouts (48,000 bytes of shared renderer storage).
 
-This follows [CHARACTER_DEMAKE.md](CHARACTER_DEMAKE.md). The earlier ODST mesh
-attempt is not an input. The source was extracted again from the owned archive
-in Downloads, preserving the original archive and extracted caches. The private
-library is `halo64-assets/assets/odst-policy/`:
+## Source and reduction
 
-- Archive SHA-256: `d268d4211fbed914832215aab041765b74ef76bbb0ef12c68383603907dfa2d7`.
-- `c100.map`: `487f02a4bc1fd1fbfaffa7b038cff6edfb8d1c9d230c90d5ebabff940964a1de`.
-- Retail build `13895.09.04.27.2201.atlas_relea`, tag
-  `objects\characters\odst\odst`: 8,647 triangles, 7,885 vertices, 55 bones,
-  78 physical region/material components before crown paint partitioning.
+The process follows [CHARACTER_DEMAKE.md](CHARACTER_DEMAKE.md), including the
+later [Jorge near/far lessons](JORGE_LODS.md). The discarded pre-policy attempt
+is not an input. The untouched extraction and earlier solid `covered/` model
+remain separate from the new `game-base/` and accepted `game-scale/` artifacts
+in the private `halo64-assets/assets/odst-policy/` library.
 
-`source/` preserves native geometry, UVs, four-influence weights, hierarchy,
-material metadata, diffuse inputs, component inventory and retarget decisions.
-The independent BLEND also contains an editable native 55-bone reference rig.
-Gameplay uses an explicit adaptation to the 19-bone CE hierarchy and its 39
-motion clips. Facial/finger and extra source bone motion are approximated by
-named CE anchors; these are not the original Halo 3 animations. Collision and
-hit regions retain the existing CE model.
+The owned source archive SHA-256 is
+`d268d4211fbed914832215aab041765b74ef76bbb0ef12c68383603907dfa2d7`;
+`c100.map` is
+`487f02a4bc1fd1fbfaffa7b038cff6edfb8d1c9d230c90d5ebabff940964a1de`.
+Retail build `13895.09.04.27.2201.atlas_relea`, tag
+`objects\characters\odst\odst`, contains 8,647 triangles, 7,885 vertices,
+55 bones and 78 physical region/material components before crown paint splitting.
+Native geometry, UVs, weights, hierarchy, diffuse inputs, materials and the
+component inventory are preserved. The editable BLEND includes the intact
+55-bone reference and an explicit 19-bone CE gameplay adaptation. Its 39 CE
+motion clips approximate source facial/finger/extra-bone behavior; these are
+not original Halo 3 animations.
 
-A shoulder pilot reduced 260 to 146 triangles before body reduction. Components
-are reduced separately with source-face/barycentric correspondence, protected
-rims, sampled surface-distance checks and closed-volume limits. Budgets are
-soft: near permits 0.002 Halo units of rim movement and 0.006 sampled surface
-error, with 90–110% closed volume; far permits 0.004 / 0.008 and 80–110% volume.
-At 3.048 meters per Halo unit, those surface limits are about 18 / 24 mm.
-They are sampled guards, not exhaustive geometric bounds.
+`reduce_odst_game.py` always starts from the untouched extracted surfaces.
+It explicitly omits small fasteners, straps, knife/sheath and selected far
+layers. Helmet shell, visor and crown paint share geometry during reduction;
+the chest and shoulders keep original curved surfaces. Hands and forearm
+volumes use retained source contour points. The original torso, upper sleeves,
+legs and boots remain a continuous reduced garment, with protected boot/limb
+extrema. Recessed source-fitted lower sleeves and pack lining supply local
+continuity. The hidden garment front is fitted behind the chest/waist opening;
+its displacements are recorded separately from source correspondence.
 
-| Preserved checkpoint | Near triangles | Far triangles | Purpose |
-|---|---:|---:|---|
-| `solid/` | 3,287 | 2,769 | Conservative source-surface baseline |
-| `playable/` | 3,325 | 2,813 | Protect crown stripe and soften rim constraints |
-| `runtime/` | 3,325 | 1,726 | Independent far reduction; omit selected small gear |
-| `covered/` | 3,350 | 1,781 | Restore 25 / 55 audited original seam faces |
+Armor overlap follows Jorge's 5% fit, capped at 16 mm, with a one-unit minimum
+on the approximately 6 mm packed grid. Hidden backing is excluded from that
+expansion. Nearest-source faces, barycentrics, normalized skin weights, explicit
+component decisions, sampled reduction error and fit offsets are retained.
+The coverage repair list restores audited original source faces, rather than
+halving a damaged mesh again. Failed budget/coverage candidates are kept in
+ignored build storage; the original accepted solid library is unchanged.
 
-Each checkpoint retains geometry, weights, animation arrays, decisions and its
-own editable BLEND and skinned body-only GLBs. Final restoration adds original
-source faces, not a primitive reconstruction. Opposite winding sides of thin
-surfaces retain separate export vertices. `stage-ledger.json` records parent and
-artifact hashes. `review/` contains matched source/packed views and a comparison
-with the actual 328 / 135-triangle CE body, using the same idle pose and camera.
-This remains substantially heavier than CE; it is not a completed 700-triangle
-optimization.
+## Cost and evidence
 
-## Runtime cost and validation
+| Body, including pack | Native vertices | GLB vertices | Packed vertices | Triangles |
+|---|---:|---:|---:|---:|
+| ODST near | 625 | 2,305 | **738** | 770 |
+| Standard Spartan near | — | — | 562 | 328 |
+| ODST far | 402 | 1,337 | **464** | 447 |
+| Standard Spartan far | — | — | 250 | 135 |
 
-| Body cost | Near | Far |
-|---|---:|---:|
-| Triangles | 3,350 | 1,781 |
-| Packed N64 vertices | 3,656 | 2,048 |
-| Tiny3D batches | 85 | 46 |
-| Complete animated coordinate tracks | 1,957 | 1,179 |
-| Resident original mesh bytes | 79,296 | 43,840 |
-| Two frame endpoints | 13,312 | 8,064 |
+GLB counts include UV, color and flat-normal splits; packed vertices measure
+the actual game cost. The previous ODST used 3,656 / 2,048 packed vertices. This is a similar vertex
+tier to the reduced Spartan/Jorge bodies, not triangle-count or rendering-cost
+parity. The independent near/far bank is **802,784 bytes**. Resident geometry
+plus the shared two-endpoint cache uses 30,992 bytes; each player needs
+19,232 bytes per fenced frame slot for both body outputs. Personal
+first-person plates remain 282 vertices / 264 triangles over CE's glove/sleeve
+backing. Weapons are counted separately.
 
-The optional body bank is **2,542,592 ROM bytes**. Both meshes plus the shared
-maximum endpoint cache use 136,448 bytes before per-player fenced output,
-commands and first-person buffers. Per player, near plus far vertex output uses
-91,264 bytes per frame slot. Personal forearms add 282 packed vertices / 264
-triangles over the existing glove/sleeve mesh. These are asset costs, not total
-match-memory measurements.
+The packer uses the same 48 per-channel color bound as CE. Opaque cache optimization
+uses full quantized animation trajectories as vertex identities, keeps bind
+coplanar precedence, and verifies unchanged geometry across every authored
+pose. Coordinates remain exact on the selected 512-unit grid. Seven near and
+four far runtime samples per clip stream through two bounded endpoint buffers;
+original durations, ODST-specific sockets and conservative bounds are retained.
 
-Coordinates use 512 units per Halo unit, approximately a 6 mm grid. Full
-quantized trajectories determine sharing; bind-position equality alone does
-not. Per-frame origins and three 9-bit coordinate planes preserve the selected
-coordinates exactly. The runtime streams at most two endpoints, with seven near
-and four far samples per clip (or fewer for shorter sources), retaining original
-durations and ODST-specific grip sockets and bounds.
+- 128 quantized coverage probes: four poses, eight views, 64/96-pixel targets,
+  both LODs; **zero new enclosed background pixels**. Existing anatomical gap
+  growth is recorded separately. Matched intact-source and Spartan comparisons
+  are in `review-game-scale/`.
+- 96 separate local depth probes inspect chest, forearm and pack fronts.
+  Broad plate fronts remain clear of backing. Oblique joint returns are
+  reported separately, including narrow cuff overlap; a filled body silhouette
+  alone does not pass this check.
+- Both independent editable LODs pass 454 Blender skinning samples. Body-only,
+  meter-unit GLBs round-trip all 39 clips across 390 authored-key and 390
+  intermediate samples, with maximum error 0.474 mm against a 1 mm gate.
+- Actual C streamed loader/decoder under ASan/UBSan: 4,680 cases, both LODs,
+  four phases, endpoints, looping, clamping, blending, sockets and reloads.
+  Custom first-person binding passes 1,409 production poses.
+- Gameplay input tests cycle pistol, sniper, rocket and unsupported AR zoom
+  with VISR on/off. Native fixtures compare ordinary/VISR focal lengths and
+  exercise unzoomed, 2× and 10× views, HUD, inactive allies/viewmodels,
+  camouflage, and partial/total environmental occlusion.
 
-Validation evidence is kept separately:
-
-- 454 authoring poses per LOD agree with independent Blender skinning within
-  0.00001 Halo units. Both GLBs contain all 39 clips, with meter coordinates. Reimport checks
-  390 authored-key and 390 intermediate clock samples; maximum measured
-  position error is 0.469 mm against a 1 mm acceptance limit. Interchange
-  animations are sampled at 300 Hz to preserve quaternion interpolation; the
-  compact N64 bank remains independently packed at seven/four samples per clip.
-- 128 quantized coverage probes: four poses, eight directions, 64/96-pixel
-  targets and two LODs; zero newly enclosed background pixels. Existing gap
-  growth is reported separately. This is not exhaustive animation coverage.
-- Actual C bank loader/decoder under ASan/UBSan: 4,680 cases, alternating LODs,
-  four player phases, looping, clamping, blending, sockets and bank reloads.
-  Every serialized endpoint, socket and bound is also checked against the bake.
-- Actual C first-person binding under sanitizers: 1,409 production poses, four
-  profiles, ready/service/reload actions and unchanged weapon colors.
-- Host gameplay/menu checks cover shieldless damage, pickups, regeneration,
-  respawn, flashlight/VISR isolation, cloaked enemies, allies, all controller
-  rosters, 13 maps / 26 presets and Firefight for 1–4 players.
-- Ares v148 at 8 MiB: mixed normal/VISR views, zero-opacity targets, team
-  exclusion, first-person plates and the scripted four-player menu lifecycle.
-  Captures and ROM hashes are in `native/`. These are emulator checks, not
-  physical-console performance or full-match peak-memory qualification.
-
-Release ROMs compile at 64,241,664 bytes (multiplayer) and 66,928,640 bytes
-(Firefight), within the 64 MiB cartridge limit. The inherited replay fixture's
-`gunner>0` failure is documented in [ARMOR_SETUP.md](ARMOR_SETUP.md); a full
-regression-suite pass is not claimed.
+Ares v148 / paraLLEl-RDP checks use 8 MiB. Captures, logs and ROM hashes are
+in `native-game-scale/`. Multiplayer and Firefight releases are 62,488,576 and
+65,175,552 bytes, within 64 MiB. These are emulator and asset-allocation checks,
+not physical-console performance or full-match peak-memory qualification.
+The inherited `gunner>0` replay fixture still fails on unchanged parent/main;
+a full regression-suite pass is not claimed.
 
 ## Reproduction
 
-Use the locally owned source caches with their shared resources. Raw game
-caches, archives, derived models, textures and screenshots remain in ignored
-build directories or the private asset submodule, never the public source repo.
-Historical checkpoint artifacts are retained independently; the maintained
-reducer produces the current runtime candidate.
+Raw archives/caches, derived assets and screenshots stay in ignored build
+storage or the private asset submodule, never the public source repository.
+Use the locally owned cache and shared resources for a fresh extraction.
 
 ```sh
 build/n64-python/bin/python port/n64/extract_odst.py --cache /path/to/maps/c100.map --ce halo64-assets/assets/extended-raw.json --output halo64-assets/assets/odst-policy/source
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python port/n64/demake_odst.py -- halo64-assets/assets/odst-policy/source/odst-ce-raw.json halo64-assets/assets/jorge/playable-half/ce-motion-source.json halo64-assets/assets/odst-policy/runtime
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python port/n64/repair_odst.py -- halo64-assets/assets/odst-policy port/n64/odst_coverage_faces.json halo64-assets/assets/odst-policy/covered
-build/n64-python/bin/python port/n64/pack_odst.py halo64-assets/assets/odst-policy/covered/solid.json halo64-assets/generated/odst
-build/n64-python/bin/python port/n64/pack_odst_firstperson.py
-build/n64-python/bin/python port/n64/review_odst.py halo64-assets/assets/odst-policy halo64-assets/generated/odst halo64-assets/assets/odst-policy/review
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python port/n64/odst_library.py -- halo64-assets/assets/odst-policy
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python port/n64/validate_odst_exports.py -- halo64-assets/assets/odst-policy
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/reduce_odst_game.py -- halo64-assets/assets/odst-policy halo64-assets/assets/odst-policy/game-base
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/repair_odst.py -- halo64-assets/assets/odst-policy port/n64/odst_game_coverage_faces.json halo64-assets/assets/odst-policy/game-scale game-base reorder
+build/n64-python/bin/python port/n64/pack_odst.py halo64-assets/assets/odst-policy/game-scale/solid.json halo64-assets/generated/odst
+build/n64-python/bin/python port/n64/review_odst.py halo64-assets/assets/odst-policy halo64-assets/generated/odst halo64-assets/assets/odst-policy/review-game-scale --candidate game-scale
+build/n64-python/bin/python port/n64/audit_odst_clearance.py halo64-assets/assets/odst-policy/game-scale halo64-assets/assets/odst-policy/review-game-scale/armor-clearance.json
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/odst_library.py -- halo64-assets/assets/odst-policy game-scale game-scale/library
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/validate_odst_exports.py -- halo64-assets/assets/odst-policy game-scale game-scale/library
 build/n64-python/bin/python port/n64/certify_odst.py
 build/n64-python/bin/python port/n64/build.py --preset release --output-dir build/odst-release
 build/n64-python/bin/python port/n64/build.py --preset release --firefight --output-dir build/odst-firefight
 ```
 
-`setup_assets.py` links the generated bank into the ROM filesystem. Builds check
-the certification's source and file fingerprints. Native fixtures use
-`--odst-qa 0` (four palettes / LODs), `1` (VISR / cloak), `2` (first person),
-`3` (teams), or `--odst-frontend-qa`; add `--validate --rspq-buffer-kib 32`.
-
-The published private asset commit and release hashes are recorded in
+Synchronize the generated `odst.bin` into `halo64-assets/frontend-files/` before
+certification. Builds check source/file fingerprints. QA fixtures use
+`--odst-qa 0` (palettes/LODs), `1` (cloak), `2` (first-person actions),
+`3` (teams), `4` (HUD/viewmodel), `5` (pistol 2×), `6` (sniper 2×),
+`7` (sniper 10×), `8` (ally partial/enemy hidden), `9` (enemy partial/ally hidden), `10` (mixed three-player grid cache).
+Omit `--preset release` for these staged inspection fixtures; add
+`--validate --rspq-buffer-kib 32`. Published asset and release hashes are in
 [`benchmarks/odst/validation.json`](benchmarks/odst/validation.json).

@@ -232,7 +232,7 @@ static void pve_prepare(void){
 #endif
         for(unsigned v=0;v<views;v++){
             bool visr=bg_visr_active(&bg_players[v]);
-            if(visr&&!bg_visr_enemy(v,BG_PLAYERS+i))continue;
+            if(visr&&p->health<=0)continue;
             if(!visr&&a->arrival==1&&bg_ff_dropship.door<.05f)continue;
 #ifdef BG_ENEMY_VEHICLES
             if(!visr&&p->vehicle>=0&&(bg_player_seat(p)->flags&1))continue;
@@ -389,7 +389,7 @@ static void pve_prepare(void){
     data_cache_hit_writeback(jackal_shield_matrices[slot],sizeof(jackal_shield_matrices[slot]));
 #endif
 }
-static void pve_draw(unsigned view){
+static void pve_draw_ship(unsigned view){
     if(!bg_pve_is_active())return;
     if(pve_ship_visible[view]){
         unsigned lod=0;
@@ -401,6 +401,10 @@ static void pve_draw(unsigned view){
         submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);
 #endif
     }
+}
+static void pve_draw(unsigned view){
+    if(!bg_pve_is_active())return;
+    pve_draw_ship(view);
     for(unsigned i=0;i<bg_pve_count;i++)if(pve_lods[view][i]){
         unsigned lod=pve_lods[view][i]-1;const bg_model_asset*m=&bg_pve_models[bg_pve_actors[i].kind][lod];
         unsigned owner=i;

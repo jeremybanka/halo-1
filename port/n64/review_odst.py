@@ -125,6 +125,7 @@ def run(folder,packed,output,candidate="covered"):
 
 def compare_ce(folder,packed,output):
     """Same CE idle sample, Halo scale, camera, lighting and production RGB."""
+    output.mkdir(parents=True,exist_ok=True)
     assets=folder.parent.parent
     raw=json.loads((assets/'assets/extended-reduced.json').read_text())
     previews=json.loads((assets/'generated/model-preview.json').read_text())
@@ -140,7 +141,8 @@ def compare_ce(folder,packed,output):
     for lod in range(2):
         p=np.load(packed/f'odst-{lod}-preview.npz')
         meshes.append(Mesh(p['frames_0'][0,p['triangles']]/512,rgb=palette(p['colors'],p['mask'],0)[p['triangles']]))
-    labels=('CE near / 328 tris','CE far / 135 tris','ODST near / 3350 tris','ODST far / 1781 tris')
+    costs=json.loads((packed/'odst-report.json').read_text())['lods']
+    labels=('CE near / 562 verts','CE far / 250 verts',f"ODST near / {costs[0]['vertices']} verts",f"ODST far / {costs[1]['vertices']} verts")
     sheet=Image.new('RGB',(640,180*4),'#202428');draw=ImageDraw.Draw(sheet)
     for row,(angle,direction) in enumerate(ANGLES[:4]):
         bounds=matching_bounds(meshes,direction)

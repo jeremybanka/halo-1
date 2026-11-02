@@ -21,6 +21,7 @@ def palette(rgb, mask, profile):
 
 
 def corner_colors(tri, materials, textures):
+    if tri.get('color_override'):return [tri['color_override']]*3,[0]*3
     role = materials[tri['material']]['path'].split('\\')[-1]
     if role == 'odst_crown_stripe':
         return [[235,235,235]]*3, [255]*3
@@ -71,7 +72,26 @@ def pack(source, output):
         for t in model['triangles']:
             rgb,amount = corner_colors(t,data['materials'],textures)
             colors.extend(rgb); mask.extend(amount)
-        mesh = indexed_mesh(points, colors, mask, signatures, color_tolerance=24)
+        if data.get('opaque_motion_reorder'):
+            # These vertex-colored surfaces are opaque. Use the complete
+            # runtime trajectory as an immutable identity in the static cache
+            # optimizer: coincident bind points with different motion cannot
+            # merge. Its coplanar predecessor constraints retain source order
+            # for overlapping bind surfaces. No pose or clock is changed.
+            mesh=indexed_mesh(points,colors,mask,material_keys=signatures,
+                color_tolerance=data.get('color_tolerance',24),reorder_static=True)
+            emitted=[first+j for first,_,off,nindices in mesh['batches'] for j in mesh['indices'][off:off+nindices]]
+            for k,v in enumerate(emitted):
+                assert signatures[mesh['sources'][v]]==signatures[mesh['triangle_order'][k//3]*3+k%3]
+            # Check against every independent authoring pose, beyond the
+            # sparse runtime endpoints used to identify reusable trajectories.
+            original_corners=np.array(mesh['triangle_order'])[:,None]*3+np.arange(3)
+            packed_sources=np.array(mesh['sources'])[emitted]
+            for i in range(len(model['animations'])):
+                full=np.rint(native['frames_'+str(i)]*SCALE).astype(np.int16)
+                assert np.array_equal(full[:,packed_sources],full[:,original_corners.ravel()])
+        else:
+            mesh = indexed_mesh(points, colors, mask, signatures, color_tolerance=data.get("color_tolerance",24))
         n = len(mesh['vertices']); tracks = len(track_sources)
         first = len(bank)
         def rgba(c): return (c[0]<<24)|(c[1]<<16)|(c[2]<<8)|255

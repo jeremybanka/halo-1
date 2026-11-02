@@ -17,7 +17,7 @@ mode selection. Unjoined controllers cannot alter the page.
 |---|---|---:|---:|---|
 | Spartan | MJOLNIR Mk V | 100 | 100 | Standard ammunition and damage |
 | Jorge | MJOLNIR Mk IV [G-052] | 100 | 200 | Unlimited rocket reserve; explosion damage cannot remove health |
-| ODST | Halo 3: ODST | 100 | 0 | Flashlight toggles enemy-only VISR |
+| ODST | ODST BDU | 100 | 0 | Flashlight toggles VISR |
 
 Jorge still needs to find a rocket launcher. Its two-round magazine, firing
 cadence, reload duration, weapon-ready time and reload cancellation are
@@ -139,9 +139,12 @@ rebased revision.
 
 ODST has no shields, cannot consume overshields, and keeps zero shields through
 respawn and Firefight resupply. Its normal flashlight button toggles a deep green
-VISR viewport: only living hostile silhouettes remain, including cloaked and
-world-occluded enemies. Allies, scenery, weapons and HUD disappear in that
-view alone. The cyan visor and neutral armor are protected from palette changes;
+VISR viewport with a subtly curved grid, densest at the center. Living enemies,
+including cloaked enemies, are bright green silhouettes. Allies and the wearer's
+arms/weapon use the inactive HUD color; the HUD remains visible. World depth
+partially or completely occludes both friendly and hostile units. Normal weapon
+zoom and neighboring viewports retain their usual behavior.
+The cyan visor and neutral armor are protected from palette changes;
 only the original helmet crown stripe carries profile or team color.
 
 The fresh Halo 3: ODST extraction, component demake, independent checkpoints,

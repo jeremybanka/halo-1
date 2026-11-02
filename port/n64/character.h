@@ -15,7 +15,7 @@ static inline const bg_armor_definition *bg_armor_def(unsigned armor) {
         {"Spartan", "MJOLNIR Mk V", "Standard shields\nStandard ammunition", 100, 100, 0, 4*1024*1024},
         {"Jorge", "MJOLNIR Mk IV [G-052]", "Double shields\nInfinite rockets\nBlast-proof health", 100, 200,
          BG_ARMOR_INFINITE_ROCKETS | BG_ARMOR_BLAST_HEALTH_IMMUNE, 8*1024*1024},
-        {"ODST", "Halo 3: ODST", "No shields\nVISR enemy silhouettes", 100, 0,
+        {"ODST", "ODST BDU", "No shields\nVISR enemy silhouettes", 100, 0,
          BG_ARMOR_VISR, 8*1024*1024}
     };
     return &suits[armor < BG_ARMOR_COUNT ? armor : BG_ARMOR_SPARTAN];

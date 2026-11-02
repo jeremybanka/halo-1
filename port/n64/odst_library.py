@@ -9,6 +9,7 @@ from demake_odst import globals_for
 from pack_assets import normal,position
 
 def corner_colors(tri,materials,textures):
+    if tri.get('color_override'):return [tri['color_override']]*3,[0]*3
     role=materials[tri["material"]]["path"].split("\\")[-1]
     if role=="odst_crown_stripe":return [[235,235,235]]*3,[255]*3
     if role=="odst_visor":return [[24,230,255]]*3,[0]*3
@@ -149,7 +150,7 @@ def run(folder,candidate="covered",library="library"):
                 if error>1e-5 and error>worst+1e-4:print('RIG_ERROR',lod,c['name'],fi,error,actual[0],proof['frames_'+str(ci)][fi][0],flush=True)
                 worst=max(worst,error);samples+=1
         assert worst<1e-5,(lod,worst)
-        checks.append(dict(lod=lod,samples=samples,maximum_coordinate_error=worst))
+        checks.append(dict(lod=lod,native_vertices=len(ob.data.vertices),triangles=len(ob.data.polygons),samples=samples,maximum_coordinate_error=worst))
     (folder/library).mkdir(parents=True,exist_ok=True)
     (folder/library/'rig-validation.json').write_text(json.dumps(checks,indent=2)+'\n')
     rig.animation_data.action=next(a for a in bpy.data.actions if a.get('source_clip')=='idle');scene.frame_set(0)

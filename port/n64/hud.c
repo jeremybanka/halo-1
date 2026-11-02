@@ -4,7 +4,7 @@
 #include "asset_hud.h"
 #include "asset_prompt_icons.h"
 #include "game.h"
-#include "visr.h"
+#include "hud_palette.h"
 #include "scene.h"
 #include "map.h"
 #include "camouflage.h"
@@ -141,7 +141,7 @@ static void pixel(int x, int y, int w, int h, color_t c) {
 
 /* This bank stays resident through all counters, bars and labels in a view. */
 static const color_t hud_cyan = {100, 220, 255, 255};
-static const color_t hud_dim = {25, 62, 77, 255};
+static const color_t hud_dim = {BG_HUD_INACTIVE_R, BG_HUD_INACTIVE_G, BG_HUD_INACTIVE_B, 255};
 static const color_t hud_shadow = {3, 13, 22, 235};
 static const color_t hud_backing = {3, 13, 22, 150};
 static void hud_sprite(int u, int v, int w, int h, int x, int y, color_t color) {
@@ -627,7 +627,6 @@ static void damage_indicators(const bg_player *p,int x,int y,int w,int h,unsigne
 
 void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control_style style) {
     const bg_player *p = &bg_players[index];
-    if (bg_visr_active(p)) return;
     float scale = width < 200 ? .45f : .5f;
     int margin = width < 200 ? 5 : 9;
     unsigned weapon = (unsigned)p->weapon < BG_WEAPON_COUNT ? (unsigned)p->weapon : BG_W_AR;

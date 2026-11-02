@@ -96,8 +96,21 @@ static void odst_tests(void){
     uint8_t teams[4]={0,0,1,1};bg_configure_mode(BG_MODE_TEAM_SLAYER,teams);
     assert(!bg_visr_enemy(0,1)&&bg_visr_enemy(0,3));
     bg_tick(in,1.f/30);assert(!bg_visr_active(p));
+    const int scoped_weapons[]={BG_W_PISTOL,BG_W_SNIPER,BG_W_ROCKET,BG_W_AR};
+    for(unsigned w=0;w<4;w++)for(unsigned enabled=0;enabled<2;enabled++){
+        bg_give_weapon(0,scoped_weapons[w]);p->weapon=scoped_weapons[w];p->weapon_ready=0;p->zoom=0;p->flashlight_on=enabled;
+        bg_input zoom[4]={0};zoom[0].zoom=true;
+        unsigned levels=p->weapon==BG_W_SNIPER?3:2;
+        for(unsigned i=1;i<=levels*2;i++){
+            bg_tick(zoom,1.f/30);assert(p->weapon==scoped_weapons[w]);
+            assert(p->zoom==(int)(scoped_weapons[w]!=BG_W_AR?i%levels:0));
+            assert(bg_visr_active(p)==(bool)enabled);
+            assert(bg_player_firstperson_weapon(p)==(p->zoom==0));
+        }
+    }
+    p->flashlight_on=false;
     damage_player_profile(0,3,1000,false,false,BG_D_ROCKET,false,false,1);
     assert(p->health==0&&!bg_visr_active(p));
     shield_fixture_ticks(400);assert(p->health==100&&p->shield==0&&p->armor==BG_ARMOR_ODST&&!p->flashlight_on);
 }
-int main(void){shield_tests();damage_tests();ammo_tests();vehicle_tests();odst_tests();puts("PASS: armor identity, 200 shield recharge/overshield/respawn, blast-only health resistance, finite magazines/infinite reserve, pickups, switching and all vehicle rider exits");}
+int main(void){shield_tests();damage_tests();ammo_tests();vehicle_tests();odst_tests();puts("PASS: armor identity, 200 shield recharge/overshield/respawn, blast-only health resistance, finite magazines/infinite reserve, pickups, switching, ODST shieldless VISR/zoom and all vehicle rider exits");}

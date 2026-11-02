@@ -1,77 +1,275 @@
 {
+  "schema": 2,
   "base_pr": 13,
   "base_commit": "95305547a7913776fc8f711d0d54682f8f18961f",
-  "asset_policy": "port/n64/CHARACTER_DEMAKE.md",
-  "prior_odst_meshes_used": false,
-  "body_bank_sha256": "f68614dd36021433df2533891fd302874f9c913ff3b3cf5df55796e2ca0fc67c",
+  "asset_policy": [
+    "port/n64/CHARACTER_DEMAKE.md",
+    "port/n64/JORGE_LODS.md"
+  ],
+  "prior_pre_policy_odst_meshes_used": false,
+  "asset_commit": "94c97e22c5b40a1dfcdbaa50e991f2c7677d43fe",
+  "body_bank_sha256": "aaca270064d8049580b7f1934fd21a34792f51ab972c8b7f51d1915655887256",
+  "body_bank_bytes": 802784,
+  "body_costs": [
+    {
+      "vertices": 738,
+      "triangles": 770,
+      "batches": 20,
+      "tracks": 606,
+      "bytes": 16592,
+      "frame_cache_bytes": 4192,
+      "native_vertices": 625,
+      "glb_vertices": 2305
+    },
+    {
+      "vertices": 464,
+      "triangles": 447,
+      "batches": 12,
+      "tracks": 388,
+      "bytes": 10208,
+      "frame_cache_bytes": 2720,
+      "native_vertices": 402,
+      "glb_vertices": 1337
+    }
+  ],
+  "spartan_packed_vertices": [
+    562,
+    250
+  ],
+  "jorge_packed_vertices": [
+    670,
+    390
+  ],
+  "previous_odst_packed_vertices": [
+    3656,
+    2048
+  ],
   "roms": {
     "multiplayer": {
       "file": "halo-64-paced30-rspq32k.z64",
-      "bytes": 64241664,
-      "sha256": "26060d7790241ccae9c93eb562d203455bb6afc4fd5b575226fdba506bdad82b"
+      "bytes": 62488576,
+      "sha256": "3e2b261ff9dd755fae4e549241e0df0d50a51d2d2d8d6b29c959a82a84c34dc7",
+      "preset": "release",
+      "build_manifest_sha256": "82f4e0b1856fc2ce0fc45fc4c3cc8fae1559e766fe5c0e16bbc4376cc36e9d7d",
+      "built_asset_commit": "e7ec321d796389773a34e398124b10eafb9bfa4f",
+      "compiled_source_fingerprints_match": true
     },
     "firefight": {
       "file": "halo-64-firefight-paced30-rspq32k.z64",
-      "bytes": 66928640,
-      "sha256": "aecb08e1bb30b213783cbd50929b9c30d58519eef537f213fa4ec8ed51c65f89"
+      "bytes": 65175552,
+      "sha256": "51b04d3c8df72c326a60e21a141c430b10606f71e0fe7b455949e767d36ba25f",
+      "preset": "release",
+      "build_manifest_sha256": "42cf93e4d08261a6686ec3d45e462c2043f91b533d5736a89a6a29d4f444708d",
+      "built_asset_commit": "e7ec321d796389773a34e398124b10eafb9bfa4f",
+      "compiled_source_fingerprints_match": true
     }
   },
-  "body_costs": [
-    {
-      "vertices": 3656,
-      "triangles": 3350,
-      "batches": 85,
-      "tracks": 1957,
-      "bytes": 79296,
-      "frame_cache_bytes": 13312
-    },
-    {
-      "vertices": 2048,
-      "triangles": 1781,
-      "batches": 46,
-      "tracks": 1179,
-      "bytes": 43840,
-      "frame_cache_bytes": 8064
-    }
-  ],
+  "renderer": {
+    "background": "#004411",
+    "enemy": "#bbffcc",
+    "inactive": "#193e4d",
+    "hud_visible": true,
+    "environmental_depth_retained": true,
+    "cloak_opacity_ignored_for_living_silhouettes": true,
+    "grid": "inverse barrel mapping; densest at center",
+    "grid_cache_bytes": 48000,
+    "three_player_grid_builds": [
+      [
+        160,
+        120
+      ],
+      [
+        320,
+        120
+      ]
+    ]
+  },
   "validation": {
     "coverage_probes": 128,
     "new_enclosed_pixels": 0,
+    "armor_clearance_probes": 96,
+    "broad_front_backing_pixels": 0,
     "rig_samples_per_lod": 454,
     "glb_authored_key_samples": 390,
     "glb_clock_samples": 390,
     "c_decode_cases": 4680,
     "firstperson_pose_cases": 1409
   },
-  "host_checks": [
-    "ASan/UBSan armor damage, shieldless recharge/pickups/respawn and VISR/enemy/team filtering",
-    "ASan/UBSan all roster/host front-end combinations, with and without Firefight",
-    "13 maps / 26 multiplayer modes recertified",
-    "1-4 player Firefight lifecycle, ODST vitals/NPC damage/cloaking/resupply/respawn",
-    "Existing Jorge C decoder, palette and first-person checks"
+  "maximum_glb_roundtrip_error_m": 0.0004744750913232565,
+  "current_host_checks": [
+    "ASan/UBSan armor abilities and shieldless spawn/recharge/damage/pickups/respawn",
+    "Actual pistol/sniper/rocket/unsupported AR zoom input cycles with VISR on and off; expected weapon and viewmodel availability asserted",
+    "4680 actual C ODST streamed decoder/LOD/endpoint/loop/blend/socket/reload cases",
+    "1409 actual C first-person poses / four palettes, unchanged weapon colors",
+    "Existing Jorge C LOD decoder / 4680 cases"
+  ],
+  "retained_initial_pr_checks": [
+    "All roster/host menu combinations, with and without extended roster",
+    "13 maps / 26 mode presets",
+    "1-4 player Firefight lifecycle, NPC damage/cloaking/resupply/respawn",
+    "Original 35-step four-player native frontend/combat/results/settings lifecycle; retained in private native/"
   ],
   "native_checks": {
     "emulator": "Ares v148 / paraLLEl-RDP",
     "ram_bytes": 8388608,
-    "frontend_steps": 35,
-    "frontend_completed": true,
-    "rdpq_errors": 0,
-    "rdpq_warnings": 0,
-    "views": [
-      "VISR isolated to wearer view",
-      "living zero-opacity enemies visible as silhouettes",
-      "cloaked teammates excluded",
-      "normal neighboring views preserved",
-      "first-person source forearms",
-      "four-player selection / combat / death / respawn / 15-kill results / settings",
-      "all four profile crown stripes, protected cyan visor, neutral armor, near/far"
+    "scope": "Frozen multiplayer inspection fixtures; no FPS or full-match peak-memory claim",
+    "fixtures": [
+      {
+        "page": 0,
+        "label": "palettes-lods",
+        "rom": "halo-64-model-qa-odst-qa0-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "ed10a32994eab514b284b18a23906ad9ebc87593dc4e65c1664d301a65b10cf5",
+        "capture": "qa0-palettes-lods.png",
+        "capture_sha256": "180817e3a021a8d498d58dcfb5df1c3a58a2defd6ff75f7d3f2ef42ed417e857",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": null,
+        "occlusion": null
+      },
+      {
+        "page": 1,
+        "label": "cloaked-enemies",
+        "rom": "halo-64-model-qa-odst-qa1-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "bafdaeabe817bf8a9055c9c31ad0875f76200223b8e23ae872af81bdeb427b11",
+        "capture": "qa1-cloaked-enemies.png",
+        "capture_sha256": "fbb8efcdd7f50c193f950af357859397cbcd194c39bbebcebd2a80cc80cccc50",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": null,
+        "occlusion": null
+      },
+      {
+        "page": 3,
+        "label": "allies-enemies",
+        "rom": "halo-64-model-qa-odst-qa3-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "583c6970623fbfb1d06a929fb6a4cd68abda5f7ef620bec56e3c3f866e0264e4",
+        "capture": "qa3-allies-enemies.png",
+        "capture_sha256": "ab112aa216d5b61939af069101a126665ac79e42c421220f5a2596cef94fbd5e",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": null,
+        "occlusion": null
+      },
+      {
+        "page": 4,
+        "label": "hud-viewmodel-grid",
+        "rom": "halo-64-model-qa-odst-qa4-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "cc0f1b1f734bfb6f5c2b62f0c9543e4e692ae6e5d035713b6f392a0fdf7db3e8",
+        "capture": "qa4-hud-viewmodel-grid.png",
+        "capture_sha256": "23440c6e654024c4df4fa083cfdadd952e86e8dab8dda262e5834c98fd6e7690",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": null
+      },
+      {
+        "page": 5,
+        "label": "pistol-2x",
+        "rom": "halo-64-model-qa-odst-qa5-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "22fa35a41c10e8cdc627018ab1ade431664dd1614055d9081749ca8bbd9deb35",
+        "capture": "qa5-pistol-2x.png",
+        "capture_sha256": "3939d5ff8162d07ae004dae26851b9736f3906dcec73e62bed6b201c70b91a7c",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=2 focal=2.502379,3.336505 normal=2.502379,3.336505 viewmodel=0",
+        "occlusion": null
+      },
+      {
+        "page": 6,
+        "label": "sniper-2x",
+        "rom": "halo-64-model-qa-odst-qa6-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "6576f4d2ec2988474591a032eb33cae18ea8aa63ac4153038d956bf2b8eb45a6",
+        "capture": "qa6-sniper-2x.png",
+        "capture_sha256": "8d885af042b31993f5d9568757928e6b5ca5d5ebd132b10d325458ea9ea66e88",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=2 focal=2.502379,3.336505 normal=2.502379,3.336505 viewmodel=0",
+        "occlusion": null
+      },
+      {
+        "page": 7,
+        "label": "sniper-10x",
+        "rom": "halo-64-model-qa-odst-qa7-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "f07b35121114a38b26e11fb5ea225ee8165c014b4e6dd67e08754903afaa1fb8",
+        "capture": "qa7-sniper-10x.png",
+        "capture_sha256": "4d6ecae77ae813a3d37bad34154443254396381d91afeb317dc1e92021ac46e1",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=10 focal=12.511893,16.682524 normal=12.511893,16.682524 viewmodel=0",
+        "occlusion": null
+      },
+      {
+        "page": 8,
+        "label": "ally-partial-enemy-hidden",
+        "rom": "halo-64-model-qa-odst-qa8-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "ca7c4215c85056ee64d04ba075cdfc91ceab592ebebb1799dc9956a57606f3b8",
+        "capture": "qa8-ally-partial-enemy-hidden.png",
+        "capture_sha256": "55809e7388e1edc4fb75ce1ae335ab9100624d9503d0825be785d0f961b5e683",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": "VISR_OCCLUSION partial=2/9 total=9/9"
+      },
+      {
+        "page": 9,
+        "label": "enemy-partial-ally-hidden",
+        "rom": "halo-64-model-qa-odst-qa9-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "b07c1c6c755c022895a7a4ab3c6a0911fa5ac4cd82aee9e34100190153ad49f7",
+        "capture": "qa9-enemy-partial-ally-hidden.png",
+        "capture_sha256": "ba803f89695afedbae52d8f515ea746e2fc6b695b9b460ae8d40c5a56de91fec",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": "VISR_OCCLUSION partial=2/9 total=9/9"
+      },
+      {
+        "page": 10,
+        "label": "three-player-grid-cache",
+        "rom": "halo-64-model-qa-odst-qa10-validation-rspq32k.z64",
+        "bytes": 62324736,
+        "sha256": "5cbb15613a770b5f689306e0ec3ec8907a8f80e84087a5f855bf149568d1e4ea",
+        "capture": "qa10-three-player-grid-cache.png",
+        "capture_sha256": "91c3bfa66d37e5cb498a0fbabd59ea729c6c946c689a692876dbac900fcee106",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "grid_builds": [
+          [
+            "160",
+            "120"
+          ],
+          [
+            "320",
+            "120"
+          ]
+        ],
+        "zoom": "VISR_ZOOM magnification=0 focal=1.251189,1.668252 normal=1.251189,1.668252 viewmodel=1",
+        "occlusion": null
+      }
     ]
   },
   "limits": [
-    "Emulator validation only; no physical-console performance qualification",
-    "No full-match peak-memory measurement",
-    "Coverage samples four poses, eight directions and two display sizes, not every animation frame",
-    "Inherited gunner>0 replay fixture fails on unchanged parent/main too; full regression pass not claimed"
-  ],
-  "asset_commit": "e61534fb770095777adbb155e5200145e901fdac"
+    "Native checks use frozen multiplayer inspection fixtures in Ares v148 at 8 MiB; Firefight renderer is release-build verified",
+    "No physical-console performance or full-match peak-memory qualification",
+    "Coverage samples four poses / eight directions / two sizes; no exhaustive animation-pixel coverage claim",
+    "Broad plate-front clearance is separate from oblique cuff-return overlap, reported in the private depth audit",
+    "Inherited gunner>0 replay fixture fails on unchanged parent/main too; full regression-suite pass not claimed"
+  ]
 }

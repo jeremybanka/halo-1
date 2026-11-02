@@ -1651,6 +1651,16 @@ static void prepare_view(unsigned p) {
         t3d_viewport_set_w_normalize(vp, 0, BG_CAMERA_NORMALIZE_SUM);
         bg_hud_aim_projection(vp->matProj.m, views, p);
     }
+#if defined(BG_ODST_QA) && BG_ODST_QA >= 4
+    /* Reticle offsets differ by split-screen port; focal lengths must agree. */
+    if(p==1){
+        for(unsigned a=0;a<2;a++)
+            assertf(fabsf(vp->matProj.m[a][a]-viewports[slot][0].matProj.m[a][a])<1e-5f,"VISR/normal zoom focal length mismatch");
+        static bool reported;
+        if(!reported){debugf("VISR_ZOOM magnification=%u focal=%.6f,%.6f normal=%.6f,%.6f viewmodel=%u\n",magnification,
+            vp->matProj.m[0][0],vp->matProj.m[1][1],viewports[slot][0].matProj.m[0][0],viewports[slot][0].matProj.m[1][1],bg_player_firstperson_weapon(player));reported=true;}
+    }
+#endif
     t3d_viewport_look_at(vp, &eye, &target, &(T3DVec3){{0, 1, 0}});
     bg_visibility_side_planes((float (*)[4])vp->viewFrustum.planes, vp->matCamProj.m, w, h);
     bg_frustum_prepare(cull_selected[p], (const float (*)[4])vp->viewFrustum.planes);
@@ -1695,7 +1705,7 @@ static void prepare_view(unsigned p) {
     for (unsigned j = 0; j < views; j++) {
         bg_player *q = &bg_players[j];
         body_lods[p][j] = 0;
-        if (bg_visr_active(player) && !bg_visr_enemy(p,j)) continue;
+        if (bg_visr_active(player) && q->health<=0) continue;
         if (!bg_visr_active(player) && bg_player_visibility(q) <= 0)
             continue;
 #if !defined(BG_MODEL_QA) && !defined(BG_INTERACTION_QA) && !defined(BG_SHIELD_QA) && !defined(BG_PVE_MODEL_QA)
@@ -1718,7 +1728,7 @@ static void prepare_view(unsigned p) {
         }
         bool personal = bg_player_personal_weapon(q);
         int carried=objective_kind(j);
-        bool held = (carried>=0 || distance <= 16 || player->zoom) && q->health > 0 && personal && !bg_visr_active(player);
+        bool held = (carried>=0 || distance <= 16 || player->zoom) && q->health > 0 && personal;
         if (visible_bounds(vp, &body_bounds[j], cull_selected[p])) {
             unsigned lod = distance > (views >= 3 ? 4.f : 16.f) && player->zoom == 0;
 #ifdef BG_JORGE_QA
@@ -1842,18 +1852,18 @@ static void draw_view(unsigned p) {
     unsigned before = triangles, animation_before = animation_us;
 #endif
     t3d_viewport_attach(vp);
-    if (bg_visr_active(player)) { draw_visr(p, vp); return; }
+    bool visr=bg_visr_active(player);
 #ifdef BG_GPU_EMPTY_SCISSOR
     rdpq_set_scissor(0, 0, 0, 0);
 #endif
 #ifdef BG_PROFILE
     uint64_t sky_begin = get_ticks_us();
 #endif
-    bg_sky_draw(vp);
+    if(!visr) bg_sky_draw(vp);
 #ifdef BG_PROFILE
     bg_scene_profile.sky_us += get_ticks_us() - sky_begin;
 #endif
-    triangles += 16;
+    if(!visr) triangles += 16;
     t3d_frame_start();
     rdpq_mode_dithering(DITHER_NONE_NONE);
     t3d_light_set_ambient((uint8_t[]){255, 255, 255, 255});
@@ -2217,8 +2227,15 @@ static void draw_view(unsigned p) {
     before = triangles;
 #endif
 #ifdef BG_PVE
-    pve_draw(p);
+    if(visr) pve_draw_ship(p); else pve_draw(p);
 #endif
+    if(visr) {
+        draw_visr_units(p,vp);
+#ifdef BG_PROFILE
+        category_triangles[2]+=triangles-before;before=triangles;
+#endif
+        goto firstperson_pass;
+    }
     for (unsigned j = 0; j < views; j++) {
         if (body_lods[p][j] || (held_masks[p] & (1u << j)))
             ensure_player_animation(j);
@@ -2338,6 +2355,7 @@ static void draw_view(unsigned p) {
 #ifdef BG_PROFILE
     submitted_vertices += fx_triangles * 2;
 #endif
+firstperson_pass:
 #ifdef BG_PROFILE
     object_us += get_ticks_us() - begin - (animation_us - animation_before);
     begin = get_ticks_us();
@@ -2376,7 +2394,34 @@ static void draw_view(unsigned p) {
         rdpq_mode_zbuf(true, true);
         t3d_segment_set(T3D_SEGMENT_1, firstperson[slot][p]);
         int carried=bg_player_objective(p);
-        if(carried>=0){
+        if(visr){
+            visr_color(false);
+            t3d_matrix_set(&guns[slot][p],true);
+            rspq_block_run(carried>=0?objective_fp_blocks[bg_objectives[carried].kind]:firstperson_blocks[player->weapon]);
+            triangles+=carried>=0?bg_objective_fp_models[bg_objectives[carried].kind].triangle_count:bg_fp_models[player->weapon].triangle_count;
+#ifdef BG_PROFILE
+            const bg_model_asset *silhouette=carried>=0?&bg_objective_fp_models[bg_objectives[carried].kind]:&bg_fp_models[player->weapon];
+            submitted_vertices+=model_load_count(silhouette,silhouette->vertex_count,0,silhouette->batch_count);
+#endif
+            if(carried>=0&&bg_objectives[carried].kind==BG_OBJECTIVE_FLAG){
+                t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH);
+                rspq_block_run(flag_cloth_fp_blocks[slot][p]);triangles+=BG_CLOTH_TRIANGLES;
+#ifdef BG_PROFILE
+                submitted_vertices+=BG_CLOTH_VERTICES;
+#endif
+            }
+            if(carried<0&&is_custom(p)){
+                bool odst=is_odst(p);
+                t3d_segment_set(T3D_SEGMENT_1,(uint8_t *)firstperson[slot][p]+((bg_fp_max_vertices+1)&~1u)*16);
+                rspq_block_run(odst?odst_firstperson_block:jorge_firstperson_block);
+                triangles+=(odst?bg_odst_fp_model:bg_jorge_fp_model).triangle_count;
+#ifdef BG_PROFILE
+                const bg_model_asset *arms=odst?&bg_odst_fp_model:&bg_jorge_fp_model;
+                submitted_vertices+=model_load_count(arms,arms->vertex_count,0,arms->batch_count);
+#endif
+                t3d_segment_set(T3D_SEGMENT_1,firstperson[slot][p]);
+            }
+        } else if(carried>=0){
             objective_instance(bg_objectives[carried].kind,bg_objectives[carried].team,&guns[slot][p],true,p);
         } else {
         if (player->weapon == BG_W_PISTOL || player->weapon == BG_W_ROCKET) {

@@ -2,38 +2,38 @@
   "schema": 1,
   "quality_state": "accepted",
   "publication_approved": true,
-  "bank_sha256": "70fa44fb15d812e4b41cc56e1f8122fd231d2a0c043036609b9bffde6c489859",
+  "bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
   "packed_vertices": [
-    938,
-    656
-  ],
-  "triangles": [
-    1176,
+    1064,
     784
   ],
-  "rig_comparisons": 2669520,
+  "triangles": [
+    1298,
+    893
+  ],
+  "rig_comparisons": 2984142,
   "glb_samples": 780,
   "c_decode_cases": 4680,
   "firstperson_pose_cases": 1409,
   "navigation_maximum_bytes": 262480,
   "appearance_observations": {
     "body_coverage_probes": 3744,
-    "maximum_new_enclosed_pixels": 34,
-    "packed_maximum_new_enclosed_pixels": 48,
-    "clearance_probes": 240,
-    "maximum_new_broad_plate_occlusion_pixels": 70,
+    "maximum_new_enclosed_pixels": 36,
+    "packed_maximum_new_enclosed_pixels": 45,
+    "clearance_probes": 264,
+    "maximum_new_broad_plate_occlusion_pixels": 74,
     "quantized_geometry": [
       {
         "lod": 0,
-        "authoring_triangle_pose_samples": 533904,
-        "quantized_degenerate_triangle_samples": 1674,
+        "authoring_triangle_pose_samples": 589292,
+        "quantized_degenerate_triangle_samples": 1739,
         "maximum_quantized_coordinate": 696,
         "normalized_four_influence_weights": true
       },
       {
         "lod": 1,
-        "authoring_triangle_pose_samples": 355936,
-        "quantized_degenerate_triangle_samples": 1388,
+        "authoring_triangle_pose_samples": 405422,
+        "quantized_degenerate_triangle_samples": 1454,
         "maximum_quantized_coordinate": 696,
         "normalized_four_influence_weights": true
       }
@@ -59,8 +59,8 @@
       },
       {
         "armor": "GUNGNIR",
-        "vertices": 938,
-        "triangles": 1176
+        "vertices": 1064,
+        "triangles": 1298
       }
     ],
     [
@@ -81,62 +81,60 @@
       },
       {
         "armor": "GUNGNIR",
-        "vertices": 656,
-        "triangles": 784
+        "vertices": 784,
+        "triangles": 893
       }
     ]
   ],
   "native_validation": {
     "schema": 1,
     "passed": true,
-    "candidate_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
     "emulator": "Ares v148",
     "rdram_mib": 8,
     "physical_console_tested": false,
     "checks": [
-      "Matching rear cameras show restored gray armor across near and far bodies in four-player layout.",
-      "All four personal colors and held weapon remain visible; RDP reports 0 errors and warnings."
+      "Single-camera close body: restored silver codpiece contour and inward rear surfaces inspected from front-oblique and rear-oblique views.",
+      "Four-camera native inspection: near upper views, far lower views, all four profiles, silver exterior and held weapon inspected; 0 RDP errors and warnings."
     ],
     "prior_functional_validation": {
-      "private_commit": "4d4c53c7d813945f4efe9a32473018da2e39b252",
-      "candidate_sha256": "f9edb75aaccd2b66412b8062d79cb5e1cbd22a99d4a269d9837cd779af6857a7",
-      "record": "rear-armor-20261102/baseline/native-validation.json",
-      "scope": "Earlier controls, aim, HUD, weapon/vehicle services and combined-game lifecycle evidence. These are inherited functional checks, not a claim that every native fixture was rerun for the rear repair."
+      "private_commit": "7e761ba70478c051792ebd223ccc0a554529381e",
+      "candidate_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+      "scope": "Inherited controls, autoaim, movement, viewport/zoom, first-person services and combined game lifecycle. This asset-only revision rechecks geometry/packing/skin/exports and body rendering; it does not claim to rerun every earlier native encounter."
     },
-    "rear_armor_update": {
-      "emulator": "Ares v148",
-      "rdram_mib": 8,
-      "near_and_far": true,
+    "shell_update": {
+      "bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+      "views": [
+        1,
+        4
+      ],
       "rdp_errors": 0,
       "rdp_warnings": 0,
       "captures": [
         {
-          "file": "before.png",
-          "sha256": "86952afce45b571c805bfff7a301ccbe80dc1ea6826df2cf897bacc54af34908"
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-1.png",
+          "sha256": "fed36a107d57e8cc3e8a4cd742086aa56db299b789ca8e3d77fa3ea59ba3d4db"
         },
         {
-          "file": "after.png",
-          "sha256": "6ec34f3c78cf935d80e206fe016de2648d6e645967a85cddba555dad332f761a"
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-2.png",
+          "sha256": "381293d1e1dfb11ede9b7b45fc5c537fd2140539a5b19df14ab0b57a9c59f6b0"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-orbit-1.png",
+          "sha256": "fd6514e79d85bdcedcf9ff58d3c4937b13e9f5a306d70475dd687e723183e76f"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-side.png",
+          "sha256": "ef72e07fcc3b3be46fe308a2a950243b730b4ec0afdab5a1fd09c8a66d2889ed"
         }
       ]
     },
     "limits": [
-      "Finite rear/camera/idle samples and release boot; not every native animation or physical-console performance.",
-      "Host library checks independently cover all adapted clips. Free-heap samples are not peak memory."
-    ],
-    "release_boot": {
-      "kind": "gungnir-viewport-release-v1",
-      "rom_bytes": 66551808,
-      "rom_sha256": "e6043a87c383b5f8871d135f1a87ef918a093c538e07a519ad10c260d9ec3597",
-      "manifest_sha256": "316cb523fa4d77effc76dacaae7957821553d403e5a27159bd136efab13b3b93",
-      "source_commit": "4f4e5698a37ba8a8ca9ced49b323cc62221a80ee",
-      "asset_commit": "7e761ba70478c051792ebd223ccc0a554529381e",
-      "native_visual_inspection": true,
-      "scope": "Normal combined Multiplayer/SWAT/Firefight cartridge boot after viewport correction; reticle alignment and zoom validated separately in the 1\u20134-view native fixtures.",
-      "capture_sha256": "7649672829db69b5f9ad43798b762d916bb3735a0234316f179442a265d7f6ea"
-    }
+      "Finite native camera/idle views, not every native animation or physical-console performance.",
+      "ROMs and screen captures remain local; this report records their hashes."
+    ]
   },
-  "verification": "Runtime/export integrity and finite source/native appearance review passed. Raw nonzero projection/depth observations and diagnostic history remain in the private snapshot.",
+  "verification": "Asset runtime/export integrity and finite shell/codpiece source/native appearance review accepted. Raw nonzero body/depth observations remain explicit; prior functional native checks are inherited as recorded.",
   "builds": [
     {
       "kind": "gungnir-unified-v1",
@@ -258,10 +256,10 @@
   "rear_armor": {
     "schema": 1,
     "passed": true,
-    "candidate_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
     "baseline_candidate_sha256": "f9edb75aaccd2b66412b8062d79cb5e1cbd22a99d4a269d9837cd779af6857a7",
     "baseline_private_commit": "4d4c53c7d813945f4efe9a32473018da2e39b252",
-    "clearance_sha256": "c28284a3b028ed1cc01d2113826ae187dee59d2db8f3b3047ee6d253d872ba23",
+    "clearance_sha256": "f056b196939373c6a908c8e483168b8402ff6f07351f94b23a12ed2657b53497",
     "source_control_maximum_lost_pixels": 0,
     "rear_probes": 24,
     "maximum_rear_source_plate_loss_fraction_before": [
@@ -269,33 +267,43 @@
       0.3963963963963964
     ],
     "maximum_rear_source_plate_loss_fraction_after": [
-      0.050187265917602995,
-      0.05216095380029806
+      0.05538922155688623,
+      0.05305821665438467
     ],
     "maximum_retained_plate_hidden_pixels": [
       5,
       6
     ],
     "maximum_source_plate_missing_pixels": [
-      78,
-      84
+      83,
+      87
     ],
     "strict_zero_loss_check_passed": false,
-    "decision": "Finite source/part-depth and native rear-appearance acceptance. Keep original rear rails rather than the convex upper-back replacement; recess only torso backing by at most 20 mm. Remaining contour differences and 5/6 retained-plate overlap pixels in an 80-pixel closeup are recorded, not described as zero.",
+    "decision": "Retain the accepted outward rails and restore original inward frame/edge surfaces. Finite front/back part-ID and native review accepts the source contour differences. Strict global zero-loss remains false.",
     "native": {
-      "emulator": "Ares v148",
-      "rdram_mib": 8,
-      "near_and_far": true,
+      "bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+      "views": [
+        1,
+        4
+      ],
       "rdp_errors": 0,
       "rdp_warnings": 0,
       "captures": [
         {
-          "file": "before.png",
-          "sha256": "86952afce45b571c805bfff7a301ccbe80dc1ea6826df2cf897bacc54af34908"
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-1.png",
+          "sha256": "fed36a107d57e8cc3e8a4cd742086aa56db299b789ca8e3d77fa3ea59ba3d4db"
         },
         {
-          "file": "after.png",
-          "sha256": "6ec34f3c78cf935d80e206fe016de2648d6e645967a85cddba555dad332f761a"
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-2.png",
+          "sha256": "381293d1e1dfb11ede9b7b45fc5c537fd2140539a5b19df14ab0b57a9c59f6b0"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-orbit-1.png",
+          "sha256": "fd6514e79d85bdcedcf9ff58d3c4937b13e9f5a306d70475dd687e723183e76f"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-side.png",
+          "sha256": "ef72e07fcc3b3be46fe308a2a950243b730b4ec0afdab5a1fd09c8a66d2889ed"
         }
       ]
     }
@@ -313,5 +321,77 @@
     "forward_ray_tolerance_pixels": 0.1,
     "rdp_errors": 0,
     "rdp_warnings": 0
+  },
+  "shells": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "parent_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+    "source_sha256": "988da535240a74d4618e77232985e0fd80061f39f6718056495ed772a4c765b6",
+    "method": "Front-face culled isolated rear frame, three views per LOD, one-pixel source rim excluded; actual exterior armor geometry unchanged; source lower codpiece extremum retained",
+    "views": [
+      {
+        "lod": 0,
+        "angle": "front",
+        "source_interior_pixels": 7317,
+        "before_covered_pixels": 22,
+        "after_covered_pixels": 7131,
+        "coverage_fraction": 0.974579745797458
+      },
+      {
+        "lod": 0,
+        "angle": "front-left",
+        "source_interior_pixels": 6829,
+        "before_covered_pixels": 115,
+        "after_covered_pixels": 6566,
+        "coverage_fraction": 0.9614877727339288
+      },
+      {
+        "lod": 0,
+        "angle": "front-right",
+        "source_interior_pixels": 6853,
+        "before_covered_pixels": 171,
+        "after_covered_pixels": 6542,
+        "coverage_fraction": 0.9546184152925726
+      },
+      {
+        "lod": 1,
+        "angle": "front",
+        "source_interior_pixels": 7317,
+        "before_covered_pixels": 0,
+        "after_covered_pixels": 7131,
+        "coverage_fraction": 0.974579745797458
+      },
+      {
+        "lod": 1,
+        "angle": "front-left",
+        "source_interior_pixels": 6829,
+        "before_covered_pixels": 71,
+        "after_covered_pixels": 6527,
+        "coverage_fraction": 0.9557768340899107
+      },
+      {
+        "lod": 1,
+        "angle": "front-right",
+        "source_interior_pixels": 6853,
+        "before_covered_pixels": 68,
+        "after_covered_pixels": 6542,
+        "coverage_fraction": 0.9546184152925726
+      }
+    ],
+    "codpiece_contours": [
+      {
+        "lod": 0,
+        "source_lowest_halo_units": 0.3293713796032613,
+        "before_lowest_halo_units": 0.3634496351406829,
+        "after_lowest_halo_units": 0.3293713927268982
+      },
+      {
+        "lod": 1,
+        "source_lowest_halo_units": 0.3293713796032613,
+        "before_lowest_halo_units": 0.36330895716593653,
+        "after_lowest_halo_units": 0.3293713927268982
+      }
+    ]
   }
 }

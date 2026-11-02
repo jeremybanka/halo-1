@@ -12,7 +12,7 @@ class UnifiedCartridge(unittest.TestCase):
     def test_direct_squad_diagnostic_stays_separate_from_menu_boot(self):
         args=parse_args(['--pve-squad']);self.assertFalse(args.firefight);self.assertTrue(args.pve_squad)
     def test_native_inspections_use_the_combined_runtime(self):
-        for page in range(6):
+        for page in range(7):
             args=parse_args(['--gungnir-qa',str(page)]);self.assertTrue(args.firefight);self.assertTrue(args.model_qa)
     def test_firefight_frontend_can_still_drive_production_menus(self):
         args=parse_args(['--firefight-qa','4']);self.assertTrue(args.firefight);self.assertEqual(args.frontend_qa,4)

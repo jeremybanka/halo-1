@@ -30,7 +30,8 @@ def run(candidate,output,source,motion,inventory):
             original_poses[key]=np.rint(engine(posed)*512)/512
         return original_poses[key]
     groups=[('chest',lambda n:n in ('torso','chest-parafoil','chest-lower'),('b_torso','b_spine1','b_spine2','b_spine3','b_belt'),0,1),
-        ('back',lambda n:n in ('torso','torso-back'),('b_torso','b_spine1','b_spine2','b_spine3','b_belt','b_neck0'),0,-1),
+        ('back',lambda n:n=='torso' or n.startswith('torso-back'),('b_torso','b_spine1','b_spine2','b_spine3','b_belt','b_neck0'),0,-1),
+        ('codpiece',lambda n:n=='belt',('b_pelvis','b_belt','b_l_hip_fixup','b_r_hip_fixup'),0,1),
         ('left shoulder',lambda n:n=='shoulder-left',('b_l_clav','b_l_upperarm','b_l_upperarm_fixup','b_l_shoulder'),2,-1),('right shoulder',lambda n:n=='shoulder-right',('b_r_clav','b_r_upperarm','b_r_upperarm_fixup','b_r_shoulder'),2,1),
         ('left forearm',lambda n:n in ('left-forearm','wrist-buckler'),('b_l_forearm','b_l_forearm_fixup','b_l_elbow_fixup','b_l_hand'),0,1),('right forearm',lambda n:n=='right-forearm',('b_r_forearm','b_r_forearm_fixup','b_r_elbow_fixup','b_r_hand'),0,1),
         ('left thigh',lambda n:n=='left-thigh',('b_l_thigh','b_l_upperleg_jiggle','b_l_hip_fixup','b_pelvis'),0,1),('right thigh',lambda n:n=='right-thigh',('b_r_thigh','b_r_upperleg_jiggle','b_r_hip_fixup','b_pelvis'),0,1),

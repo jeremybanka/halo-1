@@ -28,6 +28,11 @@ The normal flashlight control toggles VISR for that viewport:
   independent. The grid caches wide/narrow textures separately for mixed three-player
   layouts (48,000 bytes of shared renderer storage).
 
+SWAT and Team SWAT require this armor, with pistol-only starts, no grenades,
+no ground weapon pickups, no vehicles and no radar. The free-for-all/team
+scoring and setup rules are documented in [MULTIPLAYER_MODES.md](MULTIPLAYER_MODES.md).
+Both variants use the original Reach announcer recordings: **“SWAT. Slayer.”**
+
 ## Source and reduction
 
 The process follows [CHARACTER_DEMAKE.md](CHARACTER_DEMAKE.md), including the

@@ -7,7 +7,7 @@
     "port/n64/JORGE_LODS.md"
   ],
   "prior_pre_policy_odst_meshes_used": false,
-  "asset_commit": "d56439a205e8b2d8a13e33b8f2b91d18f609a0ed",
+  "asset_commit": "870f40777627c58b232c5c7129eaaa3226aee254",
   "body_bank_sha256": "695a89de54abb07cee6e4e58d878f1740009e6ceb95179d3408049b55e912e67",
   "body_bank_bytes": 828496,
   "body_costs": [
@@ -47,21 +47,21 @@
   "roms": {
     "multiplayer": {
       "file": "halo-64-paced30-rspq32k.z64",
-      "bytes": 62521344,
-      "sha256": "64515169e3df06201185dbed42ebe5f9cd59bfd7c16e888661b4c218500e8543",
-      "preset": "release",
-      "build_manifest_sha256": "eb1818a9099a9e2e4f8f8836f8845f772193b95dcf9a06cdbe1420054a25e308",
-      "built_asset_commit": "f26141ff2faa25007d61d02da67bb13b513d3b20",
-      "compiled_source_fingerprints_match": true
+      "bytes": 62554112,
+      "sha256": "8360e8eb3cb9b5c496243143f4cb749f5d3d9364198d8d8e1a2968b52494c196",
+      "build_manifest_sha256": "2b2766056e564b23ba14fcb87ac349437b0ac78134f824c78613363672383ff8",
+      "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+      "compiled_source_fingerprints_match": true,
+      "preset": "release"
     },
     "firefight": {
       "file": "halo-64-firefight-paced30-rspq32k.z64",
-      "bytes": 65208320,
-      "sha256": "05a0922d6b0543471dc964d505f16b63081fd8da634de1de46ba77eda85d611a",
-      "preset": "release",
-      "build_manifest_sha256": "f46084046414329afe20fd87a2119bbd1540505f211845ccea57ad29340aa43d",
-      "built_asset_commit": "f26141ff2faa25007d61d02da67bb13b513d3b20",
-      "compiled_source_fingerprints_match": true
+      "bytes": 65241088,
+      "sha256": "2c6be043b92e3be6d5df580f373a2e286791720dc7dff3f9aba1154e75ee40ca",
+      "build_manifest_sha256": "c6d5b9d2821a2da183de1d4637d04e609e74c3db8c167befad6746411319cae5",
+      "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+      "compiled_source_fingerprints_match": true,
+      "preset": "release"
     }
   },
   "renderer": {
@@ -103,7 +103,9 @@
     "Actual pistol/sniper/rocket/unsupported AR zoom input cycles with VISR on and off; expected weapon and viewmodel availability asserted",
     "4680 actual C ODST streamed decoder/LOD/endpoint/loop/blend/socket/reload cases",
     "1409 actual C first-person poses / four palettes, unchanged weapon colors",
-    "Existing Jorge C LOD decoder / 4680 cases"
+    "Existing Jorge C LOD decoder / 4680 cases",
+    "SWAT/Team SWAT: ASan/UBSan 364 map/preset combinations, ODST setup/runtime enforcement, pistol-only spawns/respawns, no radar, no weapon/grenade pickups or drops, team scores and ordinary-mode restoration",
+    "Reach SWAT / Slayer: named permutation provenance and exact PCM conversion; both mode routes and all 26 original announcement routes; 3655061 streamed/resident stereo frames byte-identical"
   ],
   "retained_initial_pr_checks": [
     "All roster/host menu combinations, with and without extended roster",
@@ -467,5 +469,16 @@
         ]
       }
     ]
+  },
+  "swat_update": {
+    "validation": "swat-validation.json",
+    "sha256": "2ea54c8570a93311d79e750eee6adfb264437d1e5480c9daabf274c543e226bc",
+    "private_evidence": "halo64-assets/assets/odst-policy/native-swat/",
+    "body_bank_unchanged": true,
+    "modes": [
+      "SWAT",
+      "Team SWAT"
+    ],
+    "announcement": "Original Reach SWAT. Slayer. recordings"
   }
 }

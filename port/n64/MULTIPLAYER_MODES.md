@@ -1,20 +1,23 @@
 # Local multiplayer modes
 
-The N64 shell now launches all 26 original Xbox presets on all 13 maps with
+The N64 shell launches 28 competitive presets: the 26 original Xbox modes plus
+SWAT and Team SWAT. All 28 work on all 13 maps with
 an 8 MiB Expansion Pak. One to four local players use the existing join,
 controller, pause, restart and postgame flows. Custom gametype editing,
 System Link and saved profiles remain outside this implementation.
 
 | Family | Presets |
 | --- | --- |
-| Slayer | Slayer, Slayer Pro, Elimination, Phantoms, Endurance, Rockets, Snipers, Team Slayer |
+| Slayer | Slayer, Slayer Pro, Elimination, Phantoms, Endurance, Rockets, Snipers, Team Slayer, SWAT, Team SWAT |
 | Oddball | Oddball, Reverse Tag, Accumulate, Juggernaut, Stalker, Team Ball |
 | King of the Hill | King, King Pro, Crazy King, Team King |
 | Race | Race, Rally, Team Race, Team Rally |
 | Capture the Flag | CTF, Invasion, Iron CTF, CTF Pro |
 
 `game_modes.def` is generated from the preset builders in
-`source/game/game_engine.c`. `export_game_modes.py --check` compares every
+`source/game/game_engine.c`, followed by two port-specific SWAT variants in
+`export_game_modes.py`. The original mode IDs and source settings stay intact.
+`export_game_modes.py --check` compares every
 field represented in the N64 rule table against those builders: score limits, health, loadouts, radar, vehicles,
 respawn delays and growth, lives, handicaps and objective traits. Timed goals
 are shown as minutes and seconds; scores for other modes retain their own units.
@@ -60,6 +63,45 @@ Vehicles use the preset's source selection. The existing expanded vehicle
 roster is retained for ordinary Slayer. Race vehicle starts exist on Blood
 Gulch and Sidewinder; indoor races are on foot. The port's existing movement,
 collision and combat implementation remains the foundation of these modes.
+
+## SWAT
+
+SWAT uses free-for-all Slayer scoring; Team SWAT uses Team Slayer scoring and
+red/blue teams. Their default score limits are 15 individual kills and 50 team
+kills, matching those existing modes. Both disable the Slayer speed handicaps.
+
+- Every player wears ODST, including on respawn and restart. Setup preselects
+  ODST, prevents changing to another suit, and checks the restriction again at
+  launch. The runtime independently enforces the armor requirement.
+- Players spawn with only a fully loaded pistol and its normal reserve ammo,
+  no secondary weapon and no grenades. ODST has 100 health, zero shields and
+  its usual VISR control.
+- Weapon and grenade pickups stay disabled through their respawn schedules,
+  including weighted item collections and dropped inventory. Vehicles are
+  disabled. Map health and power-up pickups retain their normal rules;
+  ODST still cannot consume overshields.
+- The motion tracker and objective radar are disabled in every viewport.
+- Team SWAT retains ordinary team selection, team-colored armor plates,
+  friendly-fire penalties, team scores and shared victory.
+
+Both variants start with Reach's original **“SWAT. Slayer.”** recordings. The
+named English SWAT and Slayer permutations come from the owned retail Reach
+cache used for Jorge, with 120 ms of silence between the unchanged recordings.
+The combined 2.413-second clip streams from ROM as 11,025 Hz mono signed
+eight-bit PCM; it uses the existing bounded announcer buffer. Decoded source
+recordings, XMA blocks and their hashes stay in the private asset library.
+Reproduce with `extract_reach_swat_voice.py --cache /path/to/retail/m05.map
+--asset-root halo64-assets --ffmpeg /path/to/ffmpeg`, then run
+`test_swat_announcer.py --ffmpeg /path/to/ffmpeg` to check provenance, conversion,
+mode selection and streamed playback against resident playback.
+
+The source rule table flags, controller setup and production gameplay are
+checked under ASan/UBSan. The mode suite covers all 364 map/preset combinations,
+then exercises SWAT deaths, respawns, pickup schedules, armor enforcement and
+individual/team scoring. Native preview fixtures use `--modes-preview 26` and
+`27`, with `--validate --rspq-buffer-kib 32`, to go through the real menus and
+exercise pistol gameplay. Current evidence is in
+[`benchmarks/odst/swat-validation.json`](benchmarks/odst/swat-validation.json).
 
 ## Source consistency audit (2026-10-27)
 

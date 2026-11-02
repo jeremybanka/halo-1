@@ -25,7 +25,7 @@ PRESETS = (
 
 def render():
     source = (ROOT / 'source/game/game_engine.c').read_text()
-    lines = ['/* Generated from source/game/game_engine.c; do not edit by hand. */']
+    lines = ['/* Generated from source/game/game_engine.c and port presets; do not edit by hand. */']
     for index, (key, name) in enumerate(PRESETS):
         body = re.search(r'struct game_variant \*build_game_variant_' + key +
                          r'\([^)]*\)\s*\{(.*?)\n\}', source, re.S).group(1)
@@ -73,6 +73,14 @@ def render():
                  'trait_with_ball', 'trait_without_ball', 'speed_with_ball')]
         row += [value('game_engine_variant.race.race_type')]
         lines.append('BG_MODE(' + ', '.join(row) + ')')
+    # Port-specific variants append IDs without changing the 26 retail rows.
+    swat_flags = ('BG_MODE_ODST_ONLY|BG_MODE_NO_WEAPON_PICKUPS|BG_MODE_NO_GRENADES|'
+                  'BG_MODE_NO_DEATH_BONUS|BG_MODE_NO_KILL_PENALTY')
+    for index, key, name, teams, goal, respawn in (
+            (26, 'SWAT', 'SWAT', 0, 15, 0),
+            (27, 'TEAM_SWAT', 'Team SWAT', 1, 50, 300)):
+        lines.append(f'BG_MODE({index}, {key}, "{name}", 0, {teams}, 2, 0, 1, 1.0f, '
+                     f'{goal}, 0, {respawn}, 300, 0, {swat_flags}, 0, 0, 0, 0, 0, 0, 0)')
     return '\n'.join(lines) + '\n'
 
 
@@ -83,6 +91,6 @@ if __name__ == '__main__':
     path = Path(__file__).with_name('game_modes.def')
     if args.check:
         assert path.read_text() == render(), 'N64 presets differ from source builders'
-        print('PASS: all 26 preset builders match the N64 rule table')
+        print('PASS: 26 retail preset builders and 2 port presets match the N64 rule table')
     else:
         path.write_text(render())

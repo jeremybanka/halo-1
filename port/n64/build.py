@@ -324,8 +324,8 @@ def parse_args(argv=None):
     )
     parser.add_argument("--vehicle-query-baseline",action="store_true",help="QA: retain scalar clearance and cooldown arc obstruction checks")
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
-    parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 26 presets through the real menus")
-    parser.add_argument("--modes-preview",type=int,choices=range(26),help="QA: stage one preset and hold it open for objective visual review")
+    parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 28 presets through the real menus")
+    parser.add_argument("--modes-preview",type=int,choices=range(28),help="QA: stage one preset and hold it open for objective visual review")
     parser.add_argument("--objective-photo",type=int,choices=range(10),
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
@@ -843,6 +843,17 @@ def main():
     args = parse_args()
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     connect_assets(required=False)
+    swat_voice_report=ROOT/'halo64-assets/assets/swat-announcer/provenance.json'
+    if not swat_voice_report.exists():build_error("Missing private Reach SWAT announcement provenance")
+    swat_voice=json.loads(swat_voice_report.read_text())
+    if swat_voice['extractor_sha256']!=hashlib.sha256((ROOT/'port/n64/extract_reach_swat_voice.py').read_bytes()).hexdigest():
+        build_error("Stale Reach SWAT announcement extractor provenance")
+    for name,record in swat_voice['files'].items():
+        path=ROOT/'halo64-assets'/name
+        if not path.is_file() or path.stat().st_size!=record['bytes'] or hashlib.sha256(path.read_bytes()).hexdigest()!=record['sha256']:
+            build_error("Missing or stale Reach SWAT announcement: "+name)
+    if swat_voice['samples']!=swat_voice['files']['frontend-files/mode_swat.s8']['bytes'] or swat_voice['format']!={'rate':11025,'channels':1,'encoding':'signed 8-bit PCM'}:
+        build_error("Invalid Reach SWAT announcement format")
     if args.firefight:
         voice_report=ROOT/'halo64-assets/assets/firefight/provenance.json'
         if not voice_report.exists():build_error("Missing private Firefight announcement provenance")
@@ -1460,6 +1471,7 @@ def main():
             "sources":{str(out/name):hashlib.sha256((out/name).read_bytes()).hexdigest() for name in vehicle_audit_sources}}
             if args.vehicle_cost_audit else None),
         "preset": args.preset,
+        "swat_voice": swat_voice,
         "render_bank_experiment":override_info,
         "firefight": ({"required_ram_mib":8,"map_id":9,"players":[1,2,3,4],
             "voice":json.loads((ROOT/'halo64-assets/assets/firefight/provenance.json').read_text())}

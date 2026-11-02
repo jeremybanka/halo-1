@@ -1,0 +1,219 @@
+{
+  "schema": 1,
+  "date": "2026-11-01",
+  "mode_count": 28,
+  "retail_presets_preserved": 26,
+  "map_count": 13,
+  "map_preset_combinations": 364,
+  "rules": {
+    "armor": "ODST BDU",
+    "health": 100,
+    "shield": 0,
+    "starting_weapons": [
+      "Pistol"
+    ],
+    "grenades": 0,
+    "weapon_pickups": false,
+    "inventory_drops": false,
+    "radar": false,
+    "vehicles": false,
+    "other_map_pickups": "Ordinary health/camouflage rules; ODST cannot consume overshields"
+  },
+  "modes": [
+    {
+      "id": 26,
+      "name": "SWAT",
+      "teams": false,
+      "score_limit": 15
+    },
+    {
+      "id": 27,
+      "name": "Team SWAT",
+      "teams": true,
+      "score_limit": 50
+    }
+  ],
+  "audio": {
+    "line": "SWAT. Slayer.",
+    "game": "Halo: Reach retail",
+    "provenance": "assets/swat-announcer/provenance.json",
+    "provenance_sha256": "a03fb106a6846f7823fab4d7442e945cb98151d6d8e2b51fbbb4110741958943",
+    "samples": 26603,
+    "rate": 11025,
+    "channels": 1,
+    "encoding": "signed 8-bit PCM",
+    "clip_sha256": "0ccd47061981a53221f49e268c24b8dbd6c7628a2ebd87bcb6f40c3b950df771",
+    "maximum_aligned_read_bytes": 928,
+    "streamed_frames_compared": 3655061,
+    "method": "Original named English permutations; unchanged source recordings joined with 120 ms silence; no synthesis"
+  },
+  "host_checks": [
+    {
+      "check": "ASan/UBSan production rules on all 364 map/preset combinations, 697469 source spawn ratings and 10920 seeded selections; SWAT armor/loadout/respawn/drop/pickup/team/win transitions",
+      "passed": true,
+      "log": "host-modes.txt",
+      "sha256": "8f5c7a4f784838548f5d4aec0dbd2dcbe298d60d8e2d1266c4a439223d2d4f8b"
+    },
+    {
+      "check": "ASan/UBSan 223-step alternating menus / 14 matches and live replay on all 13 maps",
+      "passed": true,
+      "log": "host-maps.txt",
+      "sha256": "101b3c735c4c93a9a5808b6db28ad7063a252eb1b73cf28b52f539fec4f96731"
+    },
+    {
+      "check": "ASan/UBSan all rosters/hosts and 28 presets, locked ODST selection and launch revalidation",
+      "passed": true,
+      "log": "frontend.txt",
+      "sha256": "9dc1e942c838467c3eceb827c8d57d58bd6744280c44d0194f951d97749fae84"
+    },
+    {
+      "check": "ASan/UBSan 32 Firefight roster/host combinations and both fights",
+      "passed": true,
+      "log": "firefight-frontend.txt",
+      "sha256": "e2894d2272138330421e8cdd2cb5b3125b8b31affcffbb25cd1ec63c0fa13bd4"
+    },
+    {
+      "check": "ASan/UBSan Reach clip playback byte-identical to resident playback; source provenance, exact PCM conversion, both SWAT routes and all 26 original announcement routes",
+      "passed": true,
+      "log": "announcer-tests.txt",
+      "sha256": "09413ec4138be0157b8f5999c887732942211abf28709745a6a9274e1483a874"
+    },
+    {
+      "check": "ASan/UBSan existing CE multikill tiers, production dispatch and bounded streaming",
+      "passed": true,
+      "log": "ce-announcer-tests.txt",
+      "sha256": "7300f4c53812e64edad324bbfb4b2f27e48091aff51b50751a25c4b8650f8132"
+    }
+  ],
+  "native": {
+    "emulator": "Ares v148 / paraLLEl-RDP",
+    "ram_bytes": 8388608,
+    "scope": "Real four-player controller/menu launch, actual pistol firing, kills and respawns, runtime SWAT assertions and match-start announcement selection; staged combat preview, not an exhaustive match or physical-console benchmark",
+    "fixtures": [
+      {
+        "mode": 26,
+        "name": "SWAT",
+        "players": 4,
+        "capture": "ffa.png",
+        "capture_sha256": "d7894a46fbf55ad654dec2696a8072245d806fb4f6001c9f7cfb08cb6b707157",
+        "log": "ffa.txt",
+        "log_sha256": "976fe81328017b042d782d4ca58c762eec13f7988b8064c7cf12650f518a9df5",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "announcement_file": "mode_swat.s8",
+        "announcement_samples": 26603,
+        "rom": {
+          "file": "halo-64-modes-preview26-frontend-qa4-validation-rspq32k.z64",
+          "bytes": 62586880,
+          "sha256": "df8bf6190d4b3c19410f98e895717552aba4f790e6ffcbd30b8eac6588973fbc",
+          "build_manifest_sha256": "b2fd4bf7a68e6d430ba140cdd4469ebe27d1a14494c709fce9cd3bacc81ad28c",
+          "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+          "compiled_source_fingerprints_match": true
+        }
+      },
+      {
+        "mode": 27,
+        "name": "Team SWAT",
+        "players": 4,
+        "capture": "team.png",
+        "capture_sha256": "b5e14599bf1c112e3b4130a22e7c3a32e08925749e2e00e9b0f9f4879765d8ab",
+        "log": "team.txt",
+        "log_sha256": "3fabb9a9f6bea687f53b9c59adce4699c60d7aa1440333e846db16fa5093bef1",
+        "rdpq_errors": 0,
+        "rdpq_warnings": 0,
+        "announcement_file": "mode_swat.s8",
+        "announcement_samples": 26603,
+        "rom": {
+          "file": "halo-64-modes-preview27-frontend-qa4-validation-rspq32k.z64",
+          "bytes": 62586880,
+          "sha256": "fa8e667a9c29db0d410fb4216a85a3485f7f1cf253634298c41235f0b1a5d789",
+          "build_manifest_sha256": "2c8f977bf2aff57c56d70b94a3195eb3ba1430c6f73322b437705903109abfdc",
+          "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+          "compiled_source_fingerprints_match": true
+        }
+      }
+    ]
+  },
+  "releases": {
+    "multiplayer": {
+      "file": "halo-64-paced30-rspq32k.z64",
+      "bytes": 62554112,
+      "sha256": "8360e8eb3cb9b5c496243143f4cb749f5d3d9364198d8d8e1a2968b52494c196",
+      "build_manifest_sha256": "2b2766056e564b23ba14fcb87ac349437b0ac78134f824c78613363672383ff8",
+      "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+      "compiled_source_fingerprints_match": true,
+      "preset": "release"
+    },
+    "firefight": {
+      "file": "halo-64-firefight-paced30-rspq32k.z64",
+      "bytes": 65241088,
+      "sha256": "2c6be043b92e3be6d5df580f373a2e286791720dc7dff3f9aba1154e75ee40ca",
+      "build_manifest_sha256": "c6d5b9d2821a2da183de1d4637d04e609e74c3db8c167befad6746411319cae5",
+      "built_asset_commit": "24e0506a570624041a9dc4d633a431f1b02a8dc5",
+      "compiled_source_fingerprints_match": true,
+      "preset": "release"
+    }
+  },
+  "body_bank_sha256": "695a89de54abb07cee6e4e58d878f1740009e6ceb95179d3408049b55e912e67",
+  "limitations": [
+    {
+      "check": "Optional legacy test_input_menu.py fixture",
+      "passed": false,
+      "reason": "Fixture fails to compile: removed BG_CONTROLS_XBOX/N64 names and missing gestures/get_ticks_us stubs. Fixture and relevant input/menu files are byte-identical to prior ODST head 83233e2.",
+      "log": "legacy-input-menu-failure.txt",
+      "log_sha256": "393661dcb53c22e7179c532ea99edefff388a244b813a5942ee3e9edeaec592d",
+      "unchanged_files": [
+        {
+          "path": "port/n64/test_input_menu.py",
+          "sha256": "eb97cab7431d72b305ab857481ddc88b8b68bcb40608ea78baed91909a74c3bc"
+        },
+        {
+          "path": "port/n64/main.c",
+          "sha256": "3b0725c15747f5bf357adceeca488654df3bfa09190bc1b861e7a5dc14517c85"
+        },
+        {
+          "path": "port/n64/controls.h",
+          "sha256": "f43e0c57bf4accbb19667d478ceedd62ba36eea74bd1c9d1feae7061f2ac0c1a"
+        },
+        {
+          "path": "port/n64/controls.c",
+          "sha256": "901c90829b525196f2169627d0986dd3396152c65fcd98cf663b02892da09990"
+        },
+        {
+          "path": "port/n64/menu.c",
+          "sha256": "a6569f9fd7360aa1639824110540c9548813121d2274cb201a8d6d34e11c5326"
+        },
+        {
+          "path": "port/n64/menu.h",
+          "sha256": "9e01c41e8c865d33ab9e7484a9cbf64d357b357435ad2bb928deb3e3f9e21ea1"
+        }
+      ]
+    },
+    {
+      "check": "Inherited gunner replay",
+      "scope": "Known failure on parent and main; not claimed as passing or rerun for this change"
+    }
+  ],
+  "asset_commit": "870f40777627c58b232c5c7129eaaa3226aee254",
+  "private_evidence": "halo64-assets/assets/odst-policy/native-swat/",
+  "private_validation_sha256": "627716728026fc4d0e4bc9aae2b9b18d5a5b6d19ef5bbbeb1612f82bdd31a8c3",
+  "source_fingerprints": {
+    "port/n64/announcer.h": "e0eeedd87ee2f62b992be344c6af0b48fa92f3209063e7f3794cb58fed8babf7",
+    "port/n64/build.py": "4a4dc44803a0e0b7bcd4ce558997e2e4e47b92830aee4c6ca99f9d9ed7eaf5ab",
+    "port/n64/export_game_modes.py": "e8e5e124a36843a6a359d589db9d8812b1397d3565a550d2dfc915b553b88504",
+    "port/n64/frontend.c": "f9fe525d97b3ec05cb049a9e5225a559a09d9dd6aaad57bd2d532c1c8c901436",
+    "port/n64/frontend.h": "c1386fc73fa75afd808391ffa9d08e47dbd2d7d697a78ffd075c1afbd316fcd2",
+    "port/n64/frontend_draw.c": "ce2768738098db0a13d3672671a3eb7aacc77afd7003c9b53a28d9efe1710374",
+    "port/n64/game.c": "8f173e843cb8f725b4d42c44dd2be8a8d692df539750d37aae07b776762b2b36",
+    "port/n64/game_modes.def": "3d21636ff6ab4f2c0a6bd4260b1b094e249f7b19bc36306f3144ed39d53890a4",
+    "port/n64/game_modes.h": "647491c23aff6b2acd7d05dea5269415102fbae0be379aa35ff909a9e478442c",
+    "port/n64/game_modes.inc": "a0fb7f1368be792955073969858488eaaf4925a8552ae45d7255175621ddf607",
+    "port/n64/modes_qa.c": "5cf5937d3e1a5a2b4e94ab9ff9182ead8f79df717d817c2238889ecb82f1ab0d",
+    "port/n64/pickups.inc": "649fb28016ff3b69f06d59602207834d3fe529601cd03c734ab575720ba94706",
+    "port/n64/sound.c": "ea128393e90c6e28475ced40477f8f8b2210a44d17a37acfc8e37b6fbdcb121c",
+    "port/n64/test_frontend.c": "241443554bd89d2d49e5c6ff99be4c9525194df5dcae0808c7e5bf8cdf870e7e",
+    "port/n64/test_modes.c": "74f76cfcf33fb16402bb71e799daece8d0749916b154b4295c5bade5d14b213e",
+    "port/n64/extract_reach_swat_voice.py": "085984bb2ed8503e2ac45397908e91c738a1285a0dd92bc937156e53a96c8322",
+    "port/n64/test_swat_announcer.py": "1ec347eb10a8aceb45f28d2fbcbda74e699dcc998c50702a7414a1135e569d88"
+  }
+}

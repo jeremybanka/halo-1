@@ -9,7 +9,7 @@ static void refill_pickup(bg_pickup*q){
             q->weapon=second_weight?(choice<q->first_weight+second_weight?q->alternate&255:(q->alternate>>8)&255):q->alternate;
         }
     }
-    q->active=true;q->age=q->unseen=q->heat=0;q->overheated=false;q->generation=++pickup_generation;
+    q->active=bg_mode_pickup_allowed(q->weapon);q->age=q->unseen=q->heat=0;q->overheated=false;q->generation=++pickup_generation;
     q->quantity=1;
     if(q->weapon<BG_WEAPON_COUNT){q->ammo=bg_ammo_rules[q->weapon].loaded;q->reserve=bg_ammo_rules[q->weapon].reserve;}
 }
@@ -44,6 +44,7 @@ static int drop_slot(void){
 }
 static void drop_item(unsigned owner,int weapon,int ammo,int reserve,float heat,bool overheated,int quantity,unsigned offset){
     if(weapon<0||(weapon<BG_WEAPON_COUNT&&ammo+reserve<=0)||quantity<=0)return;
+    if(!bg_mode_pickup_allowed(weapon))return;
     int index=drop_slot();if(index<0)return;
     bg_pickup*q=&bg_pickups[index];bg_player*p=&bg_players[owner];memset(q,0,sizeof(*q));
     q->active=q->dropped=true;q->generation=++pickup_generation;q->weapon=q->base_weapon=weapon;

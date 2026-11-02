@@ -6,6 +6,10 @@ unsigned bg_front_map_memory_requirement(unsigned map){
 }
 void bg_front_set_memory_size(unsigned bytes){memory_size=bytes;}
 bool bg_front_armor_available(unsigned armor){return armor<BG_ARMOR_COUNT && memory_size>=bg_armor_def(armor)->memory_bytes;}
+static bool odst_only(const bg_frontend *f){return !f->firefight&&(bg_mode_preset(f->type)->flags&BG_MODE_ODST_ONLY);}
+bool bg_front_armor_allowed(const bg_frontend *f,unsigned armor){
+    return bg_front_armor_available(armor)&&(!odst_only(f)||armor==BG_ARMOR_ODST);
+}
 bool bg_front_map_needs_expansion(unsigned map){return memory_size<bg_front_map_memory_requirement(map);}
 const bg_front_entry bg_front_maps[13] = {
     {"Battle Creek", true}, {"Sidewinder", true}, {"Damnation", true},
@@ -13,7 +17,7 @@ const bg_front_entry bg_front_maps[13] = {
     {"Chill Out", true},    {"Derelict", true},   {"Boarding Action", true},
     {"Blood Gulch", true},   {"Wizard", true},    {"Chiron TL34", true},
     {"Longest", true}};
-const bg_front_entry bg_front_types[26] = {
+const bg_front_entry bg_front_types[BG_MODE_COUNT] = {
 #define BG_MODE(id,key,name,...) [id]={name,true},
 #include "game_modes.def"
 #undef BG_MODE
@@ -31,7 +35,7 @@ bool bg_front_available(bg_front_page p, unsigned i) {
     case BG_FRONT_MAP:
         return i < 13 && bg_front_maps[i].available&&!bg_front_map_needs_expansion(i);
     case BG_FRONT_TYPE:
-        return i < 26 && bg_front_types[i].available&&(i==BG_MODE_SLAYER||memory_size>=8*1024*1024);
+        return i < BG_MODE_COUNT && bg_front_types[i].available&&(i==BG_MODE_SLAYER||memory_size>=8*1024*1024);
     case BG_FRONT_FIGHT:
 #ifdef BG_FIREFIGHT
         return memory_size>=8*1024*1024 && bg_ff_fight_available(i);
@@ -100,7 +104,7 @@ static bool all_ready(const bg_frontend *f) {
 static bool armor_ready(const bg_frontend *f) {
     if (!all_ready(f)) return false;
     for (unsigned p=0;p<4;p++)
-        if (f->joined[p] && (!f->armor_ready[p] || !bg_front_armor_available(f->armor[p])))
+        if (f->joined[p] && (!f->armor_ready[p] || !bg_front_armor_allowed(f,f->armor[p])))
             return false;
     return true;
 }
@@ -213,10 +217,10 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
                 }
                 f->sound=BG_FRONT_BACK;
             } else if (d && !f->armor_ready[p]) {
-                f->armor[p]=cycle(f->armor[p],BG_ARMOR_COUNT,d);
-                f->sound=BG_FRONT_CURSOR;
+                if(odst_only(f)){f->armor[p]=BG_ARMOR_ODST;f->sound=BG_FRONT_BEEP;}
+                else {f->armor[p]=cycle(f->armor[p],BG_ARMOR_COUNT,d);f->sound=BG_FRONT_CURSOR;}
             } else if (b & (BG_BUTTON_A | BG_BUTTON_START)) {
-                if (!bg_front_armor_available(f->armor[p])) f->sound=BG_FRONT_BEEP;
+                if (!bg_front_armor_allowed(f,f->armor[p])) f->sound=BG_FRONT_BEEP;
                 else if (!f->armor_ready[p]) {
                     f->armor_ready[p]=true;
                     f->sound=BG_FRONT_ACCEPT;
@@ -324,7 +328,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
     }
     if (f->page == BG_FRONT_MAP || f->page == BG_FRONT_TYPE) {
         unsigned *selection = f->page == BG_FRONT_MAP ? &f->map : &f->type,
-                 n = f->page == BG_FRONT_MAP ? 13 : 26;
+                 n = f->page == BG_FRONT_MAP ? 13 : BG_MODE_COUNT;
         if (h) {
             *selection = cycle(*selection, n, h);
             if (h < 0 && f->row)
@@ -339,6 +343,7 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
                 page(f, f->firefight?BG_FRONT_FIGHT:BG_FRONT_TYPE);
             else {
                 memset(f->armor_ready,0,sizeof(f->armor_ready));
+                if(odst_only(f))for(unsigned p=0;p<4;p++)if(f->joined[p])f->armor[p]=BG_ARMOR_ODST;
                 page(f, BG_FRONT_ARMOR);
             }
             f->sound = BG_FRONT_ACCEPT;

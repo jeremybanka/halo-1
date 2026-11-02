@@ -3,6 +3,8 @@
 Setup is **Profile → Map → Mode → Armor → Countdown**. Four profiles retain
 their red, blue, yellow and green palettes and individual controls. Armor is
 an independent choice; any number of players can choose the same suit.
+SWAT and Team SWAT preselect and require ODST; the armor page explains this
+restriction, and both countdown and gameplay enforce it.
 Firefight uses **Profile → Map → Fight → Armor → Countdown**, with the same
 per-controller confirmation and a back path to fight selection.
 

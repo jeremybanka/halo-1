@@ -103,24 +103,24 @@ all positive and negative audit observations are retained there.
 
 | Body | Native vertices | GLB vertices | Packed vertices | Triangles |
 |---|---:|---:|---:|---:|
-| GUNGNIR near | 726 | 727 | 868 | 1,117 |
-| GUNGNIR far | 512 | 512 | 598 | 727 |
+| GUNGNIR near | 776 | 777 | 938 | 1,176 |
+| GUNGNIR far | 563 | 563 | 656 | 784 |
 | Standard Spartan near / far | — | — | 562 / 250 | 328 / 135 |
 | Jorge near / far | 603 / 349 | 603 / 349 | 670 / 390 | 949 / 556 |
 | ODST near / far | — | — | 754 / 492 | 789 / 476 |
 
 All costs exclude the separately drawn 140-triangle production rifle. GUNGNIR
-has a genuinely reduced far mesh; these counts do not establish equal rendering
-cost. Its 983,392-byte animation/mesh bank uses its own trajectories and sockets.
+has a separately reduced far mesh; these counts do not establish equal rendering
+cost. Its 1,056,640-byte animation/mesh bank uses its own trajectories and sockets.
 
-The bank passes 2,511,528 independent Blender/bake vertex comparisons,
+The bank passes 2,669,520 independent Blender/bake vertex comparisons,
 780 colored GLB reimport samples, 4,680 sanitized streamed C decode cases and
 1,409 production first-person poses. The largest Blender/bake coordinate error
 is under 0.004 mm. Manual firing while autopilot runs is tested through the
 actual weapon path, alongside the all-map movement checks.
 
 Finite appearance review accepts the retained small deviations. The 3,744 body-only probes report at most
-34 new enclosed background pixels; the sparse runtime bank reports 44. Those
+34 new enclosed background pixels; the sparse runtime bank reports 48. Those
 include projection changes between separate limbs and isolated vehicle poses,
 and small local seams. The plate-depth audit reports a two-pixel
 ankle overlap in an 80-pixel part closeup. The intact-source controls report
@@ -131,6 +131,21 @@ occupies 2/821 near or 1/898 far source-visible plate pixels in that enlarged
 probe. Source comparison and native whole-body/vehicle review accepted these
 deviations while retaining every raw result and the finite-review limits in
 `appearance-validation.json`.
+
+The rear armor revision restores the original torso frame and lateral rails
+instead of the earlier convex upper-back envelope. It reduces those source
+surfaces independently and recesses only local backing by at most 20 mm.
+The far body's packed vertex count increases by 58; the near body increases
+by 70. The added rear depth audit samples idle, run, reload and passenger at
+three angles per LOD. The worst loss of source-visible rear plate drops from
+39.5% to 5.2%, mostly remaining contour differences against the unreduced
+reference. Retained-plate overlap reaches five near / six far pixels in the
+80-pixel part closeup. These finite observations are accepted after source and
+native review; the strict zero-loss diagnostic remains failed. The intact-source
+control returns zero across all 240 front/rear probes. The previous input,
+raw reports and native before/after captures are preserved in `stages/` and
+`review/rear-armor-20261102/`. The new hash-bound certificate requires rear loss
+below 6%, alongside explicit visual acceptance.
 
 Native Ares inspection covers near/far bodies and four palettes, personal arms,
 weapon and vehicle services, off-axis aiming in one-to-four-player layouts,
@@ -163,7 +178,13 @@ The maintained checks are:
 - `review_gungnir.py`: independent intact-source versus quantized body views;
   `--packed` also exercises sparse runtime endpoint interpolation.
 - `audit_gungnir_clearance.py`: retained plate fronts versus original visible
-  armor interiors, with the raw depth overlaps retained for inspection.
+  armor interiors, including the rear frame, with missing plate coverage and
+  retained-plate depth overlap reported separately.
+- `repair_gungnir_back.py`: restore and reduce the intact rear torso exterior
+  from the preserved `stages/gungnir-rear-parent-v1` input; follow with
+  `recess_gungnir_cloth.py --back-only --limit-mm 20` in a fresh output.
+- `audit_gungnir_rear.py`: matching rear material/part views at bind, idle,
+  run, reload and passenger poses.
 - `gungnir_source_calibration.py`: intact-source controls for those audits.
 - `gungnir_library.py` and `validate_gungnir_exports.py`: actual Blender skinning
   against the independent bake and 780 reimport samples across both LODs.
@@ -172,8 +193,8 @@ The maintained checks are:
 - `test_gungnir_firstperson.py`: 1,409 production poses through the C binding,
   all four palettes and preservation of weapon colors.
 
-Native inspection fixtures use `--gungnir-qa 0..3` for body/LODs, off-axis
-aiming, normal zoom and personal weapon services. `--gungnir-qa-views 1..4`
+Native inspection fixtures use `--gungnir-qa 0..4` for body/LODs, off-axis
+aiming, normal zoom, personal weapon services and rear armor. `--gungnir-qa-views 1..4`
 selects the viewport layout. Bank overrides require an isolated QA build.
 `--gungnir-frontend-qa` drives mixed armor and movement through the real menus;
 `--gungnir-field-qa` reuses the production weapon/vehicle inspection against CE.

@@ -30,6 +30,7 @@ def run(candidate,output,source,motion,inventory):
             original_poses[key]=np.rint(engine(posed)*512)/512
         return original_poses[key]
     groups=[('chest',lambda n:n in ('torso','chest-parafoil','chest-lower'),('b_torso','b_spine1','b_spine2','b_spine3','b_belt'),0,1),
+        ('back',lambda n:n in ('torso','torso-back'),('b_torso','b_spine1','b_spine2','b_spine3','b_belt','b_neck0'),0,-1),
         ('left shoulder',lambda n:n=='shoulder-left',('b_l_clav','b_l_upperarm','b_l_upperarm_fixup','b_l_shoulder'),2,-1),('right shoulder',lambda n:n=='shoulder-right',('b_r_clav','b_r_upperarm','b_r_upperarm_fixup','b_r_shoulder'),2,1),
         ('left forearm',lambda n:n in ('left-forearm','wrist-buckler'),('b_l_forearm','b_l_forearm_fixup','b_l_elbow_fixup','b_l_hand'),0,1),('right forearm',lambda n:n=='right-forearm',('b_r_forearm','b_r_forearm_fixup','b_r_elbow_fixup','b_r_hand'),0,1),
         ('left thigh',lambda n:n=='left-thigh',('b_l_thigh','b_l_upperleg_jiggle','b_l_hip_fixup','b_pelvis'),0,1),('right thigh',lambda n:n=='right-thigh',('b_r_thigh','b_r_upperleg_jiggle','b_r_hip_fixup','b_pelvis'),0,1),
@@ -72,7 +73,7 @@ def run(candidate,output,source,motion,inventory):
                     # returns can legitimately lie behind exposed fabric.
                     interior=original_visible.copy()
                     for dy,dx in ((0,1),(0,-1),(1,0),(-1,0)):interior&=np.roll(original_visible,(dy,dx),(0,1))
-                    lost=covered&interior
+                    lost=(interior&np.isfinite(lining)&(lining>whole_plate+1/512)) if region=='back' else covered&interior
                     lost_backing=[]
                     if lost.any():
                         from recess_gungnir_cloth import layers
@@ -84,7 +85,7 @@ def run(candidate,output,source,motion,inventory):
                         for index in np.unique(cloth_ids[lost]):
                             if index>=0:
                                 ti=int(visible_under[int(index),0]//3);lost_backing.append(dict(component=triangles[ti]['component'],triangle=ti,bind_points=triangles[ti]['p']))
-                    row=dict(lod=lod,region=region,clip=name,angle=angle,plate_pixels=int(visible.sum()),source_visible_plate_pixels=int(original_visible.sum()),source_broad_plate_pixels=int(interior.sum()),isolated_broad_subset_overlap_pixels=int(raw_covered.sum()),backing_in_front_pixels=int(covered.sum()),new_broad_plate_occlusion_pixels=int(lost.sum()),lost_backing=lost_backing,fraction=float(lost.sum()/max(1,interior.sum())))
+                    row=dict(lod=lod,region=region,clip=name,angle=angle,plate_pixels=int(visible.sum()),source_visible_plate_pixels=int(original_visible.sum()),source_broad_plate_pixels=int(interior.sum()),isolated_broad_subset_overlap_pixels=int(raw_covered.sum()),backing_in_front_pixels=int(covered.sum()),new_broad_plate_occlusion_pixels=int(lost.sum()),source_plate_missing_pixels=int((interior&~np.isfinite(whole_plate)).sum()),retained_plate_hidden_pixels=int((interior&np.isfinite(whole_plate)&(lining>whole_plate+1/512)).sum()),lost_backing=lost_backing,fraction=float(lost.sum()/max(1,interior.sum())))
                     rows.append(row)
                     if worst is None or row['fraction']>worst[0]['fraction']:
                         rgb=np.full((*visible.shape,3),35,dtype=np.uint8);rgb[original_visible]=[60,160,150];rgb[covered]=[150,110,45];rgb[lost]=[255,30,30];worst=row,rgb

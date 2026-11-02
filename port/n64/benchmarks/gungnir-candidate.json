@@ -2,16 +2,16 @@
   "schema": 1,
   "quality_state": "accepted",
   "publication_approved": true,
-  "bank_sha256": "6a3682344079bb3f9bc6f44e43a041edd9c8ce3328a509c8eb297bdf95eb07a1",
+  "bank_sha256": "70fa44fb15d812e4b41cc56e1f8122fd231d2a0c043036609b9bffde6c489859",
   "packed_vertices": [
-    868,
-    598
+    938,
+    656
   ],
   "triangles": [
-    1117,
-    727
+    1176,
+    784
   ],
-  "rig_comparisons": 2511528,
+  "rig_comparisons": 2669520,
   "glb_samples": 780,
   "c_decode_cases": 4680,
   "firstperson_pose_cases": 1409,
@@ -19,21 +19,21 @@
   "appearance_observations": {
     "body_coverage_probes": 3744,
     "maximum_new_enclosed_pixels": 34,
-    "packed_maximum_new_enclosed_pixels": 44,
-    "clearance_probes": 216,
-    "maximum_new_broad_plate_occlusion_pixels": 2,
+    "packed_maximum_new_enclosed_pixels": 48,
+    "clearance_probes": 240,
+    "maximum_new_broad_plate_occlusion_pixels": 70,
     "quantized_geometry": [
       {
         "lod": 0,
-        "authoring_triangle_pose_samples": 507118,
-        "quantized_degenerate_triangle_samples": 1089,
+        "authoring_triangle_pose_samples": 533904,
+        "quantized_degenerate_triangle_samples": 1674,
         "maximum_quantized_coordinate": 696,
         "normalized_four_influence_weights": true
       },
       {
         "lod": 1,
-        "authoring_triangle_pose_samples": 330058,
-        "quantized_degenerate_triangle_samples": 868,
+        "authoring_triangle_pose_samples": 355936,
+        "quantized_degenerate_triangle_samples": 1388,
         "maximum_quantized_coordinate": 696,
         "normalized_four_influence_weights": true
       }
@@ -59,8 +59,8 @@
       },
       {
         "armor": "GUNGNIR",
-        "vertices": 868,
-        "triangles": 1117
+        "vertices": 938,
+        "triangles": 1176
       }
     ],
     [
@@ -81,45 +81,48 @@
       },
       {
         "armor": "GUNGNIR",
-        "vertices": 598,
-        "triangles": 727
+        "vertices": 656,
+        "triangles": 784
       }
     ]
   ],
   "native_validation": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
     "emulator": "Ares v148",
     "rdram_mib": 8,
     "physical_console_tested": false,
     "checks": [
-      "Combined cartridge main menu exposes Multiplayer and Firefight together.",
-      "GUNGNIR near/far body, four palettes, held rifle and original single gold optic inspected.",
-      "Off-axis enemy acquisition, friendly exclusion, reticle/gun alignment and faint HUD circle inspected in 1/2/3/4 view layouts, including the wide third viewport.",
-      "Pistol 2x and sniper 2x/10x scopes retain the normal scoped presentation; enhanced acquisition circle is absent while zoomed. Native scope fixture uses four views; other layout/weapon combinations are host-tested.",
-      "Personal arms, weapon services and production vehicle entry/seated/exit sequence sampled with CE reference and four simultaneous weapon views.",
-      "Mixed GUNGNIR/Spartan/Jorge/ODST armor selected through production menus. A 35-step native match includes live AP follow/Elite/panic commands, manual fire, toggle-off/manual movement and return to menu.",
-      "Final four-player Firefight fixture traverses live arrival, restart, quit/cancel/resume, quit cleanup and normal multiplayer launch; production lifecycle assertions remain enabled.",
-      "Ares focus-loss preference set to Block input; scripted advancement with Finder in front observed."
+      "Matching rear cameras show restored gray armor across near and far bodies in four-player layout.",
+      "All four personal colors and held weapon remain visible; RDP reports 0 errors and warnings."
     ],
-    "rdp": {
-      "final_errors": 0,
-      "final_warnings": 0,
-      "final_firefight_run": "gungnir-firefight-damage-sync-v2",
-      "final_capture": "native/firefight-final-return.png",
-      "damage_image_fix": "Explicit SYNC_TILE and SYNC_LOAD between original filtered I8 damage-image strips. Source image/UV/transform retained; 48 sanitized geometry/TMEM cases pass."
+    "prior_functional_validation": {
+      "private_commit": "4d4c53c7d813945f4efe9a32473018da2e39b252",
+      "candidate_sha256": "f9edb75aaccd2b66412b8062d79cb5e1cbd22a99d4a269d9837cd779af6857a7",
+      "record": "rear-armor-20261102/baseline/native-validation.json",
+      "scope": "Earlier controls, aim, HUD, weapon/vehicle services and combined-game lifecycle evidence. These are inherited functional checks, not a claim that every native fixture was rerun for the rear repair."
     },
-    "free_heap_samples_kib": {
-      "mixed_setup": 1729,
-      "mixed_weapon_warmup": 733,
-      "mixed_autopilot_combat": 560,
-      "mixed_return_to_menu": 1643,
-      "after_firefight_cleanup_multiplayer": 906
+    "rear_armor_update": {
+      "emulator": "Ares v148",
+      "rdram_mib": 8,
+      "near_and_far": true,
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "captures": [
+        {
+          "file": "before.png",
+          "sha256": "86952afce45b571c805bfff7a301ccbe80dc1ea6826df2cf897bacc54af34908"
+        },
+        {
+          "file": "after.png",
+          "sha256": "6ec34f3c78cf935d80e206fe016de2648d6e645967a85cddba555dad332f761a"
+        }
+      ]
     },
-    "peak_memory_measured": false,
     "limits": [
-      "Finite native samples, not every native pose/map/camera combination or a hardware performance benchmark.",
-      "The 67-step, three-match frontend/all-map regression and all thirteen actual follow routes are host checks; the native mixed-armor fixture is the 35-step Blood Gulch cycle.",
-      "Free heap values are captured samples, not peak-memory measurements. Ares VPS is not game FPS.",
-      "First-person support uses the existing CE glove/sleeve motion cage with personal forearm plates. The independent body uses the native Reach rig; support-hand contact is approximated rather than a procedural runtime solve."
+      "Finite rear/camera/idle samples and release boot; not every native animation or physical-console performance.",
+      "Host library checks independently cover all adapted clips. Free-heap samples are not peak memory."
     ]
   },
   "verification": "Runtime/export integrity and finite source/native appearance review passed. Raw nonzero projection/depth observations and diagnostic history remain in the private snapshot.",
@@ -219,5 +222,50 @@
         ]
       }
     ]
+  },
+  "rear_armor": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+    "baseline_candidate_sha256": "f9edb75aaccd2b66412b8062d79cb5e1cbd22a99d4a269d9837cd779af6857a7",
+    "baseline_private_commit": "4d4c53c7d813945f4efe9a32473018da2e39b252",
+    "clearance_sha256": "c28284a3b028ed1cc01d2113826ae187dee59d2db8f3b3047ee6d253d872ba23",
+    "source_control_maximum_lost_pixels": 0,
+    "rear_probes": 24,
+    "maximum_rear_source_plate_loss_fraction_before": [
+      0.1290824261275272,
+      0.3963963963963964
+    ],
+    "maximum_rear_source_plate_loss_fraction_after": [
+      0.050187265917602995,
+      0.05216095380029806
+    ],
+    "maximum_retained_plate_hidden_pixels": [
+      5,
+      6
+    ],
+    "maximum_source_plate_missing_pixels": [
+      78,
+      84
+    ],
+    "strict_zero_loss_check_passed": false,
+    "decision": "Finite source/part-depth and native rear-appearance acceptance. Keep original rear rails rather than the convex upper-back replacement; recess only torso backing by at most 20 mm. Remaining contour differences and 5/6 retained-plate overlap pixels in an 80-pixel closeup are recorded, not described as zero.",
+    "native": {
+      "emulator": "Ares v148",
+      "rdram_mib": 8,
+      "near_and_far": true,
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "captures": [
+        {
+          "file": "before.png",
+          "sha256": "86952afce45b571c805bfff7a301ccbe80dc1ea6826df2cf897bacc54af34908"
+        },
+        {
+          "file": "after.png",
+          "sha256": "6ec34f3c78cf935d80e206fe016de2648d6e645967a85cddba555dad332f761a"
+        }
+      ]
+    }
   }
 }

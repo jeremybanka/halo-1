@@ -40,15 +40,17 @@ def solve(indices,gradient,rhs,count,limit,initial):
         length=np.linalg.norm(delta,axis=1);delta*=np.minimum(1,limit/np.maximum(1e-12,length))[:,None]
     return delta
 
-def run(candidate,source,motion,inventory,output,passes=5,limit_mm=20):
+def run(candidate,source,motion,inventory,output,passes=5,limit_mm=20,back_only=False):
     candidate,source,motion,inventory,output=map(Path,(candidate,source,motion,inventory,output));output.mkdir(parents=True,exist_ok=True)
     data=json.loads((candidate/'solid.json').read_text());original=json.loads(source.read_text());parts={p['id']:p for p in json.loads(inventory.read_text())};inverse=np.linalg.inv(np.array(bone_globals(original['nodes'])));native=np.load(motion/'native-poses.npz');report=[]
     groups=[('chest',('torso','chest-parafoil','chest-lower'),('b_torso','b_spine1','b_spine2','b_spine3','b_belt'),0,1)]
+    groups.append(('back',('torso','torso-back'),('b_torso','b_spine1','b_spine2','b_spine3','b_belt','b_neck0'),0,-1))
     for side,short,sign in [('left','l',-1),('right','r',1)]:
         groups.extend([(side+' shoulder',('shoulder-'+side,),(f'b_{short}_clav',f'b_{short}_upperarm',f'b_{short}_upperarm_fixup',f'b_{short}_shoulder'),2,sign),
                        (side+' forearm',(side+'-forearm',*(['wrist-buckler'] if side=='left' else [])),tuple(f'b_{short}_{b}' for b in ('forearm','forearm_fixup','elbow_fixup','hand')),0,1),
                        (side+' thigh',(side+'-thigh',),(f'b_{short}_thigh',f'b_{short}_upperleg_jiggle',f'b_{short}_hip_fixup','b_pelvis'),0,1),
                        (side+' calf',(side+'-calf',),tuple(f'b_{short}_{b}' for b in ('calf','calf_jiggle','knee_fixup','foot')),0,1)])
+    if back_only:groups=[g for g in groups if g[0]=='back']
     original_points=np.c_[original['vertices'],np.ones(len(original['vertices']))];ow=np.zeros((len(original_points),len(original['nodes'])))
     for i,ws in enumerate(original['weights']):
         for b,w in ws:ow[i,b]=w
@@ -84,7 +86,16 @@ def run(candidate,source,motion,inventory,output,passes=5,limit_mm=20):
                 op=np.einsum('gb,bij,gj->gi',ow,skin[:,:3,:],original_points);source_local=(np.rint(engine(op)*512)/512-transform[3])@inv
                 for angle in (-25,0,25):
                     theta=math.radians(angle);direction=np.array((sign*math.cos(theta),0,math.sin(theta)) if axis==0 else (math.sin(theta),0,sign*math.cos(theta)))
-                    plate=depth(local,front,center,scale,direction);sp=depth(source_local,source_armor,center,scale,direction);su=depth(source_local,source_under,center,scale,direction);visible=np.isfinite(sp)&(su<=sp+1/512);interior=visible.copy()
+                    def facing(points, faces):
+                        ps=points[faces]
+                        return faces[np.cross(ps[:,1]-ps[:,0],ps[:,2]-ps[:,0])@direction>0]
+                    if region=='back':
+                        plate=depth(local,facing(local,armor),center,scale,direction)
+                        sp=depth(source_local,facing(source_local,source_armor),center,scale,direction)
+                        su=depth(source_local,facing(source_local,source_under),center,scale,direction)
+                    else:
+                        plate=depth(local,front,center,scale,direction);sp=depth(source_local,source_armor,center,scale,direction);su=depth(source_local,source_under,center,scale,direction)
+                    visible=np.isfinite(sp)&(su<=sp+1/512);interior=visible.copy()
                     for dy,dx in ((0,1),(0,-1),(1,0),(-1,0)):interior&=np.roll(visible,(dy,dx),(0,1))
                     specs.append((region,under,local,local_matrix,center,scale,direction,plate,interior))
         for attempt in range(passes):
@@ -112,4 +123,4 @@ def run(candidate,source,motion,inventory,output,passes=5,limit_mm=20):
     (output/'solid.json').write_text(json.dumps(data,separators=(',',':'))+'\n');(output/'cloth-recess.json').write_text(json.dumps(report,indent=2)+'\n')
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('candidate');p.add_argument('source');p.add_argument('motion');p.add_argument('inventory');p.add_argument('output');p.add_argument('--passes',type=int,default=5);p.add_argument('--limit-mm',type=float,default=20);a=p.parse_args();run(a.candidate,a.source,a.motion,a.inventory,a.output,a.passes,a.limit_mm)
+    p=argparse.ArgumentParser();p.add_argument('candidate');p.add_argument('source');p.add_argument('motion');p.add_argument('inventory');p.add_argument('output');p.add_argument('--passes',type=int,default=5);p.add_argument('--limit-mm',type=float,default=20);p.add_argument('--back-only',action='store_true');a=p.parse_args();run(a.candidate,a.source,a.motion,a.inventory,a.output,a.passes,a.limit_mm,a.back_only)

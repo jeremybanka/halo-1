@@ -36,12 +36,18 @@ def run(output):
     coverage=read(F/'review/coverage.json');packed=read(F/'review/packed-coverage.json');clearance=read(F/'review/clearance.json');shape=read(F/'review/shape-validation.json')
     assert all(r['candidate_sha256']==sha(candidate) for r in (coverage,packed,clearance,shape)) and coverage['samples']==packed['samples']==3744
     assert packed['packed_report_sha256']==sha(G/'gungnir-report.json')
+    rear=read(F/'review/rear-armor-validation.json')
+    rear_rows=[r for r in clearance['rows'] if r['region']=='back']
+    assert rear['passed'] and rear['candidate_sha256']==sha(candidate) and len(rear_rows)==24
+    assert rear['clearance_sha256']==sha(F/'review/clearance.json')
+    assert max(r['fraction'] for r in rear_rows)<.06, 'Rear armor again loses a broad area to backing'
     # Preserve observations, including failures. Only an actual review can
     # decide whether remaining projection changes are acceptable in context.
     appearance=F/'review/appearance-validation.json';native=F/'review/native-validation.json'
     accepted=all(p.is_file() and read(p).get('passed') and read(p).get('candidate_sha256')==sha(candidate) for p in (appearance,native))
     inputs=set(ROOT/'port/n64'/n for n in ('character.h','game.h','game.c','controls.h','controls.c','main.c','map.c','hud.c','scene.c','scene_flashlight.inc','frontend_draw.c','runtime_qa.c','combat_geometry.c','combat_geometry.h','camouflage.h','view_layout.h','prepare_gungnir_strategy.py','bake_autopilot_nav.c','demake_gungnir.py','refine_gungnir_contacts.py','fit_gungnir_surfaces.py','recess_gungnir_cloth.py','pack_gungnir.py','pack_gungnir_firstperson.py','gungnir_library.py','validate_gungnir_exports.py','audit_gungnir_clearance.py','review_gungnir.py','certify_gungnir.py','test_gungnir.c','test_gungnir_runtime.py','test_gungnir_firstperson.py'))
     inputs.update(ROOT/'port/n64'/n for n in ('build.py','frontend_qa.c','jorge_field_qa.h','menu_draw.c','test_maps.c','test_maps.py','test_build_defaults.py','test_damage_tiling.py'))
+    inputs.update(ROOT/'port/n64'/n for n in ('repair_gungnir_back.py','audit_gungnir_rear.py'))
     inputs.update((ROOT/'port/n64').glob('gungnir*.h'));inputs.update((ROOT/'port/n64').glob('gungnir*.c'));inputs.update((ROOT/'port/n64').glob('gungnir*.py'));inputs.update((ROOT/'port/n64').glob('gungnir*.inc'));inputs.update((ROOT/'port/n64').glob('autopilot*.[ch]'))
     inputs.update(ROOT/'source/ai'/n for n in ('actions.c','actor_type_elite.c','actor_type_grunt.c'))
     files=[p for p in F.rglob('*') if p.is_file()]+[p for p in G.iterdir() if p.is_file() and p.name!='gungnir-validation.json']+[A/'frontend-files/gungnir.bin',A/'generated/pve/pve_defs.c']

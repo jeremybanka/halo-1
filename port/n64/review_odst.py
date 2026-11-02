@@ -1,5 +1,5 @@
 """Matched untouched source / packed ODST views and production menu portraits."""
-import argparse,json
+import argparse,hashlib,json
 from dataclasses import replace
 from pathlib import Path
 import numpy as np
@@ -118,6 +118,9 @@ def run(folder,packed,output,candidate="covered",baseline_packed=None,baseline_c
     overview.save(output/'overview.png')
     (output/'continuity-repair-faces.json').write_text(json.dumps([sorted(s) for s in repairs],indent=2)+'\n')
     (output/'coverage.json').write_text(json.dumps(coverage,indent=2)+'\n')
+    sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+    provenance=dict(candidate=candidate,candidate_sha256=sha(folder/candidate/'solid.json'),packed_report_sha256=sha(packed/'odst-report.json'),source_sha256=sha(folder/'source/odst-ce-raw.json'),baseline_candidate=baseline_candidate if baseline else None,baseline_report_sha256=sha(baseline_packed/'odst-report.json') if baseline else None)
+    (output/'review-inputs.json').write_text(json.dumps(provenance,indent=2)+'\n')
     print('Coverage probes',len(coverage),'worst new enclosed pixels',max(c['new_enclosed_pixels'] for c in coverage))
     (output/'metrics.json').write_text(json.dumps(metrics,indent=2)+'\n')
     lines=['/* Generated from the fresh packed ODST asset. */','#include "asset_odst.h"','const uint16_t bg_odst_portraits[4][32*40]={']

@@ -7,13 +7,11 @@ from mathutils import Matrix,Vector
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from demake_odst import globals_for
 from pack_assets import normal,position
+from odst_colors import special_colors,team_amount
 
 def corner_colors(tri,materials,textures):
-    if tri.get('color_override'):return [tri['color_override']]*3,[0]*3
-    role=materials[tri["material"]]["path"].split("\\")[-1]
-    if role=="odst_crown_stripe":return [[235,235,235]]*3,[255]*3
-    if role=="odst_visor":return [[24,230,255]]*3,[0]*3
-    if tri.get('corner_color_override'):return tri['corner_color_override'],[0]*3
+    special=special_colors(tri,materials)
+    if special is not None:return special
     image=textures.get(tri["material"]);light=.68+.32*max(0,np.dot(normal([position(p,(0,0,0)) for p in tri["p"]]),(.25,.83,.49)))
     rgb=[]
     for uv in tri["uv"]:
@@ -22,7 +20,7 @@ def corner_colors(tri,materials,textures):
         else:
             w,h,p=image;value=p[h-1-int(uv[1]%1*h),int(uv[0]%1*w),:3]*255
         rgb.append(np.rint(value*light).astype(int).tolist())
-    return rgb,[0]*3
+    return rgb,[team_amount(tri)]*3
 
 def run(folder,candidate="covered",library="library"):
     folder=Path(folder);data=json.loads((folder/candidate/'solid.json').read_text())
@@ -50,10 +48,10 @@ def run(folder,candidate="covered",library="library"):
             im=bpy.data.images.load(p,check_existing=True);w,h=im.size; textures[i]=(w,h,np.array(im.pixels[:]).reshape(h,w,4))
     objects=[];corner_maps=[]
     for lod,model in enumerate(data['lods']):
-        points=[];faces=[];weights=[];colors=[];uv=[];components=[]
+        points=[];faces=[];weights=[];colors=[];uv=[];components=[];team_masks=[]
         for t in model['triangles']:
             faces.append(list(range(len(points),len(points)+3)));points.extend(t['p']);weights.extend(t['weights']);components.extend([(t['component'],t['material'])]*3)
-            rgb,_=corner_colors(t,data['materials'],textures);colors.extend(rgb);uv.extend(t['uv'])
+            rgb,mask=corner_colors(t,data['materials'],textures);colors.extend(rgb);team_masks.extend(mask);uv.extend(t['uv'])
         native=[];native_weights=[];lookup={};mapping=[]
         for point,values,component in zip(points,weights,components):
             key=(component,tuple(round(x,8) for x in point),tuple((b,round(w,8)) for b,w in values))
@@ -81,7 +79,9 @@ def run(folder,candidate="covered",library="library"):
         mod=ob.modifiers.new('Original source skin weights on CE rig','ARMATURE');mod.object=rig
         layer=mesh.uv_layers.new(name='Original source UV')
         ca=mesh.color_attributes.new(name='Native RGB',type='BYTE_COLOR',domain='CORNER')
+        team=mesh.attributes.new(name='ODST team amount',type='FLOAT',domain='CORNER')
         for i in range(len(mesh.loops)):
+            team.data[i].value=team_masks[i]/255
             u,v=uv[i];layer.data[i].uv=(u,1-v);ca.data[i].color_srgb=(*np.array(colors[i])/255,1)
         mat=bpy.data.materials.new('N64 source color / cyan visor / neutral crown');mat.use_nodes=True;ns=mat.node_tree.nodes;ns.clear()
         node=ns.new('ShaderNodeVertexColor');node.layer_name=ca.name;out=ns.new('ShaderNodeOutputMaterial');mat.node_tree.links.new(node.outputs['Color'],out.inputs['Surface']);mesh.materials.append(mat)

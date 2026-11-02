@@ -1651,7 +1651,7 @@ static void prepare_view(unsigned p) {
         t3d_viewport_set_w_normalize(vp, 0, BG_CAMERA_NORMALIZE_SUM);
         bg_hud_aim_projection(vp->matProj.m, views, p);
     }
-#if defined(BG_ODST_QA) && BG_ODST_QA >= 4
+#if defined(BG_ODST_QA) && BG_ODST_QA >= 4 && BG_ODST_QA <= 10
     /* Reticle offsets differ by split-screen port; focal lengths must agree. */
     if(p==1){
         for(unsigned a=0;a<2;a++)

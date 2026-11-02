@@ -52,7 +52,7 @@ def parse_args(argv=None):
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
     parser.add_argument("--odst-frontend-qa", action="store_true", help="Select ODST through production menus and exercise match lifecycle")
-    parser.add_argument("--odst-qa", type=int, choices=range(11), help="Fresh ODST palettes, VISR/cloak, first person and teams")
+    parser.add_argument("--odst-qa", type=int, choices=range(12), help="Fresh ODST palettes, VISR/cloak, first person and teams")
     parser.add_argument("--jorge-frontend-qa", action="store_true", help="Select Jorge through the real menus and exercise match lifecycle")
     parser.add_argument("--jorge-qa", action="store_true", help="Compare playable Jorge and the standard Spartan")
     parser.add_argument("--jorge-field-qa", action="store_true", help="Jorge first-person weapons and production vehicle interactions")

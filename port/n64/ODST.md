@@ -6,9 +6,11 @@ and Firefight resupply. It cannot consume overshields. Ordinary ammunition,
 health, damage and weapon zoom rules still apply.
 
 The standard Halo 3: ODST helmet/body supplies the design. Its visor stays
-bright cyan. Only the original crown stripe carries profile or team color;
-armor, fabric, backpack and personal forearm plates remain neutral. The armor
-selection summary reads **ODST BDU**. Collision and hit regions still use CE.
+bright cyan and the mohawk-like crown stripe stays neutral grey. Profile or
+team color is confined to the chest and shoulder plates, using a deliberately
+muted 80/255 weight in the existing color multiplier. Helmet, fabric, backpack,
+forearm plates and the crown stripe remain independent of profile/team color.
+The armor summary reads **ODST BDU**. Collision and hit regions still use CE.
 
 The normal flashlight control toggles VISR for that viewport:
 
@@ -32,7 +34,7 @@ The process follows [CHARACTER_DEMAKE.md](CHARACTER_DEMAKE.md), including the
 later [Jorge near/far lessons](JORGE_LODS.md). The discarded pre-policy attempt
 is not an input. The untouched extraction and earlier solid `covered/` model
 remain separate from the `game-base/`, accepted `game-scale/` body and latest
-`helmet-symmetric/` artifacts
+`helmet-budget/` artifacts
 in the private `halo64-assets/assets/odst-policy/` library.
 
 The owned source archive SHA-256 is
@@ -48,53 +50,61 @@ component inventory are preserved. The editable BLEND includes the intact
 motion clips approximate source facial/finger/extra-bone behavior; these are
 not original Halo 3 animations.
 
-`reduce_odst_game.py` always starts from the untouched extracted surfaces.
-It explicitly omits small fasteners, straps, knife/sheath and selected far
-layers. The initial joint helmet reduction is superseded by
-`refine_odst_helmet.py`: reduce one intact source half with shell, visor and
-crown paint boundaries protected, then mirror it. Both LODs share the same
-216-triangle rigid head, including all 42 original crown-stripe triangles.
-The stripe runs continuously front to back; its width and centered placement
-survive packing. Mirrored source-derived colors also keep shell shading symmetric.
-The chest and shoulders keep original curved surfaces. Hands and forearm
-volumes use retained source contour points. The original torso, upper sleeves,
-legs and boots remain a continuous reduced garment, with protected boot/limb
-extrema. Recessed source-fitted lower sleeves and pack lining supply local
-continuity. The hidden garment front is fitted behind the chest/waist opening;
-its displacements are recorded separately from source correspondence.
+`reduce_odst_game.py` starts from untouched extracted surfaces. It explicitly
+omits small fasteners, straps, knife/sheath and selected far layers. Original
+chest and shoulder curvature is retained. The torso, upper sleeves, legs and
+boots remain a continuous reduced garment; recessed source-fitted lower sleeves
+and pack lining supply local continuity. Accepted body and blended neck geometry
+remain unchanged by this helmet revision.
 
-Armor overlap follows Jorge's 5% fit, capped at 16 mm, with a one-unit minimum
-on the approximately 6 mm packed grid. Hidden backing is excluded from that
-expansion. Nearest-source faces, barycentrics, normalized skin weights, explicit
-component decisions, sampled reduction error and fit offsets are retained.
-The coverage repair list restores audited original source faces, rather than
-halving a damaged mesh again. Failed budget/coverage candidates are kept in
-ignored build storage; the original accepted solid library is unchanged.
-The helmet refinement retains every accepted body and blended neck-junction
-triangle. One near / three far audited original shoulder/pack faces close
-junction gaps exposed by the restored head during melee; no accepted body
-point is moved. The earlier production mesh is retained in
-`game-scale/packed-reference/` and supplies the fixed comparison camera.
+`odst_helmet_lods.py` independently reduces each helmet from one half of the
+untouched source, then mirrors its geometry and source-derived vertex colors.
+Compatible endpoint quadric collapses retain original source contour points.
+Material boundaries and the center plane simplify along themselves rather than
+locking every original vertex or migrating the stripe onto unrelated triangles.
+The near model keeps more contour constraints; the far model prioritizes its
+jaw and nape returns. Both retain a centered, connected grey crown stripe.
+
+Local visor/brow return faces reuse the reduced rim points. One audited original
+forehead face per side keeps its original position instead of receiving an
+outward fit. Two near / three far original shoulder, pack and neck seam faces
+restore assembled coverage; the source IDs and correspondence are recorded.
+No accepted body point is moved. The earlier shared 216-triangle helmet remains
+an independent checkpoint, not the input to this new reduction.
+
+Body overlap uses Jorge's 5% fit, capped at 16 mm. The coarse helmets use an
+8% fit with 1.6 times the lateral contribution, still capped at 16 mm, to keep
+neck/temple joins covered. Their source-surface errors are measured separately
+from the exact retained-point correspondence and explicit fit offsets. Budgets
+remain soft at protected contours; acceptance checks the packed geometry.
+The immutable `game-scale/packed-reference/` supplies the comparison camera.
+All earlier accepted libraries remain unchanged.
 
 ## Cost and evidence
 
 | Body, including pack | Native vertices | GLB vertices | Packed vertices | Triangles |
 |---|---:|---:|---:|---:|
-| ODST near | 740 | 2,761 | **876** | 922 |
+| ODST near | 648 | 2,361 | **754** | 789 |
 | Standard Spartan near | — | — | 562 | 328 |
-| ODST far | 528 | 1,874 | **616** | 626 |
+| ODST far | 423 | 1,423 | **492** | 476 |
 | Standard Spartan far | — | — | 250 | 135 |
 
-GLB counts include UV, color and flat-normal splits; packed vertices measure
-the actual game cost. The previous ODST used 3,656 / 2,048 packed vertices. This is a similar vertex
-tier to the reduced Spartan/Jorge bodies, not triangle-count or rendering-cost
-parity. Preserving the symmetric helmet and complete crown stripe adds
-138 / 152 packed vertices over the earlier 738 / 464 body stage.
-The independent near/far bank is **941,168 bytes**. Resident geometry
-plus the shared two-endpoint cache uses 38,288 bytes; each player needs
-23,872 bytes per fenced frame slot for both body outputs. Personal
-first-person plates remain 282 vertices / 264 triangles over CE's glove/sleeve
-backing. Weapons are counted separately.
+Helmet-only packed vertices, including rendering splits and cache duplication:
+
+| Helmet | Original coarse model | Previous smooth model | Current |
+|---|---:|---:|---:|
+| Near | 72 | 196 | **80** |
+| Far | 51 | 191 | **65** |
+
+Current helmets have 48 / 40 geometric vertices and
+82 / 66 triangles. The far helmet has separate reduced topology.
+Counts exclude the neck and shoulder/pack seam repairs. GLB body counts include
+UV, color and normal splits; packed vertices measure actual game cost.
+The body bank is **828,496 bytes**. Resident geometry plus its shared
+endpoint cache uses 32,128 bytes; each player needs 19,936 bytes per
+fenced frame slot for both body outputs. This is a similar vertex tier to
+Spartan/Jorge, not triangle-count or rendering-cost parity. Personal first-person
+plates remain 282 vertices / 264 triangles; weapons are counted separately.
 
 The packer uses the same 48 per-channel color bound as CE. Opaque cache optimization
 uses full quantized animation trajectories as vertex identities, keeps bind
@@ -106,12 +116,14 @@ original durations, ODST-specific sockets and conservative bounds are retained.
 - 128 quantized coverage probes: four poses, eight views, 64/96-pixel targets,
   both LODs; **zero new enclosed background pixels**. Existing anatomical gap
   growth is recorded separately. Matched intact-source and Spartan comparisons
-  are in `review-helmet-symmetric/`; the earlier body review remains in
+  are in `review-helmet-budget/`; the earlier body review remains in
   `review-game-scale/`.
-- Exact mirrored head coordinates and vertex colors in both authoring and
-  production packing; identical head geometry across LODs; one connected,
-  centered 42-triangle crown stripe after quantization. Existing body data
-  is compared directly against the accepted parent.
+- Exact mirrored head coordinates and colors in authoring and production
+  packing; independently reduced near/far helmets; centered, connected grey
+  stripe after quantization. All four palettes leave the helmet unchanged and
+  tint only chest/shoulder vertices at 80/255.
+- Sampled source-surface p95 error stays below 25 mm for both fitted helmets.
+  This is distinct from retained-point, animation and coverage checks.
 - 96 separate local depth probes inspect chest, forearm and pack fronts.
   Broad plate fronts remain clear of backing. Oblique joint returns are
   reported separately, including narrow cuff overlap; a filled body silhouette
@@ -129,8 +141,8 @@ original durations, ODST-specific sockets and conservative bounds are retained.
 
 Ares v148 / paraLLEl-RDP checks use 8 MiB. Captures, logs and ROM hashes are
 in `native-game-scale/`, with the latest friendly/viewmodel cyan checks in
-`native-friendly-cyan/` and the symmetric helmet palette/LOD check in
-`native-helmet-symmetric/`. Multiplayer and Firefight release sizes and hashes
+`native-friendly-cyan/` and the current profile/team palette and helmet checks in
+`native-helmet-budget/`. Multiplayer and Firefight release sizes and hashes
 are in the validation ledger; both remain within 64 MiB. These are emulator and asset-allocation checks,
 not physical-console performance or full-match peak-memory qualification.
 The inherited `gunner>0` replay fixture still fails on unchanged parent/main;
@@ -143,21 +155,16 @@ storage or the private asset submodule, never the public source repository.
 Use the locally owned cache and shared resources for a fresh extraction.
 
 ```sh
-build/n64-python/bin/python port/n64/extract_odst.py --cache /path/to/maps/c100.map --ce halo64-assets/assets/extended-raw.json --output halo64-assets/assets/odst-policy/source
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/reduce_odst_game.py -- halo64-assets/assets/odst-policy halo64-assets/assets/odst-policy/game-base
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/repair_odst.py -- halo64-assets/assets/odst-policy port/n64/odst_game_coverage_faces.json halo64-assets/assets/odst-policy/game-scale game-base reorder
-build/n64-python/bin/python port/n64/pack_odst.py halo64-assets/assets/odst-policy/game-scale/solid.json halo64-assets/generated/odst
-build/n64-python/bin/python port/n64/review_odst.py halo64-assets/assets/odst-policy halo64-assets/generated/odst halo64-assets/assets/odst-policy/review-game-scale --candidate game-scale
-build/n64-python/bin/python port/n64/audit_odst_clearance.py halo64-assets/assets/odst-policy/game-scale halo64-assets/assets/odst-policy/review-game-scale/armor-clearance.json
-mkdir -p halo64-assets/assets/odst-policy/game-scale/packed-reference
-cp halo64-assets/generated/odst/*preview.npz halo64-assets/generated/odst/odst-report.json halo64-assets/assets/odst-policy/game-scale/packed-reference/
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/refine_odst_helmet.py -- halo64-assets/assets/odst-policy halo64-assets/assets/odst-policy/helmet-symmetric
-build/n64-python/bin/python port/n64/pack_odst.py halo64-assets/assets/odst-policy/helmet-symmetric/solid.json halo64-assets/generated/odst
-build/n64-python/bin/python port/n64/review_odst.py halo64-assets/assets/odst-policy halo64-assets/generated/odst halo64-assets/assets/odst-policy/review-helmet-symmetric --candidate helmet-symmetric --baseline-packed halo64-assets/assets/odst-policy/game-scale/packed-reference
-build/n64-python/bin/python port/n64/audit_odst_helmet.py halo64-assets/assets/odst-policy/helmet-symmetric halo64-assets/assets/odst-policy/game-scale halo64-assets/assets/odst-policy/review-helmet-symmetric/helmet-symmetry.json --packed halo64-assets/generated/odst
-build/n64-python/bin/python port/n64/audit_odst_clearance.py halo64-assets/assets/odst-policy/helmet-symmetric halo64-assets/assets/odst-policy/review-helmet-symmetric/armor-clearance.json
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/odst_library.py -- halo64-assets/assets/odst-policy helmet-symmetric helmet-symmetric/library
-/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/validate_odst_exports.py -- halo64-assets/assets/odst-policy helmet-symmetric helmet-symmetric/library
+# Start from the preserved game-scale body and untouched source library.
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/refine_odst_helmet.py -- halo64-assets/assets/odst-policy halo64-assets/assets/odst-policy/helmet-budget
+build/n64-python/bin/python port/n64/pack_odst.py halo64-assets/assets/odst-policy/helmet-budget/solid.json halo64-assets/generated/odst
+build/n64-python/bin/python port/n64/review_odst.py halo64-assets/assets/odst-policy halo64-assets/generated/odst halo64-assets/assets/odst-policy/review-helmet-budget --candidate helmet-budget --baseline-packed halo64-assets/assets/odst-policy/game-scale/packed-reference
+build/n64-python/bin/python port/n64/audit_odst_helmet.py halo64-assets/assets/odst-policy/helmet-budget halo64-assets/assets/odst-policy/game-scale halo64-assets/assets/odst-policy/review-helmet-budget/helmet-symmetry.json --packed halo64-assets/generated/odst
+build/n64-python/bin/python port/n64/audit_odst_clearance.py halo64-assets/assets/odst-policy/helmet-budget halo64-assets/assets/odst-policy/review-helmet-budget/armor-clearance.json
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/odst_helmet_lods.py -- halo64-assets/assets/odst-policy halo64-assets/assets/odst-policy/review-helmet-budget/helmet-source-surface.json
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/odst_library.py -- halo64-assets/assets/odst-policy helmet-budget helmet-budget/library
+/Applications/Blender.app/Contents/MacOS/Blender -b --factory-startup --python-exit-code 1 --python port/n64/validate_odst_exports.py -- halo64-assets/assets/odst-policy helmet-budget helmet-budget/library
+cp halo64-assets/generated/odst/odst.bin halo64-assets/frontend-files/odst.bin
 build/n64-python/bin/python port/n64/certify_odst.py
 build/n64-python/bin/python port/n64/build.py --preset release --output-dir build/odst-release
 build/n64-python/bin/python port/n64/build.py --preset release --firefight --output-dir build/odst-firefight
@@ -167,7 +174,7 @@ Synchronize the generated `odst.bin` into `halo64-assets/frontend-files/` before
 certification. Builds check source/file fingerprints. QA fixtures use
 `--odst-qa 0` (palettes/LODs), `1` (cloak), `2` (first-person actions),
 `3` (teams), `4` (HUD/viewmodel), `5` (pistol 2×), `6` (sniper 2×),
-`7` (sniper 10×), `8` (ally partial/enemy hidden), `9` (enemy partial/ally hidden), `10` (mixed three-player grid cache).
+`7` (sniper 10×), `8` (ally partial/enemy hidden), `9` (enemy partial/ally hidden), `10` (mixed three-player grid cache), `11` (muted team plates with profiles on the same team).
 Omit `--preset release` for these staged inspection fixtures; add
 `--validate --rspq-buffer-kib 32`. Published asset and release hashes are in
 [`benchmarks/odst/validation.json`](benchmarks/odst/validation.json).

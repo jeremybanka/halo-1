@@ -145,7 +145,7 @@ def cache_order(triangles):
             ordered.append(tris[i]);remaining.remove(i);cache|=keys[i];count+=1
     return ordered
 
-def fit_overlap(triangles):
+def fit_overlap(triangles,fraction=.05,axes=(1,1,1)):
     # Adapt fit_jorge_coverage.py: 5% component overlap, capped at 16 mm.
     # Each fitted point retains its inherited source skin/UV correspondence;
     # record the geometric offset rather than claiming unchanged source points.
@@ -157,7 +157,7 @@ def fit_overlap(triangles):
         for t in tris:
             offsets=[]
             for i,p in enumerate(t['p']):
-                p=np.array(p);delta=(p-center)*.05;n=np.linalg.norm(delta)
+                p=np.array(p);delta=(p-center)*fraction*np.array(axes);n=np.linalg.norm(delta)
                 if n>1e-10:delta*=min(.016/3.048,max(1/512,n))/n
                 t['p'][i]=(p+delta).tolist();offsets.append(delta.tolist());maximum=max(maximum,float(np.linalg.norm(delta)))
             t['fit_offsets']=offsets

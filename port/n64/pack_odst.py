@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 from pack_assets import position, normal
 from pack_mesh import indexed_mesh
+from odst_colors import special_colors,team_amount
 
 SCALE = 512
 COLORS = np.array(((225,45,38),(39,92,215),(215,179,44),(57,183,69)))
@@ -21,14 +22,8 @@ def palette(rgb, mask, profile):
 
 
 def corner_colors(tri, materials, textures):
-    if tri.get('color_override'):return [tri['color_override']]*3,[0]*3
-    role = materials[tri['material']]['path'].split('\\')[-1]
-    if role == 'odst_crown_stripe':
-        return [[235,235,235]]*3, [255]*3
-    if role == 'odst_visor':
-        # Intentional cyan adaptation, protected from all profile/team tints.
-        return [[24,230,255]]*3, [0]*3
-    if tri.get('corner_color_override'):return tri['corner_color_override'],[0]*3
+    special=special_colors(tri,materials)
+    if special is not None:return special
     image = textures.get(tri['material'])
     light = .68 + .32 * max(0, np.dot(normal([position(p,(0,0,0)) for p in tri['p']]), (.25,.83,.49)))
     colors = []
@@ -40,7 +35,7 @@ def corner_colors(tri, materials, textures):
             x,y = (int(uv[0]%1*image.width), int(uv[1]%1*image.height))
             rgb = np.array(image.getpixel((x,y)))
         colors.append(np.rint(rgb*light).astype(int).tolist())
-    return colors, [0]*3
+    return colors, [team_amount(tri)]*3
 
 
 def pack(source, output):
@@ -73,13 +68,17 @@ def pack(source, output):
         for t in model['triangles']:
             rgb,amount = corner_colors(t,data['materials'],textures)
             colors.extend(rgb); mask.extend(amount)
+        # Neutral crown paint must retain its material break even though it
+        # no longer has a distinct team mask. Animation tracks still share.
+        roles=[1 if t.get('helmet_region')=='stripe' else 2 if t.get('helmet_region')=='visor' else 0 for t in model['triangles'] for _ in range(3)]
+        render_signatures=[(signature,role) for signature,role in zip(signatures,roles)]
         if data.get('opaque_motion_reorder'):
             # These vertex-colored surfaces are opaque. Use the complete
             # runtime trajectory as an immutable identity in the static cache
             # optimizer: coincident bind points with different motion cannot
             # merge. Its coplanar predecessor constraints retain source order
             # for overlapping bind surfaces. No pose or clock is changed.
-            mesh=indexed_mesh(points,colors,mask,material_keys=signatures,
+            mesh=indexed_mesh(points,colors,mask,material_keys=render_signatures,
                 color_tolerance=data.get('color_tolerance',24),reorder_static=True)
             emitted=[first+j for first,_,off,nindices in mesh['batches'] for j in mesh['indices'][off:off+nindices]]
             for k,v in enumerate(emitted):
@@ -92,7 +91,7 @@ def pack(source, output):
                 full=np.rint(native['frames_'+str(i)]*SCALE).astype(np.int16)
                 assert np.array_equal(full[:,packed_sources],full[:,original_corners.ravel()])
         else:
-            mesh = indexed_mesh(points, colors, mask, signatures, color_tolerance=data.get("color_tolerance",24))
+            mesh = indexed_mesh(points, colors, mask, render_signatures, color_tolerance=data.get("color_tolerance",24))
         n = len(mesh['vertices']); tracks = len(track_sources)
         first = len(bank)
         def rgba(c): return (c[0]<<24)|(c[1]<<16)|(c[2]<<8)|255

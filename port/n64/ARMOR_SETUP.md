@@ -145,10 +145,10 @@ arms/weapon use a cyan halfway between active and inactive HUD colors; the HUD
 remains visible. World depth
 partially or completely occludes both friendly and hostile units. Normal weapon
 zoom and neighboring viewports retain their usual behavior.
-The cyan visor and neutral armor are protected from palette changes;
-only the original helmet crown stripe carries profile or team color.
-Both LODs use the same symmetric helmet, with the complete centered stripe
-protected during reduction and packing.
+The visor, fabric, backpack and forearm plates stay independent of palette changes;
+the crown stripe remains neutral grey. Muted profile/team tint appears on the
+chest and shoulder plates. The near and far helmets are independently reduced;
+both preserve symmetry and the centered stripe.
 
 The fresh Halo 3: ODST extraction, component demake, independent checkpoints,
 near/far costs, custom forearms and scoped validation are recorded in

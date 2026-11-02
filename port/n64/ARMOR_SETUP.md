@@ -20,6 +20,15 @@ mode selection. Unjoined controllers cannot alter the page.
 | Spartan | MJOLNIR Mk V | 100 | 100 | Standard ammunition and damage |
 | Jorge | MJOLNIR Mk IV [G-052] | 100 | 200 | Unlimited rocket reserve; explosion damage cannot remove health |
 | ODST | ODST BDU | 100 | 0 | Flashlight toggles VISR |
+| GUNGNIR | MJOLNIR / GUNGNIR | 100 | 150 | Flashlight control toggles movement autopilot; enhanced aim while unzoomed |
+
+GUNGNIR uses the existing flashlight binding. While autopilot is enabled,
+D-pad Up follows the living player under your aim, Left/Right selects Elite
+movement, and Down selects panicking Grunt movement. Follow keeps that player
+selected when you look elsewhere. Toggle off to regain manual movement.
+Weapon use and camera controls remain manual. Vehicles pause autopilot until
+you exit. Zoom disables the enhanced aim circle, reticle and gun assistance.
+The suit requires 8 MiB, as do Jorge and ODST.
 
 Jorge still needs to find a rocket launcher. Its two-round magazine, firing
 cadence, reload duration, weapon-ready time and reload cancellation are
@@ -38,7 +47,8 @@ map's lethal boundaries retain normal consequences.
 
 Recharge keeps the existing six-second delay and 25 points/second rate, now
 stopping at the suit's base capacity. Jorge's base 200 does not decay as an
-overshield. Overshields still add 200 points: 300 for Spartan, 400 for Jorge;
+overshield. Overshields still add 200 points: 300 for Spartan, 400 for Jorge,
+350 for GUNGNIR;
 only that bonus decays. The HUD's ordinary shield bar represents the selected
 suit's full base capacity. Firefight resupply also restores the suit's base
 vitals, and enemy damage retains its difficulty and hit-region rules.

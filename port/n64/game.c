@@ -15,6 +15,8 @@
 #include "combat_geometry.h"
 #include "movement.h"
 #include "terrain.h"
+#include "gungnir.h"
+#include "autopilot_nav.h"
 #include "map.h"
 #include "mode_map.h"
 #include "blam/runtime.h"
@@ -78,6 +80,7 @@ bg_pickup bg_pickups[BG_MAX_PICKUPS];
 bg_event bg_events[BG_MAX_EVENTS];
 unsigned bg_vehicle_count, bg_pickup_count, bg_event_count;
 static unsigned active_players = 4;
+static unsigned active_views = 4;
 unsigned bg_unit_count(void) {
 #ifdef BG_PVE
     if(bg_pve_is_active())return BG_PLAYERS+bg_pve_count;
@@ -170,9 +173,16 @@ static float random_signed(void) {
 }
 void bg_set_players(unsigned count) {
     active_players = count < 1 ? 1 : count > 4 ? 4 : count;
+    active_views = active_players;
 }
 unsigned bg_player_count(void) {
     return active_players;
+}
+void bg_set_view_count(unsigned count) {
+    active_views = count < 1 ? 1 : count > 4 ? 4 : count;
+}
+unsigned bg_view_count(void) {
+    return active_views;
 }
 void bg_clear_events(void) {
     bg_event_count = 0;
@@ -502,6 +512,7 @@ static void spawn(unsigned player) {
     p->armor = (bg_armor)bg_player_armors[player];
     p->health = bg_armor_def(p->armor)->health;
     p->shield = bg_armor_def(p->armor)->shield;
+    bg_gungnir_reset(player);
     int weapons[2],grenades[2];mode_loadout(weapons,grenades);
     for (int j = 0; j < 2; j++) {
         int w = p->inventory[j] = weapons[j];
@@ -595,6 +606,7 @@ static void load_scenario(void) {
 #endif
 #include "game_modes.inc"
 void bg_reset(void) {
+    bg_autonav_reset();
     bg_terrain_reset();
     memset(&statistics, 0, sizeof(statistics));
     memset(damage_history, 0, sizeof(damage_history));
@@ -867,6 +879,7 @@ static void kill(unsigned victim, int owner) {
     p->melee_tick = 0;
     p->health = 0;
     p->shield = 0;
+    bg_gungnir_reset(victim);
     p->respawn = owner < 0 || owner == (int)victim ? 10 : 3;
     p->zoom = 0;
     statistics.deaths[victim]++;
@@ -1312,8 +1325,10 @@ static void aim(const bg_player *p, float direction[3], float origin[3]) {
     if (p->vehicle >= 0 && bg_player_personal_weapon(p))
         bg_vehicle_camera_position(&bg_vehicles[p->vehicle], p->seat, origin);
 }
+#include "gungnir_aim.inc"
 bg_aim_target bg_aim_query(unsigned owner) {
     bg_player *p = &bg_players[owner];
+    if(bg_gungnir_aim_active(p))return bg_gungnir_target(owner);
     bg_aim_target best = {.player = -1, .distance = 1e9f};
     if (p->vehicle >= 0 || p->health <= 0)
         return best;
@@ -1434,6 +1449,7 @@ static void assisted_shot(unsigned index, float direction[3], const float origin
     float desired[3];
     sub(desired, target.point, origin);
     normalize(desired);
+    if(bg_gungnir_aim_active(&bg_players[index])){memcpy(direction,desired,12);return;}
     for (unsigned k = 0; k < 3; k++)
         desired[k] = direction[k] + (desired[k] - direction[k]) * target.auto_level;
     normalize(desired);
@@ -2514,7 +2530,10 @@ static void tick_player_timers(unsigned player_index, float dt) {
 }
 static void tick_player_resources(unsigned player_index, const bg_input *input, float dt) {
     bg_player *player = &bg_players[player_index];
-    if(input->flashlight)player->flashlight_on=!player->flashlight_on;
+    if(input->flashlight){
+        if(bg_armor_def(player->armor)->abilities&BG_ARMOR_AUTOPILOT)bg_gungnir_toggle(player_index);
+        else player->flashlight_on=!player->flashlight_on;
+    }
     float base_shield = bg_armor_def(player->armor)->shield;
     float over_shield = base_shield + 200;
     bool was_charging = player->shield_charging;
@@ -2791,6 +2810,7 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
     uint32_t collision_begin=BG_COLLISION_NOW(),collision_section=collision_begin;
     match_time += dt;
     simulation_tick++;
+    bg_autonav_service();
 #if defined(N64) && defined(BG_PROFILE)
     uint32_t tick_begin = get_ticks_us();
 #endif
@@ -2812,7 +2832,9 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
         }
         tick_player_resources(i, in, dt);
         tick_player_controls(i, in, dt);
-        if (!tick_player_movement(i, in, dt))
+        bg_input movement=*in;
+        bg_gungnir_move(i,&movement,dt);
+        if (!tick_player_movement(i, &movement, dt))
             continue;
         tick_player_weapons(i, in, dt);
         p->fire_held = in->fire;
@@ -2828,11 +2850,13 @@ void bg_tick(const bg_input inputs[BG_PLAYERS], float dt) {
         tick_begin = get_ticks_us();
 #endif
         BG_COLLISION_COUNT(humans_us,BG_COLLISION_NOW()-collision_section);collision_section=BG_COLLISION_NOW();
-    #ifdef BG_ENEMY_VEHICLES
+    #ifdef BG_PVE
     bg_input unit_inputs[BG_UNITS]={0};
     memcpy(unit_inputs,inputs,BG_PLAYERS*sizeof(bg_input));
+    #ifdef BG_ENEMY_VEHICLES
     uint32_t vehicle_ai_begin=BG_COLLISION_NOW();pve_vehicle_inputs(unit_inputs,dt);
     BG_COLLISION_COUNT(vehicle_ai_us,BG_COLLISION_NOW()-vehicle_ai_begin);(void)vehicle_ai_begin;collision_section=BG_COLLISION_NOW();
+    #endif
     update_vehicles(unit_inputs,dt);
 #else
     update_vehicles(inputs, dt);

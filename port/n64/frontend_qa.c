@@ -8,6 +8,10 @@
 #include "movement.h"
 #include "game.h"
 #include "blam/vehicle_physics.h"
+#ifdef BG_GUNGNIR_FRONTEND_QA
+#include "gungnir.h"
+#include "autopilot_nav.h"
+#endif
 /* Separately named fixture: controller edges navigate production menus.
  * Combat is staged, but health, damage, respawn, score limit and game-over
  * dispatch are the normal simulation. No scores/winner are assigned. */
@@ -141,7 +145,9 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
         if (now-armor_entered<3000000) return;
         bool ready=true;
         for (unsigned p=0;p<4;p++) if(f->joined[p]) {
-#if defined(BG_ODST_FRONTEND_QA)
+#if defined(BG_GUNGNIR_FRONTEND_QA)
+            unsigned wanted=p==f->host?BG_ARMOR_GUNGNIR:(p+BG_ARMOR_COUNT-1)%BG_ARMOR_COUNT;
+#elif defined(BG_ODST_FRONTEND_QA)
             unsigned wanted=BG_ARMOR_ODST;
 #elif defined(BG_JORGE_FRONTEND_QA)
             unsigned wanted=BG_ARMOR_JORGE;
@@ -168,6 +174,10 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
     if(f->page==BG_FRONT_PREGAME || f->page==BG_FRONT_PLAY || f->page==BG_FRONT_RESULTS)
         assert(f->armor[f->host]==BG_ARMOR_JORGE);
 #endif
+#ifdef BG_GUNGNIR_FRONTEND_QA
+    if(f->page==BG_FRONT_PREGAME || f->page==BG_FRONT_PLAY || f->page==BG_FRONT_RESULTS)
+        assert(f->armor[f->host]==BG_ARMOR_GUNGNIR);
+#endif
     if(f->page!=s->page){
         /* Countdown completion may beat a final optional acceleration edge.
          * Do not misdiagnose that ordinary launch as a map-loader failure. */
@@ -179,7 +189,7 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
     }
     if(!entered)entered=now;
     unsigned dwell=s->seconds;
-#if defined(BG_MAPS_CYCLE) || defined(BG_JORGE_FRONTEND_QA) || defined(BG_ODST_FRONTEND_QA)
+#if defined(BG_MAPS_CYCLE) || defined(BG_JORGE_FRONTEND_QA) || defined(BG_ODST_FRONTEND_QA) || defined(BG_GUNGNIR_FRONTEND_QA)
     if(s->page!=BG_FRONT_PLAY&&s->page!=BG_FRONT_QUIT&&dwell>1)dwell=1;
 #endif
     if(now-entered<dwell*1000000ull)return;
@@ -225,6 +235,46 @@ static bool new_map_duel(bg_player*a,bg_player*b) {
     return true;
 }
 #endif
+#ifdef BG_GUNGNIR_FRONTEND_QA
+static bool gungnir_live_inputs(bg_input in[4],float seconds) {
+    static bool began,complete,follow_sent;static float entered,start[3],yaw,pitch;static int previous=-1,ammo;
+    if(complete)return false;
+    bg_player *a=&bg_players[0],*b=&bg_players[1];
+    /* The host map suite also uses the ordinary combat fixture before its
+     * frontend cycle has selected armor. Start this probe only in that cycle. */
+    if(a->armor!=BG_ARMOR_GUNGNIR)return false;
+    if(!began){
+        assert(a->armor==BG_ARMOR_GUNGNIR);
+        assert(bg_autonav_load());
+        uint16_t source=bg_autonav_node(a->pos);assert(source!=BG_NAV_NONE);float origin[3];bg_autonav_position(source,origin);bool found=false;
+        float saved_health[2]={bg_players[2].health,bg_players[3].health};bg_players[2].health=bg_players[3].health=0;
+        for(unsigned k=0;k<8&&!found;k++){
+            float angle=k*.78539816f,direction[3]={cosf(angle),0,sinf(angle)};uint16_t goal=bg_autonav_goal(origin,direction,4);
+            if(goal==BG_NAV_NONE||goal==source)continue;
+            memcpy(a->pos,origin,sizeof(origin));bg_autonav_position(goal,b->pos);float x=b->pos[0]-a->pos[0],z=b->pos[2]-a->pos[2];if(hypotf(x,z)<2)continue;
+            a->yaw=atan2f(-z,x);a->pitch=atan2f(b->pos[1]+bg_body_height(b)*.7f-a->pos[1]-bg_eye_height(a),hypotf(x,z));found=bg_gungnir_target(0).player==1;
+        }
+        bg_players[2].health=saved_health[0];bg_players[3].health=saved_health[1];assert(found);
+        a->vy=b->vy=0;a->grounded=b->grounded=true;memset(a->velocity,0,sizeof(a->velocity));memset(b->velocity,0,sizeof(b->velocity));memcpy(a->last_pos,a->pos,sizeof(a->pos));memcpy(b->last_pos,b->pos,sizeof(b->pos));
+        bg_give_weapon(0,BG_W_AR);a->weapon=a->inventory[a->slot]=BG_W_AR;a->ammo=bg_weapon_defs[BG_W_AR].magazine;a->reload=a->weapon_ready=a->cooldown=0;
+        memcpy(start,a->pos,sizeof(start));yaw=a->yaw;pitch=a->pitch;ammo=a->ammo;entered=seconds;began=true;
+    }
+    float time=seconds-entered;unsigned phase=(unsigned)(time/3);bool changed=(int)phase!=previous;
+    if(changed){
+        if(phase==0)in[0].flashlight=true;
+        if(phase==1){float x=a->pos[0]-start[0],z=a->pos[2]-start[2];assert(x*x+z*z>.01f&&a->ammo==ammo&&a->yaw==yaw&&a->pitch==pitch);in[0].autopilot_command=4;}
+        if(phase==2)in[0].autopilot_command=2;
+        if(phase==3){in[0].autopilot_command=8;in[0].fire=true;}
+        if(phase==4)in[0].flashlight=true;
+        previous=(int)phase;
+    }
+    if(!phase&&a->autopilot_on&&!follow_sent){in[0].autopilot_command=1;follow_sent=true;}
+    if(time>.3f&&phase==0)assert(a->autopilot_on&&a->autopilot_style==BG_AUTOPILOT_FOLLOW&&a->autopilot_follow==1);
+    if(phase==4){in[0].forward=.35f;in[0].turn=.15f;if(time>12.2f)assert(!a->autopilot_on);}
+    if(phase>=5){assert(!a->autopilot_on);complete=true;return false;}
+    return true;
+}
+#endif
 void bg_front_qa_tick(bg_input in[4],float seconds){
     memset(in,0,4*sizeof(*in));if(bg_match_finished()||seconds<2)return;
     /* Exercise both fenced workspaces for all four players, including the
@@ -237,6 +287,9 @@ void bg_front_qa_tick(bg_input in[4],float seconds){
         }
         return;
     }
+#ifdef BG_GUNGNIR_FRONTEND_QA
+    if(gungnir_live_inputs(in,seconds))return;
+#endif
     bg_player*a=&bg_players[0],*b=&bg_players[1];
     if(b->health<=0)return;
     if(a->weapon!=BG_W_SHOTGUN||a->ammo==0)bg_give_weapon(0,BG_W_SHOTGUN);

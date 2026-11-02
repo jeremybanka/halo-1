@@ -1,8 +1,10 @@
 # Firefight Limited — first complete CE demake ruleset
 
 This implements the finite, one-to-four-player survival game proposed in
-[the Reach research](FIREFIGHT_DESIGN.md). It is an opt-in `--firefight` build,
-requires an 8 MiB Expansion Pak, and enables Blood Gulch. The original
+[the Reach research](FIREFIGHT_DESIGN.md). It is included with multiplayer in
+the default `halo-64.z64`, requires an 8 MiB Expansion Pak, and enables Blood
+Gulch. `--firefight` remains an explicit alias; `--no-firefight` is a lean
+diagnostic build. The original
 [single-squad checkpoint](PVE_SQUAD.md) remains documented separately.
 
 The rules below are **demake rules version 1**, inspired by Reach Firefight

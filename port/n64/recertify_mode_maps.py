@@ -5,18 +5,18 @@ The old map report hashes game.c because its spawn solver certifies clearance.
 This migration runs both legacy-map and new-mode fixtures before refreshing
 that dependency; it cannot certify a changed geometry bank or exporter.
 """
-import hashlib,json,subprocess,sys
+import argparse,hashlib,json,subprocess,sys
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 def digest(path):return hashlib.sha256(path.read_bytes()).hexdigest()
-def main():
+def main(output=None,report_output=None):
     report_path=ROOT/'halo64-assets/generated/maps/maps-report.json'
     report=json.loads(report_path.read_text())
     stale={p for p,h in report['inputs'].items() if digest(ROOT/p)!=h}
     assert stale<={'port/n64/game.c'}, f'Unrelated map inputs changed: {stale}'
     bank=report_path.parent
     for p,h in report['files'].items():assert digest(bank/p)==h,p
-    out=ROOT/'build/modes-tests';out.mkdir(parents=True,exist_ok=True)
+    out=Path(output) if output else ROOT/'build/modes-tests';out.mkdir(parents=True,exist_ok=True)
     checks={}
     for flag,name in [('--maps-cycle','maps'),('--modes','rules')]:
         log=out/(name+'.log')
@@ -25,6 +25,8 @@ def main():
         checks[name]=digest(log);print('PASS',name,flush=True)
     for p in stale:report['inputs'][p]=digest(ROOT/p)
     report['multiplayer_recertification']={'geometry_files_unchanged':True,'checks':checks,
-        'method':'ASan/UBSan: thirteen maps, live menu cycles; 26 mode presets on all maps, capsule-clear starts and objective transitions.'}
-    report_path.write_text(json.dumps(report,indent=2)+'\n')
-if __name__=='__main__':main()
+        'method':'ASan/UBSan: thirteen maps, live menu cycles; 28 mode presets on all maps, capsule-clear starts and objective transitions.'}
+    target=Path(report_output) if report_output else report_path
+    target.write_text(json.dumps(report,indent=2)+'\n')
+if __name__=='__main__':
+    p=argparse.ArgumentParser();p.add_argument('--output-dir',type=Path);p.add_argument('--report-output',type=Path);a=p.parse_args();main(a.output_dir,a.report_output)

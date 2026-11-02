@@ -5,6 +5,7 @@
 #include "pve_prepare_math.h"
 #include "pve_preparation_reference.inc"
 bg_pve_actor bg_pve_actors[BG_PVE_MAX];
+static unsigned pve_appearance(const bg_pve_actor *actor){return actor->kind;}
 static uint8_t pve_pose_owner[BG_PVE_MAX+1][BG_PVE_LODS];
 static uint32_t pve_frame_keys[BG_PVE_MAX][BG_PVE_LODS];
 #include "pve_preparation_share.inc"

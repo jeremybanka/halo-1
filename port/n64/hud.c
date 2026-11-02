@@ -8,8 +8,10 @@
 #include "scene.h"
 #include "map.h"
 #include "camouflage.h"
+#include "gungnir.h"
 #include <libdragon.h>
 #include <math.h>
+#include <fmath.h>
 
 /* Original motion sensor and scopes; native pixel art for compact counters
  * and meters. The immutable IA4 bank is uploaded once per player view. */
@@ -22,6 +24,9 @@ static surface_t native_scope_masks[1][2];
 #include "hud_pixels.h"
 #include "hud_buttons.h"
 static surface_t pixel_atlas;
+
+static uint8_t assist_ring_pixels[64*64] __attribute__((aligned(16)));
+static surface_t assist_ring;
 static surface_t button_atlas;
 static surface_t weapon_icon_atlas;
 static int current_combiner, current_filter;
@@ -558,6 +563,12 @@ static void scope_marks(const bg_player *p, float cx, float cy, int height) {
 }
 
 void bg_hud_init(void) {
+    for(unsigned y=0;y<64;y++)for(unsigned x=0;x<64;x++) {
+        float distance=hypotf((float)x-31.5f,(float)y-31.5f);
+        assist_ring_pixels[y*64+x]=(uint8_t)(255*fmaxf(0,1-fabsf(distance-30.5f)));
+    }
+    assist_ring=surface_make(assist_ring_pixels,FMT_I8,64,64,64);
+    data_cache_hit_writeback(assist_ring_pixels,sizeof(assist_ring_pixels));
     for (unsigned i = 0; i < BG_H_COUNT; i++) {
         const bg_hud_image *im = &bg_hud_images[i];
         images[i] =
@@ -608,6 +619,42 @@ static void damage_screen_flash(const bg_player *p,int x,int y,int w,int h) {
     rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
 }
 
+/* Preserve the SDK's filtered strip boundaries and rotation exactly, but
+ * fence every TMEM replacement. The rotated large-image path can otherwise
+ * reload its next strip while the preceding textured triangles still read it. */
+static void damage_bitmap(const surface_t *bitmap,float x,float y,float theta) {
+    const float scale=.5f;
+    int cx=bitmap->width*.5f,cy=bitmap->height*.5f;
+    unsigned pitch=(bitmap->width+7)&~7u,rows=4096/pitch;
+    float st,ct;fm_sincosf(theta,&st,&ct);
+    float m[3][2]={{ct*scale,-st*scale},{st*scale,ct*scale},
+        {x-(cx*(ct*scale)+cy*(st*scale)),y-(cx*(-st*scale)+cy*(ct*scale))}};
+    for(unsigned top=0;top<bitmap->height;){
+        unsigned first=top?top-1:0,last=first+rows;
+        if(last>bitmap->height)last=bitmap->height;
+        unsigned end=last==bitmap->height?last:last-1;
+        rdpq_sync_tile();
+        rdpq_sync_load();
+        rdpq_tex_upload_sub(TILE0,bitmap,NULL,0,first,bitmap->width,last);
+        if(theta==0){
+            float ox=x-cx*scale,oy=y-cy*scale;
+            rdpq_texture_rectangle_scaled(TILE0,ox,oy+top*scale,
+                ox+bitmap->width*scale,oy+end*scale,0,top,bitmap->width,end);
+        }else{
+            float v[4][5];
+            for(unsigned i=0;i<4;i++){
+                float u=(i==1||i==2)?bitmap->width:0,t=i>=2?end:top;
+                v[i][0]=m[0][0]*u+m[1][0]*t+m[2][0];
+                v[i][1]=m[0][1]*u+m[1][1]*t+m[2][1];
+                v[i][2]=u;v[i][3]=t;v[i][4]=1;
+            }
+            rdpq_triangle(&TRIFMT_TEX,v[0],v[1],v[2]);
+            rdpq_triangle(&TRIFMT_TEX,v[0],v[2],v[3]);
+        }
+        top=end;
+    }
+}
+
 static void damage_indicators(const bg_player *p,int x,int y,int w,int h,unsigned views) {
     if(p->health<=0)return;
     const bg_scope_image *a=&bg_damage_images[views>1];
@@ -620,8 +667,7 @@ static void damage_indicators(const bg_player *p,int x,int y,int w,int h,unsigne
         if(d==0)cy=y+offset;else if(d==2)cy=y+h-offset;
         else if(d==1)cx=x+offset;else cx=x+w-offset;
         mode(RGBA32(bg_damage_color>>24,(bg_damage_color>>16)&255,(bg_damage_color>>8)&255,bg_damage_color&255));
-        rdpq_tex_blit(&bitmap,cx,cy,&(rdpq_blitparms_t){.cx=a->w*.5f,.cy=a->h*.5f,
-            .scale_x=.5f,.scale_y=.5f,.theta=angle[d],.filtering=true});
+        damage_bitmap(&bitmap,cx,cy,angle[d]);
     }
 }
 
@@ -636,8 +682,9 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     bool carrying=bg_player_objective(index)>=0;
     bool personal = bg_player_personal_weapon(p)&&!carrying;
     float aim_x, aim_y;
-    unsigned views = bg_player_count();
-    bg_hud_aim_point(views, index, x, y, width, height, &aim_x, &aim_y);
+    bg_view_rect area={x,y,width,height};
+    unsigned views = bg_view_count();
+    bg_hud_aim_point_for_view(area,&aim_x,&aim_y);
     current_combiner = current_filter = -1;
     rdpq_mode_begin();
     rdpq_set_mode_standard();
@@ -652,6 +699,12 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         scope_mask(p, x, y, width, height, aim_x, aim_y);
 
     damage_indicators(p,x,y,width,height,views);
+    if(bg_gungnir_aim_active(p)&&!carrying) {
+        float radius=BG_GUNGNIR_RADIUS*fminf(width,height),scale=radius/30.5f;
+        mode(RGBA32(BG_HUD_ACTIVE_R,BG_HUD_ACTIVE_G,BG_HUD_ACTIVE_B,36));
+        rdpq_tex_blit(&assist_ring,aim_x-32*scale,aim_y-32*scale,
+            &(rdpq_blitparms_t){.scale_x=scale,.scale_y=scale,.filtering=true});
+    }
     if (p->health > 0) {
         if (scoped(p))
             scope_marks(p, aim_x, aim_y, height);
@@ -688,6 +741,17 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         if(target>=0){char label[24];snprintf(label,sizeof(label),"Target: P%u",bg_player_profiles[target]+1);hud_text(label,x+margin,y+20,hud_cyan);}
     }
     if (p->health > 0) {
+#if defined(BG_GUNGNIR_QA) && BG_GUNGNIR_QA == 5
+        /* Independently project the gameplay forward ray through Tiny3D's
+         * actual camera matrix, including its fixed viewport transforms. */
+        float cp=cosf(p->pitch);
+        T3DVec3 ray={{(p->pos[0]+cosf(p->yaw)*cp*8)*BG_SCALE,
+            (p->pos[1]+bg_eye_height(p)+sinf(p->pitch)*8)*BG_SCALE,
+            (p->pos[2]-sinf(p->yaw)*cp*8)*BG_SCALE}},screen={{0}};
+        t3d_viewport_calc_viewspace_pos((T3DViewport*)bg_scene_viewport(index),&screen,&ray);
+        assertf(fabsf(screen.v[0]-aim_x)<.1f&&fabsf(screen.v[1]-aim_y)<.1f,"Viewport reticle/forward ray mismatch");
+        pixel((int)roundf(screen.v[0])-1,(int)roundf(screen.v[1])-1,3,3,RGBA32(255,0,255,255));
+#endif
         const bg_seat_definition *seat = bg_player_seat(p);
         int id = personal                    ? (int)reticles[weapon]
                  : seat && (seat->flags & 8) ? vehicle_reticles[vehicle->kind]
@@ -697,8 +761,14 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
 #ifdef BG_SHIELD_QA
         id = -1; /* Inspection camera looks at this actor, not down its sights. */
 #endif
-        if (id >= 0)
-            hud_reticle(id, (int)roundf(aim_x), (int)roundf(aim_y));
+        if (id >= 0) {
+            float rx=aim_x,ry=aim_y;bg_aim_target target=bg_gungnir_target(index);
+            if(target.player>=0) {
+                T3DVec3 world={{target.point[0]*BG_SCALE,target.point[1]*BG_SCALE,target.point[2]*BG_SCALE}},screen={{0}};
+                t3d_viewport_calc_viewspace_pos((T3DViewport*)bg_scene_viewport(index),&screen,&world);rx=screen.v[0];ry=screen.v[1];
+            }
+            hud_reticle(id, (int)roundf(rx), (int)roundf(ry));
+        }
     }
     int left = x + margin, top = y + margin, right = x + width - margin;
     hud_vitals(p, right - 46, top);
@@ -714,6 +784,8 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         hud_text(p->weapon == BG_W_SNIPER && p->zoom == 2 ? "10X" : "2X",
                  (int)roundf(aim_x) + ox - 5, (int)roundf(aim_y) + oy - 3, hud_cyan);
     }
+    if(p->health>0&&p->autopilot_on&&(bg_armor_def(p->armor)->abilities&BG_ARMOR_AUTOPILOT))
+        hud_text("AUTO",x+(width-hud_text_width("AUTO"))/2,top,hud_dim);
     int status_y = y + height - margin - 6;
     int notice_bottom = status_y - 14;
     if (p->health <= 0) {
@@ -762,7 +834,7 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if(bg_ff.active){
         char state[72];unsigned alive=0;
         for(unsigned i=0;i<bg_pve_count;i++)alive+=bg_pve_actors[i].occupied&&bg_players[BG_PLAYERS+i].health>0;
-        rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
+        rdpq_tex_upload(TILE0, &pixel_atlas, NULL);
         if(bg_ff.phase==BG_FF_BONUS)snprintf(state,sizeof(state),"BONUS %us E%u",(unsigned)ceilf(fmaxf(0,bg_ff.timer)),alive);
         else snprintf(state,sizeof(state),"R%u W%u L%u E%u",bg_ff.round+1,bg_ff.wave+1,bg_ff.lives,alive);
         hud_text(state,x+margin,y+height-19,hud_cyan);

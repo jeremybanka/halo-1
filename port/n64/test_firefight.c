@@ -36,8 +36,16 @@ int main(void){
     assert(bg_players[0].health<100&&bg_players[0].shield==0&&bg_shield_sounds(&bg_players[0])==0);
     ff_resupply();assert(bg_players[0].health==100&&bg_players[0].shield==0);
     kill(0,-1);ff_resupply();assert(bg_players[0].armor==BG_ARMOR_ODST&&bg_players[0].shield==0);
+    bg_set_player_armor(0,BG_ARMOR_GUNGNIR);bg_ff_start(2);
+    assert(bg_players[0].armor==BG_ARMOR_GUNGNIR&&bg_players[0].shield==150);
+    pve_spawn_actor(0,BG_PVE_ELITE,BG_W_PLASMA_RIFLE,0,foe,0);
+    damage_player_profile(0,4,10,false,false,BG_D_AR,false,false,1);
+    assert(bg_players[0].shield<150&&bg_players[0].health==100);
+    ff_resupply();assert(bg_players[0].shield==150);
+    bg_gungnir_toggle(0);assert(bg_players[0].autopilot_on&&!bg_players[0].flashlight_on);
+    kill(0,-1);ff_resupply();assert(bg_players[0].armor==BG_ARMOR_GUNGNIR&&bg_players[0].shield==150&&!bg_players[0].autopilot_on);
     bg_set_player_armor(0,BG_ARMOR_SPARTAN);
-    puts("PASS Jorge PvE launch, NPC explosions/bullets, friendly-fire guard, resupply and respawn");
+    puts("PASS Jorge, ODST and GUNGNIR PvE launch, NPC damage, friendly-fire guard, resupply and respawn");
     for(unsigned players=1;players<=4;players++){
         bg_ff_start(players);assert(bg_ff.cap==4+players*2&&bg_ff.lives==10&&bg_pve_count==0);
         for(unsigned h=0;h<players;h++){assert(bg_players[h].health==100);assert(bg_terrain_clearance(&bg_players[h]));}

@@ -48,7 +48,7 @@
     "rom_sha256": "baf19135870e20c74c51351fa8bf6e371b6524466b72256293d16653d691177e",
     "asset_filesystem_bytes_identical": true,
     "asset_filesystem_sha256": "74b689245abe1c1a2aab214b3640170b1a0e8cefc3c46d0194dc78c109f8732a",
-    "status": "Observed native Ares play progressing past 3:32 with the memory fix; final play outcome is separate from resource-safety validation",
+    "status": "Completed normally through defeat in the first round, fourth wave at 09:01; no repeat of the native allocation crash",
     "controller": {
       "scripted_players": 2,
       "armors": [
@@ -58,6 +58,23 @@
       "camera": "Bounded look toward retained visible attacker; no continuous scan; armor movement code still never supplies turn/look",
       "loadout": "Prefer pistol; ordinary AR fallback when pistol ammunition is exhausted; normal pickups, grenades, melee, shields and shared lives",
       "rules_modified": false
+    },
+    "result": {
+      "outcome": "Defeat / Firefight over",
+      "round": 1,
+      "wave": 4,
+      "elapsed_hud": "09:01",
+      "team_score": 1776,
+      "player_scores": [
+        907,
+        869
+      ],
+      "shared_lives": 0,
+      "completed_without_further_crash": true,
+      "generic_match_overlay": "DRAW (the generic competitive overlay; the Firefight director finished in defeat)",
+      "capture_sha256": "c1bbe982016c642323e278e433788402fcd05af7c3f046eedef1be050c5b2d5d",
+      "camera_script": "Steady while searching, bounded turns to retained exposed attacker; no continuous scan",
+      "render_scope": "Ares v148 native ROM, both live viewports, regular rendering for entire attempt after clean emulator restart"
     }
   },
   "host_attempts": [
@@ -118,6 +135,18 @@
       "kills": [
         43,
         43
+      ],
+      "won": false
+    },
+    {
+      "controller": "Steady camera, bounded target turns, pistol preferred with normal AR fallback and pickups",
+      "round": 1,
+      "wave": 4,
+      "seconds": 542.0,
+      "score": 1776,
+      "kills": [
+        33,
+        33
       ],
       "won": false
     }

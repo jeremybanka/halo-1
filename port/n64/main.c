@@ -404,6 +404,8 @@ static bool input(bg_input in[4]) {
         bg_controls_update(&in[i], &gestures[i], &raw[i], menu.styles[i],
             bg_players[i].vehicle >= 0, !result.consumed && bg_players[i].health>0,
             get_ticks_us());
+        if(!result.consumed&&bg_players[i].health>0)
+            bg_controls_armor(&in[i],&raw[i],menu.styles[i],bg_players[i].armor,bg_players[i].autopilot_on);
         scores[i] = !result.consumed && bg_controls_show_scores(&raw[i], menu.styles[i]);
     }
 #ifdef BG_MENU_QA
@@ -438,7 +440,8 @@ static surface_t *paced_acquire(blam_clock *clock, uint64_t *previous, bg_input 
                 EDGE(switch_grenade);
                 EDGE(melee);
                 EDGE(zoom);
-            EDGE(flashlight);
+                EDGE(flashlight);
+                EDGE(autopilot_command);
 #undef EDGE
             }
             bg_presentation_mode(views >= 3 && !front_active());
@@ -1088,6 +1091,7 @@ int main(void) {
             EDGE(melee);
             EDGE(zoom);
             EDGE(flashlight);
+            EDGE(autopilot_command);
 #undef EDGE
         }
         unsigned ticks = blam_clock_update(&clock, dt);
@@ -1149,6 +1153,7 @@ int main(void) {
                 in[p].reload = in[p].switch_weapon = in[p].grenade = in[p].switch_grenade =
                     in[p].melee = in[p].zoom = false;
                 in[p].flashlight = false;
+                in[p].autopilot_command = 0;
             }
             memset(latch, 0, sizeof(latch));
         }

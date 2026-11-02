@@ -10,7 +10,7 @@ static bool flashlight_hits[4][33],flashlight_active[4];
 static void prepare_flashlights(void) {
     for(unsigned p=0;p<views;p++) {
         const bg_player *q=&bg_players[p];
-        flashlight_active[p]=q->health>0&&q->flashlight_on&&q->vehicle<0&&!(bg_armor_def(q->armor)->abilities&BG_ARMOR_VISR);
+        flashlight_active[p]=q->health>0&&q->flashlight_on&&q->vehicle<0&&!(bg_armor_def(q->armor)->abilities&(BG_ARMOR_VISR|BG_ARMOR_AUTOPILOT));
         if(!flashlight_active[p])continue;
         float eye[3]={q->pos[0],q->pos[1]+bg_eye_height(q),q->pos[2]};
         flashlight_gather(eye);

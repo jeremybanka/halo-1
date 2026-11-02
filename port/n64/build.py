@@ -26,6 +26,7 @@ SHOWCASES = [
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--keep-dfs", action="store_true", help="Retain the packaged filesystem for explicit repacking/debugging")
     parser.add_argument("--scope-qa",action="store_true",help="Native close-ground and distant zoom regression photos")
     parser.add_argument("--m64-polish-qa",action="store_true",help="Frozen 1–4 viewport, controls, damage and flashlight photos")
     parser.add_argument("--pve-squad",action="store_true",help="Boot directly into the squad diagnostic")
@@ -51,6 +52,10 @@ def parse_args(argv=None):
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
+    parser.add_argument("--gungnir-qa",type=int,choices=range(4),help="Native GUNGNIR LOD, off-axis aim, zoom and personal-arm inspection")
+    parser.add_argument("--gungnir-qa-views",type=int,choices=range(1,5),help="GUNGNIR inspection viewport layout")
+    parser.add_argument("--gungnir-bank",type=Path,help="Isolated GUNGNIR authoring candidate for native QA")
+    parser.add_argument("--autonav-bank",type=Path,help="Isolated all-map autopilot graph candidate for native QA")
     parser.add_argument("--odst-frontend-qa", action="store_true", help="Select ODST through production menus and exercise match lifecycle")
     parser.add_argument("--odst-qa", type=int, choices=range(12), help="Fresh ODST palettes, VISR/cloak, first person and teams")
     parser.add_argument("--jorge-frontend-qa", action="store_true", help="Select Jorge through the real menus and exercise match lifecycle")
@@ -404,8 +409,11 @@ def parse_args(argv=None):
             data=json.loads(args.world_pvs_data.read_text())
             if data.get('schema') not in (3,4,5,6,7,8,9,10,11,12):
                 parser.error('Changed geometry requires a newly remapped, hash-bound visibility sidecar')
-    if sum((args.jorge_qa,args.jorge_field_qa,args.jorge_frontend_qa,args.odst_qa is not None,args.odst_frontend_qa))>1: parser.error("Choose one armor QA mode")
-    if args.jorge_qa or args.jorge_field_qa or args.odst_qa is not None: args.model_qa = True
+    if sum((args.jorge_qa,args.jorge_field_qa,args.jorge_frontend_qa,args.odst_qa is not None,args.odst_frontend_qa,args.gungnir_qa is not None))>1: parser.error("Choose one armor QA mode")
+    if (args.gungnir_bank or args.autonav_bank) and not (args.output_dir and args.gungnir_qa is not None):
+        parser.error('GUNGNIR bank overrides require an isolated --gungnir-qa output')
+    if args.gungnir_qa_views is not None and args.gungnir_qa is None:parser.error('--gungnir-qa-views requires --gungnir-qa')
+    if args.jorge_qa or args.jorge_field_qa or args.odst_qa is not None or args.gungnir_qa is not None: args.model_qa = True
     if args.jorge_field_start and not args.jorge_field_qa: parser.error("--jorge-field-start requires --jorge-field-qa")
     if args.jorge_frontend_qa or args.odst_frontend_qa: args.frontend_qa = 4
     if args.geometry_census and args.snapshot_tick is None:
@@ -537,6 +545,7 @@ def parse_args(argv=None):
 def compile_options(args, sdk, tiny, out, source):
     sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
     return [
+        "-I"+str(out/"gungnir-source"),
         *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
         *(["-DBG_PVE_MODEL_CANDIDATE"] if args.pve_model_bank else []),
         *(["-DBG_PVE_ROSTER"] if args.pve_roster else []),
@@ -620,6 +629,8 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_FLAG_CLOTH_QA"] if args.flag_cloth_qa else []),
         *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),
         *(["-DBG_OBJECTIVE_PHOTO="+str(args.objective_photo)] if args.objective_photo is not None else []),
+        *(["-DBG_GUNGNIR_QA="+str(args.gungnir_qa)] if args.gungnir_qa is not None else []),
+        *(["-DBG_GUNGNIR_QA_VIEWS="+str(args.gungnir_qa_views)] if args.gungnir_qa_views is not None else []),
         *(["-DBG_ODST_QA="+str(args.odst_qa)] if args.odst_qa is not None else []),
         *(["-DBG_JORGE_QA"] if args.jorge_qa else []),
         *(["-DBG_JORGE_FIELD_QA"] if args.jorge_field_qa else []),
@@ -984,7 +995,7 @@ def main():
         build_error("Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D")
 
     def run(command):
-        subprocess.run(
+        globals().get("_storage_run_command", subprocess.run)(
             [str(x) for x in command],
             check=True,
             cwd=ROOT,
@@ -1110,6 +1121,16 @@ def main():
         path = ROOT / name
         if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             build_error("Stale ODST assets; rerun port/n64/certify_odst.py: " + name)
+    gungnir_validation=asset_root/'generated/gungnir/gungnir-validation.json'
+    gungnir_report=None
+    if not args.gungnir_bank:
+        if not gungnir_validation.is_file():build_error('Certify the GUNGNIR assets first: port/n64/certify_gungnir.py')
+        gungnir_report=json.loads(gungnir_validation.read_text())
+        if not gungnir_report.get('publication_approved'):
+            print('GUNGNIR development candidate: appearance/native acceptance remains pending')
+        for name,expected in {**gungnir_report['inputs'],**gungnir_report['files']}.items():
+            path=ROOT/name
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:build_error('Stale GUNGNIR assets: '+name)
     out = args.output_dir.resolve() if args.output_dir else asset_root
     if (args.map_bank_override or args.pve_model_bank) and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
         build_error('Map/model bank overrides require a separate output tree')
@@ -1143,6 +1164,10 @@ def main():
         "interaction_render.c",
         "jorge_render.c",
         "odst_render.c",
+        "gungnir_render.c",
+        "gungnir_movement.c",
+        "autopilot_strategy.c",
+        "autopilot_nav.c",
         "weapon_effects.c",
         "weapon_effects_draw.c",
         "blam/vehicle_physics.c",
@@ -1210,6 +1235,10 @@ def main():
         "odst/odst_data.c",
         "odst/odst_portraits.c",
         "odst/odst_firstperson_data.c",
+        "gungnir/gungnir_data.c",
+        "gungnir/gungnir_portraits.c",
+        "gungnir/gungnir_firstperson_data.c",
+        "pve/pve_defs.c",
         "jorge_firstperson_data.c",
         "jorge_portrait.c",
         "vehicle_visuals_data.c",
@@ -1250,7 +1279,7 @@ def main():
         for name in sources
     ]
     if args.pve_squad or args.firefight:
-        runtime_sources.extend((args.pve_model_bank.resolve() if name=="pve_data.c" and args.pve_model_bank else ROOT/"halo64-assets/generated/pve")/name for name in ("pve_data.c","pve_defs.c","pve_nav.c","pve_collision.c"))
+        runtime_sources.extend((args.pve_model_bank.resolve() if name=="pve_data.c" and args.pve_model_bank else ROOT/"halo64-assets/generated/pve")/name for name in ("pve_data.c","pve_nav.c","pve_collision.c"))
     if args.pve_roster:
         runtime_sources.extend(args.pve_model_bank.resolve()/name for name in ('pve_roster.c','pve_roster_colors.c','pve_roster_weapons.c'))
     if args.enemy_vehicle_bank:
@@ -1297,7 +1326,10 @@ def main():
         candidate.parent.mkdir(parents=True, exist_ok=True)
         candidate.write_text(candidate_source(original.read_text(), args.feature_cache_slots))
         runtime_sources[runtime_sources.index(original)] = candidate
+    from prepare_gungnir_strategy import run as prepare_gungnir_strategy
+    prepare_gungnir_strategy(out/"gungnir-source")
     def generated_path(name):
+        if name.startswith("gungnir/") and args.gungnir_bank:return args.gungnir_bank.resolve()/name.split("/",1)[1]
         if args.enemy_vehicle_bank and (args.enemy_vehicle_bank/name).is_file():return args.enemy_vehicle_bank.resolve()/name
         return (out if name=="vehicle_data.c" else asset_root)/"generated"/name
     for source in [
@@ -1385,6 +1417,16 @@ def main():
             target=out/'frontend-files'/name
             if target.is_symlink():target.unlink()
             shutil.copy2(args.enemy_vehicle_bank/name,target)
+    if args.gungnir_bank:
+        target=out/'frontend-files/gungnir.bin'
+        if target.is_symlink():target.unlink()
+        shutil.copy2(args.gungnir_bank/'gungnir.bin',target)
+    navbank=args.autonav_bank or asset_root/'generated/gungnir'
+    if {p.name for p in navbank.glob('autonav-*.bin')}!={f'autonav-{i}.bin' for i in range(13)}:build_error('GUNGNIR navigation must cover all thirteen maps')
+    for source in navbank.glob('autonav-*.bin'):
+        target=out/'frontend-files'/source.name
+        if target.is_symlink():target.unlink()
+        if not target.exists():shutil.copy2(source,target)
     maps_directory = out / "frontend-files/maps"
     assert not maps_directory.is_symlink(),'Refuse shared map-bank output directory'
     maps_directory.mkdir(parents=True, exist_ok=True)
@@ -1472,6 +1514,9 @@ def main():
             if args.vehicle_cost_audit else None),
         "preset": args.preset,
         "swat_voice": swat_voice,
+        "gungnir": {"required_ram_mib":8,"acceptance":gungnir_report,
+            "bank_sha256":hashlib.sha256((out/'frontend-files/gungnir.bin').read_bytes()).hexdigest(),
+            "navigation":{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in navbank.glob('autonav-*.bin')}},
         "render_bank_experiment":override_info,
         "firefight": ({"required_ram_mib":8,"map_id":9,"players":[1,2,3,4],
             "voice":json.loads((ROOT/'halo64-assets/assets/firefight/provenance.json').read_text())}
@@ -1554,4 +1599,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Shared workspace storage guard; legacy worktree locations remain valid.
+    _common = Path(subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        text=True).strip())
+    _policy_tools = _common.parent / "tools"
+    if (_policy_tools / "workspace_storage.py").is_file() or (_common.parent / "workspace-policy.json").is_file():
+        sys.path.insert(0, str(_policy_tools))
+        from workspace_storage import build_entry, run_command as _storage_run_command
+        build_entry(ROOT, main)
+    else:
+        # A historical branch on a machine that has not adopted this policy.
+        main()

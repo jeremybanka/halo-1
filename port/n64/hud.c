@@ -8,6 +8,7 @@
 #include "scene.h"
 #include "map.h"
 #include "camouflage.h"
+#include "gungnir.h"
 #include <libdragon.h>
 #include <math.h>
 
@@ -22,6 +23,8 @@ static surface_t native_scope_masks[1][2];
 #include "hud_pixels.h"
 #include "hud_buttons.h"
 static surface_t pixel_atlas;
+static uint8_t assist_ring_pixels[64*64] __attribute__((aligned(16)));
+static surface_t assist_ring;
 static surface_t button_atlas;
 static surface_t weapon_icon_atlas;
 static int current_combiner, current_filter;
@@ -558,6 +561,12 @@ static void scope_marks(const bg_player *p, float cx, float cy, int height) {
 }
 
 void bg_hud_init(void) {
+    for(unsigned y=0;y<64;y++)for(unsigned x=0;x<64;x++) {
+        float distance=hypotf((float)x-31.5f,(float)y-31.5f);
+        assist_ring_pixels[y*64+x]=(uint8_t)(255*fmaxf(0,1-fabsf(distance-30.5f)));
+    }
+    assist_ring=surface_make(assist_ring_pixels,FMT_I8,64,64,64);
+    data_cache_hit_writeback(assist_ring_pixels,sizeof(assist_ring_pixels));
     for (unsigned i = 0; i < BG_H_COUNT; i++) {
         const bg_hud_image *im = &bg_hud_images[i];
         images[i] =
@@ -652,6 +661,12 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         scope_mask(p, x, y, width, height, aim_x, aim_y);
 
     damage_indicators(p,x,y,width,height,views);
+    if(bg_gungnir_aim_active(p)&&!carrying) {
+        float radius=BG_GUNGNIR_RADIUS*fminf(width,height),scale=radius/30.5f;
+        mode(RGBA32(BG_HUD_ACTIVE_R,BG_HUD_ACTIVE_G,BG_HUD_ACTIVE_B,36));
+        rdpq_tex_blit(&assist_ring,aim_x-32*scale,aim_y-32*scale,
+            &(rdpq_blitparms_t){.scale_x=scale,.scale_y=scale,.filtering=true});
+    }
     if (p->health > 0) {
         if (scoped(p))
             scope_marks(p, aim_x, aim_y, height);
@@ -697,8 +712,14 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
 #ifdef BG_SHIELD_QA
         id = -1; /* Inspection camera looks at this actor, not down its sights. */
 #endif
-        if (id >= 0)
-            hud_reticle(id, (int)roundf(aim_x), (int)roundf(aim_y));
+        if (id >= 0) {
+            float rx=aim_x,ry=aim_y;bg_aim_target target=bg_gungnir_target(index);
+            if(target.player>=0) {
+                T3DVec3 world={{target.point[0]*BG_SCALE,target.point[1]*BG_SCALE,target.point[2]*BG_SCALE}},screen={{0}};
+                t3d_viewport_calc_viewspace_pos((T3DViewport*)bg_scene_viewport(index),&screen,&world);rx=screen.v[0];ry=screen.v[1];
+            }
+            hud_reticle(id, (int)roundf(rx), (int)roundf(ry));
+        }
     }
     int left = x + margin, top = y + margin, right = x + width - margin;
     hud_vitals(p, right - 46, top);
@@ -714,6 +735,7 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         hud_text(p->weapon == BG_W_SNIPER && p->zoom == 2 ? "10X" : "2X",
                  (int)roundf(aim_x) + ox - 5, (int)roundf(aim_y) + oy - 3, hud_cyan);
     }
+    if(p->health>0&&(bg_armor_def(p->armor)->abilities&BG_ARMOR_AUTOPILOT))hud_text(bg_gungnir_status(index),x+margin,y+height-margin-16,hud_dim);
     int status_y = y + height - margin - 6;
     int notice_bottom = status_y - 14;
     if (p->health <= 0) {

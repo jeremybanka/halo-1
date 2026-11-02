@@ -120,6 +120,9 @@ typedef struct {
     int ammo, score;
     bool grounded;
     bool flashlight_on;
+    bool autopilot_on;
+    uint8_t autopilot_style;
+    int8_t autopilot_follow,autopilot_side;
     float damage_flash_time,damage_flash_strength;
     uint8_t damage_flash_profile;
     float damage_indicator[4]; /* Source order: top, left, bottom, right. */
@@ -161,6 +164,7 @@ typedef struct {
 } bg_player;
 typedef struct {
     float forward, strafe, turn, look;
+    uint8_t autopilot_command; /* D-pad edges: up, down, left, right. */
     /* interact is held use; reload and the other discrete actions are edges. */
     bool jump, fire, reload, switch_weapon, grenade, switch_grenade, interact, melee, zoom, crouch,
         secondary_fire, flashlight;

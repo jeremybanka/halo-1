@@ -3,8 +3,9 @@
 /* A profile owns identity, palette and controls. Armor is an independent,
  * repeatable match choice; adding a suit never adds another profile. */
 enum { BG_PROFILE_COUNT = 4, BG_PROFILE_GREEN = 3 };
-typedef enum { BG_ARMOR_SPARTAN, BG_ARMOR_JORGE, BG_ARMOR_ODST, BG_ARMOR_COUNT } bg_armor;
-enum { BG_ARMOR_INFINITE_ROCKETS = 1, BG_ARMOR_BLAST_HEALTH_IMMUNE = 2, BG_ARMOR_VISR = 4 };
+typedef enum { BG_ARMOR_SPARTAN, BG_ARMOR_JORGE, BG_ARMOR_ODST, BG_ARMOR_GUNGNIR, BG_ARMOR_COUNT } bg_armor;
+enum { BG_ARMOR_INFINITE_ROCKETS = 1, BG_ARMOR_BLAST_HEALTH_IMMUNE = 2, BG_ARMOR_VISR = 4,
+       BG_ARMOR_AUTOPILOT = 8, BG_ARMOR_AUTO_AIM = 16 };
 typedef struct {
     const char *name, *designation, *description;
     float health, shield;
@@ -16,7 +17,9 @@ static inline const bg_armor_definition *bg_armor_def(unsigned armor) {
         {"Jorge", "MJOLNIR Mk IV [G-052]", "Double shields\nInfinite rockets\nBlast-proof health", 100, 200,
          BG_ARMOR_INFINITE_ROCKETS | BG_ARMOR_BLAST_HEALTH_IMMUNE, 8*1024*1024},
         {"ODST", "ODST BDU", "No shields\nVISR enemy silhouettes", 100, 0,
-         BG_ARMOR_VISR, 8*1024*1024}
+         BG_ARMOR_VISR, 8*1024*1024},
+        {"GUNGNIR", "MJOLNIR / GUNGNIR", "150% shields\nMovement autopilot\nUnzoomed auto-aim", 100, 150,
+         BG_ARMOR_AUTOPILOT | BG_ARMOR_AUTO_AIM, 8*1024*1024}
     };
     return &suits[armor < BG_ARMOR_COUNT ? armor : BG_ARMOR_SPARTAN];
 }

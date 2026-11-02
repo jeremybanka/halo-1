@@ -55,4 +55,8 @@ bool bg_controls_show_scores(const bg_control_state *raw,bg_control_style style)
 /* Base mapping; Duke's Z gestures require bg_controls_update. */
 void bg_controls_map(bg_input *out,const bg_control_state *raw,
     bg_control_style style,bool mounted);
+/* Armor abilities consume D-pad mode commands only while autopilot is on.
+ * The flashlight mapping and all other weapon controls remain the scheme's. */
+void bg_controls_armor(bg_input *out,const bg_control_state *raw,
+    bg_control_style style,bg_armor armor,bool autopilot_on);
 #endif

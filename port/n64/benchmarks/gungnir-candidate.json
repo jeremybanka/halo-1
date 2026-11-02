@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "quality_state": "candidate: appearance and native inspection pending",
+  "publication_approved": false,
+  "bank_sha256": "6a3682344079bb3f9bc6f44e43a041edd9c8ce3328a509c8eb297bdf95eb07a1",
+  "packed_vertices": [
+    868,
+    598
+  ],
+  "triangles": [
+    1117,
+    727
+  ],
+  "rig_comparisons": 2511528,
+  "glb_samples": 780,
+  "c_decode_cases": 4680,
+  "firstperson_pose_cases": 1409,
+  "navigation_maximum_bytes": 262480,
+  "appearance_observations": {
+    "body_coverage_probes": 3744,
+    "maximum_new_enclosed_pixels": 34,
+    "packed_maximum_new_enclosed_pixels": 44,
+    "clearance_probes": 216,
+    "maximum_new_broad_plate_occlusion_pixels": 2,
+    "quantized_geometry": [
+      {
+        "lod": 0,
+        "authoring_triangle_pose_samples": 507118,
+        "quantized_degenerate_triangle_samples": 1089,
+        "maximum_quantized_coordinate": 696,
+        "normalized_four_influence_weights": true
+      },
+      {
+        "lod": 1,
+        "authoring_triangle_pose_samples": 330058,
+        "quantized_degenerate_triangle_samples": 868,
+        "maximum_quantized_coordinate": 696,
+        "normalized_four_influence_weights": true
+      }
+    ]
+  },
+  "private_snapshot": "halo64-assets/assets/gungnir/demake-20261102",
+  "body_only_cost_comparison": [
+    [
+      {
+        "armor": "Spartan",
+        "vertices": 562,
+        "triangles": 328
+      },
+      {
+        "armor": "Jorge",
+        "vertices": 670,
+        "triangles": 949
+      },
+      {
+        "armor": "ODST",
+        "vertices": 754,
+        "triangles": 789
+      },
+      {
+        "armor": "GUNGNIR",
+        "vertices": 868,
+        "triangles": 1117
+      }
+    ],
+    [
+      {
+        "armor": "Spartan",
+        "vertices": 250,
+        "triangles": 135
+      },
+      {
+        "armor": "Jorge",
+        "vertices": 390,
+        "triangles": 556
+      },
+      {
+        "armor": "ODST",
+        "vertices": 492,
+        "triangles": 476
+      },
+      {
+        "armor": "GUNGNIR",
+        "vertices": 598,
+        "triangles": 727
+      }
+    ]
+  ],
+  "native_validation": "Pending: host Mac locked; no native visual/memory/RDP acceptance",
+  "verification": "Runtime/export integrity passed; appearance acceptance incomplete. Full evidence is in the private snapshot.",
+  "builds": [
+    {
+      "kind": "gungnir-native-candidate-mp-v2",
+      "rom_bytes": 63799296,
+      "rom_sha256": "265931dfaf9be03bdc60fd0ab973335ab86a6f4613215953329402ebb2702f2b",
+      "manifest_sha256": "60da6afdc0f8de501c5a009f85e94a48cc8aa9dc7c2d35be7a64a979e48fb49c",
+      "compiled_only": true,
+      "native_visual_inspection": false
+    },
+    {
+      "kind": "gungnir-native-candidate-ff-v2",
+      "rom_bytes": 66486272,
+      "rom_sha256": "c4b470a097597b296211dd5bfc20e7c79bed28b4a367b829193e70e7e380512f",
+      "manifest_sha256": "8745ebec66ffa410733924cc254c3c71459b4227e588194e25291d29e78d914d",
+      "compiled_only": true,
+      "native_visual_inspection": false
+    },
+    {
+      "kind": "gungnir-native-candidate-aim-v1",
+      "rom_bytes": 63602688,
+      "rom_sha256": "c67b2c4e3f08a74f54aeef4d5eb0eea77942c1e900a51320e295721849f95c9c",
+      "manifest_sha256": "ef0e44d8a99c557fa03e3039278213acf8db1a09b413ad3471cc75d611d69a09",
+      "compiled_only": true,
+      "native_visual_inspection": false
+    }
+  ]
+}

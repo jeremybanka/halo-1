@@ -19,6 +19,8 @@ def run(output):
     runtime=read(F/'review/runtime-validation.json');fp=read(F/'review/firstperson-validation.json');gameplay=read(F/'review/gameplay-validation.json');navigation=read(F/'review/navigation-validation.json')
     assert runtime['bank_sha256']==report['bank_sha256'] and runtime['metadata_sha256']==sha(G/'gungnir-report.json') and runtime['sanitizers_passed'] and runtime['decode_cases']==4680
     assert fp['source_binding_sha256']==sha(G/'gungnir_firstperson_data.c') and fp['runtime_sanitizers_passed'] and fp['total_pose_frames']==1409 and fp['weapon_colors_unchanged']
+    damage=read(F/'review/damage-validation.json')
+    assert damage['passed'] and damage['sanitizers_passed'] and damage['cases']==48 and damage['hud_sha256']==sha(ROOT/'port/n64/hud.c')
     assert read(F/'firstperson/firstperson-plates.json')['source_sha256']==sha(candidate)
     assert gameplay['sanitizers_passed'] and gameplay['manual_firing_while_autopilot'] and gameplay['maps']==13 and gameplay['log_sha256']==sha(F/'review/gameplay.log') and gameplay['test_sha256']==sha(ROOT/'port/n64/test_gungnir.c')
     assert navigation['gameplay_log_sha256']==sha(F/'review/gameplay.log') and len(navigation['maps'])==13
@@ -39,7 +41,7 @@ def run(output):
     appearance=F/'review/appearance-validation.json';native=F/'review/native-validation.json'
     accepted=all(p.is_file() and read(p).get('passed') and read(p).get('candidate_sha256')==sha(candidate) for p in (appearance,native))
     inputs=set(ROOT/'port/n64'/n for n in ('character.h','game.h','game.c','controls.h','controls.c','main.c','map.c','hud.c','scene.c','scene_flashlight.inc','frontend_draw.c','runtime_qa.c','combat_geometry.c','combat_geometry.h','camouflage.h','view_layout.h','prepare_gungnir_strategy.py','bake_autopilot_nav.c','demake_gungnir.py','refine_gungnir_contacts.py','fit_gungnir_surfaces.py','recess_gungnir_cloth.py','pack_gungnir.py','pack_gungnir_firstperson.py','gungnir_library.py','validate_gungnir_exports.py','audit_gungnir_clearance.py','review_gungnir.py','certify_gungnir.py','test_gungnir.c','test_gungnir_runtime.py','test_gungnir_firstperson.py'))
-    inputs.update(ROOT/'port/n64'/n for n in ('build.py','frontend_qa.c','jorge_field_qa.h','test_maps.c','test_maps.py','test_build_defaults.py'))
+    inputs.update(ROOT/'port/n64'/n for n in ('build.py','frontend_qa.c','jorge_field_qa.h','menu_draw.c','test_maps.c','test_maps.py','test_build_defaults.py','test_damage_tiling.py'))
     inputs.update((ROOT/'port/n64').glob('gungnir*.h'));inputs.update((ROOT/'port/n64').glob('gungnir*.c'));inputs.update((ROOT/'port/n64').glob('gungnir*.py'));inputs.update((ROOT/'port/n64').glob('gungnir*.inc'));inputs.update((ROOT/'port/n64').glob('autopilot*.[ch]'))
     inputs.update(ROOT/'source/ai'/n for n in ('actions.c','actor_type_elite.c','actor_type_grunt.c'))
     files=[p for p in F.rglob('*') if p.is_file()]+[p for p in G.iterdir() if p.is_file() and p.name!='gungnir-validation.json']+[A/'frontend-files/gungnir.bin',A/'generated/pve/pve_defs.c']

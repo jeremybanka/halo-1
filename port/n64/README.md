@@ -1,6 +1,7 @@
 # Halo: Combat Evolved for Nintendo 64
 
-The opt-in one-to-four-player finite Firefight game is documented in
+The default cartridge includes local multiplayer and the one-to-four-player
+finite Firefight game in one ROM. Firefight is documented in
 [FIREFIGHT_LIMITED.md](FIREFIGHT_LIMITED.md), with source-behavior boundaries,
 arrival authoring, rules, validation and native performance evidence.
 The [Reach research](FIREFIGHT_DESIGN.md) and [original squad checkpoint](PVE_SQUAD.md)
@@ -9,7 +10,10 @@ remain available for comparison.
 A four-player local Slayer demake built with libdragon and Tiny3D. It boots on
 an emulated **8 MiB N64 with Expansion Pak** for the complete multiplayer roster,
 using the supplied Xbox disc for map, model,
-animation, HUD and audio data. The Windows/desktop build is separate.
+animation, HUD and audio data. `build.py` produces the combined `halo-64.z64`;
+`--firefight` remains an explicit alias for that default. `--no-firefight`
+produces a lean multiplayer-only diagnostic build, rather than a second game
+to distribute. The Windows/desktop build is separate.
 
 This is a playable N64 implementation, **not a complete port of Blam**.
 Original Blam data arrays, object-header allocation and movable memory pools
@@ -56,7 +60,8 @@ optimization history and validation caveats are in
 ## Play
 
 All thirteen original Xbox multiplayer maps are selectable in the original
-local multiplayer menu with an Expansion Pak. The accepted Blood Gulch, Wizard,
+local multiplayer menu with an Expansion Pak. In the lean diagnostic build,
+the accepted Blood Gulch, Wizard,
 Hang 'Em High, Chill Out and Battle Creek remain available on 4 MiB; the eight
 new maps show an Expansion Pak requirement on that profile. Other modes remain
 greyed out. All thirteen use the same one-to-four-player

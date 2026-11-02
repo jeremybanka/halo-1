@@ -187,6 +187,21 @@ static void diagnostic_rdp_complete(void *unused) {
 static unsigned validation_errors, validation_warnings;
 static char validation_line[192], validation_message[96];
 static unsigned validation_length;
+#ifdef BG_FRONTEND_QA
+static int validation_first_frontend_step=-1;
+static uint64_t validation_history[4],validation_bad[5],validation_tex,validation_bad_tex;
+static unsigned validation_at;
+static bool validation_capture;
+static void validation_command(void *ctx,uint64_t *cmd,int size){
+    (void)ctx;(void)size;
+    if(validation_capture){
+        for(unsigned i=0;i<4;i++)validation_bad[i]=validation_history[(validation_at+i)%4];
+        validation_bad[4]=cmd[0];validation_bad_tex=validation_tex;validation_capture=false;
+    }
+    if(((cmd[0]>>56)&63)==0x3d)validation_tex=cmd[0];
+    validation_history[validation_at++%4]=cmd[0];
+}
+#endif
 #ifdef BG_GUNGNIR_FIELD_QA
 static int validation_first_page=-1;
 #endif
@@ -202,6 +217,9 @@ static int validation_write(void *cookie, const char *text, int length) {
                 if (strstr(validation_line, "ERROR:") || strstr(validation_line, "CRASH:") || strstr(validation_line, "WARN:"))
                     snprintf(validation_message, sizeof(validation_message), "%.95s",
                              validation_line + 18);
+#ifdef BG_FRONTEND_QA
+                if(validation_first_frontend_step<0&&(strstr(validation_line,"ERROR:")||strstr(validation_line,"CRASH:")||strstr(validation_line,"WARN:"))){validation_first_frontend_step=bg_front_qa_step()+1;validation_capture=true;}
+#endif
 #ifdef BG_GUNGNIR_FIELD_QA
                 if(validation_first_page<0&&(strstr(validation_line,"ERROR:")||strstr(validation_line,"CRASH:")))validation_first_page=bg_qa_page();
 #endif
@@ -237,6 +255,18 @@ static void fill(int x, int y, int w, int h, color_t color) {
     rdpq_set_mode_fill(color);
     rdpq_fill_rectangle(x, y, x + w, y + h);
 }
+#if defined(RDPQ_VALIDATE) && defined(BG_FRONTEND_QA)
+static void validation_detail(void) {
+    if(!(validation_errors||validation_warnings))return;
+    fill(0,24,320,38,RGBA32(0,0,0,255));rdpq_set_mode_standard();
+    rdpq_text_printf(NULL,1,4,34,"FIRST RDP STEP %d: %u/%u",validation_first_frontend_step,validation_errors,validation_warnings);
+    rdpq_text_printf(NULL,1,4,46,"%.48s",validation_message);
+    rdpq_text_printf(NULL,1,4,58,"%.47s",strlen(validation_message)>48?validation_message+48:"");
+    fill(0,62,320,78,RGBA32(0,0,0,255));rdpq_set_mode_standard();
+    rdpq_text_printf(NULL,1,4,70,"TEX %016llX",(unsigned long long)validation_bad_tex);
+    for(unsigned i=0;i<5;i++)rdpq_text_printf(NULL,1,4,82+12*i,"CMD%u %016llX",i,(unsigned long long)validation_bad[i]);
+}
+#endif
 #ifndef BG_SNAPSHOT_TICK
 static uint32_t control_buttons(joypad_buttons_t buttons) {
     uint32_t bits = 0;
@@ -883,6 +913,9 @@ int main(void) {
     assertf(stderr, "Validation log allocation");
     setvbuf(stderr, NULL, _IONBF, 0);
     rdpq_debug_start();
+#ifdef BG_FRONTEND_QA
+    rdpq_debug_install_hook(validation_command,NULL);
+#endif
 #endif
     t3d_init((T3DInitParams){});
     bg_fp_ammo_init();
@@ -1213,6 +1246,7 @@ int main(void) {
                              validation_warnings);
             if (validation_errors || validation_warnings)
                 rdpq_text_print(NULL, 1, 4, 215, validation_message);
+            validation_detail();
 #endif
 #endif
 #ifdef BG_PACED30
@@ -1434,6 +1468,7 @@ int main(void) {
 #elif defined(BG_FRONTEND_QA)
         rdpq_text_printf(NULL, 1, 4, 226, "RDP %u ERRORS %u WARNINGS", validation_errors,
                          validation_warnings);
+        validation_detail();
 #else
         rdpq_text_printf(NULL, 1, 4, 215, "RDP %u ERRORS %u WARNINGS", validation_errors,
                          validation_warnings);

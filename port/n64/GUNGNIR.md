@@ -5,6 +5,11 @@ GUNGNIR is a separate armor choice in the existing four-profile setup. It has
 damage, pickup and respawn rules. Overshields add the normal 200 points and
 decay back to 150. SWAT and Team SWAT continue to require ODST.
 
+The normal cartridge remains one game: `halo-64.z64` includes local multiplayer,
+SWAT and Firefight together. The combined cartridge fits within 64 MiB; the
+paced release is approximately 63.4 MiB. Smaller multiplayer-only builds are explicit
+diagnostics through `--no-firefight`, rather than a separate release.
+
 The flashlight action toggles movement autopilot. Duke maps that action to B.
 Bond retains B for reload/interact and currently has no flashlight binding.
 
@@ -89,7 +94,7 @@ preserves it in the ROM manifest.
 
 ## Current review state
 
-This PR is a development draft. The private snapshot is
+The reviewed private snapshot is
 `assets/gungnir/demake-20261102/`. Source checkpoints, original textures, the
 shoulder pilot, independent rig, BLEND, colored GLBs, first-person binding and
 all positive and negative audit observations are retained there.
@@ -106,26 +111,37 @@ All costs exclude the separately drawn 140-triangle production rifle. GUNGNIR
 has a genuinely reduced far mesh; these counts do not establish equal rendering
 cost. Its 983,392-byte animation/mesh bank uses its own trajectories and sockets.
 
-The candidate passes 2,511,528 independent Blender/bake vertex comparisons,
+The bank passes 2,511,528 independent Blender/bake vertex comparisons,
 780 colored GLB reimport samples, 4,680 sanitized streamed C decode cases and
 1,409 production first-person poses. The largest Blender/bake coordinate error
 is under 0.004 mm. Manual firing while autopilot runs is tested through the
 actual weapon path, alongside the all-map movement checks.
 
-Appearance acceptance remains open. The 3,744 body-only probes report at most
+Finite appearance review accepts the retained small deviations. The 3,744 body-only probes report at most
 34 new enclosed background pixels; the sparse runtime bank reports 44. Those
 include projection changes between separate limbs and isolated vehicle poses,
-as well as seams requiring review. The plate-depth audit reports a two-pixel
+and small local seams. The plate-depth audit reports a two-pixel
 ankle overlap in an 80-pixel part closeup. The intact-source controls report
 zero gaps and zero lost plate pixels. Quantized zero-area triangle samples are
 also retained in the shape report. These are observations, not passed zero-gap
-gates. The guide's final assembled/native review must resolve them.
+gates. The largest highlighted gaps cross separate limbs; the ankle deviation
+occupies 2/821 near or 1/898 far source-visible plate pixels in that enlarged
+probe. Source comparison and native whole-body/vehicle review accepted these
+deviations while retaining every raw result and the finite-review limits in
+`appearance-validation.json`.
 
-No GUNGNIR ROM has yet been visually inspected in Ares: the host Mac was locked.
-Native checks still need the body and far transition, first-person services,
-off-axis aiming and zoom in all layouts, mixed armor selection, map/match
-lifecycle, peak memory and RDP validation. Successful compilation and host
-tests do not stand in for those checks.
+Native Ares inspection covers near/far bodies and four palettes, personal arms,
+weapon and vehicle services, off-axis aiming in one-to-four-player layouts,
+normal 2x/10x zoom, mixed armor selection and a live movement-autopilot match.
+The combined cartridge boots with Multiplayer and Firefight in the same menu.
+Free-heap captures are samples, not a peak-memory measurement. The extended
+Firefight quit/cancel cycle exposed missing synchronization between rotated
+damage-image strips. The fix preserves source pixels, UVs and transforms while
+explicitly synchronizing texture memory and tile descriptors. The final native
+four-player restart/quit/cancel/cleanup cycle returns to normal multiplayer
+with zero RDP errors and warnings. Diagnostic history is retained separately
+from the geometry/export checks; emulator acceptance does not establish
+physical-console performance.
 
 ## Verification
 
@@ -137,6 +153,10 @@ The maintained checks are:
   movement-only ownership and all thirteen map routes.
 - `test_maps.py --firefight`: armor vitals, enemy damage, resupply/respawn and
   the finite one-to-four-player Firefight lifecycle.
+- `test_maps.py --gungnir-frontend`: the sanitized mixed-armor menu cycle,
+  live autopilot commands, manual fire and three matches with quit/resume.
+- `test_damage_tiling.py`: 48 sanitized geometry/TMEM cases and 120 uploads,
+  continuous filtered coverage and screen coordinates within 0.0001 pixel.
 - `test_gungnir_controls.py`: legacy mappings, gestures, setup and HUD layout.
 - `review_gungnir.py`: independent intact-source versus quantized body views;
   `--packed` also exercises sparse runtime endpoint interpolation.
@@ -153,5 +173,7 @@ The maintained checks are:
 Native inspection fixtures use `--gungnir-qa 0..3` for body/LODs, off-axis
 aiming, normal zoom and personal weapon services. `--gungnir-qa-views 1..4`
 selects the viewport layout. Bank overrides require an isolated QA build.
+`--gungnir-frontend-qa` drives mixed armor and movement through the real menus;
+`--gungnir-field-qa` reuses the production weapon/vehicle inspection against CE.
 Native visual, memory and RDP results must be identified separately from host
 tests and successful ROM compilation.

@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "quality_state": "candidate: appearance and native inspection pending",
-  "publication_approved": false,
+  "quality_state": "accepted",
+  "publication_approved": true,
   "bank_sha256": "6a3682344079bb3f9bc6f44e43a041edd9c8ce3328a509c8eb297bdf95eb07a1",
   "packed_vertices": [
     868,
@@ -86,32 +86,72 @@
       }
     ]
   ],
-  "native_validation": "Pending: host Mac locked; no native visual/memory/RDP acceptance",
-  "verification": "Runtime/export integrity passed; appearance acceptance incomplete. Full evidence is in the private snapshot.",
+  "native_validation": {
+    "emulator": "Ares v148",
+    "rdram_mib": 8,
+    "physical_console_tested": false,
+    "checks": [
+      "Combined cartridge main menu exposes Multiplayer and Firefight together.",
+      "GUNGNIR near/far body, four palettes, held rifle and original single gold optic inspected.",
+      "Off-axis enemy acquisition, friendly exclusion, reticle/gun alignment and faint HUD circle inspected in 1/2/3/4 view layouts, including the wide third viewport.",
+      "Pistol 2x and sniper 2x/10x scopes retain the normal scoped presentation; enhanced acquisition circle is absent while zoomed. Native scope fixture uses four views; other layout/weapon combinations are host-tested.",
+      "Personal arms, weapon services and production vehicle entry/seated/exit sequence sampled with CE reference and four simultaneous weapon views.",
+      "Mixed GUNGNIR/Spartan/Jorge/ODST armor selected through production menus. A 35-step native match includes live AP follow/Elite/panic commands, manual fire, toggle-off/manual movement and return to menu.",
+      "Final four-player Firefight fixture traverses live arrival, restart, quit/cancel/resume, quit cleanup and normal multiplayer launch; production lifecycle assertions remain enabled.",
+      "Ares focus-loss preference set to Block input; scripted advancement with Finder in front observed."
+    ],
+    "rdp": {
+      "final_errors": 0,
+      "final_warnings": 0,
+      "final_firefight_run": "gungnir-firefight-damage-sync-v2",
+      "final_capture": "native/firefight-final-return.png",
+      "damage_image_fix": "Explicit SYNC_TILE and SYNC_LOAD between original filtered I8 damage-image strips. Source image/UV/transform retained; 48 sanitized geometry/TMEM cases pass."
+    },
+    "free_heap_samples_kib": {
+      "mixed_setup": 1729,
+      "mixed_weapon_warmup": 733,
+      "mixed_autopilot_combat": 560,
+      "mixed_return_to_menu": 1643,
+      "after_firefight_cleanup_multiplayer": 906
+    },
+    "peak_memory_measured": false,
+    "limits": [
+      "Finite native samples, not every native pose/map/camera combination or a hardware performance benchmark.",
+      "The 67-step, three-match frontend/all-map regression and all thirteen actual follow routes are host checks; the native mixed-armor fixture is the 35-step Blood Gulch cycle.",
+      "Free heap values are captured samples, not peak-memory measurements. Ares VPS is not game FPS.",
+      "First-person support uses the existing CE glove/sleeve motion cage with personal forearm plates. The independent body uses the native Reach rig; support-hand contact is approximated rather than a procedural runtime solve."
+    ]
+  },
+  "verification": "Runtime/export integrity and finite source/native appearance review passed. Raw nonzero projection/depth observations and diagnostic history remain in the private snapshot.",
   "builds": [
     {
-      "kind": "gungnir-native-candidate-mp-v2",
-      "rom_bytes": 63799296,
-      "rom_sha256": "265931dfaf9be03bdc60fd0ab973335ab86a6f4613215953329402ebb2702f2b",
-      "manifest_sha256": "60da6afdc0f8de501c5a009f85e94a48cc8aa9dc7c2d35be7a64a979e48fb49c",
-      "compiled_only": true,
-      "native_visual_inspection": false
-    },
-    {
-      "kind": "gungnir-native-candidate-ff-v2",
+      "kind": "gungnir-unified-v1",
       "rom_bytes": 66486272,
-      "rom_sha256": "c4b470a097597b296211dd5bfc20e7c79bed28b4a367b829193e70e7e380512f",
-      "manifest_sha256": "8745ebec66ffa410733924cc254c3c71459b4227e588194e25291d29e78d914d",
-      "compiled_only": true,
-      "native_visual_inspection": false
+      "rom_sha256": "09c4f26b201d6b8219c4da473fc85f7a028e2f3cb68a5f6fc93ec423c79a4a4c",
+      "manifest_sha256": "d6b64290b284a2f67d55193d7f11ca7f50ef848dc191db6a244c8c0e7f59acad",
+      "native_visual_inspection": true,
+      "scope": "Unified main menu boot"
     },
     {
-      "kind": "gungnir-native-candidate-aim-v1",
-      "rom_bytes": 63602688,
-      "rom_sha256": "c67b2c4e3f08a74f54aeef4d5eb0eea77942c1e900a51320e295721849f95c9c",
-      "manifest_sha256": "ef0e44d8a99c557fa03e3039278213acf8db1a09b413ad3471cc75d611d69a09",
-      "compiled_only": true,
-      "native_visual_inspection": false
+      "kind": "gungnir-unified-body-v2",
+      "rom_bytes": 65880064,
+      "rom_sha256": "8c8c5554041b0f5478827656dc2e061b9ac3207e220cc8e7f20138db1900ed98",
+      "manifest_sha256": "2fcee3ff21c43c4c7b41acd8b5beea4518b011820c49ea521214877948884e9f",
+      "native_visual_inspection": true,
+      "scope": "Near/far body and four palettes"
+    },
+    {
+      "kind": "gungnir-firefight-damage-sync-v2",
+      "rom_bytes": 66519040,
+      "rom_sha256": "1d796d602074794564cedb550d621cbda92eb1d060f671aef9d149cfd35ae813",
+      "manifest_sha256": "ab2a7d1961e16371c324dcf5d72e883469da1751ee651f12e7c5d07e3c71e600",
+      "native_visual_inspection": true,
+      "scope": "Four-player Firefight restart/quit/cancel/cleanup and multiplayer return; RDP 0 errors/0 warnings"
     }
-  ]
+  ],
+  "damage_tiling": {
+    "sanitized_cases": 48,
+    "synchronized_uploads": 120,
+    "maximum_screen_coordinate_error_pixels": 0.0001
+  }
 }

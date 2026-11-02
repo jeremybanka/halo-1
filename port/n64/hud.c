@@ -11,6 +11,7 @@
 #include "gungnir.h"
 #include <libdragon.h>
 #include <math.h>
+#include <fmath.h>
 
 /* Original motion sensor and scopes; native pixel art for compact counters
  * and meters. The immutable IA4 bank is uploaded once per player view. */
@@ -23,6 +24,7 @@ static surface_t native_scope_masks[1][2];
 #include "hud_pixels.h"
 #include "hud_buttons.h"
 static surface_t pixel_atlas;
+
 static uint8_t assist_ring_pixels[64*64] __attribute__((aligned(16)));
 static surface_t assist_ring;
 static surface_t button_atlas;
@@ -617,6 +619,42 @@ static void damage_screen_flash(const bg_player *p,int x,int y,int w,int h) {
     rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
 }
 
+/* Preserve the SDK's filtered strip boundaries and rotation exactly, but
+ * fence every TMEM replacement. The rotated large-image path can otherwise
+ * reload its next strip while the preceding textured triangles still read it. */
+static void damage_bitmap(const surface_t *bitmap,float x,float y,float theta) {
+    const float scale=.5f;
+    int cx=bitmap->width*.5f,cy=bitmap->height*.5f;
+    unsigned pitch=(bitmap->width+7)&~7u,rows=4096/pitch;
+    float st,ct;fm_sincosf(theta,&st,&ct);
+    float m[3][2]={{ct*scale,-st*scale},{st*scale,ct*scale},
+        {x-(cx*(ct*scale)+cy*(st*scale)),y-(cx*(-st*scale)+cy*(ct*scale))}};
+    for(unsigned top=0;top<bitmap->height;){
+        unsigned first=top?top-1:0,last=first+rows;
+        if(last>bitmap->height)last=bitmap->height;
+        unsigned end=last==bitmap->height?last:last-1;
+        rdpq_sync_tile();
+        rdpq_sync_load();
+        rdpq_tex_upload_sub(TILE0,bitmap,NULL,0,first,bitmap->width,last);
+        if(theta==0){
+            float ox=x-cx*scale,oy=y-cy*scale;
+            rdpq_texture_rectangle_scaled(TILE0,ox,oy+top*scale,
+                ox+bitmap->width*scale,oy+end*scale,0,top,bitmap->width,end);
+        }else{
+            float v[4][5];
+            for(unsigned i=0;i<4;i++){
+                float u=(i==1||i==2)?bitmap->width:0,t=i>=2?end:top;
+                v[i][0]=m[0][0]*u+m[1][0]*t+m[2][0];
+                v[i][1]=m[0][1]*u+m[1][1]*t+m[2][1];
+                v[i][2]=u;v[i][3]=t;v[i][4]=1;
+            }
+            rdpq_triangle(&TRIFMT_TEX,v[0],v[1],v[2]);
+            rdpq_triangle(&TRIFMT_TEX,v[0],v[2],v[3]);
+        }
+        top=end;
+    }
+}
+
 static void damage_indicators(const bg_player *p,int x,int y,int w,int h,unsigned views) {
     if(p->health<=0)return;
     const bg_scope_image *a=&bg_damage_images[views>1];
@@ -629,8 +667,7 @@ static void damage_indicators(const bg_player *p,int x,int y,int w,int h,unsigne
         if(d==0)cy=y+offset;else if(d==2)cy=y+h-offset;
         else if(d==1)cx=x+offset;else cx=x+w-offset;
         mode(RGBA32(bg_damage_color>>24,(bg_damage_color>>16)&255,(bg_damage_color>>8)&255,bg_damage_color&255));
-        rdpq_tex_blit(&bitmap,cx,cy,&(rdpq_blitparms_t){.cx=a->w*.5f,.cy=a->h*.5f,
-            .scale_x=.5f,.scale_y=.5f,.theta=angle[d],.filtering=true});
+        damage_bitmap(&bitmap,cx,cy,angle[d]);
     }
 }
 
@@ -784,7 +821,7 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
     if(bg_ff.active){
         char state[72];unsigned alive=0;
         for(unsigned i=0;i<bg_pve_count;i++)alive+=bg_pve_actors[i].occupied&&bg_players[BG_PLAYERS+i].health>0;
-        rdpq_tex_upload(TILE0,&pixel_atlas,NULL);
+        rdpq_tex_upload(TILE0, &pixel_atlas, NULL);
         if(bg_ff.phase==BG_FF_BONUS)snprintf(state,sizeof(state),"BONUS %us E%u",(unsigned)ceilf(fmaxf(0,bg_ff.timer)),alive);
         else snprintf(state,sizeof(state),"R%u W%u L%u E%u",bg_ff.round+1,bg_ff.wave+1,bg_ff.lives,alive);
         hud_text(state,x+margin,y+height-19,hud_cyan);

@@ -175,5 +175,39 @@
     "maximum_screen_coordinate_error_pixels": 0.0001
   },
   "combined_release_rom_bytes": 66469888,
-  "combined_release_required_ram_mib": 8
+  "combined_release_required_ram_mib": 8,
+  "hud_status": {
+    "label": "AUTO",
+    "placement": "top center of each player viewport",
+    "visible_when": "living GUNGNIR player with movement autopilot enabled",
+    "hidden_when_disabled": true,
+    "hud_sha256": "6a65a399f89047023c3fcd718d2eb3b1e0ce72f1428bcdee56217e3926036f49",
+    "views": [
+      {
+        "views": 1,
+        "rom_sha256": "c0167e3237d75e8ba4e015d92ab5f1ef5b907d32cf2d863625bb8012a96a7503",
+        "manifest_sha256": "559f776ba11113704343af7ebf5f27836c272f805fef04fbf09f8fa8c0059fe4",
+        "errors": 0,
+        "warnings": 0,
+        "enabled_views": [
+          0
+        ],
+        "disabled_views": []
+      },
+      {
+        "views": 3,
+        "rom_sha256": "d5f5072ef1c4887b160a9ae8fbf1238ecd8d6f2565b0c9b3038271d224f1261f",
+        "manifest_sha256": "e5f62a4f0ffd4107cd43d7db551c8a527160c9681053bfada460542b3f1ed9c7",
+        "errors": 0,
+        "warnings": 0,
+        "enabled_views": [
+          0,
+          2
+        ],
+        "disabled_views": [
+          1
+        ]
+      }
+    ]
+  }
 }

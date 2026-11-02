@@ -12,6 +12,8 @@ diagnostics through `--no-firefight`, rather than a separate release.
 
 The flashlight action toggles movement autopilot. Duke maps that action to B.
 Bond retains B for reload/interact and currently has no flashlight binding.
+While enabled, `AUTO` appears at the top center of the player's view. No
+autopilot label is shown while disabled.
 
 | Input while enabled | Movement |
 |---|---|

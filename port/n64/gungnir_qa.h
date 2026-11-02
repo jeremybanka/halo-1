@@ -18,7 +18,7 @@ static void model_qa_stage(uint64_t now){
     for(unsigned p=0;p<4;p++){
         bg_player *q=&bg_players[p];q->pos[0]=(p%2)*1.1f;q->pos[2]=4+(p/2)*1.2f;q->pos[1]=bg_floor(q->pos[0],q->pos[2],100)+.015f;
         q->health=100;q->shield=150;q->armor=BG_ARMOR_GUNGNIR;q->vehicle=q->seat=-1;q->yaw=q->pitch=0;q->weapon=BG_W_AR;q->zoom=0;q->weapon_ready=q->reload=q->melee_time=q->flash=0;q->crouch_amount=0;q->grounded=true;q->animation=BG_ANIM_IDLE;q->anim_time=seconds;q->autopilot_on=false;
-        if(BG_GUNGNIR_QA==1){q->pos[0]=p?5+(p==3):0;q->pos[2]=p==1?.7f:p==2?1.4f:p==3?3.f:0;q->pos[1]=bg_floor(0,0,100)+.015f;}
+        if(BG_GUNGNIR_QA==1){q->pos[0]=p?5+(p==3):0;q->pos[2]=p==1?.7f:p==2?1.4f:p==3?3.f:0;q->pos[1]=bg_floor(0,0,100)+.015f;q->autopilot_on=(p%2)==0;}
         if(BG_GUNGNIR_QA==2){q->pos[0]=-5;q->pos[2]=-4;q->pos[1]=bg_floor(0,4,100)+.015f;q->yaw=-.8f;if(p<3){q->weapon=p?BG_W_SNIPER:BG_W_PISTOL;q->zoom=p==2?2:1;}}
         if(BG_GUNGNIR_QA==3){q->weapon=(unsigned[]){BG_W_AR,BG_W_PISTOL,BG_W_PLASMA_RIFLE,BG_W_SNIPER}[p];q->pitch=-.45f;if(((unsigned)seconds/4)%2){q->reload=1;q->reload_duration=2.9f;q->anim_time=fmodf(seconds,2.9f);}}
     }

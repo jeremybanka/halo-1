@@ -772,7 +772,8 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         hud_text(p->weapon == BG_W_SNIPER && p->zoom == 2 ? "10X" : "2X",
                  (int)roundf(aim_x) + ox - 5, (int)roundf(aim_y) + oy - 3, hud_cyan);
     }
-    if(p->health>0&&(bg_armor_def(p->armor)->abilities&BG_ARMOR_AUTOPILOT))hud_text(bg_gungnir_status(index),x+margin,y+height-margin-16,hud_dim);
+    if(p->health>0&&p->autopilot_on&&(bg_armor_def(p->armor)->abilities&BG_ARMOR_AUTOPILOT))
+        hud_text("AUTO",x+(width-hud_text_width("AUTO"))/2,top,hud_dim);
     int status_y = y + height - margin - 6;
     int notice_bottom = status_y - 14;
     if (p->health <= 0) {

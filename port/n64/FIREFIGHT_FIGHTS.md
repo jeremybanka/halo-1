@@ -6,6 +6,12 @@ The countdown shows the selected name; backing out, returning from results and
 restarting a live match preserve the selection. Multiplayer's type selector is
 unchanged. Both fights require the Expansion Pak and use Blood Gulch.
 
+Both fights provide one shared player Warthog near the initial starting area
+(world X/Z 5, 4), with driver, gunner and passenger seats. Use the ordinary vehicle
+interaction to enter an empty seat. It uses the standard twenty-second respawn
+after destruction and returns on match restart. Enemy vehicle cleanup cannot
+reclaim it; enemy arrivals and wave counts are unchanged.
+
 ## Onslaught
 
 This names the existing encounter without changing its schedule, cap, formation
@@ -50,6 +56,13 @@ not that human completion is fair or that a four-player party receives exactly
 four times the opposition strength. This pass makes no new FPS claim.
 
 ## Validation and reproduction
+
+`test_firefight_player_warthog.py --output-dir <fresh-output>` uses the pinned
+private bank to run ASan/UBSan transport checks for both fights at 1–4 players,
+plus the existing finite-set, fight-selection and enemy-vehicle regressions.
+The transport checks exercise settled placement, all three boarding animations,
+gunner fire, safe human spawns, enemy slot reuse, destruction/respawn, restart
+and return to multiplayer. Run the harness through the workspace storage guard.
 
 `benchmarks/firefight-fights/test.py` runs ASan/UBSan host checks against the
 resident vehicle/roster banks. It compares every Onslaught packet to the frozen

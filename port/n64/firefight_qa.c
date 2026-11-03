@@ -12,6 +12,16 @@ static const qa_step steps[]={
  {BG_FRONT_MAIN,1,BG_BUTTON_A,0},
  {BG_FRONT_JOIN,PORTS,BG_BUTTON_START,0},{BG_FRONT_JOIN,PORTS,BG_BUTTON_A,0},
  {BG_FRONT_JOIN,1,BG_BUTTON_A,0},
+#ifdef BG_FIREFIGHT_MAP_QA
+ {BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},{BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},
+ {BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},{BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},
+#if BG_FIREFIGHT_MAP_QA == 3
+ {BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},{BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},
+ {BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},
+#endif
+ {BG_FRONT_MAP,1,BG_BUTTON_A,0},
+ {BG_FRONT_FIGHT,1,BG_BUTTON_A,0},
+#else
  {BG_FRONT_MAP,1,BG_BUTTON_D_LEFT,0},{BG_FRONT_MAP,1,BG_BUTTON_A,0},
  {BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},{BG_FRONT_MAP,1,BG_BUTTON_A,0},
  {BG_FRONT_FIGHT,1,BG_BUTTON_A,0},{BG_FRONT_PREGAME,1,BG_BUTTON_B,0},
@@ -20,6 +30,7 @@ static const qa_step steps[]={
  {BG_FRONT_FIGHT,1,BG_BUTTON_D_DOWN,0},
 #endif
  {BG_FRONT_FIGHT,1,BG_BUTTON_A,0},
+#endif
  {BG_FRONT_PREGAME,1,BG_BUTTON_A,0},{BG_FRONT_PREGAME,1,BG_BUTTON_A,0},
  {BG_FRONT_PLAY,1,BG_BUTTON_START,20},{BG_FRONT_PLAY,1,BG_BUTTON_D_DOWN,0},
  {BG_FRONT_PLAY,1,BG_BUTTON_A,0},{BG_FRONT_PLAY,1,BG_BUTTON_A,0}, /* restart */
@@ -52,6 +63,9 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
    if(now<deadline)return;
    bool ready=true;
    for(unsigned p=0;p<4;p++)if(f->joined[p]&&!f->armor_ready[p]){
+#ifdef BG_FIREFIGHT_MAP_QA
+     if(f->armor[p]!=BG_ARMOR_GUNGNIR){raw[p].pressed=raw[p].held=BG_BUTTON_D_RIGHT;ready=false;continue;}
+#endif
      raw[p].pressed=raw[p].held=BG_BUTTON_A;ready=false;
    }
    if(ready)raw[f->host].pressed=raw[f->host].held=BG_BUTTON_A;
@@ -70,8 +84,18 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
  assertf(f->page==s->page,"Firefight QA step %u page %u expected %u",current,f->page,s->page);
  if(f->page==BG_FRONT_PLAY){
    bool expected=f->firefight;
+#ifdef BG_FIREFIGHT_MAP_QA
+   if(expected&&s->wait&&!bg_pve_count){deadline=now+1000000u;return;}
+#endif
    if(s->wait)assertf(bg_pve_count>0,"Exercise live arrival before restart/quit");
    if(expected)assertf(bg_ff.fight==f->fight,"Selected fight survives launch/restart");
+#ifdef BG_FIREFIGHT_MAP_QA
+   if(expected){
+     assertf(bg_ff.map==BG_FIREFIGHT_MAP_QA&&bg_map_id()==BG_FIREFIGHT_MAP_QA,"Selected-map Firefight residency");
+     assertf(bg_ff_casual(bg_ff.fight)&&!bg_ff_dropship.phase&&!bg_ff.ship_arrivals&&!bg_vehicle_count,"Indoor-capable infantry rules");
+     if(s->wait)assertf(bg_ff.ground_arrivals>0,"Exercise concealed ground arrivals");
+   }
+#endif
    assertf(bg_pve_is_active()==expected,"Firefight session cleanup");
    assertf(bg_player_count()==BG_FRONTEND_QA_PLAYERS,"Firefight player count");
    assertf(bg_ff.active==expected&&bg_pve_count<=BG_PVE_MAX&&(!expected?bg_pve_count==0:true),"Firefight director/actor lifecycle");
@@ -81,4 +105,13 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
  if(++current==bg_front_qa_steps()){done=true;current--;debugf("FIREFIGHT_QA PASS players=%u\n",BG_FRONTEND_QA_PLAYERS);}
  deadline=0;
 }
-void bg_front_qa_tick(bg_input in[4],float seconds){(void)in;(void)seconds;}
+void bg_front_qa_tick(bg_input in[4],float seconds){
+ (void)in;(void)seconds;
+#ifdef BG_FIREFIGHT_MAP_QA
+ /* This is a native allocation/menu fixture, not a balance playthrough. */
+ if(bg_ff.active)for(unsigned h=0;h<bg_player_count();h++)if(bg_players[h].health>0){
+   bg_players[h].health=bg_armor_def(bg_players[h].armor)->health;
+   bg_players[h].shield=bg_armor_def(bg_players[h].armor)->shield;
+ }
+#endif
+}

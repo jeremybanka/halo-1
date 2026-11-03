@@ -29,13 +29,13 @@ int main(void){
   assert(f.ports[0]==host);
   unsigned seen=0;for(unsigned i=0;i<f.count;i++)seen|=1u<<f.ports[i];assert(seen==mask);
   for(unsigned map=0;map<13;map++){
-   f.map=map;assert(bg_front_session_available(&f,BG_FRONT_MAP,map)==(map==9));
-   if(map!=9){press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP);}
+   f.map=map;assert(bg_front_session_available(&f,BG_FRONT_MAP,map)==bg_ff_map_available(map));
+   if(!bg_ff_map_available(map)){press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP);}
   }
   f.map=9;press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_FIGHT&&f.fight==BG_FF_ONSLAUGHT);
   press(&f,host,BG_BUTTON_B);assert(f.page==BG_FRONT_MAP);
   press(&f,host,BG_BUTTON_A);
-  for(unsigned fight=0;fight<BG_FF_FIGHTS;fight++){
+  for(unsigned fight=BG_FF_ONSLAUGHT;fight<=BG_FF_GAUNTLET;fight++){
    assert(f.fight==fight);bool available=bg_ff_fight_available(fight);
    assert(bg_front_session_available(&f,BG_FRONT_FIGHT,fight)==available);
    press(&f,host,BG_BUTTON_A);
@@ -54,6 +54,18 @@ int main(void){
   bg_front_quit(&f);press(&f,host,BG_BUTTON_D_UP);assert(press(&f,host,BG_BUTTON_A)==BG_FRONT_LEAVE_MATCH);
   assert(f.page==BG_FRONT_MAIN);press(&f,host,BG_BUTTON_A);assert(!f.firefight&&f.page==BG_FRONT_MULTIPLAYER);
   for(unsigned map=0;map<13;map++)assert(bg_front_session_available(&f,BG_FRONT_MAP,map));
+  for(unsigned mi=0;mi<2;mi++){
+   unsigned map=mi?3:0,fight=bg_ff_default_fight(map);
+   enter(&f,host);for(unsigned p=0;p<4;p++)if(mask&(1u<<p)){press(&f,p,BG_BUTTON_START);press(&f,p,BG_BUTTON_A);}
+   press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP);f.map=map;
+   press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_FIGHT&&f.fight==fight);
+   for(unsigned candidate=0;candidate<BG_FF_FIGHTS;candidate++)assert(bg_front_session_available(&f,BG_FRONT_FIGHT,candidate)==(candidate==fight));
+   press(&f,host,BG_BUTTON_D_DOWN);assert(f.fight==fight);
+   press(&f,host,BG_BUTTON_A);select_armor(&f);assert(bg_front_update(&f,raw,f.deadline)==BG_FRONT_START_MATCH);
+   bg_front_results(&f,(int[4]){0},0);press(&f,host,BG_BUTTON_A);assert(f.page==BG_FRONT_MAP&&f.map==map);
+   press(&f,host,BG_BUTTON_A);assert(f.fight==fight);
+   press(&f,host,BG_BUTTON_B);f.map=9;press(&f,host,BG_BUTTON_A);assert(f.fight==BG_FF_ONSLAUGHT);
+  }
   rosters++;
  }
  enter(&f,3);press(&f,3,BG_BUTTON_B);assert(f.page==BG_FRONT_MAIN);

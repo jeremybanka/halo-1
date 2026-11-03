@@ -1,10 +1,15 @@
-# Selectable Blood Gulch fights
+# Selectable Firefight encounters
 
 The Firefight flow is now players → map → fight → countdown. **Onslaught** is
 selected by default. **Gauntlet** is available in builds containing the CE roster.
 The countdown shows the selected name; backing out, returning from results and
 restarting a live match preserve the selection. Multiplayer's type selector is
 unchanged. Both fights require the Expansion Pak and use Blood Gulch.
+
+Battle Creek now offers **Courtyard Defense** and Rat Race offers **Station
+Sweep**, short Normal-difficulty encounters with concealed ground arrivals,
+unlimited lives and checkpoints. Their map/navigation foundations, rules and
+validation are documented in [FIREFIGHT_MAPS.md](FIREFIGHT_MAPS.md).
 
 Both fights provide one shared player Warthog near the initial starting area
 (world X/Z 5, 4), with driver, gunner and passenger seats. Use the ordinary vehicle

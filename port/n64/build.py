@@ -14,6 +14,14 @@ from asset_ids import map_ids
 from feature_cache_candidate import candidate_source
 
 ROOT = Path(__file__).resolve().parents[2]
+SUMMERCART64_ROM_LIMIT=78*1024*1024
+
+
+def cartridge_target(rom_bytes):
+    if rom_bytes>SUMMERCART64_ROM_LIMIT:build_error('ROM exceeds the SummerCart64 78 MiB target')
+    return {'flashcart':'SummerCart64','rom_limit_bytes':SUMMERCART64_ROM_LIMIT,
+            'extended_rom_required':rom_bytes>64*1024*1024}
+
 SHOWCASES = [
     "banshee",
     "frag-double-kill",
@@ -38,6 +46,7 @@ def parse_args(argv=None):
                         help="Include Firefight alongside multiplayer (default; 8 MiB). --no-firefight is a lean diagnostic build")
     parser.add_argument("--firefight-photo",choices=("main","join","map"),help="Hold a Firefight QA menu for a native photograph")
     parser.add_argument("--firefight-qa",type=int,choices=range(1,5),help="Exercise Firefight menus with 1–4 controllers")
+    parser.add_argument("--firefight-map-qa",choices=("beavercreek","ratrace"),help="Native new-scenario launch, ground arrivals, restart, quit and multiplayer return")
     parser.add_argument("--pve-players",type=int,choices=(1,2,3,4),default=4)
     parser.add_argument("--pve-count",type=int,choices=(0,5,8),default=5)
     parser.add_argument("--pve-qa",type=int,choices=(0,1,2,3,4,5,6,7,8,9),default=0)
@@ -380,6 +389,7 @@ def parse_args(argv=None):
     if args.pve_prep_baseline and not (args.pve_squad and (args.pve_prep_profile or args.pve_model_qa)):parser.error('--pve-prep-baseline requires NPC preparation profiling or model QA')
     if args.pve_draw_audit and not (args.profile and args.pve_squad and args.pve_photo_tick is not None and args.pve_photo_tick>0 and args.pve_players==4 and args.output_dir and args.pve_qa in (3,4,5) and not (args.scene_source or args.pve_model_qa or args.spartan_motion_qa or args.spartan_reload_qa or args.photo_tour or args.benchmark or args.vi_benchmark)):parser.error('--pve-draw-audit requires an isolated output, --profile --pve-squad --pve-players 4 --pve-qa 3/4/5, a positive --pve-photo-tick and no competing scene fixture')
     if args.firefight_photo and not args.firefight_qa:parser.error("--firefight-photo requires --firefight-qa")
+    if args.firefight_map_qa:args.firefight_qa=args.pve_players
     if args.firefight_qa:
         args.firefight=True;args.frontend_qa=args.firefight_qa
     if args.scope_qa:args.m64_polish_qa=True
@@ -577,6 +587,7 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_M64_POLISH_QA"] if args.m64_polish_qa else []),
         *(["-DBG_FIREFIGHT"] if args.firefight else []),
         *(["-DBG_FIREFIGHT_QA"] if args.firefight_qa else []),
+        *(["-DBG_FIREFIGHT_MAP_QA="+str(map_ids()[args.firefight_map_qa])] if args.firefight_map_qa else []),
         *(["-DBG_FIREFIGHT_QA_PHOTO="+str({"main":2,"join":5,"map":9}[args.firefight_photo])] if args.firefight_photo else []),
         *(["-DBG_PVE_PHOTO_TICK="+str(args.pve_photo_tick)] if args.pve_photo_tick is not None else []),
         *(["-flto"] if args.lto else []),
@@ -1143,14 +1154,18 @@ def main():
         gungnir_report=json.loads(gungnir_validation.read_text())
         if not gungnir_report.get('publication_approved'):
             print('GUNGNIR development candidate: appearance/native acceptance remains pending')
-        for name,expected in {**gungnir_report['inputs'],**gungnir_report['files']}.items():
-            path=ROOT/name
-            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:build_error('Stale GUNGNIR assets: '+name)
+        from character_validation import verify_gungnir
+        try:gungnir_runtime_changes=verify_gungnir(ROOT,gungnir_report)
+        except ValueError as error:build_error(str(error))
     out = args.output_dir.resolve() if args.output_dir else asset_root
     if (args.map_bank_override or args.pve_model_bank) and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
         build_error('Map/model bank overrides require a separate output tree')
     out.mkdir(parents=True, exist_ok=True)
     objects = []
+    firefight_navigation=None
+    if args.firefight:
+        run([sys.executable,ROOT/'port/n64/bake_firefight_nav.py','--output-dir',out/'firefight-nav'])
+        firefight_navigation=json.loads((out/'firefight-nav/firefight-nav-report.json').read_text())
     run([sys.executable, ROOT / "port/n64/blam/prepare_core.py", "--output", out / "blam-core"])
     run(
         [
@@ -1419,6 +1434,11 @@ def main():
             if not target.exists():
                 target.symlink_to(source.resolve())
     if args.pve_squad or args.firefight:
+        if args.firefight:
+            for source in (out/'firefight-nav').glob('firefight-nav-*.bin'):
+                target=out/'frontend-files'/source.name
+                if target.is_symlink():target.unlink()
+                shutil.copy2(source,target)
         motion=(args.pve_model_bank.resolve() if args.pve_model_bank else ROOT/'halo64-assets/generated/pve')/'pve-motion.bin'
         report=json.loads((motion.parent/'pve-report.json').read_text())
         if hashlib.sha256(motion.read_bytes()).hexdigest()!=report['motion']['sha256']:build_error('Stale PvE motion bank')
@@ -1532,10 +1552,12 @@ def main():
         "preset": args.preset,
         "swat_voice": swat_voice,
         "gungnir": {"required_ram_mib":8,"acceptance":gungnir_report,
+            "shared_runtime_changes":gungnir_runtime_changes if not args.gungnir_bank else {},
+            "acceptance_scope":"Inherited character asset acceptance; shared runtime changes require current integration checks",
             "bank_sha256":hashlib.sha256((out/'frontend-files/gungnir.bin').read_bytes()).hexdigest(),
             "navigation":{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in navbank.glob('autonav-*.bin')}},
         "render_bank_experiment":override_info,
-        "firefight": ({"required_ram_mib":8,"map_id":9,"players":[1,2,3,4],
+        "firefight": ({"required_ram_mib":8,"map_ids":[0,3,9],"players":[1,2,3,4],"navigation":firefight_navigation,
             "voice":json.loads((ROOT/'halo64-assets/assets/firefight/provenance.json').read_text())}
             if args.firefight else None),
         "runtime_commit": revision(ROOT),
@@ -1594,6 +1616,7 @@ def main():
             name: str(value) if isinstance(value, Path) else value
             for name, value in vars(args).items()
         },
+        "cartridge_target":cartridge_target(rom.stat().st_size),
         "rom": {
             "path": str(rom),
             "bytes": rom.stat().st_size,

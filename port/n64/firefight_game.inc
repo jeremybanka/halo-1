@@ -3,6 +3,7 @@
 #include <stdio.h>
 bg_ff_state bg_ff;
 bg_ff_ship bg_ff_dropship;
+static bg_match_statistics ff_checkpoint_statistics;
 #define G BG_PVE_GRUNT
 #define E BG_PVE_ELITE
 #define J BG_PVE_JACKAL
@@ -27,6 +28,10 @@ const bg_ff_formation bg_ff_formations[BG_FF_FORMATIONS]={
     {"Sword assault",3,{E,E,G},{PR,PR,PP},{PVE_R_ZEALOT_SWORD,PVE_R_ELITE_MAJOR_PR,PVE_R_GRUNT_MAJOR_PP}},
     {"Stealth team",3,{E,E,E},{PR,PR,PR},{PVE_R_STEALTH_PR,PVE_R_STEALTH_MAJOR_PR,PVE_R_STEALTH_SWORD}},
 #endif
+    {"Scouts",3,{G,G,G},{PP,PP,ND},{0}},
+    {"Defenders",3,{E,G,G},{PR,PP,ND},{0}},
+    {"Shield screen",3,{J,G,G},{PP,PP,ND},{0}},
+    {"Command squad",4,{E,E,G,G},{PR,ND,PP,ND},{0}},
 };
 #undef G
 #undef E
@@ -37,27 +42,25 @@ const bg_ff_formation bg_ff_formations[BG_FF_FORMATIONS]={
 #undef ND
 /* Authoring anchors are refined onto the collision navigation lattice. Each
  * full formation, including its approach, is validated before allocation. */
-typedef struct {const char*name;float x,z,yaw;} ff_zone;
-static const ff_zone ff_zones[]={
-    {"west rocks",-16,-8,0},{"east rocks",16,9,3.14159265f},
-    {"north approach",-5,-23,-1.5707963f},{"south approach",6,24,1.5707963f},
-    {"blue base flank",-27,-32,-.7f},{"red base flank",27,32,2.4f}
-};
-#define FF_ZONES (sizeof(ff_zones)/sizeof(ff_zones[0]))
+#include "firefight_maps.inc"
 static float ff_landing[3],ff_arrival_points[8][3];
 static unsigned ff_last_zone;
 static unsigned ff_alive(void){unsigned n=0;for(unsigned i=0;i<bg_pve_count;i++)n+=bg_pve_actors[i].occupied&&bg_players[BG_PLAYERS+i].health>0;return n;}
 static void ff_message(const char*message){snprintf(bg_ff.message,sizeof(bg_ff.message),"%s",message);bg_ff.message_time=4;}
 static unsigned ff_random(unsigned n){return n?(unsigned)(blam_real_seed_random_range(&bg_ff.random,0,1)*n)%n:0;}
-bool bg_ff_cloud(void){return bg_ff.active&&bg_ff.round>=2;}
-float bg_ff_grenade_chance(void){return bg_ff.active&&bg_ff.round>=1?2:1;}
+bool bg_ff_cloud(void){return bg_ff.active&&!bg_ff_casual(bg_ff.fight)&&bg_ff.round>=2;}
+float bg_ff_grenade_chance(void){return bg_ff.active&&!bg_ff_casual(bg_ff.fight)&&bg_ff.round>=1?2:1;}
+bool bg_ff_rally_point(float out[3]){const ff_stage*s=bg_ff.active?ff_current_stage():NULL;if(!s)return false;memcpy(out,s->point,12);return true;}
 void bg_ff_stop(void){memset(&bg_ff,0,sizeof(bg_ff));memset(&bg_ff_dropship,0,sizeof(bg_ff_dropship));}
 static bool ff_hidden(const float point[3],float height){
     for(unsigned h=0;h<active_players;h++)if(bg_players[h].health>0){
-        const bg_player*p=&bg_players[h];if(distance2(point,p->pos)<100)return false;
+        const bg_player*p=&bg_players[h];float separation=ff_current_map()->enemy_separation;if(distance2(point,p->pos)<separation*separation)return false;
         float eye[3]={p->pos[0],p->pos[1]+bg_eye_height(p),p->pos[2]};
-        for(unsigned sample=0;sample<5;sample++){
-            float target[3]={point[0]+(sample==3?.3f:sample==4?-.3f:0),point[1]+height*(sample%3)*.5f,point[2]},dir[3];sub(dir,target,eye);float length=sqrtf(dot(dir,dir));normalize(dir);
+        bool casual=bg_ff_casual(bg_ff.fight);
+        for(unsigned sample=0;sample<(casual?15u:5u);sample++){
+            float target[3]={point[0]+(sample==3?.3f:sample==4?-.3f:0),point[1]+height*(sample%3)*.5f,point[2]},dir[3];
+            if(casual){unsigned side=sample%5;target[0]=point[0]+(side==1?.3f:side==2?-.3f:0);target[1]=point[1]+.02f+(height-.04f)*(sample/5)*.5f;target[2]=point[2]+(side==3?.3f:side==4?-.3f:0);}
+            sub(dir,target,eye);float length=sqrtf(dot(dir,dir));normalize(dir);
             if(bg_raycast(eye,dir,length)>=length-.03f)return false;
         }
     }
@@ -71,22 +74,27 @@ static bool ff_reachable(int node){
 static bool ff_clear_point(float point[3],unsigned kind,bool concealed){
     const bg_pve_definition*d=&bg_pve_definitions[kind];bg_player capsule={0};capsule.vehicle=-1;capsule.pve_radius=d->radius;capsule.pve_height=d->height;memcpy(capsule.pos,point,12);
     if(!bg_terrain_clearance(&capsule)||!ff_reachable(pve_node(point)))return false;
-    for(unsigned h=0;h<active_players;h++)if(bg_players[h].health>0&&distance2(point,bg_players[h].pos)<(concealed?100:16))return false;
+    float separation=concealed?ff_current_map()->enemy_separation:4;
+    for(unsigned h=0;h<active_players;h++)if(bg_players[h].health>0&&distance2(point,bg_players[h].pos)<separation*separation)return false;
     for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&distance2(point,bg_players[BG_PLAYERS+i].pos)<1)return false;
     return !concealed||ff_hidden(point,d->height);
 }
 static bool ff_zone_points(unsigned zone,unsigned formation,bool concealed,float points[8][3],float landing[3]){
     const ff_zone*z=&ff_zones[zone];const bg_ff_formation*f=&bg_ff_formations[formation];
+    bool casual=bg_ff_casual(bg_ff.fight);
+    if(casual&&(!(z->stages&(1u<<ff_stage_index()))||!concealed))return false;
     /* Search only inside the authored entrance, never teleport a packet to
      * an arbitrary convenient part of the arena. */
-    for(unsigned attempt=0;attempt<81;attempt++){
-        int ax=(int)(attempt%9)-4,az=(int)(attempt/9)-4;
-        float center[3]={z->x+ax,0,z->z+az};center[1]=bg_floor(center[0],center[2],12)+.015f;
+    for(unsigned attempt=0;attempt<(casual?25u:81u);attempt++){
+        int ax=(int)(attempt%(casual?5:9))-(casual?2:4),az=(int)(attempt/(casual?5:9))-(casual?2:4);
+        float patch=casual?z->radius/2:1;
+        float center[3]={z->x+ax*patch,0,z->z+az*patch};center[1]=bg_floor(center[0],center[2],casual?z->y+.5f:12)+.015f;
         int node=pve_node(center);if(node<0||!ff_reachable(node))continue;pve_node_pos(node,center);
         bool valid=true;
         for(unsigned j=0;j<f->count;j++){
             /* Wide, two-file spacing keeps Hunters and their shields clear. */
-            float forward=(j/2)*1.6f,lateral=(j&1?1:-1)*1.6f;
+            float spacing=casual?.7f:1.6f;
+            float forward=(j/2)*spacing,lateral=(j&1?1:-1)*spacing;
             points[j][0]=center[0]+cosf(z->yaw)*forward+sinf(z->yaw)*lateral;
             points[j][2]=center[2]-sinf(z->yaw)*forward+cosf(z->yaw)*lateral;
             points[j][1]=bg_floor(points[j][0],points[j][2],center[1]+1)+.015f;
@@ -135,6 +143,7 @@ static void ff_ship_seat(unsigned j,float out[3]){
 }
 #ifdef BG_ENEMY_VEHICLES
 static int ff_vehicle_for_packet(unsigned packet){
+    if(!ff_current_map()->vehicles)return -1;
     static const int kinds[]={-1,BG_V_GHOST,BG_V_BANSHEE,BG_V_SHADE,BG_V_WRAITH};
     return packet==0&&bg_ff.phase!=BG_FF_BONUS?kinds[bg_ff.wave]:-1;
 }
@@ -221,6 +230,7 @@ static unsigned ff_member_variant(const bg_ff_formation*f,unsigned member){
 }
 #endif
 static bool ff_arrive(unsigned formation,bool spirit){
+    if(!ff_current_map()||(!ff_current_map()->dropships&&spirit))return false;
     if(bg_ff_dropship.phase)return false;
 #ifdef BG_ENEMY_VEHICLES
     int vehicle_kind=ff_vehicle_for_packet(bg_ff.packet);if(vehicle_kind>=0)spirit=false;
@@ -264,7 +274,7 @@ static bool ff_arrive(unsigned formation,bool spirit){
         if(spirit){a->arrival=1;a->clip=PVE_RIDE;bg_players[BG_PLAYERS+slot].yaw+=j&1?-1.5707963f:1.5707963f;bg_ff_dropship.actors[j]=slot;}else ff_awaken(slot);
     }
     bg_ff.spawned+=f->count;bg_ff.packet++;if(spirit)bg_ff.ship_arrivals++;else bg_ff.ground_arrivals++;
-    bg_ff.packet_delay=bg_ff.fight==BG_FF_GAUNTLET||active_players==1?6:4;return true;
+    bg_ff.packet_delay=bg_ff_casual(bg_ff.fight)?8:bg_ff.fight==BG_FF_GAUNTLET||active_players==1?6:4;return true;
 }
 static void ff_ship_tick(float dt){
     bg_ff_ship*s=&bg_ff_dropship;if(!s->phase)return;s->time+=dt;
@@ -296,6 +306,22 @@ static void ff_loadout(unsigned h){
 }
 bool bg_ff_place_human(unsigned h){
     if(!bg_ff.active)return false;
+    if(bg_ff_casual(bg_ff.fight)){
+        const ff_stage*s=ff_current_stage();if(!s)return false;
+        int rally=pve_node(s->point);float best=-1,position[3]={0};
+        for(unsigned n=0;n<ff_nav.count;n++){
+            float point[3];pve_node_pos(n,point);
+            if(fabsf(point[1]-s->point[1])>.65f||distance2(point,s->point)>36||!pve_reachable(n,rally))continue;
+            float nearest=10000;bool blocked=false;
+            for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0)nearest=fminf(nearest,distance2(point,bg_players[BG_PLAYERS+i].pos));
+            for(unsigned p=0;p<active_players;p++)if(p!=h&&bg_players[p].health>0&&distance2(point,bg_players[p].pos)<.64f)blocked=true;
+            bg_player capsule={.vehicle=-1};memcpy(capsule.pos,point,12);if(blocked||nearest<4||!bg_terrain_clearance(&capsule))continue;
+            float score=fminf(nearest,100)-distance2(point,s->point)*.1f;
+            if(score>best){best=score;memcpy(position,point,12);}
+        }
+        if(best<0)return false;
+        bg_player*p=&bg_players[h];memcpy(p->pos,position,12);memcpy(p->last_pos,position,12);p->yaw=s->yaw;p->pitch=0;ff_loadout(h);return true;
+    }
     static const float anchors[][2]={{0,0},{-6,5},{7,-4},{-11,-12},{12,14},{-24,-29},{23,29}};
     float best=-1,position[3]={0};
     for(unsigned n=0;n<sizeof(anchors)/sizeof(anchors[0]);n++){
@@ -315,7 +341,8 @@ bool bg_ff_place_human(unsigned h){
 bool bg_ff_can_respawn(unsigned p){return bg_ff.active&&p<active_players&&bg_ff.respawn_reserved[p]&&bg_ff.phase!=BG_FF_BONUS;}
 void bg_ff_player_died(unsigned p){
     if(!bg_ff.active||p>=active_players)return;
-    bg_players[p].respawn=10;bg_ff.sprees[p]=bg_ff.multikills[p]=0;
+    bg_players[p].respawn=bg_ff_casual(bg_ff.fight)?5:10;bg_ff.sprees[p]=bg_ff.multikills[p]=0;
+    if(bg_ff_casual(bg_ff.fight)){bg_ff.respawn_reserved[p]=true;return;}
     if(bg_ff.phase!=BG_FF_BONUS&&!bg_ff.respawn_reserved[p]&&bg_ff.lives){bg_ff.lives--;bg_ff.respawn_reserved[p]=true;}
     unsigned living=0;for(unsigned h=0;h<active_players;h++)living+=bg_players[h].health>0;
     if(living==1&&active_players>1)ff_message("Last Spartan standing");
@@ -324,9 +351,34 @@ static void ff_resupply(void){
     for(unsigned i=0;i<bg_pickup_count;i++)if(!bg_pickups[i].dropped)refill_pickup(&bg_pickups[i]);
     for(unsigned h=0;h<active_players;h++){
         if(bg_players[h].health<=0){bg_ff.respawn_reserved[h]=true;spawn(h);}else {bg_players[h].health=bg_armor_def(bg_players[h].armor)->health;bg_players[h].shield=bg_armor_def(bg_players[h].armor)->shield;bg_players[h].grenades[0]=bg_players[h].grenades[1]=2;}
+        if(bg_ff_casual(bg_ff.fight)){
+            bg_player*p=&bg_players[h];store_inventory(p);
+            for(unsigned slot=0;slot<2;slot++)if(p->inventory[slot]>=0){
+                const bg_weapon_def*w=&bg_weapon_defs[p->inventory[slot]];
+                p->magazines[slot]=w->magazine;p->reserves[slot]=w->reserve;p->heats[slot]=0;p->overheated_slots[slot]=false;
+            }
+            p->ammo=p->magazines[p->slot];p->reserve=p->reserves[p->slot];p->heat=0;p->overheated=false;p->reload=0;
+        }
     }
 }
 static unsigned ff_packet_kind(unsigned packet){
+    if(bg_ff_casual(bg_ff.fight)){
+        static const unsigned courtyard[6][3]={
+            {BG_FF_SCOUTS,BG_FF_SCOUTS,BG_FF_DEFENDERS},
+            {BG_FF_DEFENDERS,BG_FF_SCOUTS,BG_FF_SCREEN},
+            {BG_FF_SCREEN,BG_FF_DEFENDERS,BG_FF_SCOUTS},
+            {BG_FF_DEFENDERS,BG_FF_SCREEN,BG_FF_DEFENDERS},
+            {BG_FF_SCREEN,BG_FF_COMMAND,BG_FF_DEFENDERS},
+            {BG_FF_COMMAND,BG_FF_COMMAND,BG_FF_SCREEN}};
+        static const unsigned sweep[6][3]={
+            {BG_FF_SCOUTS,BG_FF_DEFENDERS,BG_FF_SCOUTS},
+            {BG_FF_SCREEN,BG_FF_SCOUTS,BG_FF_DEFENDERS},
+            {BG_FF_DEFENDERS,BG_FF_SCREEN,BG_FF_SCOUTS},
+            {BG_FF_SCREEN,BG_FF_DEFENDERS,BG_FF_SCREEN},
+            {BG_FF_DEFENDERS,BG_FF_COMMAND,BG_FF_SCREEN},
+            {BG_FF_COMMAND,BG_FF_COMMAND,BG_FF_DEFENDERS}};
+        return bg_ff.fight==BG_FF_COURTYARD?courtyard[bg_ff.wave][packet%3]:sweep[bg_ff.wave][packet%3];
+    }
 #ifdef BG_ENEMY_VEHICLES
     if(ff_vehicle_for_packet(packet)>=0)return BG_FF_PATROL;
 #endif
@@ -359,6 +411,11 @@ static unsigned ff_packet_kind(unsigned packet){
 }
 static void ff_begin_wave(void){
     bg_ff.phase=BG_FF_WAVE;bg_ff.packet=0;bg_ff.packet_delay=1;bg_ff.spawned=bg_ff.killed=bg_ff.total=0;
+    if(bg_ff_casual(bg_ff.fight)){
+        bg_ff.packets=2+(active_players>=3);
+        for(unsigned p=0;p<bg_ff.packets;p++)bg_ff.total+=bg_ff_formations[ff_packet_kind(p)].count;
+        snprintf(bg_ff.message,sizeof(bg_ff.message),"Wave %u / 6",bg_ff.wave+1);bg_ff.message_time=5;return;
+    }
     unsigned party=bg_ff.fight==BG_FF_GAUNTLET?1:active_players;
     bg_ff.packets=2+party+bg_ff.round+(bg_ff.wave==3||bg_ff.wave==4);
     for(unsigned p=0;p<bg_ff.packets;p++)bg_ff.total+=bg_ff_formations[ff_packet_kind(p)].count;
@@ -368,25 +425,33 @@ void bg_ff_start(unsigned players){
     bg_ff_start_fight(players,BG_FF_ONSLAUGHT);
 }
 void bg_ff_start_fight(unsigned players,unsigned fight){
-    if(!bg_ff_fight_available(fight))fight=BG_FF_ONSLAUGHT;
+    if(!bg_ff_map_available(bg_map_id())){bg_pve_stop();return;}
+    if(!bg_ff_fight_on_map(bg_map_id(),fight))fight=bg_ff_default_fight(bg_map_id());
     bg_pve_stop();bg_configure_mode(BG_MODE_SLAYER,NULL);bg_set_players(players);bg_reset();bg_pve_start(0);
     bg_ff=(bg_ff_state){.active=true,.phase=BG_FF_READY,.difficulty=2,.cap=fight==BG_FF_GAUNTLET?(active_players==1?6:8):4+2*active_players,.fight=fight,.lives=10,.timer=6,.seed=0x46464c31,.random=0x46464c31};
+    bg_ff.map=bg_map_id();
+    ff_checkpoint_statistics=statistics;
+    if(bg_ff_casual(fight)){bg_ff.difficulty=1;bg_ff.cap=players==1?4:players==2?5:6;bg_ff.lives=0;}
     ff_last_zone=0;match_winner=-1;bg_set_score_limit(100000000);
     /* Shared player transport, with the ordinary seats and respawn lifecycle.
      * It is not encounter-owned, so enemy hull reclamation cannot remove it. */
-    float warthog[3]={5,bg_floor(5,4,12)+.02f,4};
-    int vehicle=bg_add_vehicle(BG_V_WARTHOG,warthog,0);assert(vehicle>=0);
+    if(ff_current_map()->vehicles){
+        float warthog[3]={5,bg_floor(5,4,12)+.02f,4};
+        int vehicle=bg_add_vehicle(BG_V_WARTHOG,warthog,0);assert(vehicle>=0);
+    }
     /* Supplies are finite within a round. Power weapons return at recovery. */
     for(unsigned i=0;i<bg_pickup_count;i++)if(!bg_pickups[i].dropped)bg_pickups[i].period=bg_pickups[i].respawn=3600;
     for(unsigned h=0;h<active_players;h++){bg_ff.respawn_reserved[h]=true;spawn(h);}
-    snprintf(bg_ff.message,sizeof(bg_ff.message),"%s - Heroic / 10 lives",bg_ff_fight_name(fight));bg_ff.message_time=4;
+    if(bg_ff_casual(fight))snprintf(bg_ff.message,sizeof(bg_ff.message),"Normal / unlimited lives");
+    else snprintf(bg_ff.message,sizeof(bg_ff.message),"%s - Heroic / 10 lives",bg_ff_fight_name(fight));
+    bg_ff.message_time=4;
 }
 void bg_ff_enemy_killed(unsigned i,int owner,bool headshot,unsigned profile){
     if(!bg_ff.active)return;
     bg_ff.killed++;
     if(owner<0||owner>=(int)active_players)return;
     bg_pve_actor*a=&bg_pve_actors[i];static const unsigned value[]={10,50,20,150};
-    unsigned base=value[a->kind],points=base*5/4; /* Heroic 1.25, integer ledger. */
+    unsigned base=value[a->kind],points=bg_ff_casual(bg_ff.fight)?base:base*5/4; /* Heroic 1.25, Normal 1.0. */
     bool stick=profile==BG_D_STICK;
     if(headshot||stick)points=points*5/4;
     unsigned chain=bg_ff.last_kill[owner]&&bg_ff.tick-bg_ff.last_kill[owner]<=45?bg_ff.multikills[owner]+1:1;
@@ -407,17 +472,19 @@ static void ff_finish(bool won){
     debugf("FF_QA_%s players=%u round=%u wave=%u tick=%u score=%u ground=%u ships=%u\n",won?"PASS":"FAIL",active_players,bg_ff.round+1,bg_ff.wave+1,(unsigned)bg_ff.tick,(unsigned)bg_ff.team_score,bg_ff.ground_arrivals,bg_ff.ship_arrivals);
 #endif
 }
+#include "firefight_casual.inc"
 void bg_ff_tick(float dt){
     if(!bg_ff.active)return;
     bg_ff.tick++;bg_ff.elapsed+=dt;bg_ff.message_time=fmaxf(0,bg_ff.message_time-dt);bg_ff.packet_delay=fmaxf(0,bg_ff.packet_delay-dt);
     ff_ship_tick(dt);
+    if(bg_ff_casual(bg_ff.fight)&&ff_casual_rally_tick())return;
     if(bg_ff.phase==BG_FF_READY||bg_ff.phase==BG_FF_RECOVER){bg_ff.timer-=dt;if(bg_ff.timer<=0)ff_begin_wave();return;}
     if(bg_ff.phase!=BG_FF_WAVE&&bg_ff.phase!=BG_FF_BONUS)return;
     if(bg_ff.phase==BG_FF_BONUS)bg_ff.timer-=dt;
     if(bg_ff.packet<bg_ff.packets&&bg_ff.packet_delay<=0){
         unsigned formation=ff_packet_kind(bg_ff.packet);bg_ff.next_formation=formation;
-        bool ship=bg_ff.packet==0&&(bg_ff.wave==0||bg_ff.wave==4);
-        if(!ff_arrive(formation,ship)&&!ship)ff_arrive(formation,true);
+        bool ship=ff_current_map()->dropships&&bg_ff.packet==0&&(bg_ff.wave==0||bg_ff.wave==4);
+        if(!ff_arrive(formation,ship)&&!ship&&ff_current_map()->dropships)ff_arrive(formation,true);
         bg_ff.packet_delay=fmaxf(bg_ff.packet_delay,1);
     }
     /* Re-home a genuinely stranded actor only while its old and new location
@@ -425,7 +492,7 @@ void bg_ff_tick(float dt){
     for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&bg_players[BG_PLAYERS+i].vehicle<0&&!bg_pve_actors[i].arrival){
         bg_pve_actor*a=&bg_pve_actors[i];if(a->stuck_time<20||!ff_hidden(bg_players[BG_PLAYERS+i].pos,bg_pve_definitions[a->kind].height))continue;
         float recovery[8][3],landing[3];
-        for(unsigned z=0;z<FF_ZONES;z++)if(ff_zone_points(z,BG_FF_HUNTERS,true,recovery,landing)){
+        for(unsigned z=0;z<FF_ZONES;z++)if(ff_zone_points(z,bg_ff_casual(bg_ff.fight)?BG_FF_SCOUTS:BG_FF_HUNTERS,true,recovery,landing)){
             memcpy(bg_players[BG_PLAYERS+i].pos,recovery[0],12);a->stuck_time=0;ff_awaken(i);bg_ff.stuck_recoveries++;break;
         }
     }
@@ -434,6 +501,7 @@ void bg_ff_after_tick(float dt){
     (void)dt;if(!bg_ff.active)return;
     for(unsigned h=0;h<active_players;h++)if(bg_players[h].health>0)bg_ff.respawn_reserved[h]=false;
     unsigned living=0,returning=0;for(unsigned h=0;h<active_players;h++){living+=bg_players[h].health>0;returning+=bg_ff_can_respawn(h);}
+    if(bg_ff_casual(bg_ff.fight)){ff_casual_after_tick(living);return;}
     if(bg_ff.phase==BG_FF_BONUS){if(bg_ff.timer<=0||!living)ff_finish(true);return;}
     unsigned remaining=ff_alive();
     if(bg_ff.phase==BG_FF_WAVE&&bg_ff.packet==bg_ff.packets&&!bg_ff_dropship.phase&&remaining<=(bg_ff.wave==4?0:1)){

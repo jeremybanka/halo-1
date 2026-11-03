@@ -67,7 +67,7 @@ static bool pve_try_evade(unsigned i){
     if(!danger)return false;
     int node=pve_node(p->pos),chosen=-1;if(node<0)return false;
     float best=distance2(p->pos,threat);
-    for(unsigned k=0;k<8;k++)if(pve_nav_edges[node]&(1u<<k)){
+    for(unsigned k=0;k<8;k++)if(pve_nav_edge_bits(node)&(1u<<k)){
         int next=pve_neighbor(node,k);float position[3];pve_node_pos(next,position);float score=distance2(position,threat);
         if(score>best){best=score;chosen=next;}
     }

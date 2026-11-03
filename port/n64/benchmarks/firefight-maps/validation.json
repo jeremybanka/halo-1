@@ -115,5 +115,19 @@
     "port/n64/test_firefight_maps.py": "2d225af4a990e27fc83bd7299ab8bc8ff60b26a8e8469b3b4cde0dfb35384f4a",
     "port/n64/test_firefight_player_warthog.c": "0960717fd00f8a048ff8169f641cd3947111338dc322600ba9570d411b932d5c",
     "port/n64/test_firefight_player_warthog.py": "16456d8f9b9b7aff624d86a5e5154efc2eb07ab69e9257275be167cb419455c7"
+  },
+  "release": {
+    "source_commit": "3ec77675443b6c439b966427c5ef8376c3503723",
+    "rom_bytes": 72581120,
+    "rom_mib": 69.21875,
+    "rom_sha256": "8e6ffd2dcb5010c5436b86ee4487b90164a4ac67e852ea67e224ed4f5766d180",
+    "manifest_sha256": "1b790947c5e1b4b2bad478335c6e7a0862d66935212318925f22450d5614438b",
+    "verified_compiler_inputs": 297,
+    "cartridge_target": {
+      "flashcart": "SummerCart64",
+      "rom_limit_bytes": 81788928,
+      "extended_rom_required": true
+    },
+    "combined_multiplayer_and_all_four_firefight_encounters": true
   }
 }

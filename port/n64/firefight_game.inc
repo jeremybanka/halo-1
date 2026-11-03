@@ -301,6 +301,9 @@ bool bg_ff_place_human(unsigned h){
     for(unsigned n=0;n<sizeof(anchors)/sizeof(anchors[0]);n++){
         float point[3]={anchors[n][0]+(h%2)*1.2f,0,anchors[n][1]+(h/2)*1.2f};point[1]=bg_floor(point[0],point[2],12)+.015f;
         bg_player capsule={0};capsule.vehicle=-1;memcpy(capsule.pos,point,12);if(!bg_terrain_clearance(&capsule)||pve_node(point)<0)continue;
+        bool blocked=false;
+        for(unsigned v=0;v<bg_vehicle_count;v++)if(bg_vehicle_body_present(&bg_vehicles[v])&&bg_vehicle_contacts_player(&bg_vehicles[v],&capsule)){blocked=true;break;}
+        if(blocked)continue;
         float nearest=10000;
         for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].arrival!=1){float distance=distance2(point,bg_players[BG_PLAYERS+i].pos);nearest=fminf(nearest,distance);}
         for(unsigned j=0;j<active_players;j++)if(j!=h&&bg_players[j].health>0&&distance2(point,bg_players[j].pos)<.5f)nearest=0;
@@ -369,6 +372,10 @@ void bg_ff_start_fight(unsigned players,unsigned fight){
     bg_pve_stop();bg_configure_mode(BG_MODE_SLAYER,NULL);bg_set_players(players);bg_reset();bg_pve_start(0);
     bg_ff=(bg_ff_state){.active=true,.phase=BG_FF_READY,.difficulty=2,.cap=fight==BG_FF_GAUNTLET?(active_players==1?6:8):4+2*active_players,.fight=fight,.lives=10,.timer=6,.seed=0x46464c31,.random=0x46464c31};
     ff_last_zone=0;match_winner=-1;bg_set_score_limit(100000000);
+    /* Shared player transport, with the ordinary seats and respawn lifecycle.
+     * It is not encounter-owned, so enemy hull reclamation cannot remove it. */
+    float warthog[3]={5,bg_floor(5,4,12)+.02f,4};
+    int vehicle=bg_add_vehicle(BG_V_WARTHOG,warthog,0);assert(vehicle>=0);
     /* Supplies are finite within a round. Power weapons return at recovery. */
     for(unsigned i=0;i<bg_pickup_count;i++)if(!bg_pickups[i].dropped)bg_pickups[i].period=bg_pickups[i].respawn=3600;
     for(unsigned h=0;h<active_players;h++){bg_ff.respawn_reserved[h]=true;spawn(h);}
@@ -467,6 +474,8 @@ void bg_ff_qa_input(void*data){
 void bg_ff_qa_stage(unsigned players,unsigned fixture){
     bg_ff_start(players);
     if(fixture==3||fixture==6)return;
+    /* Isolated actor/vehicle appraisals retain their authored vehicle layouts. */
+    bg_vehicle_count=0;
     bg_ff.phase=BG_FF_RECOVER;bg_ff.timer=9999;
 #ifdef BG_ENEMY_VEHICLES
     if(fixture==8||fixture==9){

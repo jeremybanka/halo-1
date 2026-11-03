@@ -48,7 +48,7 @@ static void player_warthog(unsigned humans,unsigned fight){
 }
 int main(void){
     assert(bg_map_load(BG_MAP_BLOOD_GULCH));
-    for(unsigned fight=0;fight<BG_FF_FIGHTS;fight++)if(bg_ff_fight_available(fight))
+    for(unsigned fight=BG_FF_ONSLAUGHT;fight<=BG_FF_GAUNTLET;fight++)if(bg_ff_fight_available(fight))
         for(unsigned humans=1;humans<=4;humans++)player_warthog(humans,fight);
     bg_ff_qa_stage(4,3);assert(bg_vehicle_count==1&&bg_vehicles[0].kind==BG_V_WARTHOG);
     bg_ff_qa_stage(4,6);assert(bg_vehicle_count==1&&bg_vehicles[0].kind==BG_V_WARTHOG);

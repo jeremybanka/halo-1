@@ -49,9 +49,9 @@ bool bg_front_available(bg_front_page p, unsigned i) {
     }
 }
 bool bg_front_session_available(const bg_frontend *f,bg_front_page p,unsigned i) {
-    if(p==BG_FRONT_FIGHT)return f->firefight&&bg_front_available(p,i);
+    if(p==BG_FRONT_FIGHT)return f->firefight&&bg_front_available(p,i)&&bg_ff_fight_on_map(f->map,i);
     if(f->firefight && (p==BG_FRONT_MAP || p==BG_FRONT_TYPE))
-        return p==BG_FRONT_MAP && i==9 && memory_size>=8*1024*1024;
+        return p==BG_FRONT_MAP && bg_ff_map_available(i) && memory_size>=8*1024*1024;
     return bg_front_available(p,i);
 }
 unsigned bg_front_joined(const bg_frontend *f) {
@@ -319,7 +319,13 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
         return BG_FRONT_NONE;
     }
     if(f->page==BG_FRONT_FIGHT){
-        if(v||h){f->fight=cycle(f->fight,BG_FF_FIGHTS,v?v:h);f->sound=BG_FRONT_CURSOR;}
+        if(v||h){
+            for(unsigned n=0;n<BG_FF_FIGHTS;n++){
+                f->fight=cycle(f->fight,BG_FF_FIGHTS,v?v:h);
+                if(bg_ff_fight_map(f->fight)==f->map)break;
+            }
+            f->sound=BG_FRONT_CURSOR;
+        }
         else if(accept&&bg_front_session_available(f,BG_FRONT_FIGHT,f->fight)){
             memset(f->armor_ready,0,sizeof(f->armor_ready));
             page(f,BG_FRONT_ARMOR);f->sound=BG_FRONT_ACCEPT;
@@ -339,8 +345,10 @@ bg_front_action bg_front_update(bg_frontend *f, const bg_control_state raw[4], u
             return BG_FRONT_NONE;
         }
         if (accept && bg_front_session_available(f, f->page, *selection)) {
-            if (f->page == BG_FRONT_MAP)
+            if (f->page == BG_FRONT_MAP){
+                if(f->firefight&&!bg_ff_fight_on_map(f->map,f->fight))f->fight=bg_ff_default_fight(f->map);
                 page(f, f->firefight?BG_FRONT_FIGHT:BG_FRONT_TYPE);
+            }
             else {
                 memset(f->armor_ready,0,sizeof(f->armor_ready));
                 if(odst_only(f))for(unsigned p=0;p<4;p++)if(f->joined[p])f->armor[p]=BG_ARMOR_ODST;

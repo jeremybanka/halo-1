@@ -154,6 +154,7 @@ void bg_pve_stop(void){
 #ifdef BG_ENEMY_VEHICLES
     pve_routes_release();
 #endif
+    pve_nav_release();
     pve_active=false;bg_pve_count=bg_pve_tick_number=0;
     memset(bg_pve_actors,0,sizeof(bg_pve_actors));
     memset(bg_players+BG_PLAYERS,0,BG_PVE_MAX*sizeof(bg_player));

@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "base": "93de1468fc9b7d37cd2a1b2b621348151100db73",
+  "hardware_target": {
+    "flashcart": "SummerCart64",
+    "maximum_rom_bytes": 81788928,
+    "required_console_ram_mib": 8
+  },
+  "host": {
+    "maps": {
+      "checks_sha256": "bc747f9938e6eb5292088d7e255ace5c404a0391b1bf6d362b2f810ecef8496a",
+      "logs_sha256": {
+        "bad-neighbor.log": "c13aa61a91cce3a8f8391e5ecba7f21ae01b25af1913310ce9eb7d1db2d15368",
+        "bake-0.log": "ad9b09bee0a916f48067bd3f8b81a6e82fe8149c23d7044f2c3d09d267f0cf26",
+        "bake-3.log": "949335c2eea560408e76e21fbea57a834682bb845722ed1cf0e62fe072ed7f0b",
+        "frontend-base.log": "e2894d2272138330421e8cdd2cb5b3125b8b31affcffbb25cd1ec63c0fa13bd4",
+        "frontend-roster.log": "e2894d2272138330421e8cdd2cb5b3125b8b31affcffbb25cd1ec63c0fa13bd4",
+        "oversized.log": "c13aa61a91cce3a8f8391e5ecba7f21ae01b25af1913310ce9eb7d1db2d15368",
+        "test_firefight_maps-base.log": "e63579609b10aede1423f6dac6ce32ad47384e868f38f5cb19e398c01e021c1a",
+        "test_firefight_maps-roster.log": "e63579609b10aede1423f6dac6ce32ad47384e868f38f5cb19e398c01e021c1a",
+        "truncated.log": "c13aa61a91cce3a8f8391e5ecba7f21ae01b25af1913310ce9eb7d1db2d15368",
+        "wrong-map.log": "c13aa61a91cce3a8f8391e5ecba7f21ae01b25af1913310ce9eb7d1db2d15368"
+      },
+      "sanitizers": [
+        "address",
+        "undefined"
+      ]
+    },
+    "legacy": {
+      "checks_sha256": "f77297b9a8652a8cfad0dad45473a131aa5c8f0d263128b1c4fc2e832fee4dee",
+      "logs_sha256": {
+        "test_enemy_vehicles-roster.log": "2ddc5820c3d87a5c53e2f7142c8f306cfe60dfd1eb36712b4265db241ef87c89",
+        "test_firefight-base.log": "b6cd9f0ffd3f23f9a7bb980e4f6be7bfd9af99bc94142e49a16f923199183ac8",
+        "test_firefight-roster.log": "836789729660ee912e83b970f1e6252e0af4ab01ee0208b2b495af7d4aaceb0b",
+        "test_firefight_fights-roster.log": "0f99b184e0cad8fd376105a84102ef9484fe6b4c77f93af8c339098022a8f017",
+        "test_firefight_player_warthog-base.log": "81b2d72f44c2a43ec906d46ef39ac6c38cded7c5205acdf0058b11862ccfe3b9",
+        "test_firefight_player_warthog-roster.log": "8915dcca1d7afb27e6b863c76e1cd85de377a4264887ef4f713111df0680d694"
+      },
+      "sanitizers": [
+        "address",
+        "undefined"
+      ]
+    }
+  },
+  "native": {
+    "courtyard": {
+      "map": 0,
+      "players": 4,
+      "armor": "GUNGNIR",
+      "max_allocated_npcs": 6,
+      "passed": true,
+      "rdp_validation_errors": 0,
+      "rdp_validation_warnings": 0,
+      "rom_bytes": 66879488,
+      "rom_sha256": "3eaf454e6762553cafa6a0224cd5822d9681caca076499e3b2b7f968686dbc6f",
+      "manifest_sha256": "da993beea04df5188007f796eaa90be1ded191e1650613affb2c38327ab41829",
+      "log_sha256": "311477fdce0d22dbb274b6e2600336ccdfa0152c3461ad1eb8af99d79bb79190",
+      "verified_compiler_inputs": 288
+    },
+    "station": {
+      "map": 3,
+      "players": 4,
+      "armor": "GUNGNIR",
+      "max_allocated_npcs": 6,
+      "passed": true,
+      "rdp_validation_errors": 0,
+      "rdp_validation_warnings": 0,
+      "rom_bytes": 66879488,
+      "rom_sha256": "01faeadacb9801e36fe9325e783333a1df582715d0c7b087c597e6cfa7e395da",
+      "manifest_sha256": "83836230138e3293b411a6086d6c1e18a0eb723a99514de159678db937de24d5",
+      "log_sha256": "7110a883ed2411f70e7fb90e5c402b402315f3bf1fb8fe43c28140852f97d390",
+      "verified_compiler_inputs": 288
+    }
+  },
+  "scope": "Fixture completion and native menu/render/allocation checks; human balance and physical-console performance remain unmeasured.",
+  "navigation": [
+    {
+      "map": 0,
+      "nodes": 1999,
+      "bytes": 43998,
+      "sha256": "5320c55c71191d34d4b89a0f6859c340c2f422e3d005a7b5531af8d200d074f7"
+    },
+    {
+      "map": 3,
+      "nodes": 2038,
+      "bytes": 44856,
+      "sha256": "3a4d336a160a5cc9b4dbb4ade7e46288557376ec98f1cc31e02b70b6cc872d05"
+    }
+  ],
+  "source_sha256": {
+    "port/n64/bake_firefight_nav.c": "32bad01a1d91421d40e40a3c6cfcc84558b1db019a42891e8d38edd3cf4691eb",
+    "port/n64/bake_firefight_nav.py": "deacef28146b8c60b5bc2ec90b62cfe50a324a077678b1c62dc525f30b8e81e1",
+    "port/n64/build.py": "7554f7e18960c6b711a28a5fead15104685168e4d9f8108534f9bfc8de1d0e89",
+    "port/n64/character_validation.py": "f8c9eee5ad6af62aa067e5a1ab634db44e91d2b36b38ae12ce0e8eed7c8a0c6d",
+    "port/n64/firefight.h": "0db43e4f7357c0a2159ebf2c80fa7bceb3fd53c51921ed476ccdfceeb68ffa04",
+    "port/n64/firefight_casual.inc": "56080e8a105d0020ec457ac5af38c7e239a4c761e660b3d9718a4e7a915c1c13",
+    "port/n64/firefight_fights.h": "accd023efbc827c2906378c3e590fd3a7cd3928825b382c20a87b450d8bac4ff",
+    "port/n64/firefight_game.inc": "824b155ff6d89adc6576b87c170a50ff4cd18ec2032e9a3f2bade93f6b8a3a9a",
+    "port/n64/firefight_maps.inc": "fc397a970a32476dc30b4c2a86f5a196742f5b932419c360ebee97e306ac0416",
+    "port/n64/firefight_nav.inc": "f9fd921fffe7e21a7d452c6cc0f2420f8d4ff2816446734bc031f3147fd5908c",
+    "port/n64/firefight_qa.c": "dff946e7f7ef77d92fa1157a39f0cc927a482af9b83d5aa678e6fb4be8a8104c",
+    "port/n64/firefight_test_support.py": "254a371122ae98357b2847bd24f6be9aaaa853479fce00c5a2bc385fa2e32d67",
+    "port/n64/frontend.c": "6a3c1ab696ef1b4026a1e6152825924d4f4edf4588d561857efceab9a3123e32",
+    "port/n64/frontend_draw.c": "9a30214b5877652deb93badeb194841a5ef00a978fc0238cc4eedbc9d6fbcb70",
+    "port/n64/hud.c": "e57b7883dcf66b54806e1b811783bd13acd3b3f56336a06c221fe1d286d39c5f",
+    "port/n64/map.c": "1f50e47e7b4679b0f8e4c4e503845a9b9894b218e1d8fb49aa24ff871ff71154",
+    "port/n64/pve_actions.inc": "087ef1e11e6f6fa72f4132413c260ded11cdd0c43a90a00c16cd6c57d03715a4",
+    "port/n64/pve_game.inc": "7c67e8e2e087da4f798397372d39363112430025837ddedeeff4d88137fa0be4",
+    "port/n64/pve_nav.inc": "c483c8e7271785a53ad3c7ac89cf34f03744ce97f190380cc84deaa4e5050c6d",
+    "port/n64/pve_routes.inc": "6b9d839ca85aecc7d45b054f8387d9c9be9e4fd894ec0fedde58a21307a01a5a",
+    "port/n64/test_cartridge_target.py": "45a4053da623eea7d038f07788a89c7fcd49ae25c036a1f5e3132d543ba59da9",
+    "port/n64/test_character_validation.py": "42e6e2d569413aa37a321711597122dd23a42a8a99c166a1e0a9dd8e398fc2f7",
+    "port/n64/test_firefight_frontend.c": "0c10da15f697d7ad8b6d0144fb2426745e2ac92dc53b0b2ab7c60cfd702c4977",
+    "port/n64/test_firefight_maps.c": "aab7e1987a28901939b7719eba93ec160649b0096467315172b54c60733b2230",
+    "port/n64/test_firefight_maps.py": "2d225af4a990e27fc83bd7299ab8bc8ff60b26a8e8469b3b4cde0dfb35384f4a",
+    "port/n64/test_firefight_player_warthog.c": "0960717fd00f8a048ff8169f641cd3947111338dc322600ba9570d411b932d5c",
+    "port/n64/test_firefight_player_warthog.py": "16456d8f9b9b7aff624d86a5e5154efc2eb07ab69e9257275be167cb419455c7"
+  },
+  "release": {
+    "source_commit": "3ec77675443b6c439b966427c5ef8376c3503723",
+    "rom_bytes": 72581120,
+    "rom_mib": 69.21875,
+    "rom_sha256": "8e6ffd2dcb5010c5436b86ee4487b90164a4ac67e852ea67e224ed4f5766d180",
+    "manifest_sha256": "1b790947c5e1b4b2bad478335c6e7a0862d66935212318925f22450d5614438b",
+    "verified_compiler_inputs": 297,
+    "cartridge_target": {
+      "flashcart": "SummerCart64",
+      "rom_limit_bytes": 81788928,
+      "extended_rom_required": true
+    },
+    "combined_multiplayer_and_all_four_firefight_encounters": true
+  }
+}

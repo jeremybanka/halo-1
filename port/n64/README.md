@@ -1,5 +1,16 @@
 # Halo: Combat Evolved for Nintendo 64
 
+The primary hardware target is **SummerCart64 with an 8 MiB Expansion Pak**.
+SummerCart64 supports ROMs up to **78 MiB**: 64 MiB SDRAM plus 14 MiB of extended
+flash storage. Builds above 64 MiB require the cartridge's extended-ROM support;
+the manifest records that requirement and enforces the 78 MiB ceiling. Cartridge
+storage is separate from the console's 8 MiB RAM.
+See the [official hardware documentation](https://github.com/Polprzewodnikowy/SummerCart64#features)
+and [extended ROM mapping](https://github.com/Polprzewodnikowy/SummerCart64/blob/main/docs/01_memory_map.md#pi-memory-map).
+
+Map-aware casual Firefight encounters on Battle Creek and Rat Race are described
+in [FIREFIGHT_MAPS.md](FIREFIGHT_MAPS.md).
+
 The default cartridge includes local multiplayer and the one-to-four-player
 finite Firefight game in one ROM. Firefight is documented in
 [FIREFIGHT_LIMITED.md](FIREFIGHT_LIMITED.md), with source-behavior boundaries,

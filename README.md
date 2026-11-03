@@ -4,6 +4,10 @@ An experimental standalone **Nintendo 64 Blood Gulch demake** lives in
 [port/n64](port/n64/README.md). It builds a local ROM with two- or four-player
 splitscreen from your own Xbox map data.
 
+The N64 hardware target is **SummerCart64 with an Expansion Pak**. Its extended
+ROM storage supports up to **78 MiB**; 64 MiB is not the cartridge's final limit.
+See the [N64 hardware and build notes](port/n64/README.md).
+
 With the N64 dependencies and assets already set up, run this from the project
 root to build the current release and copy it to the attached SD card:
 

@@ -836,11 +836,24 @@ void bg_hud_draw(unsigned index, int x, int y, int width, int height, bg_control
         for(unsigned i=0;i<bg_pve_count;i++)alive+=bg_pve_actors[i].occupied&&bg_players[BG_PLAYERS+i].health>0;
         rdpq_tex_upload(TILE0, &pixel_atlas, NULL);
         if(bg_ff.phase==BG_FF_BONUS)snprintf(state,sizeof(state),"BONUS %us E%u",(unsigned)ceilf(fmaxf(0,bg_ff.timer)),alive);
+        else if(bg_ff_casual(bg_ff.fight))snprintf(state,sizeof(state),"W%u/6 LINF E%u",bg_ff.wave+1,alive);
         else snprintf(state,sizeof(state),"R%u W%u L%u E%u",bg_ff.round+1,bg_ff.wave+1,bg_ff.lives,alive);
         hud_text(state,x+margin,y+height-19,hud_cyan);
         snprintf(state,sizeof(state),"%u  %02u:%02u",(unsigned)bg_ff.team_score,(unsigned)bg_ff.elapsed/60,(unsigned)bg_ff.elapsed%60);
         hud_text(state,x+margin,y+height-10,hud_cyan);
-        if(bg_ff.message_time>0&&hud_text_width(bg_ff.message)<width-8)hud_text(bg_ff.message,x+(width-hud_text_width(bg_ff.message))/2,y+25,hud_cyan);
+        if(bg_ff.message_time>0&&hud_text_width(bg_ff.message)<width-8)hud_text(bg_ff.message,x+(width-hud_text_width(bg_ff.message))/2,bg_ff_casual(bg_ff.fight)?y+height-35:y+25,hud_cyan);
+        if(bg_ff.phase==BG_FF_RALLY&&p->health>0){
+            float target[3];if(bg_ff_rally_point(target)){
+                const T3DViewport*vp=bg_scene_viewport(index);
+                T3DVec3 world={{target[0]*BG_SCALE,(target[1]+1)*BG_SCALE,target[2]*BG_SCALE}},screen={{0}};
+                float depth=-(world.v[0]*vp->matCamera.m[0][2]+world.v[1]*vp->matCamera.m[1][2]+world.v[2]*vp->matCamera.m[2][2]+vp->matCamera.m[3][2]);
+                if(depth>0){t3d_viewport_calc_viewspace_pos((T3DViewport*)vp,&screen,&world);int px=(int)fmaxf(x+8,fminf(x+width-24,screen.v[0])),py=(int)fmaxf(y+35,fminf(y+height-30,screen.v[1]));hud_text("RALLY",px,py,hud_cyan);}
+                float dx=target[0]-p->pos[0],dz=target[2]-p->pos[2],side=dx*sinf(p->yaw)+dz*cosf(p->yaw),forward=dx*cosf(p->yaw)-dz*sinf(p->yaw);
+                const char*turn=forward<0?"TURN":fabsf(side)<1?"AHEAD":side>0?"RIGHT":"LEFT";
+                snprintf(state,sizeof(state),"S%u %um %s",bg_ff.wave/2+1,(unsigned)ceilf(hypotf(dx,dz)),turn);
+                hud_text(state,x+(width-hud_text_width(state))/2,y+height-44,hud_cyan);
+            }
+        }
         if(alive<=3&&bg_ff.packet>=bg_ff.packets&&p->health>0){
             const T3DViewport*vp=bg_scene_viewport(index);
             for(unsigned i=0;i<bg_pve_count;i++)if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].arrival!=1){

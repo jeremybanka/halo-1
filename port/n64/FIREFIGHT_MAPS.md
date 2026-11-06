@@ -70,6 +70,10 @@ Inherited character acceptance does not claim fresh shared-runtime coverage.
 
 ## Validation and reproduction
 
+For the full playable release from a clean GitHub checkout, including the
+private source-cache restore and expanded-roster flags, see
+[PR18_BUILD.md](PR18_BUILD.md).
+
 Run `test_firefight_maps.py --output-dir <fresh-output>` through the workspace
 storage guard. It covers both base and expanded roster configurations:
 

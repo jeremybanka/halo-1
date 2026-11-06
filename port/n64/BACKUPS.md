@@ -9,8 +9,9 @@ payloads are pinned by the `halo64-assets` Git submodule:
 
 The submodule stores the current reduced JSON meshes, corresponding Blender
 scenes, texture/reference inputs, packed animation and audio banks, generated C,
-provenance reports, and six menu-art adaptations. Raw/decompressed `.map` caches
-and extraction logs are excluded. Privacy does not imply ownership of the
+provenance reports, and six menu-art adaptations. Expanded `.map` working caches and extraction logs are excluded. The PR #18
+handoff additionally pins a private compressed source-cache package; see
+[PR18_BUILD.md](PR18_BUILD.md) for a complete build from GitHub inputs. Privacy does not imply ownership of the
 original Halo data or attributed ModRetro photographs. Keep the bank private.
 No asset bytes are included in the public submodule entry: it contains only the
 private repository URL and pinned commit hash.
@@ -42,8 +43,9 @@ python3 port/n64/setup_assets.py \
 ```
 
 Local source-cache links are restored from that archive when it is present.
-On a different machine, supply/extract the owned source disc to regenerate
-those caches. They are unnecessary for accessing the saved meshes, but original
+For PR #18, restore the versioned private package as described in
+[PR18_BUILD.md](PR18_BUILD.md). Other revisions may require supplying/extracting
+the owned source disc to regenerate those caches. They are unnecessary for accessing the saved meshes, but original
 cache hashes remain part of extraction/build provenance checks.
 
 ## Commit asset changes

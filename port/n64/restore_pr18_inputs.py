@@ -19,7 +19,7 @@ import sys
 SOURCE_REF = "13a909946e0ce866ade88b30de5d907b076fefce"
 BASE_ASSET_REF = "1e1888fcc120376c488334d992de1a530331998c"
 PACKAGE = Path("assets/build-inputs/pr18")
-MAP_NAMES = {"bloodgulch-decompressed.map", "a30-decompressed.map", "b40-decompressed.map"}
+MAP_NAMES = {"bloodgulch-decompressed.map", "a30-decompressed.map", "b40-decompressed.map", "ui.map", "bloodgulch.map"}
 MAX_CHUNK = 32 * 1024 * 1024
 
 
@@ -38,6 +38,12 @@ def checked_path(parent, name):
     return path
 
 
+def cache_destination(bank, name):
+    if name.endswith("-decompressed.map"):
+        return bank / "assets" / name
+    return bank.parent / "build/assets/halo-retail/maps" / name
+
+
 def verify(path, record):
     if not path.is_file() or path.stat().st_size != record["bytes"] or sha256(path) != record["sha256"]:
         raise ValueError("Missing or changed input: " + str(path))
@@ -50,7 +56,7 @@ def restore(bank, output):
         raise ValueError("Not the PR #18 input package")
     maps = manifest["maps"]
     if set(maps) != MAP_NAMES:
-        raise ValueError("PR #18 requires exactly three source caches")
+        raise ValueError("PR #18 requires exactly five source caches")
     # Check every compressed payload and bank member before writing anything.
     for name, record in maps.items():
         if sum(part["raw_bytes"] for part in record["parts"]) != record["bytes"]:
@@ -65,7 +71,7 @@ def restore(bank, output):
         verify(checked_path(bank, record["path"]), record)
     # Existing correct map links/files can be reused. Never replace another file.
     for name, record in maps.items():
-        destination = bank / "assets" / name
+        destination = cache_destination(bank, name)
         if os.path.lexists(destination):
             verify(destination, record)
     if output.exists():
@@ -89,8 +95,9 @@ def restore(bank, output):
         verify(destination, record)
     # Publish links only after the entire restore is verified.
     for name in maps:
-        destination = bank / "assets" / name
+        destination = cache_destination(bank, name)
         if not os.path.lexists(destination):
+            destination.parent.mkdir(parents=True, exist_ok=True)
             destination.symlink_to((output / "assets" / name).resolve())
     (output / "restore.json").write_text(json.dumps({
         "source_ref": SOURCE_REF,

@@ -4,7 +4,7 @@ The handoff revision preserves PR #18's gameplay code at
 `13a909946e0ce866ade88b30de5d907b076fefce` and all derived payloads from private
 asset revision `1e1888fcc120376c488334d992de1a530331998c`. It adds the missing
 compressed source caches, a restore helper and the exact expanded-roster recipe.
-The three maps are required both by provenance checks and by the vehicle exporter.
+The five maps are required both by provenance checks and by the vehicle exporter.
 Do not skip those checks.
 
 ## Checkout and toolchain
@@ -24,8 +24,8 @@ git -C halo64-assets rev-parse HEAD
 
 GitHub access to `https://github.com/jeremybanka/halo64-assets.git` is required.
 The last two commands must identify the same asset commit. No AirDrop or iCloud
-files are required. The private package adds about 345 MiB of compressed input
-chunks; expanded inputs need about 544 MiB, including the assembled enemy bank.
+files are required. The private package adds about 379 MiB of compressed input
+chunks; expanded inputs need about 579 MiB, including the assembled enemy bank.
 
 Use Python **3.11** with `port/n64/requirements.txt`. The reference toolchain is:
 

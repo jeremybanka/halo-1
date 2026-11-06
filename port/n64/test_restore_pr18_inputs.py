@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from restore_pr18_inputs import BASE_ASSET_REF, MAP_NAMES, PACKAGE, SOURCE_REF, restore
+from restore_pr18_inputs import BASE_ASSET_REF, MAP_NAMES, PACKAGE, SOURCE_REF, cache_destination, restore
 
 
 def info(data):
@@ -46,7 +46,7 @@ class RestoreTest(unittest.TestCase):
         restore(self.bank, self.output)
         for name, expected in self.data.items():
             self.assertEqual((self.output / "assets" / name).read_bytes(), expected)
-            self.assertEqual((self.bank / "assets" / name).read_bytes(), expected)
+            self.assertEqual(cache_destination(self.bank, name).read_bytes(), expected)
         self.assertEqual((self.output / "enemy-bank/vehicle_distance_data.c").read_bytes(), b"distance bank\n")
 
     def test_corruption_rejected_before_output_or_links(self):
@@ -78,7 +78,7 @@ class RestoreTest(unittest.TestCase):
         self.save()
         with self.assertRaises(ValueError):
             restore(self.bank, self.output)
-        self.assertFalse((self.bank / "assets" / name).exists())
+        self.assertFalse(cache_destination(self.bank, name).exists())
 
     def test_existing_output_is_preserved(self):
         self.output.mkdir()

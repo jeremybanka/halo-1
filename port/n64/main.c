@@ -302,6 +302,10 @@ static bool input(bg_input in[4]) {
 #endif
             bg_configure_mode(front.type,teams);
             bg_front_draw_release();
+            for (unsigned p = 0; p < BG_PLAYERS; p++) {
+                bg_player_profiles[p] = p < front.count ? front.profile[front.ports[p]] : p;
+                bg_set_player_armor(p, p < front.count ? front.armor[front.ports[p]] : BG_ARMOR_SPARTAN);
+            }
 #ifdef BG_STREAM_MAPS
             /* Menu PCM is no longer needed after the countdown. Reclaim it
              * before loading a map, without changing gameplay cache budgets.

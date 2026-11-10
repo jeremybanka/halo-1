@@ -1,5 +1,10 @@
 # Xbox asset conversion
 
+For newer, more detailed characters, start with
+[Reach-to-N64 character demake: Jorge's critical path](CHARACTER_DEMAKE.md).
+It records the accepted component, animation, coverage and runtime workflow,
+the rejected approaches, and the checkpoints to preserve for future characters.
+
 The current reduced meshes, Blender scenes, textures and generated banks are
 versioned in the private `halo64-assets` submodule. `setup_assets.py` connects
 its `assets/`, `generated/` and `frontend-files/` directories to the established

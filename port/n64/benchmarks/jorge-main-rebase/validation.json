@@ -1,0 +1,37 @@
+{
+  "base_commit": "f40fefee4027b6de8eadf63cc0ba477801173ce0",
+  "asset_commit": "219895dabfb629aa6d7f3bd014495f30c8557f44",
+  "roms": {
+    "multiplayer": {
+      "bytes": 61669376,
+      "sha256": "886b29e3dcb69e54b7df75e4873aa1e1c8862b3234ecc458fd395233256e2f50",
+      "preset": "release"
+    },
+    "firefight": {
+      "bytes": 64356352,
+      "sha256": "f25f7f7dd5fe7c1e95ba6770ed34f5a4f1815366630378aa2d785f2b6d24dc47",
+      "preset": "release"
+    }
+  },
+  "passed": [
+    "ASan/UBSan frontend and Firefight frontend: base and roster builds, all 32 roster/host combinations",
+    "Map recertification: 13 maps and live menu cycles, 26 presets and objective transitions",
+    "Firefight: 1-4 player lifecycle, NPC hit regions, Jorge enemy damage/friendly-fire/resupply/respawn",
+    "Jorge C LOD decoder: 4680 cases",
+    "Jorge palettes: 4240 production vertex/palette pairs",
+    "Jorge first-person: 1409 core/ready/service poses",
+    "Vehicle/gameplay sanitizer suites through destruction, including armor abilities",
+    "Six live-rule showcases",
+    "N64 syntax check for mode and Firefight QA routes"
+  ],
+  "known_failures": [
+    {
+      "test": "test_replay.c:24",
+      "assertion": "gunner>0",
+      "reproduces_on_base": true,
+      "identical_telemetry": "Replay: 595 shots, 30 deaths, 9 boardings, weapon mask 0xff, vehicle mask 0x7, gunner frames 0"
+    }
+  ],
+  "native_emulator_retested": false,
+  "jorge_bank_sha256": "b9090c804a9238aba3a3618aed666f8d348c9896a5804a9f3c1e04048c60c8bd"
+}

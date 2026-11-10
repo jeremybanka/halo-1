@@ -15,6 +15,7 @@ static const qa_step steps[]={
  {BG_FRONT_MAP,1,BG_BUTTON_D_LEFT,0},{BG_FRONT_MAP,1,BG_BUTTON_A,0},
  {BG_FRONT_MAP,1,BG_BUTTON_D_RIGHT,0},{BG_FRONT_MAP,1,BG_BUTTON_A,0},
  {BG_FRONT_FIGHT,1,BG_BUTTON_A,0},{BG_FRONT_PREGAME,1,BG_BUTTON_B,0},
+ {BG_FRONT_ARMOR,1,BG_BUTTON_B,0},{BG_FRONT_ARMOR,1,BG_BUTTON_B,0},
 #ifdef BG_PVE_ROSTER
  {BG_FRONT_FIGHT,1,BG_BUTTON_D_DOWN,0},
 #endif
@@ -46,6 +47,16 @@ void bg_front_qa_input(const bg_frontend*f,bg_control_state raw[4],uint64_t now)
  if(current==BG_FIREFIGHT_QA_PHOTO)return;
 #endif
  const qa_step*s=&steps[current];
+ if(f->page==BG_FRONT_ARMOR&&s->page!=BG_FRONT_ARMOR){
+   if(!deadline){deadline=now+1000000u;return;}
+   if(now<deadline)return;
+   bool ready=true;
+   for(unsigned p=0;p<4;p++)if(f->joined[p]&&!f->armor_ready[p]){
+     raw[p].pressed=raw[p].held=BG_BUTTON_A;ready=false;
+   }
+   if(ready)raw[f->host].pressed=raw[f->host].held=BG_BUTTON_A;
+   deadline=0;return;
+ }
  if(!deadline){
    /* Hold the key appraisal screens long enough for native capture. */
    unsigned delay=s->wait?s->wait:(s->page==BG_FRONT_FIGHT||current==2||current==5||current==9?5:1);

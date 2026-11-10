@@ -5,6 +5,7 @@
 #include "world.h"
 #include "interaction.h"
 #include "game_modes.h"
+#include "character.h"
 #define BG_PLAYERS 4
 #ifdef BG_PVE
 #include "pve.h"
@@ -115,6 +116,7 @@ typedef struct {
 #ifdef BG_PVE
     float pve_height,pve_radius;
 #endif
+    bg_armor armor;
     int ammo, score;
     bool grounded;
     bool flashlight_on;
@@ -226,6 +228,12 @@ extern const unsigned bg_teleporter_count;
 extern bg_player bg_players[BG_UNITS];
 /* Profile identity is independent of physical controller and viewport. */
 extern unsigned bg_player_profiles[BG_PLAYERS];
+extern unsigned bg_player_armors[BG_PLAYERS];
+/* Setup choices survive respawns and match resets. Set before bg_reset. */
+void bg_set_player_armor(unsigned player, unsigned armor);
+static inline bool bg_infinite_reserve(const bg_player *p, unsigned weapon) {
+    return weapon == BG_W_ROCKET && (bg_armor_def(p->armor)->abilities & BG_ARMOR_INFINITE_ROCKETS);
+}
 extern bg_vehicle bg_vehicles[BG_MAX_VEHICLES];
 /* Live records use original Blam object headers and its movable memory pool.
  * A pointer is valid until a later allocation/tick; reacquire it by slot. */
@@ -266,4 +274,9 @@ bg_use_target bg_interaction_target(unsigned player);
 const bg_seat_definition *bg_player_seat(const bg_player *player);
 bool bg_player_personal_weapon(const bg_player *player);
 bool bg_player_third_person(const bg_player *player);
+/* Animation and drawing must agree, including passengers using personal guns. */
+static inline bool bg_player_firstperson_weapon(const bg_player *p) {
+    return p->health > 0 && !p->zoom && bg_player_personal_weapon(p) &&
+           !bg_player_third_person(p);
+}
 #endif

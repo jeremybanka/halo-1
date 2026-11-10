@@ -16,6 +16,8 @@ unsigned bg_objective_count;
 
 void bg_configure_mode(unsigned id,const uint8_t teams[4]) {
     mode_id=id<BG_MODE_COUNT?id:0;mode_enabled=true;
+    if(bg_current_rules()->flags&BG_MODE_ODST_ONLY)
+        for(unsigned p=0;p<BG_PLAYERS;p++)bg_set_player_armor(p,BG_ARMOR_ODST);
     for(unsigned i=0;i<BG_PLAYERS;i++)mode_teams[i]=teams?teams[i]&1:i&1;
     const bg_mode_rules *r=bg_mode_preset(mode_id);
     bg_set_score_limit(r->goal*(bg_mode_timed(r)?60:1));
@@ -100,6 +102,12 @@ bool bg_mode_radar(void) {
     if(bg_ff_cloud())return false;
 #endif
     return !mode_enabled||(bg_current_rules()->flags&BG_MODE_SENSOR); }
+bool bg_mode_pickup_allowed(int kind) {
+    if(!mode_enabled)return true;
+    unsigned flags=bg_current_rules()->flags;
+    return !((flags&BG_MODE_NO_WEAPON_PICKUPS)&&kind>=0&&kind<BG_WEAPON_COUNT) &&
+           !((flags&BG_MODE_NO_GRENADES)&&(kind==BG_PICK_FRAG||kind==BG_PICK_PLASMA));
+}
 static unsigned mode_random(unsigned count) {
     mode_rng=mode_rng*1664525u+1013904223u;
     return count?(mode_rng>>8)%count:0;
@@ -168,6 +176,7 @@ static void mode_loadout(int weapons[2],int grenades[2]) {
     if(map){memcpy(weapons,map->starts[r->engine],2*sizeof(int));memcpy(grenades,map->starts[r->engine]+2,2*sizeof(int));}
     if(r->flags&BG_MODE_GENERIC){weapons[0]=BG_W_AR;weapons[1]=BG_W_PISTOL;grenades[0]=4;grenades[1]=0;}
     if(r->weapon>=0){weapons[0]=r->weapon;weapons[1]=-1;}
+    if(r->flags&BG_MODE_NO_GRENADES)grenades[0]=grenades[1]=0;
 }
 static void mode_finish(int winner) {
     if(match_winner!=-1)return;
@@ -259,7 +268,7 @@ static void mode_prepare_scenario(void) {
             refill_pickup(q);
         }
     }
-    if(r->weapon>=0)for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].weapon<BG_WEAPON_COUNT) {
+    if(r->weapon>=0&&!(r->flags&BG_MODE_NO_WEAPON_PICKUPS))for(unsigned i=0;i<bg_pickup_count;i++)if(bg_pickups[i].weapon<BG_WEAPON_COUNT) {
         bg_pickups[i].weapon=bg_pickups[i].base_weapon=r->weapon;bg_pickups[i].alternate=-1;refill_pickup(&bg_pickups[i]);
     }
     if(!r->vehicles)bg_vehicle_count=0;

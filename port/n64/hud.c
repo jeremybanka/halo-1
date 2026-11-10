@@ -4,6 +4,7 @@
 #include "asset_hud.h"
 #include "asset_prompt_icons.h"
 #include "game.h"
+#include "hud_palette.h"
 #include "scene.h"
 #include "map.h"
 #include "camouflage.h"
@@ -139,8 +140,8 @@ static void pixel(int x, int y, int w, int h, color_t c) {
 }
 
 /* This bank stays resident through all counters, bars and labels in a view. */
-static const color_t hud_cyan = {100, 220, 255, 255};
-static const color_t hud_dim = {25, 62, 77, 255};
+static const color_t hud_cyan = {BG_HUD_ACTIVE_R, BG_HUD_ACTIVE_G, BG_HUD_ACTIVE_B, 255};
+static const color_t hud_dim = {BG_HUD_INACTIVE_R, BG_HUD_INACTIVE_G, BG_HUD_INACTIVE_B, 255};
 static const color_t hud_shadow = {3, 13, 22, 235};
 static const color_t hud_backing = {3, 13, 22, 150};
 static void hud_sprite(int u, int v, int w, int h, int x, int y, color_t color) {
@@ -224,11 +225,12 @@ static void hud_number(int value, int x, int y, unsigned places, color_t color) 
     hud_text(text + at, x, y, color);
 }
 static void hud_vitals(const bg_player *p, int x, int y) {
+    float base = bg_armor_def(p->armor)->shield;
+    if (base > 0) {
     /* A one-pixel step at either end echoes Halo without its long diagonals. */
     hud_sprite(0, 72, 46, 7, x + 1, y + 1, hud_shadow);
     hud_sprite(0, 72, 46, 7, x, y, p->shield <= 0 ? red : hud_cyan);
     pixel(x + 2, y + 2, 42, 3, hud_dim);
-    float base = bg_armor_def(p->armor)->shield;
     int fill = (int)ceilf(fminf(fmaxf(p->shield, 0), base) * (42.f/base));
     if (fill)
         pixel(x + 2, y + 2, fill, 3, hud_cyan);
@@ -239,6 +241,7 @@ static void hud_vitals(const bg_player *p, int x, int y) {
     if (p->shield > base + 100) {
         fill = (int)ceilf(fminf(p->shield - base - 100, 100) * .42f);
         pixel(x + 2, y + 2, fill, 3, RGBA32(48, 255, 64, 255));
+    }
     }
     /* Eight upright health cells, aligned to the shield's right edge. */
     pixel(x + 12, y + 7, 33, 5, hud_backing);

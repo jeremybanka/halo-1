@@ -29,7 +29,7 @@ void bg_front_qa_input(const bg_frontend *f,bg_control_state raw[4],uint64_t now
         heap_stats_t heap;sys_get_heap_stats(&heap);
         debugf("MODE_QA PASS mode=%u name=%s winner=%d score=%d free=%u\n",mode,bg_current_rules()->name,bg_match_winner(),bg_display_score(bg_match_winner()),(unsigned)(heap.total-heap.used));
         result_seen=true;result_entered=now;completed++;
-        if(completed==BG_MODE_COUNT){done=true;debugf("MODE_QA COMPLETE 26 presets\n");return;}
+        if(completed==BG_MODE_COUNT){done=true;debugf("MODE_QA COMPLETE %u presets\n",BG_MODE_COUNT);return;}
         mode++;
     }
     if(f->page!=BG_FRONT_RESULTS)result_seen=false;
@@ -65,13 +65,30 @@ static void duel(unsigned victim,bg_input in[4]){
     /* Wizard's tested centre duel, used by the existing native map route. */
     float pos[3]={0,-3,4};place(0,pos);pos[0]+=.8f;place(victim,pos);
     a->yaw=0;b->yaw=3.14159265f;a->pitch=atan2f(b->pos[1]+.35f-a->pos[1]-bg_eye_height(a),.8f);
-    if(a->weapon!=BG_W_SHOTGUN||a->ammo==0)bg_give_weapon(0,BG_W_SHOTGUN);
+    unsigned weapon=bg_current_rules()->flags&BG_MODE_ODST_ONLY?BG_W_PISTOL:BG_W_SHOTGUN;
+    if(a->weapon!=(int)weapon||a->ammo==0)bg_give_weapon(0,weapon);
     a->weapon_ready=0;in[0].fire=!a->fire_held;
 }
 void bg_front_qa_tick(bg_input in[4],float seconds){
     memset(in,0,4*sizeof(*in));if(bg_match_finished())return;
     const bg_mode_rules *r=bg_current_rules();
     if(seconds<3)return;
+    if(r->flags&BG_MODE_ODST_ONLY) {
+        static unsigned reported=~0u;
+        assert(!bg_mode_radar()&&bg_vehicle_count==0);
+        for(unsigned p=0;p<bg_player_count();p++) {
+            assert(bg_players[p].armor==BG_ARMOR_ODST&&bg_player_armors[p]==BG_ARMOR_ODST);
+            assert(bg_players[p].shield==0&&bg_players[p].inventory[0]==BG_W_PISTOL&&bg_players[p].inventory[1]==-1);
+            assert(!bg_players[p].grenades[0]&&!bg_players[p].grenades[1]);
+        }
+        for(unsigned q=0;q<bg_pickup_count;q++)
+            assert(!bg_pickups[q].active||bg_mode_pickup_allowed(bg_pickups[q].weapon));
+        if(reported!=bg_current_mode()) {
+            reported=bg_current_mode();
+            debugf("SWAT_QA mode=%u name=%s players=%u ODST-only pistol-only no-grenades radar=0 map-weapons=0 teams=%u\n",
+                   reported,r->name,bg_player_count(),bg_mode_has_teams());
+        }
+    }
 #ifdef BG_MODES_PREVIEW
     bg_set_score_limit(100000);
 #else

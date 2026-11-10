@@ -51,6 +51,8 @@ def parse_args(argv=None):
     parser.add_argument("--spartan-reload-qa",action="store_true",help="Native four-angle walking reload inspection")
     parser.add_argument("--spartan-motion-qa",action="store_true",help="Native four-angle sustained-fire animation readback")
     parser.add_argument("--scene-source",type=Path,help="Isolated renderer comparison; requires profiling or Spartan motion QA")
+    parser.add_argument("--odst-frontend-qa", action="store_true", help="Select ODST through production menus and exercise match lifecycle")
+    parser.add_argument("--odst-qa", type=int, choices=range(12), help="Fresh ODST palettes, VISR/cloak, first person and teams")
     parser.add_argument("--jorge-frontend-qa", action="store_true", help="Select Jorge through the real menus and exercise match lifecycle")
     parser.add_argument("--jorge-qa", action="store_true", help="Compare playable Jorge and the standard Spartan")
     parser.add_argument("--jorge-field-qa", action="store_true", help="Jorge first-person weapons and production vehicle interactions")
@@ -322,8 +324,8 @@ def parse_args(argv=None):
     )
     parser.add_argument("--vehicle-query-baseline",action="store_true",help="QA: retain scalar clearance and cooldown arc obstruction checks")
     parser.add_argument("--maps-cycle",action="store_true",help="QA: complete matches on all thirteen maps through the real menus")
-    parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 26 presets through the real menus")
-    parser.add_argument("--modes-preview",type=int,choices=range(26),help="QA: stage one preset and hold it open for objective visual review")
+    parser.add_argument("--modes-cycle",action="store_true",help="QA: complete all 28 presets through the real menus")
+    parser.add_argument("--modes-preview",type=int,choices=range(28),help="QA: stage one preset and hold it open for objective visual review")
     parser.add_argument("--objective-photo",type=int,choices=range(10),
                         help="QA: with --modes-preview, freeze idle poses 0-3 or melee poses 4-9")
     parser.add_argument("--flag-cloth-qa",action="store_true",help="QA: stage moving/grounded flags and log cloth CPU cost")
@@ -402,10 +404,10 @@ def parse_args(argv=None):
             data=json.loads(args.world_pvs_data.read_text())
             if data.get('schema') not in (3,4,5,6,7,8,9,10,11,12):
                 parser.error('Changed geometry requires a newly remapped, hash-bound visibility sidecar')
-    if sum((args.jorge_qa,args.jorge_field_qa,args.jorge_frontend_qa))>1: parser.error("Choose one Jorge QA mode")
-    if args.jorge_qa or args.jorge_field_qa: args.model_qa = True
+    if sum((args.jorge_qa,args.jorge_field_qa,args.jorge_frontend_qa,args.odst_qa is not None,args.odst_frontend_qa))>1: parser.error("Choose one armor QA mode")
+    if args.jorge_qa or args.jorge_field_qa or args.odst_qa is not None: args.model_qa = True
     if args.jorge_field_start and not args.jorge_field_qa: parser.error("--jorge-field-start requires --jorge-field-qa")
-    if args.jorge_frontend_qa: args.frontend_qa = 4
+    if args.jorge_frontend_qa or args.odst_frontend_qa: args.frontend_qa = 4
     if args.geometry_census and args.snapshot_tick is None:
         parser.error('--geometry-census requires --snapshot-tick')
     if args.world_coarse_cull:
@@ -618,9 +620,11 @@ def compile_options(args, sdk, tiny, out, source):
         *(["-DBG_FLAG_CLOTH_QA"] if args.flag_cloth_qa else []),
         *(["-DBG_MODES_PREVIEW="+str(args.modes_preview)] if args.modes_preview is not None else []),
         *(["-DBG_OBJECTIVE_PHOTO="+str(args.objective_photo)] if args.objective_photo is not None else []),
+        *(["-DBG_ODST_QA="+str(args.odst_qa)] if args.odst_qa is not None else []),
         *(["-DBG_JORGE_QA"] if args.jorge_qa else []),
         *(["-DBG_JORGE_FIELD_QA"] if args.jorge_field_qa else []),
         *(["-DBG_JORGE_FIELD_START="+str(args.jorge_field_start)] if args.jorge_field_qa else []),
+        *(["-DBG_ODST_FRONTEND_QA"] if args.odst_frontend_qa else []),
         *(["-DBG_JORGE_FRONTEND_QA"] if args.jorge_frontend_qa else []),
         *(
             ["-DBG_FRONTEND_QA", "-DBG_FRONTEND_QA_PLAYERS=" + str(args.frontend_qa)]
@@ -798,6 +802,8 @@ def rom_name(args):
     if args.flag_cloth_qa:name += "-cloth-qa"
     if args.objective_photo is not None:
         name += "-objective-photo"+str(args.objective_photo)
+    if args.odst_frontend_qa: name += "-odst"
+    if args.odst_qa is not None: name += "-odst-qa"+str(args.odst_qa)
     if args.firefight:name += "-firefight"
     if args.firefight_photo:name += "-photo-"+args.firefight_photo
     if args.frontend_qa:
@@ -837,6 +843,17 @@ def main():
     args = parse_args()
     sdk, tiny = args.sdk.resolve(), args.tiny3d.resolve()
     connect_assets(required=False)
+    swat_voice_report=ROOT/'halo64-assets/assets/swat-announcer/provenance.json'
+    if not swat_voice_report.exists():build_error("Missing private Reach SWAT announcement provenance")
+    swat_voice=json.loads(swat_voice_report.read_text())
+    if swat_voice['extractor_sha256']!=hashlib.sha256((ROOT/'port/n64/extract_reach_swat_voice.py').read_bytes()).hexdigest():
+        build_error("Stale Reach SWAT announcement extractor provenance")
+    for name,record in swat_voice['files'].items():
+        path=ROOT/'halo64-assets'/name
+        if not path.is_file() or path.stat().st_size!=record['bytes'] or hashlib.sha256(path.read_bytes()).hexdigest()!=record['sha256']:
+            build_error("Missing or stale Reach SWAT announcement: "+name)
+    if swat_voice['samples']!=swat_voice['files']['frontend-files/mode_swat.s8']['bytes'] or swat_voice['format']!={'rate':11025,'channels':1,'encoding':'signed 8-bit PCM'}:
+        build_error("Invalid Reach SWAT announcement format")
     if args.firefight:
         voice_report=ROOT/'halo64-assets/assets/firefight/provenance.json'
         if not voice_report.exists():build_error("Missing private Firefight announcement provenance")
@@ -1085,6 +1102,14 @@ def main():
                            prompt_icons["generated_sha256"]}.items():
         if not (ROOT / name).is_file() or hashlib.sha256((ROOT / name).read_bytes()).hexdigest() != expected:
             build_error("Stale prompt silhouette bank; rerun port/n64/pack_prompt_icons.py: " + name)
+    odst_validation = asset_root / "generated/odst/odst-validation.json"
+    if not odst_validation.is_file():
+        build_error("Certify the ODST assets first: port/n64/certify_odst.py")
+    odst_report = json.loads(odst_validation.read_text())
+    for name, expected in {**odst_report["inputs"], **odst_report["files"]}.items():
+        path = ROOT / name
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            build_error("Stale ODST assets; rerun port/n64/certify_odst.py: " + name)
     out = args.output_dir.resolve() if args.output_dir else asset_root
     if (args.map_bank_override or args.pve_model_bank) and (out==asset_root.resolve() or (out/'frontend-files').is_symlink()):
         build_error('Map/model bank overrides require a separate output tree')
@@ -1117,6 +1142,7 @@ def main():
         "movement.c",
         "interaction_render.c",
         "jorge_render.c",
+        "odst_render.c",
         "weapon_effects.c",
         "weapon_effects_draw.c",
         "blam/vehicle_physics.c",
@@ -1181,6 +1207,9 @@ def main():
         "interaction_defs.c",
         "interaction_assets.c",
         "jorge_data.c",
+        "odst/odst_data.c",
+        "odst/odst_portraits.c",
+        "odst/odst_firstperson_data.c",
         "jorge_firstperson_data.c",
         "jorge_portrait.c",
         "vehicle_visuals_data.c",
@@ -1442,6 +1471,7 @@ def main():
             "sources":{str(out/name):hashlib.sha256((out/name).read_bytes()).hexdigest() for name in vehicle_audit_sources}}
             if args.vehicle_cost_audit else None),
         "preset": args.preset,
+        "swat_voice": swat_voice,
         "render_bank_experiment":override_info,
         "firefight": ({"required_ram_mib":8,"map_id":9,"players":[1,2,3,4],
             "voice":json.loads((ROOT/'halo64-assets/assets/firefight/provenance.json').read_text())}

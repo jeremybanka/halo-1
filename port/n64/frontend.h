@@ -5,7 +5,7 @@
 #include "character.h"
 /* Availability belongs to the catalog, never to presentation/navigation. */
 typedef struct { const char *name; bool available; } bg_front_entry;
-extern const bg_front_entry bg_front_maps[13],bg_front_types[26];
+extern const bg_front_entry bg_front_maps[13],bg_front_types[BG_MODE_COUNT];
 typedef enum { BG_FRONT_MAIN, BG_FRONT_MULTIPLAYER, BG_FRONT_JOIN,
  BG_FRONT_MAP, BG_FRONT_TYPE, BG_FRONT_ARMOR, BG_FRONT_PREGAME, BG_FRONT_PLAY,
  BG_FRONT_RESULTS, BG_FRONT_SETTINGS, BG_FRONT_PROFILE, BG_FRONT_CONTROLS, BG_FRONT_QUIT,
@@ -37,6 +37,7 @@ unsigned bg_front_map_memory_requirement(unsigned map);
 void bg_front_set_memory_size(unsigned bytes);
 bool bg_front_map_needs_expansion(unsigned map);
 bool bg_front_armor_available(unsigned armor);
+bool bg_front_armor_allowed(const bg_frontend *f,unsigned armor);
 void bg_front_results(bg_frontend *f,const int scores[4],int winner);
 void bg_front_quit(bg_frontend *f);
 void bg_front_map_controls(const bg_frontend *f,const bg_control_state physical[4],bg_control_state logical[4]);

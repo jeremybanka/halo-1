@@ -1,4 +1,5 @@
 #include "map.h"
+#include "autopilot_nav.h"
 #include "map_format.h"
 #include "mode_map.h"
 #include "game.h"
@@ -120,6 +121,7 @@ void bg_map_host_world_order(unsigned block, void *memory, unsigned bytes) {
 #endif
 #include "mode_map.inc"
 void bg_map_unload(void) {
+    bg_autonav_reset();
     unload_mode_map();
     bg_vehicle_world_release();
     free(triangles); triangles = NULL;

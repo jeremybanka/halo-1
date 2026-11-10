@@ -4,11 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 import subprocess
+import argparse
 
 ROOT=Path(__file__).resolve().parents[2]
 BANK=ROOT/'halo64-assets'
 
-def main():
+def main(output=None):
     paths=subprocess.check_output(['git','-C',str(BANK),'ls-files','-z']).decode().split('\0')
     files=[]
     for name in sorted(paths):
@@ -19,8 +20,11 @@ def main():
             raise RuntimeError('Missing or linked private payload: '+name)
         files.append(dict(path=name,bytes=p.stat().st_size,sha256=hashlib.sha256(p.read_bytes()).hexdigest()))
     commit=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
-    (BANK/'bank-manifest.json').write_text(json.dumps(dict(source_commit=commit,files=files,total_bytes=sum(f['bytes'] for f in files)),indent=2)+'\n')
+    target=Path(output) if output else BANK/'bank-manifest.json'
+    target.parent.mkdir(parents=True,exist_ok=True)
+    if output and target.exists():raise FileExistsError(target)
+    target.write_text(json.dumps(dict(source_commit=commit,files=files,total_bytes=sum(f['bytes'] for f in files)),indent=2)+'\n')
     print('Recorded',len(files),'private payload files')
 
 if __name__=='__main__':
-    main()
+    parser=argparse.ArgumentParser();parser.add_argument('--output',type=Path,help='Stage the manifest in a guarded fresh output before promotion');args=parser.parse_args();main(args.output)

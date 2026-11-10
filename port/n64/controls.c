@@ -63,6 +63,17 @@ void bg_controls_map(bg_input *out, const bg_control_state *raw, bg_control_styl
 void bg_controls_reset(bg_control_gesture *state) {
     *state = (bg_control_gesture){0};
 }
+void bg_controls_armor(bg_input *out,const bg_control_state *raw,
+    bg_control_style style,bg_armor armor,bool autopilot_on) {
+    if(!(bg_armor_def(armor)->abilities&BG_ARMOR_AUTOPILOT)||!autopilot_on)return;
+    out->autopilot_command=(raw->pressed>>6)&15;
+    if(style==BG_CONTROLS_BOND) {
+        if(raw->pressed&BG_BUTTON_D_UP)out->zoom=false;
+        if(raw->pressed&BG_BUTTON_D_DOWN)out->melee=false;
+        if(raw->pressed&BG_BUTTON_D_LEFT)out->switch_grenade=false;
+        out->crouch=false;
+    }
+}
 void bg_controls_update(bg_input *out, bg_control_gesture *state,
                         const bg_control_state *raw, bg_control_style style,
                         bool mounted, bool active, uint64_t now_us) {

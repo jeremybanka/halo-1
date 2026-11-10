@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "passed": true,
+  "verified_main_commit": "f40fefee4027b6de8eadf63cc0ba477801173ce0",
+  "introduced_in": "f40fefee4027b6de8eadf63cc0ba477801173ce0",
+  "introduced_in_pr": 12,
+  "origin": "Main changed HUD layout selection from viewport dimensions to active player count. GUNGNIR recording scenes exposed the pre-existing assumption by retaining four human actors behind one camera.",
+  "strategy": "Original Halo title-safe window center, derived from actual viewport shape and position. HUD, assist circle, world and viewmodel projection share the same normalized anchor. Rendered camera count independently controls the assist cone.",
+  "centers_320x240": {
+    "1": [
+      [
+        160,
+        120
+      ]
+    ],
+    "2": [
+      [
+        159,
+        68
+      ],
+      [
+        159,
+        172
+      ]
+    ],
+    "3": [
+      [
+        91,
+        68
+      ],
+      [
+        229,
+        68
+      ],
+      [
+        159,
+        172
+      ]
+    ],
+    "4": [
+      [
+        91,
+        68
+      ],
+      [
+        229,
+        68
+      ],
+      [
+        91,
+        172
+      ],
+      [
+        229,
+        172
+      ]
+    ]
+  },
+  "reproduction": {
+    "active_human_actors": 4,
+    "rendered_cameras": 1,
+    "old_idle_reticle": [
+      182,
+      136
+    ],
+    "correct_idle_reticle": [
+      160,
+      120
+    ]
+  },
+  "host": {
+    "sanitizers": true,
+    "viewports": 10,
+    "zoom_scales": 10,
+    "forward_rays": 20000,
+    "gunplay_maps": 13,
+    "mode_map_combinations": 364,
+    "showcase_ticks": 3600,
+    "damage_cases": 48
+  },
+  "native": {
+    "emulator": "Ares v148",
+    "rdram_mib": 8,
+    "views": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "human_slots": 4,
+    "forward_ray_assertion_tolerance_pixels": 0.1,
+    "cycles": [
+      "unzoomed AR",
+      "2x pistol",
+      "10x sniper"
+    ],
+    "observed_scopes": {
+      "2": [
+        2,
+        10
+      ],
+      "3": [
+        10
+      ],
+      "4": [
+        10
+      ]
+    },
+    "rdp_errors": 0,
+    "rdp_warnings": 0,
+    "physical_console_tested": false,
+    "captures": [
+      {
+        "views": 1,
+        "file": "build/gungnir-viewport-native-1-v2/fullscreen.png",
+        "sha256": "555f8f3639ada718794a91dc636fea8aeedf29b15170923e692e418de63f7b4c"
+      },
+      {
+        "views": 2,
+        "file": "build/gungnir-viewport-native-2-v2/two-views-checked.png",
+        "sha256": "2f484cf16439d7ae74c54d874ea1532381ec1ba7e95ba3aa0cc132a428af9d39"
+      },
+      {
+        "views": 2,
+        "file": "build/gungnir-viewport-native-2-v2/zoom-checked.png",
+        "sha256": "d616ab45daf14f28e80a4602f576e214aebce2e0ca606e54cbcdee74c2c9dca2"
+      },
+      {
+        "views": 3,
+        "file": "build/gungnir-viewport-native-3-v2/three-views.png",
+        "sha256": "a2f0e41b5c4b7ccbb106badb6030a35d9fb4711787412ab69d24541fd153bc9a"
+      },
+      {
+        "views": 4,
+        "file": "build/gungnir-viewport-native-4-v2/four-views.png",
+        "sha256": "77e4781da5c97c1f54352418b236c206b51234c88ef532cdafb4657a633a0e14"
+      }
+    ]
+  },
+  "inputs": {
+    "port/n64/hud_layout.h": "6530720140454763bb1caf11249dcb5a7080de02b62440503d2668412caedb57",
+    "port/n64/hud.c": "582821b27451e4d4e140a4e127963736d2e62bcc2647698d80ecbaf413f6bd3d",
+    "port/n64/game.c": "008f452a87ec9f9e8dea2e57629cddf82e686292d782582d49ef0476a6e09a16",
+    "port/n64/game.h": "87748e715f17e05c77d6b40993e781e3de0bf6cefc84197d5ed2b7e209887889",
+    "port/n64/main.c": "5e70937ee16e481e8f4e2baff9be99b6b23908a20bfdd127a20830c22ffd9d0d",
+    "port/n64/scene.c": "ff9df4399b3a8658892ee3b8d063d1b8afb884680eec3189768303863d58689d",
+    "port/n64/gungnir_aim.inc": "278acd67d99e8bd057c9394f49105dc5d7c610d2135b943961b349d7ad08f201",
+    "port/n64/gungnir_qa.h": "20f9f5d324843c9bc07c70dc2300faf3e3a0a02526d26419436c675569a031e5",
+    "port/n64/test_hud_layout.c": "9c27a6ae81a4245d8ac00657ecf314442f34981fd97e6e341347f444f560e27c",
+    "port/n64/test_gungnir.c": "54f2555d626e35a72b71d5c75eac98a7115d36c29ad8c60cd8036de32a8ad604"
+  },
+  "combined_release": {
+    "kind": "gungnir-viewport-release-v1",
+    "rom_bytes": 66551808,
+    "rom_sha256": "e6043a87c383b5f8871d135f1a87ef918a093c538e07a519ad10c260d9ec3597",
+    "manifest_sha256": "316cb523fa4d77effc76dacaae7957821553d403e5a27159bd136efab13b3b93",
+    "source_commit": "4f4e5698a37ba8a8ca9ced49b323cc62221a80ee",
+    "asset_commit": "7e761ba70478c051792ebd223ccc0a554529381e",
+    "native_visual_inspection": true,
+    "scope": "Normal combined Multiplayer/SWAT/Firefight cartridge boot after viewport correction; reticle alignment and zoom validated separately in the 1\u20134-view native fixtures.",
+    "capture_sha256": "7649672829db69b5f9ad43798b762d916bb3735a0234316f179442a265d7f6ea"
+  }
+}

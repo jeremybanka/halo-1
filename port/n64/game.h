@@ -120,6 +120,9 @@ typedef struct {
     int ammo, score;
     bool grounded;
     bool flashlight_on;
+    bool autopilot_on;
+    uint8_t autopilot_style;
+    int8_t autopilot_follow,autopilot_side;
     float damage_flash_time,damage_flash_strength;
     uint8_t damage_flash_profile;
     float damage_indicator[4]; /* Source order: top, left, bottom, right. */
@@ -161,6 +164,7 @@ typedef struct {
 } bg_player;
 typedef struct {
     float forward, strafe, turn, look;
+    uint8_t autopilot_command; /* D-pad edges: up, down, left, right. */
     /* interact is held use; reload and the other discrete actions are edges. */
     bool jump, fire, reload, switch_weapon, grenade, switch_grenade, interact, melee, zoom, crouch,
         secondary_fire, flashlight;
@@ -250,6 +254,10 @@ const bg_match_statistics *bg_match_stats(void);
 void bg_reset(void);
 void bg_set_players(unsigned count);
 unsigned bg_player_count(void);
+/* Presentation can use fewer cameras than there are active human actors.
+ * bg_set_players defaults this to the normal matching split-screen layout. */
+void bg_set_view_count(unsigned count);
+unsigned bg_view_count(void);
 void bg_clear_events(void);
 bool bg_match_finished(void);
 int bg_match_winner(void);

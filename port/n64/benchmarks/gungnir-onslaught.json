@@ -1,0 +1,160 @@
+{
+  "scenario": "Two-player GUNGNIR Onslaught, normal Heroic director, 10 starting shared lives",
+  "native_failure": {
+    "observed_timer": "03:32",
+    "observed_round": 1,
+    "observed_wave": 3,
+    "original_assertion": "pve_vertices[slot][i][lod] / PvE vertex buffers",
+    "original_call_chain": [
+      "pve_prepare (pve_draw.inc:290)",
+      "prepare_frame (scene.c:1554)",
+      "bg_scene_prepare (scene.c:2620)",
+      "main (main.c:1281)"
+    ],
+    "secondary_failure": "Crash inspector also failed to allocate its display surface, then aborted on recursive assertion",
+    "cause": "Animated enemy buffers retained across prior species, LODs, departed dropships and invisible/dead actors in the default build; retirement and pressure recovery were restricted to BG_ENEMY_VEHICLES",
+    "fix": "Use fenced unused-buffer retirement and pressure recovery in every PvE render build; retain current-frame prepared pose owners"
+  },
+  "validation": {
+    "resource_retirement": {
+      "sanitizers": "ASan+UBSan",
+      "lod_counts": [
+        2,
+        3
+      ],
+      "checks": [
+        "retire unrequested LODs",
+        "fence before reclaiming previous-frame blocks",
+        "preserve prepared owners and aliases",
+        "recover after allocation failure",
+        "safe failed retry",
+        "idempotent retirement"
+      ]
+    },
+    "animation_equivalence": {
+      "aligned_cache_requests": 3000,
+      "frame_ownership_simulations": 4000,
+      "packed_poses": 315904,
+      "vertex_comparisons": 555925504,
+      "preserves": [
+        "positions",
+        "normals",
+        "colors",
+        "UVs"
+      ]
+    }
+  },
+  "native_rerun": {
+    "rom_sha256": "baf19135870e20c74c51351fa8bf6e371b6524466b72256293d16653d691177e",
+    "asset_filesystem_bytes_identical": true,
+    "asset_filesystem_sha256": "74b689245abe1c1a2aab214b3640170b1a0e8cefc3c46d0194dc78c109f8732a",
+    "status": "Completed normally through defeat in the first round, fourth wave at 09:01; no repeat of the native allocation crash",
+    "controller": {
+      "scripted_players": 2,
+      "armors": [
+        "GUNGNIR",
+        "GUNGNIR"
+      ],
+      "camera": "Bounded look toward retained visible attacker; no continuous scan; armor movement code still never supplies turn/look",
+      "loadout": "Prefer pistol; ordinary AR fallback when pistol ammunition is exhausted; normal pickups, grenades, melee, shields and shared lives",
+      "rules_modified": false
+    },
+    "result": {
+      "outcome": "Defeat / Firefight over",
+      "round": 1,
+      "wave": 4,
+      "elapsed_hud": "09:01",
+      "team_score": 1776,
+      "player_scores": [
+        907,
+        869
+      ],
+      "shared_lives": 0,
+      "completed_without_further_crash": true,
+      "generic_match_overlay": "DRAW (the generic competitive overlay; the Firefight director finished in defeat)",
+      "capture_sha256": "c1bbe982016c642323e278e433788402fcd05af7c3f046eedef1be050c5b2d5d",
+      "camera_script": "Steady while searching, bounded turns to retained exposed attacker; no continuous scan",
+      "render_scope": "Ares v148 native ROM, both live viewports, regular rendering for entire attempt after clean emulator restart"
+    }
+  },
+  "host_attempts": [
+    {
+      "controller": "Pistol, elite autopilot, torso aim, slow scan",
+      "round": 1,
+      "wave": 4,
+      "seconds": 595.6,
+      "score": 2266,
+      "kills": [
+        31,
+        30
+      ],
+      "won": false
+    },
+    {
+      "controller": "Pistol, elite autopilot, head-level aim, slow scan, no grenades",
+      "round": 1,
+      "wave": 2,
+      "seconds": 282.4,
+      "score": 1251,
+      "kills": [
+        17,
+        17
+      ],
+      "won": false
+    },
+    {
+      "controller": "Pistol, elite autopilot, head-level aim, faster scan",
+      "round": 1,
+      "wave": 4,
+      "seconds": 472.6,
+      "score": 2511,
+      "kills": [
+        41,
+        35
+      ],
+      "won": false
+    },
+    {
+      "controller": "Pistol, manual strafing/retreat in combat, autopilot while searching",
+      "round": 1,
+      "wave": 5,
+      "seconds": 759.0,
+      "score": 2507,
+      "kills": [
+        42,
+        42
+      ],
+      "won": false
+    },
+    {
+      "controller": "Pistol preferred, AR fallback, manual combat movement and ordinary pickups",
+      "round": 1,
+      "wave": 5,
+      "seconds": 655.9,
+      "score": 3008,
+      "kills": [
+        43,
+        43
+      ],
+      "won": false
+    },
+    {
+      "controller": "Steady camera, bounded target turns, pistol preferred with normal AR fallback and pickups",
+      "round": 1,
+      "wave": 4,
+      "seconds": 542.0,
+      "score": 1776,
+      "kills": [
+        33,
+        33
+      ],
+      "won": false
+    }
+  ],
+  "interpretation": "These are scripted controller play attempts, not a human skill or game-balance study. No automatic victory, invulnerability, direct damage, ammunition grants or director timer changes. The spinning was controller scan input, never the GUNGNIR movement ability.",
+  "sources": {
+    "port/n64/pve_draw.inc": "866b5bddd7e5fedc7948866b79ccfdb85adc9e72d8835101c2e654cfe5b56cd8",
+    "port/n64/test_pve_buffers.py": "111f36a375a2fa96feb62c999a03c95e96dc523a9be80381f48988475070c0de",
+    "port/n64/test_pve_preparation.c": "7b5aa9819f2446d5c0229130bc0fcf40663f4d1735496c96ca982e8a61fe0327"
+  }
+}

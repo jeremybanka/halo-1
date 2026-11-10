@@ -1,0 +1,594 @@
+{
+  "schema": 1,
+  "quality_state": "accepted",
+  "publication_approved": true,
+  "bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
+  "packed_vertices": [
+    1060,
+    792
+  ],
+  "triangles": [
+    1292,
+    887
+  ],
+  "rig_comparisons": 2967798,
+  "glb_samples": 780,
+  "c_decode_cases": 4680,
+  "firstperson_pose_cases": 1409,
+  "navigation_maximum_bytes": 262480,
+  "appearance_observations": {
+    "body_coverage_probes": 3744,
+    "maximum_new_enclosed_pixels": 36,
+    "packed_maximum_new_enclosed_pixels": 45,
+    "clearance_probes": 264,
+    "maximum_new_broad_plate_occlusion_pixels": 74,
+    "quantized_geometry": [
+      {
+        "lod": 0,
+        "authoring_triangle_pose_samples": 586568,
+        "quantized_degenerate_triangle_samples": 1640,
+        "maximum_quantized_coordinate": 696,
+        "normalized_four_influence_weights": true
+      },
+      {
+        "lod": 1,
+        "authoring_triangle_pose_samples": 402698,
+        "quantized_degenerate_triangle_samples": 1448,
+        "maximum_quantized_coordinate": 696,
+        "normalized_four_influence_weights": true
+      }
+    ]
+  },
+  "private_snapshot": "halo64-assets/assets/gungnir/demake-20261102",
+  "body_only_cost_comparison": [
+    [
+      {
+        "armor": "Spartan",
+        "vertices": 562,
+        "triangles": 328
+      },
+      {
+        "armor": "Jorge",
+        "vertices": 670,
+        "triangles": 949
+      },
+      {
+        "armor": "ODST",
+        "vertices": 754,
+        "triangles": 789
+      },
+      {
+        "armor": "GUNGNIR",
+        "vertices": 1060,
+        "triangles": 1292
+      }
+    ],
+    [
+      {
+        "armor": "Spartan",
+        "vertices": 250,
+        "triangles": 135
+      },
+      {
+        "armor": "Jorge",
+        "vertices": 390,
+        "triangles": 556
+      },
+      {
+        "armor": "ODST",
+        "vertices": 492,
+        "triangles": 476
+      },
+      {
+        "armor": "GUNGNIR",
+        "vertices": 792,
+        "triangles": 887
+      }
+    ]
+  ],
+  "native_validation": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "emulator": "Ares v148",
+    "rdram_mib": 8,
+    "physical_console_tested": false,
+    "checks": [
+      "Current crown, cheek and underside jaw blocking and four original scrawls inspected at near/far LODs.",
+      "Current native render retains 0 RDP errors and warnings; HUD and held weapons remain visible."
+    ],
+    "prior_functional_validation": {
+      "private_commit": "4628fa411ff057924ca7c291add3802ed5d61050",
+      "scope": "Inherited earlier functional/material/whole-body checks. Current change affects helmet colors and render vertex sharing only; geometry, all packed clip trajectories and sockets compare exactly to the parent."
+    },
+    "helmet_update": {
+      "schema": 1,
+      "passed": true,
+      "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+      "body_bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
+      "generated_data_sha256": "de5cc5703a785b497f5ccb4e56e79d97ce35bfe2ec1e83f3fef6297f647d759e",
+      "emulator": "Ares v148",
+      "rdram_mib": 8,
+      "physical_console_tested": false,
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "views": 4,
+      "near_profiles": [
+        0,
+        1
+      ],
+      "far_profiles": [
+        2,
+        3
+      ],
+      "fixture": "--gungnir-qa 7 --gungnir-qa-views 4",
+      "visually_captured_states": [
+        "ordinary",
+        "shield glow"
+      ],
+      "checks": [
+        "Current crown, cheek and underside jaw blocking and four original scrawls inspected at near/far LODs.",
+        "Current native render retains 0 RDP errors and warnings; HUD and held weapons remain visible."
+      ],
+      "inputs": {
+        "port/n64/scene.c": "9eb48cd7215a4f6fcaca289badd3592bb1b285110804abd1a3f74ffbc0848952",
+        "port/n64/gungnir_faces.c": "dddc8b902247e477d48f2c3bdc6eade1af4d9748b3132344fd15581ad42ba118",
+        "port/n64/gungnir_faces.h": "13b926899022f6c59d21278452e8745b95a7f025409b8e800a0e2427444f5127",
+        "port/n64/gungnir_qa.h": "c0a3de5c3754d41f3a4dbb6b1cdefee04772fdfcd0d6b2f71054d7e15961ba07"
+      },
+      "manifest_sha256": "fa397d2b66b63fd8a4687134e296ad014dd22f09536e6a2e8d3f16e39a6a1d01",
+      "rom_sha256": "b1f2093405a234d485ffebb86ff24e96bbd12306efa0fe55844f568279c8c9a7",
+      "captures": [
+        {
+          "local_path": "build/gungnir-panels-native-v1/helmet-check-1.png",
+          "sha256": "b3495c323dc85d98eba6eee0c24ff3a5a9d63eec4a9c7e0c490d90bc36e1f7be"
+        },
+        {
+          "local_path": "build/gungnir-panels-native-v1/helmet-check-2.png",
+          "sha256": "e863949ff9d0990f905654debb93880ef13bd6adfe76939bcb5970805f24dc41"
+        }
+      ],
+      "limits": [
+        "Finite close head cameras; the held weapon partly occludes the drawings. Clean frontal/three-quarter host galleries inspect all four complete heads.",
+        "Earlier full material-cycle, functional, viewport/zoom and body/shell checks are inherited from private 4628fa411ff057924ca7c291add3802ed5d61050.",
+        "No physical-console test. ROM and captures remain local."
+      ]
+    },
+    "limits": [
+      "Finite close head cameras; the held weapon partly occludes the drawings. Clean frontal/three-quarter host galleries inspect all four complete heads.",
+      "Earlier full material-cycle, functional, viewport/zoom and body/shell checks are inherited from private 4628fa411ff057924ca7c291add3802ed5d61050.",
+      "No physical-console test. ROM and captures remain local."
+    ]
+  },
+  "verification": "Current helmet color-only topology/motion, rig/GLB, runtime and face-art checks pass with finite native head review. Prior source geometry/body/functional results remain inherited as scoped.",
+  "builds": [
+    {
+      "kind": "gungnir-unified-v1",
+      "rom_bytes": 66486272,
+      "rom_sha256": "09c4f26b201d6b8219c4da473fc85f7a028e2f3cb68a5f6fc93ec423c79a4a4c",
+      "manifest_sha256": "d6b64290b284a2f67d55193d7f11ca7f50ef848dc191db6a244c8c0e7f59acad",
+      "native_visual_inspection": true,
+      "scope": "Unified main menu boot"
+    },
+    {
+      "kind": "gungnir-unified-body-v2",
+      "rom_bytes": 65880064,
+      "rom_sha256": "8c8c5554041b0f5478827656dc2e061b9ac3207e220cc8e7f20138db1900ed98",
+      "manifest_sha256": "2fcee3ff21c43c4c7b41acd8b5beea4518b011820c49ea521214877948884e9f",
+      "native_visual_inspection": true,
+      "scope": "Near/far body and four palettes"
+    },
+    {
+      "kind": "gungnir-firefight-damage-sync-v2",
+      "rom_bytes": 66519040,
+      "rom_sha256": "1d796d602074794564cedb550d621cbda92eb1d060f671aef9d149cfd35ae813",
+      "manifest_sha256": "ab2a7d1961e16371c324dcf5d72e883469da1751ee651f12e7c5d07e3c71e600",
+      "native_visual_inspection": true,
+      "scope": "Four-player Firefight restart/quit/cancel/cleanup and multiplayer return; RDP 0 errors/0 warnings"
+    },
+    {
+      "kind": "gungnir-unified-release-final-v1",
+      "rom_bytes": 66469888,
+      "rom_sha256": "2b659d360927b396d0871f73657828fdd39376249e640564802a28768d08d4ee",
+      "manifest_sha256": "be0230982bab996f9ed91dd6648a4feb0e5f87493ce83a32db9e73803c64ea09",
+      "source_commit": "af4896e7f55767116c362086801c50c8c0895a1e",
+      "asset_commit": "2ba83291c367fdf75b21aa98eb9b6cbfcdb1ad7b",
+      "native_visual_inspection": true,
+      "scope": "Final paced combined cartridge boot; Multiplayer and Firefight in one menu"
+    },
+    {
+      "kind": "gungnir-native-final-aim4-v2",
+      "rom_bytes": 65880064,
+      "rom_sha256": "2b044e7bf589e92ab0e787e0911af1bbd9b28ea130461bfc26d657e8737e2fe9",
+      "manifest_sha256": "58336e7b44b56c83bd4b24b06308aab213f342bb8efca62727d0f74e519f5d9d",
+      "source_commit": "af4896e7f55767116c362086801c50c8c0895a1e",
+      "asset_commit": "2ba83291c367fdf75b21aa98eb9b6cbfcdb1ad7b",
+      "native_visual_inspection": true,
+      "scope": "Final accepted GUNGNIR four-view aim/HUD; RDP 0 errors/0 warnings"
+    },
+    {
+      "kind": "gungnir-hud-status-release-v1",
+      "rom_bytes": 66469888,
+      "rom_sha256": "554867544f721069e69da0b9e858d3e37863768e32d363df4dbf2d9a03ecf1fa",
+      "manifest_sha256": "e37e7d36de1634f28289a6ad86d857b2b6e03f45ff794dd1fbaf9cec4047530d",
+      "source_commit": "4953684c1e504a5ea0b70ba2e98b62ea96483ccc",
+      "asset_commit": "6e1fc3610c8c592b42ec90e90319d0bddc8c24b3",
+      "native_visual_inspection": true,
+      "scope": "Enabled-only top-center AUTO; native one/three-view checks and combined paced release boot"
+    },
+    {
+      "kind": "gungnir-rear-release-v1",
+      "rom_bytes": 66551808,
+      "rom_sha256": "7f728ce20e9b7e79225e11cedd22d4500e4b1f6b4fc005280c3ce62543ed3353",
+      "manifest_sha256": "1ee565f789e35f1bee7b647049aa56d3cd5739f88f031edb8cb48ec70fc4d784",
+      "source_commit": "9cc80bd6ff70c8b533040c9247ad460a6fb621ef",
+      "asset_commit": "e7c7b54da7195c81b151a07335b6b4a515328bd3",
+      "native_visual_inspection": true,
+      "scope": "Ares v148: final combined menu boot with Multiplayer and Firefight visible. Rear near/far QA is separately recorded in the demake review. No fresh full native functional matrix or hardware benchmark is claimed."
+    },
+    {
+      "kind": "gungnir-viewport-release-v1",
+      "rom_bytes": 66551808,
+      "rom_sha256": "e6043a87c383b5f8871d135f1a87ef918a093c538e07a519ad10c260d9ec3597",
+      "manifest_sha256": "316cb523fa4d77effc76dacaae7957821553d403e5a27159bd136efab13b3b93",
+      "source_commit": "4f4e5698a37ba8a8ca9ced49b323cc62221a80ee",
+      "asset_commit": "7e761ba70478c051792ebd223ccc0a554529381e",
+      "native_visual_inspection": true,
+      "scope": "Normal combined Multiplayer/SWAT/Firefight cartridge boot after viewport correction; reticle alignment and zoom validated separately in the 1\u20134-view native fixtures.",
+      "capture_sha256": "7649672829db69b5f9ad43798b762d916bb3735a0234316f179442a265d7f6ea"
+    },
+    {
+      "kind": "gungnir-shell-release-v1",
+      "rom_bytes": 66715648,
+      "rom_sha256": "fdd784bf5f028b15de934534471e5d4ffbc653792a61d348aa45ccd9ebad4a2b",
+      "manifest_sha256": "0c4eb3fa52dd6f9fe9da9e5a20ba6ece6b5072468f5f2b75cf294ce0ee687a9d",
+      "source_commit": "c66cec6e6674409b385e59e143a7d5f46f3f94b1",
+      "asset_commit_in_manifest": "7e761ba70478c051792ebd223ccc0a554529381e",
+      "resolved_asset_commit": "0ec3099",
+      "asset_bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+      "native_visual_inspection": true,
+      "capture_sha256": "5630db9fc656bfabbc05b8bdb083124408a9a87699c2189557591ad091a5696e",
+      "scope": "Local combined Multiplayer/SWAT/Firefight size and menu-boot smoke check. Existing uncommitted Firefight rendering edits are present; this ROM is not an exact clean PR-head build.",
+      "local_source_overrides": {
+        "port/n64/pve_draw.inc": "866b5bddd7e5fedc7948866b79ccfdb85adc9e72d8835101c2e654cfe5b56cd8"
+      }
+    },
+    {
+      "kind": "gungnir-faces-release-v1",
+      "rom_bytes": 66732032,
+      "rom_sha256": "6f290bcbbff64cf7d4b84dca583e66b60003f6d05da3cd3e09814302c8f7ef0f",
+      "manifest_sha256": "de9c5aefd0fd07daf4a9b2513b5958245e7d5e9c687e385927974a5cc35b83e0",
+      "source_commit": "60bf322d19c9a177c5f3496e64ed78d48745c3cd",
+      "asset_commit": "b7c93a4b3cf024c908c36cb64b17a386fb54b985",
+      "native_visual_inspection": true,
+      "capture_sha256": "1ee1b45b4a19395d60c0367951d5bea936cf4a35e74a434955ac5872c957079c",
+      "scope": "Clean committed combined Multiplayer/SWAT/Firefight cartridge with the four supplied face decals; menu boot and cartridge size verified in Ares. Separate native RDP face-material cycles and sanitized memory/state cases are recorded in gungnir-faces.json."
+    },
+    {
+      "kind": "gungnir-optic-release-v1",
+      "rom_bytes": 66715648,
+      "rom_sha256": "eed0f3c7b514335bbd9357d6588ff15157c5ced562a14ff5f64943516d334ae1",
+      "manifest_sha256": "08c5a0eeb9c0eb0ebd89d9225b92b1793104fd77af3eac610dae343c83b80086",
+      "source_commit": "721cbdc8776a7c64e6bf8fea3d8b09f3114348bc",
+      "asset_commit": "4628fa411ff057924ca7c291add3802ed5d61050",
+      "native_visual_inspection": true,
+      "capture_sha256": "534efb5d15d0bed92db3a9c44f9fea227a4d2b04533cda612c38753c62de1c7f",
+      "scope": "Clean committed combined Multiplayer/SWAT/Firefight cartridge with refined hexagonal optic and clean silver helmet. Ares combined-menu boot and cartridge size verified; near/far material inspection and source/skin/GLB/runtime proofs recorded separately. ROM and captures remain local."
+    },
+    {
+      "kind": "gungnir-panels-release-v1",
+      "rom_bytes": 66715648,
+      "rom_sha256": "88d6d5b2c4ac003b3d0e9fe7aaf8372bbc567ef993629662f3121b426c47179b",
+      "manifest_sha256": "f01f7716b846daa645c4cf870b56964a03fe6da47222ea2d9e3b4b357265bbd5",
+      "source_commit": "c9a16bd7c267ca74ae0b6aafa76435aaec0dfa94",
+      "asset_commit": "1e1888fcc120376c488334d992de1a530331998c",
+      "native_visual_inspection": true,
+      "capture_sha256": "d07c989eeb3fb092ac261e2f8e4a01abbf88c5a6bcf5a92c4aa93d6ba4709ca0",
+      "scope": "Clean committed combined Multiplayer/SWAT/Firefight cartridge with restrained crown, cheek and jaw blocks. Ares combined-menu boot verified; current near/far head rendering, four-profile galleries and refreshed packed/rig/GLB/runtime/face-art checks are recorded separately. ROM and captures remain local."
+    }
+  ],
+  "damage_tiling": {
+    "sanitized_cases": 48,
+    "synchronized_uploads": 120,
+    "maximum_screen_coordinate_error_pixels": 0.0001
+  },
+  "combined_release_rom_bytes": 66715648,
+  "combined_release_required_ram_mib": 8,
+  "hud_status": {
+    "label": "AUTO",
+    "placement": "top center of each player viewport",
+    "visible_when": "living GUNGNIR player with movement autopilot enabled",
+    "hidden_when_disabled": true,
+    "hud_sha256": "6a65a399f89047023c3fcd718d2eb3b1e0ce72f1428bcdee56217e3926036f49",
+    "views": [
+      {
+        "views": 1,
+        "rom_sha256": "c0167e3237d75e8ba4e015d92ab5f1ef5b907d32cf2d863625bb8012a96a7503",
+        "manifest_sha256": "559f776ba11113704343af7ebf5f27836c272f805fef04fbf09f8fa8c0059fe4",
+        "errors": 0,
+        "warnings": 0,
+        "enabled_views": [
+          0
+        ],
+        "disabled_views": []
+      },
+      {
+        "views": 3,
+        "rom_sha256": "d5f5072ef1c4887b160a9ae8fbf1238ecd8d6f2565b0c9b3038271d224f1261f",
+        "manifest_sha256": "e5f62a4f0ffd4107cd43d7db551c8a527160c9681053bfada460542b3f1ed9c7",
+        "errors": 0,
+        "warnings": 0,
+        "enabled_views": [
+          0,
+          2
+        ],
+        "disabled_views": [
+          1
+        ]
+      }
+    ]
+  },
+  "rear_armor": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "baseline_candidate_sha256": "f9edb75aaccd2b66412b8062d79cb5e1cbd22a99d4a269d9837cd779af6857a7",
+    "baseline_private_commit": "4d4c53c7d813945f4efe9a32473018da2e39b252",
+    "clearance_sha256": "36f7848d262e8699a4a1c67b566a0fe95b0d85689a1b440a592f0cd8558508f6",
+    "source_control_maximum_lost_pixels": 0,
+    "rear_probes": 24,
+    "maximum_rear_source_plate_loss_fraction_before": [
+      0.1290824261275272,
+      0.3963963963963964
+    ],
+    "maximum_rear_source_plate_loss_fraction_after": [
+      0.05538922155688623,
+      0.05305821665438467
+    ],
+    "maximum_retained_plate_hidden_pixels": [
+      5,
+      6
+    ],
+    "maximum_source_plate_missing_pixels": [
+      83,
+      87
+    ],
+    "strict_zero_loss_check_passed": false,
+    "decision": "Retain the accepted outward rails and restore original inward frame/edge surfaces. Finite front/back part-ID and native review accepts the source contour differences. Strict global zero-loss remains false.",
+    "native": {
+      "bank_sha256": "cd30f2be8c801126667a7660efaacab71f46c3657333a6badf020eb5cae3d148",
+      "views": [
+        1,
+        4
+      ],
+      "rdp_errors": 0,
+      "rdp_warnings": 0,
+      "captures": [
+        {
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-1.png",
+          "sha256": "fed36a107d57e8cc3e8a4cd742086aa56db299b789ca8e3d77fa3ea59ba3d4db"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-single-v1/armor-orbit-2.png",
+          "sha256": "381293d1e1dfb11ede9b7b45fc5c537fd2140539a5b19df14ab0b57a9c59f6b0"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-orbit-1.png",
+          "sha256": "fd6514e79d85bdcedcf9ff58d3c4937b13e9f5a306d70475dd687e723183e76f"
+        },
+        {
+          "local_path": "build/gungnir-shell-native-four-v1/armor-side.png",
+          "sha256": "ef72e07fcc3b3be46fe308a2a950243b730b4ec0afdab5a1fd09c8a66d2889ed"
+        }
+      ],
+      "scope": "Historical shell/codpiece inspection from the previous body; rear geometry unchanged by the optic update. Current source/packed depth and culling checks rerun."
+    }
+  },
+  "viewport_alignment": {
+    "report": "port/n64/benchmarks/reticle-layout.json",
+    "verified_main_commit": "f40fefee4027b6de8eadf63cc0ba477801173ce0",
+    "introduced_in_pr": 12,
+    "native_views": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "forward_ray_tolerance_pixels": 0.1,
+    "rdp_errors": 0,
+    "rdp_warnings": 0
+  },
+  "shells": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "parent_sha256": "9d7a83d3ea42b785db9df5af3174c99ba980789ec387d466300f72c82ae3e728",
+    "source_sha256": "988da535240a74d4618e77232985e0fd80061f39f6718056495ed772a4c765b6",
+    "method": "Front-face culled isolated rear frame, three views per LOD, one-pixel source rim excluded; actual exterior armor geometry unchanged; source lower codpiece extremum retained",
+    "views": [
+      {
+        "lod": 0,
+        "angle": "front",
+        "source_interior_pixels": 7317,
+        "before_covered_pixels": 22,
+        "after_covered_pixels": 7131,
+        "coverage_fraction": 0.974579745797458
+      },
+      {
+        "lod": 0,
+        "angle": "front-left",
+        "source_interior_pixels": 6829,
+        "before_covered_pixels": 115,
+        "after_covered_pixels": 6566,
+        "coverage_fraction": 0.9614877727339288
+      },
+      {
+        "lod": 0,
+        "angle": "front-right",
+        "source_interior_pixels": 6853,
+        "before_covered_pixels": 171,
+        "after_covered_pixels": 6542,
+        "coverage_fraction": 0.9546184152925726
+      },
+      {
+        "lod": 1,
+        "angle": "front",
+        "source_interior_pixels": 7317,
+        "before_covered_pixels": 0,
+        "after_covered_pixels": 7131,
+        "coverage_fraction": 0.974579745797458
+      },
+      {
+        "lod": 1,
+        "angle": "front-left",
+        "source_interior_pixels": 6829,
+        "before_covered_pixels": 71,
+        "after_covered_pixels": 6527,
+        "coverage_fraction": 0.9557768340899107
+      },
+      {
+        "lod": 1,
+        "angle": "front-right",
+        "source_interior_pixels": 6853,
+        "before_covered_pixels": 68,
+        "after_covered_pixels": 6542,
+        "coverage_fraction": 0.9546184152925726
+      }
+    ],
+    "codpiece_contours": [
+      {
+        "lod": 0,
+        "source_lowest_halo_units": 0.3293713796032613,
+        "before_lowest_halo_units": 0.3634496351406829,
+        "after_lowest_halo_units": 0.3293713927268982
+      },
+      {
+        "lod": 1,
+        "source_lowest_halo_units": 0.3293713796032613,
+        "before_lowest_halo_units": 0.36330895716593653,
+        "after_lowest_halo_units": 0.3293713927268982
+      }
+    ],
+    "report": "port/n64/benchmarks/gungnir-shells.json (historical parent comparison; current hash-bound rerun in private review)"
+  },
+  "combined_release_scope": "Clean committed combined Multiplayer/SWAT/Firefight cartridge with restrained crown, cheek and jaw blocks. Ares combined-menu boot verified; current near/far head rendering, four-profile galleries and refreshed packed/rig/GLB/runtime/face-art checks are recorded separately. ROM and captures remain local.",
+  "face_art": {
+    "profiles": [
+      "Artboard 1.png",
+      "Artboard 2.png",
+      "Artboard 3.png",
+      "Artboard 4.png"
+    ],
+    "format": "IA8",
+    "tmem_bytes": 4096,
+    "total_texture_bytes": 16384,
+    "additional_resident_body_vertices": 0,
+    "additional_draw_triangles": [
+      34,
+      32
+    ],
+    "additional_vertex_loads": [
+      66,
+      44
+    ],
+    "sanitized_state_cases": 96,
+    "native_rdp_errors": 0,
+    "native_rdp_warnings": 0,
+    "report": "port/n64/benchmarks/gungnir-faces.json"
+  },
+  "optic": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "parent_sha256": "9d9048e547304bb59ecad86a554ddb44863bbe688a22aa234dcab38d65645cc9",
+    "lods": [
+      {
+        "lod": 0,
+        "helmet_shell_geometry_unchanged": true,
+        "closed_convex_shell": true,
+        "flat_topped_hex_corners": 6,
+        "orange_rgb": [
+          255,
+          149,
+          25
+        ],
+        "housing_rgb": [
+          76,
+          76,
+          76
+        ],
+        "source_art_uv_unchanged": true,
+        "source_uv_stains_removed": true,
+        "quantized_pose_samples": 454,
+        "quantized_optic_degenerate_triangles": 0,
+        "width_increase_ratio": 1.3520806368773275
+      },
+      {
+        "lod": 1,
+        "helmet_shell_geometry_unchanged": true,
+        "closed_convex_shell": true,
+        "flat_topped_hex_corners": 6,
+        "orange_rgb": [
+          255,
+          149,
+          25
+        ],
+        "housing_rgb": [
+          76,
+          76,
+          76
+        ],
+        "source_art_uv_unchanged": true,
+        "source_uv_stains_removed": true,
+        "quantized_pose_samples": 454,
+        "quantized_optic_degenerate_triangles": 0,
+        "width_increase_ratio": 1.12673386406444
+      }
+    ],
+    "scope": "All unrelated geometry and original scrawls retain their coordinates. Helmet remains closed/convex. Albedo is independent of source UV stains; all 39 clips retain six quantized optic corners. Native appearance and rendering are separate.",
+    "report": "port/n64/benchmarks/gungnir-optic.json"
+  },
+  "helmet": {
+    "schema": 1,
+    "passed": true,
+    "candidate_sha256": "5d240524a07f09abf5a19205d57467d35ca4fc786dce6f8d637f69b6dbca23cc",
+    "parent_bank_sha256": "a808ee737befdc1dcf1a52d85893942946ca5096ba73e6b6edfd20b906ff3279",
+    "bank_sha256": "5980f919814793c2671694057f6b4d28a31a4788f762912a0fad4fc092ac8d26",
+    "source_recipe_sha256": "f7e3bb2dee7944e628186347e583d564fb52c0dfdd728e307e631da03320f1da",
+    "lods": [
+      {
+        "lod": 0,
+        "panels": {
+          "jaw": 9,
+          "faceplate": 55,
+          "cheek": 14,
+          "crown": 14
+        },
+        "protected_front_triangles": 16,
+        "packed_vertices": 1060,
+        "triangles": 1292,
+        "all_39_clip_packed_topology_and_motion_unchanged": true,
+        "all_weapon_sockets_unchanged": true,
+        "nonhelmet_authored_colors_unchanged": true
+      },
+      {
+        "lod": 1,
+        "panels": {
+          "jaw": 3,
+          "faceplate": 40,
+          "cheek": 10,
+          "crown": 11
+        },
+        "protected_front_triangles": 14,
+        "packed_vertices": 792,
+        "triangles": 887,
+        "all_39_clip_packed_topology_and_motion_unchanged": true,
+        "all_weapon_sockets_unchanged": true,
+        "nonhelmet_authored_colors_unchanged": true
+      }
+    ],
+    "scope": "Color-only crown, cheek and underside jaw blocking on retained source surfaces. Exact oriented packed triangle trajectories across all 39 sparse clips, sockets compare to the accepted parent. Nonhelmet authored colors remain exact; packed color welding retains its existing 24-level channel bound. Frontal faces remain silver; original art alpha/UV and native appearance are separate checks.",
+    "parent_private_commit": "4628fa411ff057924ca7c291add3802ed5d61050",
+    "report": "port/n64/benchmarks/gungnir-helmet.json"
+  }
+}

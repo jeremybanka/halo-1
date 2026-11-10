@@ -8,6 +8,9 @@
 #include "terrain.h"
 #include "sky.h"
 #include "blam/vehicle_physics.h"
+#ifdef BG_PVE
+#include "pve.h"
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,6 +124,9 @@ void bg_map_host_world_order(unsigned block, void *memory, unsigned bytes) {
 #endif
 #include "mode_map.inc"
 void bg_map_unload(void) {
+#ifdef BG_PVE
+    bg_pve_stop();
+#endif
     bg_autonav_reset();
     unload_mode_map();
     bg_vehicle_world_release();

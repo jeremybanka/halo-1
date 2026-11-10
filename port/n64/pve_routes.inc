@@ -54,10 +54,10 @@ static void pve_routes_reset(bool initialize){
 #endif
     if(initialize){
         memset(pve_route_id,255,sizeof(pve_route_id));pve_route_count=0;
-        for(unsigned n=0;n<PVE_NODES;n++)if(pve_nav_height[n]>-999&&pve_nav_edges[n]){
+        for(unsigned n=0;n<pve_nav_node_count();n++)if(pve_nav_height_at(n)>-999&&pve_nav_edge_bits(n)){
             assert(pve_route_count<PVE_ROUTE_NODES);unsigned id=pve_route_count++;
             pve_route_id[n]=id;pve_route_grid[id]=n;
-            pve_route_x[id]=n%PVE_CELLS%PVE_GRID;pve_route_z[id]=n%PVE_CELLS/PVE_GRID;
+            pve_route_x[id]=pve_nav_x(n);pve_route_z[id]=pve_nav_z(n);
         }
         /* Only at map initialization: immutable connected-region labels answer
          * arrival reachability exactly, without touching any actor's routes. */
@@ -65,7 +65,7 @@ static void pve_routes_reset(bool initialize){
         for(unsigned id=0;id<pve_route_count;id++)if(pve_route_component[id]==PVE_ROUTE_NONE){
             unsigned first=0,last=0;pve_route_job.heap[last++]=id;pve_route_component[id]=component;
             while(first<last){unsigned current=pve_route_job.heap[first++],n=pve_route_grid[current];
-                for(unsigned k=0;k<8;k++)if(pve_nav_edges[n]&(1u<<k)){
+                for(unsigned k=0;k<8;k++)if(pve_nav_edge_bits(n)&(1u<<k)){
                     unsigned next=pve_route_id[pve_neighbor(n,k)];assert(next<pve_route_count);
                     if(pve_route_component[next]==PVE_ROUTE_NONE){pve_route_component[next]=component;pve_route_job.heap[last++]=next;}
                 }
@@ -84,7 +84,7 @@ static void pve_routes_reset(bool initialize){
             for(unsigned n=0;n<pve_route_count;n++)pve_route_landmarks[n][l]=PVE_ROUTE_NONE;
             unsigned first=0,last=0;pve_route_job.heap[last++]=landmark;pve_route_landmarks[landmark][l]=0;
             while(first<last){unsigned n=pve_route_job.heap[first++],raw=pve_route_grid[n];
-                for(unsigned k=0;k<8;k++)if(pve_nav_edges[raw]&(1u<<k)){
+                for(unsigned k=0;k<8;k++)if(pve_nav_edge_bits(raw)&(1u<<k)){
                     unsigned next=pve_route_id[pve_neighbor(raw,k)];if(pve_route_landmarks[next][l]==PVE_ROUTE_NONE){pve_route_landmarks[next][l]=pve_route_landmarks[n][l]+1;pve_route_job.heap[last++]=next;}
                 }
             }
@@ -135,7 +135,7 @@ static int pve_route_field_for(unsigned goal){
 static unsigned pve_route_missing(const pve_route_request*r){
     const pve_route_field*c=&pve_route_fields[r->field];unsigned n=pve_route_grid[r->node];
     if(c->distance[r->node]==PVE_ROUTE_NONE)return r->node;
-    for(unsigned k=0;k<8;k++)if(pve_nav_edges[n]&(1u<<k)){
+    for(unsigned k=0;k<8;k++)if(pve_nav_edge_bits(n)&(1u<<k)){
         unsigned next=pve_route_id[pve_neighbor(n,k)];if(c->distance[next]==PVE_ROUTE_NONE)return next;
     }
     return PVE_ROUTE_NONE;
@@ -146,7 +146,7 @@ static void pve_route_apply(unsigned i){
     bool retreat=a->action==_actor_action_flee||(a->action==_actor_action_guard&&actor_get(i)->state.action_data.guard.cower);
     /* Same neighbor order, strict comparison and dynamic spacing as the old
      * full flood. Both pursuit and retreat require all neighbor distances. */
-    for(unsigned k=0;k<8;k++)if(pve_nav_edges[node]&(1u<<k)){
+    for(unsigned k=0;k<8;k++)if(pve_nav_edge_bits(node)&(1u<<k)){
         unsigned next=pve_neighbor(node,k);float cost=c->distance[pve_route_id[next]],point[3];pve_node_pos(next,point);
         for(unsigned j=0;j<bg_pve_count;j++)if(j!=i&&bg_players[BG_PLAYERS+j].health>0&&distance2(point,bg_players[BG_PLAYERS+j].pos)<.64f)cost+=retreat?-3:3;
         if((retreat&&cost>best)||(!retreat&&cost<best)){best=cost;chosen=next;}
@@ -232,7 +232,7 @@ static void pve_route_step(void){
         unsigned total=cost+c->distance[n];if(total<pve_route_job.best){pve_route_job.best=total;pve_route_job.best_node=n;}
         return; /* An exact cached suffix replaces expansion beyond this node. */
     }
-    for(unsigned k=0;k<8;k++)if(pve_nav_edges[raw]&(1u<<k)){
+    for(unsigned k=0;k<8;k++)if(pve_nav_edge_bits(raw)&(1u<<k)){
         unsigned next=pve_route_id[pve_neighbor(raw,k)],g=cost+1;
         if(pve_route_job.nodes[next].stamp==pve_route_job.epoch&&g>=pve_route_job.nodes[next].cost)continue;
         bool fresh=pve_route_job.nodes[next].stamp!=pve_route_job.epoch;

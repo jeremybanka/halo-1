@@ -523,18 +523,22 @@ void bg_front_draw(const bg_frontend *f, uint64_t now) {
         break;
     }
     case BG_FRONT_FIGHT: {
-        text(0,70,75,500,34,0,white,"FIREFIGHT / BLOOD GULCH");
+        char heading[80];snprintf(heading,sizeof(heading),"FIREFIGHT / %s",bg_front_maps[f->map].name);
+        text(0,70,75,500,34,0,white,heading);unsigned row=0;
         for(unsigned fight=0;fight<BG_FF_FIGHTS;fight++){
+            if(bg_ff_fight_map(fight)!=f->map)continue;
             bool available=bg_front_session_available(f,BG_FRONT_FIGHT,fight);
-            int y=145+110*fight;
-            char title[32];snprintf(title,sizeof(title),"%s%s",fight==f->fight?"> ":"",fight==BG_FF_ONSLAUGHT?"ONSLAUGHT":"GAUNTLET");
+            int y=145+110*row++;
+            char title[48];snprintf(title,sizeof(title),"%s%s",fight==f->fight?"> ":"",bg_ff_fight_name(fight));
             text(0,70,y,500,30,0,color(available,fight==f->fight),title);
             const char*description=fight==BG_FF_ONSLAUGHT?
                 "More Spartans. Larger waves.\nSurvive the Covenant onslaught.":
-                "Same waves. Tougher Covenant.\nEnemy ranks rise with your squad.";
+                fight==BG_FF_GAUNTLET?"Same waves. Tougher Covenant.\nEnemy ranks rise with your squad.":
+                fight==BG_FF_COURTYARD?"Hold the courtyard. Clear six waves.\nNormal difficulty / wave checkpoints.":
+                "Sweep three marked sectors.\nNormal difficulty / sector checkpoints.";
             text(0,70,y+34,500,54,0,available?blue:white,available?description:"Covenant roster required");
         }
-        text(0,70,380,500,26,0,blue,"3 rounds / 15 waves / 10 shared lives");
+        text(0,70,380,500,26,0,blue,bg_ff_casual(f->fight)?"6 waves / unlimited lives / frequent resupply":"3 rounds / 15 waves / 10 shared lives");
         buttons(bg_front_session_available(f,BG_FRONT_FIGHT,f->fight));
         break;
     }

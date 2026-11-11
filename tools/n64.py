@@ -37,6 +37,14 @@ def require_clean(root):
         raise ValueError('Commit or preserve source changes before using the locked bootstrap')
 
 
+def checked_output(cache, output):
+    cache = Path(cache).resolve()
+    output = Path(output).resolve()
+    if not output.is_relative_to(cache) or output == cache or output.exists():
+        raise ValueError('ROM output must be a fresh directory under build/n64-bootstrap')
+    return output
+
+
 def locked_bank(root, cache, pin, repository):
     bank = root/'halo64-assets'
     if (bank/'.git').exists():
@@ -134,7 +142,7 @@ def reject_external_links(root):
                 if not (repo/name).resolve().is_relative_to(root):
                     raise ValueError('Versioned asset link escapes checkout: '+name)
     build = root/'build/n64'
-    if build.exists() and not build.resolve().is_relative_to(root):
+    if os.path.lexists(build) and not build.resolve().is_relative_to(root):
         raise ValueError('Legacy build/n64 points outside this checkout; preserve and retire that link before using the bootstrap')
 
 
@@ -176,9 +184,7 @@ def worker(args, root, cache, lock):
         run_dir = cache/'runs'/run_id
         run_dir.mkdir(parents=True)
         (run_dir/'scratch').mkdir()
-        output = args.output_dir.resolve() if args.output_dir else run_dir/'rom'
-        if not output.is_relative_to(root/'build') or output.exists():
-            raise ValueError('ROM output must be a fresh directory under this checkout/build')
+        output = checked_output(cache, args.output_dir if args.output_dir else run_dir/'rom')
         command = [python, Path(__file__), '--build-worker', '--checkout', root,
                    '--sdk', sdk, '--tiny3d', tiny, '--libdragon-source', sdk_source,
                    '--preset', 'release', '--output-dir', output]
@@ -210,6 +216,9 @@ def worker(args, root, cache, lock):
         if git(bank, 'status', '--porcelain'):
             raise ValueError('Build changed versioned assets')
         result = {'source': source, 'assets': pin, 'snapshot': snapshot,
+                  'bootstrap_source': git(DRIVER, 'rev-parse', 'HEAD'),
+                  'toolchain_lock': {name: lock[name]['revision'] for name in ('libdragon','tiny3d')},
+                  'compiler_version': lock['gcc'], 'python_version': lock['python'],
                   'input_package': package, 'toolchain_files': hashes,
                   'bootstrap_lock_sha256': digest(DRIVER/'port/n64/bootstrap-lock.json'),
                   'rom': built['rom'], 'build_manifest': str(mf), 'log': str(run_dir/'build.log')}
@@ -228,9 +237,11 @@ def main():
     parser.add_argument('--uv', type=Path, help='Select an already installed locked uv')
     parser.add_argument('--jobs', type=int, default=2)
     parser.add_argument('--expanded', action='store_true', help='Build the expanded Firefight roster')
-    parser.add_argument('--output-dir', type=Path)
+    parser.add_argument('--output-dir', type=Path, help='Fresh output below build/n64-bootstrap')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.jobs < 1:
+        parser.error('--jobs must be positive')
     root = args.checkout.resolve()
     if args.ref:
         if args.worker:

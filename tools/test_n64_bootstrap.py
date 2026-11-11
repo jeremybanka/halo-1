@@ -16,8 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'port/n64'))
 sys.path.insert(0, str(ROOT/'tools'))
 from build_inputs import MAPS, PACKAGE, PackageReader, connect, digest, restore
-from n64 import verify_bank, locked_bank
-from n64_toolchain import unpack
+from n64 import verify_bank, locked_bank, checked_output
+from n64_toolchain import unpack, deb_payload
 
 
 def record(data):
@@ -120,6 +120,25 @@ class InputTests(unittest.TestCase):
 
 
 class VerificationTests(unittest.TestCase):
+    def test_output_cannot_escape_guarded_cache(self):
+        with tempfile.TemporaryDirectory() as t:
+            cache=Path(t)/'build/n64-bootstrap'; cache.mkdir(parents=True)
+            self.assertEqual(checked_output(cache, cache/'new-rom'), (cache/'new-rom').resolve())
+            with self.assertRaises(ValueError): checked_output(cache, cache.parent/'unreserved')
+            with self.assertRaises(ValueError): checked_output(cache, cache)
+
+    def test_debian_compiler_payload_is_extracted_without_installing(self):
+        with tempfile.TemporaryDirectory() as t:
+            root=Path(t); data=io.BytesIO()
+            with tarfile.open(fileobj=data,mode='w:gz') as tar:
+                entry=tarfile.TarInfo('opt/libdragon/bin/compiler'); entry.size=3
+                tar.addfile(entry,io.BytesIO(b'elf'))
+            payload=data.getvalue()
+            header=f'{"data.tar.gz/":<16}{0:<12}{0:<6}{0:<6}{"100644":<8}{len(payload):<10}`\n'.encode()
+            archive=root/'compiler.deb';archive.write_bytes(b'!<arch>\n'+header+payload)
+            files=deb_payload(archive,root/'expanded')
+            self.assertEqual((files/'opt/libdragon/bin/compiler').read_bytes(),b'elf')
+
     def test_fresh_asset_initialization_uses_exact_pin(self):
         with tempfile.TemporaryDirectory() as t:
             root = Path(t); repo = root/'remote'; repo.mkdir()

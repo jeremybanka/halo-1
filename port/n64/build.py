@@ -26,6 +26,7 @@ SHOWCASES = [
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--keep-dfs", action="store_true", help="Retain the packaged filesystem for explicit repacking/debugging")
     parser.add_argument("--scope-qa",action="store_true",help="Native close-ground and distant zoom regression photos")
     parser.add_argument("--m64-polish-qa",action="store_true",help="Frozen 1–4 viewport, controls, damage and flashlight photos")
     parser.add_argument("--pve-squad",action="store_true",help="Boot directly into the squad diagnostic")
@@ -959,7 +960,7 @@ def main():
         build_error("Supply --sdk and --tiny3d paths to installed libdragon and built Tiny3D")
 
     def run(command):
-        subprocess.run(
+        globals().get("_storage_run_command", subprocess.run)(
             [str(x) for x in command],
             check=True,
             cwd=ROOT,
@@ -1531,4 +1532,15 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Shared workspace storage guard; legacy worktree locations remain valid.
+    _common = Path(subprocess.check_output(
+        ["git", "-C", str(ROOT), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+        text=True).strip())
+    _policy_tools = _common.parent / "tools"
+    if (_policy_tools / "workspace_storage.py").is_file() or (_common.parent / "workspace-policy.json").is_file():
+        sys.path.insert(0, str(_policy_tools))
+        from workspace_storage import build_entry, run_command as _storage_run_command
+        build_entry(ROOT, main)
+    else:
+        # A historical branch on a machine that has not adopted this policy.
+        main()

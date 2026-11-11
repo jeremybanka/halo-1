@@ -1,0 +1,122 @@
+name: N64 cold build
+
+on:
+  push:
+    branches: [main, jeremybanka/n64-turnkey-build]
+    paths:
+      - 'port/n64/**'
+      - 'tools/n64*.py'
+      - 'tools/workspace*.py'
+      - 'halo64-assets'
+      - 'Makefile'
+      - '.github/workflows/n64.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: n64-cold-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refs:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.refs.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: refs
+        name: Candidate and five recent main commits
+        env:
+          CANDIDATE: ${{ github.sha }}
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          python3 - <<'PY'
+          import json, os, re, subprocess
+          refs = [os.environ['CANDIDATE'], *subprocess.check_output(
+              ['git', 'rev-list', '--first-parent', '-5', 'origin/main'], text=True).splitlines()]
+          unique = list(dict.fromkeys(refs))
+          assert all(re.fullmatch('[0-9a-f]{40}', ref) for ref in unique)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('matrix=' + json.dumps({'include': [{'ref': r, 'name': r[:10]} for r in unique]}) + '\n')
+          PY
+
+  build:
+    needs: refs
+    name: release ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.refs.outputs.matrix) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: controller
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: game
+          ref: ${{ matrix.ref }}
+          persist-credentials: false
+      - name: Install host prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang curl git pkg-config \
+            libpng-dev zlib1g-dev libopus-dev libsamplerate0-dev
+      - name: Test bootstrap integrity handling
+        run: python3 -m unittest discover -s controller/tools -p 'test_n64_bootstrap.py'
+      - name: Build from cold source and exact private pin
+        env:
+          N64_ASSETS_SSH_KEY: ${{ secrets.N64_ASSETS_SSH_KEY }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, shlex, subprocess, tempfile
+          secret = os.environ.pop('N64_ASSETS_SSH_KEY', '')
+          if not secret:
+              raise SystemExit('Configure N64_ASSETS_SSH_KEY with a dedicated read-only deploy key for jeremybanka/halo64-assets.')
+          with tempfile.TemporaryDirectory(prefix='n64-ci-key-') as temp:
+              key = pathlib.Path(temp) / 'key'
+              key.write_text(secret)
+              key.chmod(0o600)
+              hosts = pathlib.Path('controller/.github/github-known-hosts').resolve()
+              env = dict(os.environ)
+              env['GIT_CONFIG_COUNT'] = '1'
+              env['GIT_CONFIG_KEY_0'] = 'url.ssh://git@github.com/jeremybanka/halo64-assets.git.insteadOf'
+              env['GIT_CONFIG_VALUE_0'] = 'https://github.com/jeremybanka/halo64-assets.git'
+              env['GIT_SSH_COMMAND'] = 'ssh -o BatchMode=yes -o IdentitiesOnly=yes -o IdentityAgent=none -o StrictHostKeyChecking=yes -o UserKnownHostsFile=' + shlex.quote(str(hosts)) + ' -i ' + shlex.quote(str(key))
+              subprocess.run(['python3', 'controller/tools/n64.py', '--checkout', 'game'], env=env, check=True)
+          PY
+      - name: Keep build provenance only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: n64-provenance-${{ matrix.name }}
+          path: |
+            game/build/n64-bootstrap/runs/*/result.json
+            game/build/n64-bootstrap/runs/*/rom/*.build.json
+          retention-days: 7
+          if-no-files-found: warn
+          # ROMs, source maps and private asset files are intentionally excluded.
+
+  gate:
+    name: N64 cold build gate
+    if: always()
+    needs: [refs, build]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every cold build
+        env:
+          PLAN_RESULT: ${{ needs.refs.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+        run: test "$PLAN_RESULT" = success && test "$BUILD_RESULT" = success

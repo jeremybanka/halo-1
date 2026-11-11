@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "python": "3.11.17",
+  "gcc": "16.2.0",
+  "libdragon": {
+    "repository": "https://github.com/DragonMinded/libdragon.git",
+    "revision": "494f1f586d3d6d5fc65b516a8ce29ccf42f85e15",
+    "archive": {
+      "url": "https://codeload.github.com/DragonMinded/libdragon/tar.gz/494f1f586d3d6d5fc65b516a8ce29ccf42f85e15",
+      "sha256": "ea555b2fbff0e4124e81012f53fd432cb2987bb55aeed4f9ac4def99121ead44",
+      "bytes": 11850773,
+      "filename": "libdragon.tar.gz"
+    }
+  },
+  "tiny3d": {
+    "repository": "https://github.com/HailToDodongo/tiny3d.git",
+    "revision": "ec557373e986b5e041cc102a7ff787eb07921937",
+    "archive": {
+      "url": "https://codeload.github.com/HailToDodongo/tiny3d/tar.gz/ec557373e986b5e041cc102a7ff787eb07921937",
+      "sha256": "48eb538682f8cdcf608d3b276af95ebd04a46020eed31bdc1e4fb8295e9a6790",
+      "bytes": 16213079,
+      "filename": "tiny3d.tar.gz"
+    }
+  },
+  "historical_input_package": {
+    "asset_revision": "9d036ac720d671e232513404d01601b0136c427f",
+    "path": "assets/build-inputs/pr18",
+    "manifest_sha256": "610c3f7ad0cc2dbbd4193a25d30ff0f2fdba6919deb21f96d1558f189f942f44",
+    "compatible_asset_pins": [
+      "1e1888fcc120376c488334d992de1a530331998c",
+      "870f40777627c58b232c5c7129eaaa3226aee254",
+      "219895dabfb629aa6d7f3bd014495f30c8557f44"
+    ]
+  },
+  "uv_version": "0.13.7",
+  "asset_repository": "https://github.com/jeremybanka/halo64-assets.git",
+  "uv_packages": {
+    "darwin-arm64": {
+      "url": "https://github.com/astral-sh/uv/releases/download/0.13.7/uv-aarch64-apple-darwin.tar.gz",
+      "sha256": "81b811b57e4624df7ed3aac148e0359100d9962f3d9dce00aec533dc2e086731",
+      "bytes": 14347867,
+      "filename": "uv-darwin-arm64.tar.gz"
+    },
+    "darwin-x86_64": {
+      "url": "https://github.com/astral-sh/uv/releases/download/0.13.7/uv-x86_64-apple-darwin.tar.gz",
+      "sha256": "20c47e4c1f630b8abaff8c291fa9b9aa300fef92c4fbff95adf198b55287cda7",
+      "bytes": 17026382,
+      "filename": "uv-darwin-x86_64.tar.gz"
+    },
+    "linux-arm64": {
+      "url": "https://github.com/astral-sh/uv/releases/download/0.13.7/uv-aarch64-unknown-linux-gnu.tar.gz",
+      "sha256": "71279f8d3c67241e807b9d8db872d1bf541579fb9f08b7d1eb1682196d1e57dc",
+      "bytes": 15896996,
+      "filename": "uv-linux-arm64.tar.gz"
+    },
+    "linux-x86_64": {
+      "url": "https://github.com/astral-sh/uv/releases/download/0.13.7/uv-x86_64-unknown-linux-gnu.tar.gz",
+      "sha256": "c5221ff41b7892bfc223543883600125f6a47fe845093e0f5bdff4f359196d83",
+      "bytes": 16671812,
+      "filename": "uv-linux-x86_64.tar.gz"
+    }
+  },
+  "compiler_packages": {
+    "linux-x86_64": {
+      "url": "https://github.com/DragonMinded/libdragon/releases/download/toolchain-continuous-prerelease/gcc-toolchain-mips64-amd64.deb",
+      "sha256": "fac8e6572493a66468b7d45df41b042f90b1a630ec96aa218bd5fb1f320a0a4d",
+      "bytes": 105106762,
+      "filename": "compiler-linux-amd64.deb"
+    },
+    "linux-arm64": {
+      "url": "https://github.com/DragonMinded/libdragon/releases/download/toolchain-continuous-prerelease/gcc-toolchain-mips64-arm64.deb",
+      "sha256": "271a6f10c891b316a4e47959698cc7d9a8da1261ca3aa13edea0c82de22bc4b4",
+      "bytes": 104141826,
+      "filename": "compiler-linux-arm64.deb"
+    }
+  },
+  "compiler_sources": [
+    {
+      "filename": "binutils-2.47.tar.gz",
+      "url": "https://ftp.gnu.org/gnu/binutils/binutils-2.47.tar.gz",
+      "sha256": "15f5abd0db9cf8ea116f516a9ce12bc1cefef491ef9e50942868093d8f92a6f3"
+    },
+    {
+      "filename": "gcc-16.2.0.tar.gz",
+      "url": "https://ftp.gnu.org/gnu/gcc/gcc-16.2.0/gcc-16.2.0.tar.gz",
+      "sha256": "071d00a097579e5ef7ce97fc4a9e58e73fd3503c0a013c765c970370a5a53b9b"
+    },
+    {
+      "filename": "newlib-4.4.0.20231231.tar.gz",
+      "url": "https://sourceware.org/pub/newlib/newlib-4.4.0.20231231.tar.gz",
+      "sha256": "0c166a39e1bf0951dfafcd68949fe0e4b6d3658081d6282f39aeefc6310f2f13"
+    },
+    {
+      "filename": "gmp-6.3.0.tar.bz2",
+      "url": "https://ftp.gnu.org/gnu/gmp/gmp-6.3.0.tar.bz2",
+      "sha256": "ac28211a7cfb609bae2e2c8d6058d66c8fe96434f740cf6fe2e47b000d1c20cb"
+    },
+    {
+      "filename": "mpc-1.3.1.tar.gz",
+      "url": "https://ftp.gnu.org/gnu/mpc/mpc-1.3.1.tar.gz",
+      "sha256": "ab642492f5cf882b74aa0cb730cd410a81edcdbec895183ce930e706c1c759b8"
+    },
+    {
+      "filename": "mpfr-4.2.1.tar.gz",
+      "url": "https://ftp.gnu.org/gnu/mpfr/mpfr-4.2.1.tar.gz",
+      "sha256": "116715552bd966c85b417c424db1bbdf639f53836eb361549d1f8d6ded5cb4c6"
+    }
+  ],
+  "historical_snapshot_corrections": {
+    "219895dabfb629aa6d7f3bd014495f30c8557f44": {
+      "generated/maps/maps-report.json": {
+        "recorded_sha256": "b4100159163a5409b3552ea6c438ac623023e8727ff29565323900b64bf236b2",
+        "published_sha256": "d160cb272e2e36c8701e48292889952b6b8624306621b62e9ad985f6b9dc7277",
+        "reason": "219895d recertified unchanged map payloads for rebased Jorge source without refreshing bank-manifest.json; Git-published report bytes are checked exactly."
+      }
+    }
+  },
+  "requirements_source_sha256": "1cd78719e25803fbed50c033333d085b423cf5305d1c104cdf908d61ed928ff4",
+  "requirements_lock_sha256": "e99cd6d7883a985acef57841a202b7afaf7967cbab7353f40f238d2994e30f6e",
+  "build_requirements_lock_sha256": "681f25e3a33d5ea538aa064836454b56d340831b4fe4ec15602d655686b89e51"
+}

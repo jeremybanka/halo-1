@@ -19,6 +19,11 @@ private repository URL and pinned commit hash.
 
 ## Use the bank
 
+For a normal fresh release use `make n64`. It initializes the exact private pin,
+verifies it, restores the versioned input caches and provisions the locked build
+dependencies automatically. See [README.md](README.md#fresh-release-build).
+The older explicit steps below remain useful when editing assets.
+
 ```sh
 git submodule update --init halo64-assets
 python3 port/n64/setup_assets.py --verify

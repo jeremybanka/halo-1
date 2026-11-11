@@ -87,8 +87,9 @@ jobs:
               raise SystemExit('Configure N64_ASSETS_SSH_KEY with a dedicated read-only deploy key for jeremybanka/halo64-assets.')
           with tempfile.TemporaryDirectory(prefix='n64-ci-key-') as temp:
               key = pathlib.Path(temp) / 'key'
-              key.write_text(secret)
+              key.write_text(secret.replace('\r\n', '\n').strip() + '\n')
               key.chmod(0o600)
+              subprocess.run(['ssh-keygen', '-y', '-P', '', '-f', str(key)], stdout=subprocess.DEVNULL, check=True)
               hosts = pathlib.Path('controller/.github/github-known-hosts').resolve()
               env = dict(os.environ)
               env['GIT_CONFIG_COUNT'] = '1'

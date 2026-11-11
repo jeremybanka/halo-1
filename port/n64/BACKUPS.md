@@ -1,6 +1,6 @@
 # Halo64 backups and private assets
 
-The public source branch is `jeremybanka/n64-blood-gulch` in
+The current public source branch is `main` in
 `https://github.com/jeremybanka/halo-1`. It contains the runtime, extraction,
 reduction and repair scripts, recipes, and documentation. The customized asset
 payloads are pinned by the `halo64-assets` Git submodule:
@@ -9,13 +9,20 @@ payloads are pinned by the `halo64-assets` Git submodule:
 
 The submodule stores the current reduced JSON meshes, corresponding Blender
 scenes, texture/reference inputs, packed animation and audio banks, generated C,
-provenance reports, and six menu-art adaptations. Raw/decompressed `.map` caches
-and extraction logs are excluded. Privacy does not imply ownership of the
-original Halo data or attributed ModRetro photographs. Keep the bank private.
+provenance reports, and six menu-art adaptations. Expanded `.map` working
+caches and extraction logs are excluded. The PR #18 handoff pins a private
+compressed source-cache package; see [PR18_BUILD.md](PR18_BUILD.md) for the
+restore and build recipe. Keep the bank private. Privacy does not imply
+ownership of the original Halo data or attributed ModRetro photographs.
 No asset bytes are included in the public submodule entry: it contains only the
 private repository URL and pinned commit hash.
 
 ## Use the bank
+
+For a normal fresh release use `make n64`. It initializes the exact private pin,
+verifies it, restores the versioned input caches and provisions the locked build
+dependencies automatically. See [README.md](README.md#fresh-release-build).
+The older explicit steps below remain useful when editing assets.
 
 ```sh
 git submodule update --init halo64-assets
@@ -42,9 +49,10 @@ python3 port/n64/setup_assets.py \
 ```
 
 Local source-cache links are restored from that archive when it is present.
-On a different machine, supply/extract the owned source disc to regenerate
-those caches. They are unnecessary for accessing the saved meshes, but original
-cache hashes remain part of extraction/build provenance checks.
+For PR #18, restore the versioned private package as described in
+[PR18_BUILD.md](PR18_BUILD.md). Other revisions may require supplying/extracting
+the owned source disc to regenerate those caches. The saved meshes are usable
+without the caches, but extraction and build checks still verify their hashes.
 
 ## Commit asset changes
 

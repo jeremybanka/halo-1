@@ -255,10 +255,74 @@ Run from the repository root. The current customized asset bank is pinned by
 the private `halo64-assets` submodule. Initialize it with
 `git submodule update --init halo64-assets`, then run
 `python3 port/n64/setup_assets.py`. The build connects these banks automatically.
-ROMs and audit output remain in ignored `build/n64/`. See [BACKUPS.md](BACKUPS.md)
+Direct `build.py` use retains the established `build/n64/` links; the turnkey
+entrypoint below uses ignored `build/n64-bootstrap/` for caches and ROM runs.
+See [BACKUPS.md](BACKUPS.md)
 for the private asset workflow and the local iCloud archive.
 
-Requirements: Python **3.11** with `requirements.txt`, Blender 5.2.2,
+### Fresh release build
+
+After cloning this repo with access to the private asset repository, run:
+
+```sh
+make n64
+```
+
+The bootstrap initializes the exact asset submodule pin, verifies the complete
+bank, restores the locked source-map inputs, installs Python 3.11.17 and the
+hashed Python dependencies, provisions the pinned libdragon/Tiny3D toolchain,
+then builds the playable release. Blender and the original disc are not needed
+for a normal build from the saved assets.
+
+Git, make, curl, a C/C++ compiler and Python 3.11+ are host prerequisites. On
+Ubuntu install `build-essential clang curl git pkg-config libpng-dev zlib1g-dev
+libopus-dev libsamplerate0-dev`. On macOS install Xcode command-line tools and
+the Homebrew compiler-build prerequisites: `gmp mpfr libmpc gsed isl make python3
+texinfo`. Linux uses a checksummed prebuilt cross-compiler; macOS can build the
+locked cross-compiler from source. Cold setup needs several GiB (substantially
+more for a macOS compiler build); the storage guard reserves the full estimate
+before starting. A refusal is a reason to free approved disposable outputs.
+
+All dependency versions, download checksums, supplemental historical inputs and
+the narrowly scoped historical manifest correction are recorded in
+`bootstrap-lock.json`. Private input data stays in `halo64-assets`. Mutable
+inputs, tools and ROMs stay under this checkout's ignored `build/n64-bootstrap/`.
+Repeated runs verify and reuse the cache, and each ROM gets a new run directory.
+Conflicting files, corrupt caches and links into another checkout are rejected.
+
+To select an existing matching SDK instead of provisioning it:
+
+```sh
+make n64 N64_ARGS="--sdk /path/to/sdk --tiny3d /path/to/tiny3d --libdragon-source /path/to/libdragon-source"
+```
+
+The equivalent environment variables are `N64_INST`, `TINY3D_DIR` and
+`LIBDRAGON_SOURCE`; all three must be provided together. The bootstrap checks
+their revisions and compiler version. `--python` and `--uv` select already
+installed locked versions. `--expanded` builds the full enemy roster.
+
+Historical refs use the current bootstrap and their original asset pins:
+
+```sh
+make n64 N64_ARGS="--ref 624edb41161cae6d53363b67a7bbf6d7f4afb443"
+```
+
+This creates an isolated policy-managed external worktree, restores only the
+explicitly locked supplemental inputs, and compiles the historical source
+without patching it. Source history is never rewritten. Its test checkout and
+outputs remain available for review and normal explicit retirement afterward.
+The Jorge pin's one stale `maps-report.json` manifest entry has an exact
+old/new-hash correction in the lock; other mismatches still fail.
+
+The `N64 cold build` workflow tests the candidate and five most recent main
+commits on fresh runners, using the same entrypoint and no asset/build cache.
+Private access uses the repository's `N64_ASSETS_SSH_KEY` Actions secret: a
+dedicated read-only deploy key for the asset repository. GitHub host keys are
+pinned in `.github/github-known-hosts`. CI retains provenance, not ROMs or assets.
+
+### Asset editing and direct build.py use
+
+Asset extraction/editing requirements: Python **3.11** with `requirements.txt`, Blender 5.2.2,
 libdragon with MIPS GCC 16.2, built Tiny3D, and the supplied Xbox USA Rev 2 disc.
 The tested SDK revisions are libdragon
 `494f1f586d3d6d5fc65b516a8ce29ccf42f85e15` and Tiny3D

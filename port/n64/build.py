@@ -564,10 +564,29 @@ def parse_args(argv=None):
     return args
 
 
+def reproducible_prefix_flags(args, sdk, tiny, out):
+    sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
+    paths = {
+        ROOT: "/src/halo64",
+        sdk: "/toolchain/libdragon-sdk",
+        sdk_source: "/toolchain/libdragon-source",
+        tiny: "/toolchain/tiny3d",
+        out: "/build/halo64",
+    }
+    if args.pve_model_bank:
+        paths[args.pve_model_bank.resolve()] = "/inputs/pve-model-bank"
+    if args.enemy_vehicle_bank:
+        paths[args.enemy_vehicle_bank.resolve()] = "/inputs/enemy-vehicle-bank"
+    # GCC gives the last matching prefix precedence, so use the most specific last.
+    return [f"-ffile-prefix-map={path}={paths[path]}" for path in sorted(paths, key=lambda p: len(str(p)))]
+
+
 def compile_options(args, sdk, tiny, out, source):
     sdk_source = (args.libdragon_source or sdk.parent / "libdragon-src").resolve()
     return [
         "-I"+str(out/"gungnir-source"),
+        *reproducible_prefix_flags(args, sdk, tiny, out),
+        "-frandom-seed=halo64-" + source.name,
         *(["-DBG_PVE", "-DBG_PVE_PLAYERS="+str(args.pve_players), "-DBG_PVE_COUNT="+str(args.pve_count), "-DBG_PVE_QA="+str(args.pve_qa), "-I"+str(ROOT/"halo64-assets/generated/pve")] if args.pve_squad or args.firefight else []),
         *(["-DBG_PVE_MODEL_CANDIDATE"] if args.pve_model_bank else []),
         *(["-DBG_PVE_ROSTER"] if args.pve_roster else []),
@@ -1390,6 +1409,8 @@ def main():
     run(
         [
             sdk / "bin/mips64-elf-g++",
+            *reproducible_prefix_flags(args, sdk, tiny, out),
+            "-frandom-seed=halo64-link",
             *(
                 [
                     "-flto",
@@ -1540,6 +1561,9 @@ def main():
     )
 
     def revision(directory):
+        marker = Path(directory) / ".halo64-source.json"
+        if marker.is_file():
+            return json.loads(marker.read_text())["revision"]
         result = subprocess.run(
             ["git", "-C", str(directory), "rev-parse", "HEAD"], capture_output=True, text=True
         )

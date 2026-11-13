@@ -462,7 +462,7 @@ static void pickup_notices(unsigned player, int x, int bottom, int width, int ma
 }
 
 static bool scoped(const bg_player *p) {
-    return p->health > 0 && p->vehicle < 0 && p->zoom > 0 &&
+    return p->health > 0 && bg_player_personal_weapon(p) && p->zoom > 0 &&
            (p->weapon == BG_W_PISTOL || p->weapon == BG_W_SNIPER);
 }
 

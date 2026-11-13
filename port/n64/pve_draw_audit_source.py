@@ -73,12 +73,12 @@ def generate(directory):
     for n,name in enumerate(('world','vehicles','players','pickups','effects','firstperson')):
         needle=f'    category_triangles[{n}] += triangles - before;'
         scene=replace(scene,needle,f'    audit_category(p,"{name}");\n'+needle)
-    scene=replace(scene,'    pve_draw(p);','    pve_draw(p);\n    audit_category(p,"covenant");')
+    scene=replace(scene,'    if(visr) pve_draw_ship(p); else pve_draw(p);','    if(visr) pve_draw_ship(p); else pve_draw(p);\n    audit_category(p,"covenant");')
     draw=(directory/'pve_draw.inc').read_text()
     draw=replace(draw,'if(pve_ship_visible[view]){','if(pve_ship_visible[view]&&!audit_skip(BG_PVE_MAX)){')
     draw=replace(draw,'for(unsigned i=0;i<bg_pve_count;i++)if(pve_lods[view][i]){','for(unsigned i=0;i<bg_pve_count;i++)if(pve_lods[view][i]&&!audit_skip(i)){')
-    draw=replace(draw,'        t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(pve_blocks[slot][owner][lod]);','        audit_actor(view,i,lod,owner);\n        t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(pve_blocks[slot][owner][lod]);')
-    draw=replace(draw,'if(bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER){','if(bg_draw_audit_frame!=15&&bg_players[BG_PLAYERS+i].health>0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER){')
+    draw=replace(draw,'        t3d_matrix_set(&pve_matrices[slot][i],true);t3d_segment_set(T3D_SEGMENT_2,pve_vertices[slot][owner][lod]);','        audit_actor(view,i,lod,owner);\n        t3d_matrix_set(&pve_matrices[slot][i],true);t3d_segment_set(T3D_SEGMENT_2,pve_vertices[slot][owner][lod]);')
+    draw=replace(draw,'if(bg_players[BG_PLAYERS+i].health>0&&bg_players[BG_PLAYERS+i].vehicle<0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER){','if(bg_draw_audit_frame!=15&&bg_players[BG_PLAYERS+i].health>0&&bg_players[BG_PLAYERS+i].vehicle<0&&bg_pve_actors[i].kind!=BG_PVE_HUNTER){')
     draw=replace(draw,'        submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);\n#endif\n    }','        submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);\n        if(!bg_draw_audit_frame)debugf("DRAW_SHIP view=%u lod=%u body=%u triangles=%u\\n",view,lod,model_load_count(m,m->vertex_count,0,m->batch_count),m->triangle_count);\n#endif\n    }')
     alpha=(directory/'pve_model_candidate.inc').read_text()
     alpha=replace(alpha,'if(pve_ship_visible[view]){','if(pve_ship_visible[view]&&!audit_skip(BG_PVE_MAX)){')

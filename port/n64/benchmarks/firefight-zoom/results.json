@@ -1,0 +1,684 @@
+{
+  "schema": 2,
+  "date_utc": "2026-11-13",
+  "source_base": "a4ce2e0e317ecb60684ac34a6a3abf99b1efeb86",
+  "asset_revision": "9d036ac720d671e232513404d01601b0136c427f",
+  "hardware_report": {
+    "system": "M64",
+    "overclock": "Insane",
+    "players": 3,
+    "armor": "standard Spartan for all three",
+    "map": "Blood Gulch",
+    "fights": [
+      "Onslaught",
+      "Gauntlet"
+    ],
+    "hardware_rom_identified": false
+  },
+  "diagnosis": {
+    "cause": "Mixed zoom exhausts/fragments RAM while duplicating per-actor, per-LOD, per-slot vertex and command buffers. SDK command chunk allocation is unchecked; crash inspector then also runs out of RAM.",
+    "ordinary_failure_call_chain": [
+      "pve_prepare",
+      "pve_record_surface",
+      "rspq_next_buffer",
+      "memset(NULL, ..., 512)"
+    ],
+    "secondary_failure": "display_init: __safe_buffer[i] != NULL",
+    "before_ordinary": {
+      "log": {
+        "path": "build/firefight-zoom-20261113/capture-expanded-logged/native.log",
+        "bytes": 384523,
+        "sha256": "9cdf57d9e43bde525b4266bfbd95baf226a8d4d689e9e70081d3cf50b9acbb5c"
+      },
+      "last_sample": {
+        "tick": 11790,
+        "elapsed": 392.99,
+        "round_zero_based": 1,
+        "wave_zero_based": 4,
+        "phase": 2,
+        "actors": 12,
+        "sampled_free_bytes": 142984,
+        "zoom": "0,1,2"
+      },
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 21248,
+      "cpu_exceptions": 1,
+      "assertions": 1,
+      "vertex_pressure_attempts": 882
+    },
+    "before_crowded": {
+      "log": {
+        "path": "build/firefight-zoom-20261113/capture-crowded/native.log",
+        "bytes": 1418,
+        "sha256": "449abb998f850a31a658e87e1641648c7c2d8ad1594b7e101f37d1138bcb39bd"
+      },
+      "last_sample": null,
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 785200,
+      "cpu_exceptions": 0,
+      "assertions": 2,
+      "vertex_pressure_attempts": 1
+    }
+  },
+  "repair": {
+    "segment": 2,
+    "shared_body_ship_command_blocks": 19,
+    "expanded_decode_tracks": 680,
+    "expanded_decode_bytes_before": 65536,
+    "expanded_decode_bytes_after": 5440,
+    "motion_cache_bytes_before": 196608,
+    "motion_cache_bytes_after": 131072,
+    "largest_supported_dma_span": 98336,
+    "runtime_sources": {
+      "pve_draw.inc": "6b04694da6c18a361b222a0a3937d57173373c670a0e4c13f9c924e3fae95a3c",
+      "pve_model_candidate.inc": "65f95f19231e182a0adc836bf8499e15a259ea42d3530f31694bb8be8eee9484",
+      "pve_motion_cache.h": "6caeccabb6e5e4126f248b73694cc0803d236cf908cf051bf03bc4fe9bfbf9c2",
+      "pve_jackal_shield.inc": "eece548bae99c29b6009acc8a215a2eeb54116536857a775cb767a312393d197",
+      "scene_visr.inc": "c6669ae823e994334df53c1b679f27a62ac29bff125ac43906bfe8c74ae143c7"
+    },
+    "pressure_policy": "After old-slot reclamation fails, drain previous RSP readers and restart the complete preparation once. Use each visible actor/Spirit's highest requested detail in every visible view until residency teardown.",
+    "expanded_pressure_motion_window_bytes": 8192,
+    "expanded_pressure_motion_policy": "Release the CPU ROM cache and keep a single aligned transfer window sized as max_tracks * 12 + 32. Exact animation is preserved; repeated reads may increase.",
+    "jackal_shield_commands": "Pre-recorded before actor vertex buffers; freed after the residency fence and recreated on next residency."
+  },
+  "native_conditions": {
+    "emulator": "Ares v148",
+    "rdram_bytes": 8388608,
+    "video": "NTSC 320x240",
+    "player_count": 3,
+    "armor": "standard Spartan",
+    "fixture_caveat": "Fixture healing, no human fire, periodic direct kills and deterministic zoom; allocation/lifecycle evidence, not balance or FPS evidence.",
+    "logging_caveat": "ISViewer images omit other maps filesystem payloads to stay below 64 MiB. Each uses the same executable and Blood Gulch resources as its full diagnostic cartridge."
+  },
+  "host_validation": {
+    "sanitizers": [
+      "AddressSanitizer",
+      "UndefinedBehaviorSanitizer"
+    ],
+    "exact_command_comparisons": 1211760,
+    "exact_packed_poses": 1263616,
+    "exact_vertex_comparisons": 1587039232,
+    "command_log": {
+      "path": "build/firefight-zoom-followup-20261113-commands.log",
+      "bytes": 506,
+      "sha256": "da7f0df410562dbd166b264e14d44a9078f5c2b54c94020c1810c24014634725"
+    },
+    "animation_log": {
+      "path": "build/firefight-zoom-20261113/host-animation.log",
+      "bytes": 1160,
+      "sha256": "ba839892b4c2d7b305142498f26c1b54420065051fe7826aaf139e3664bee02c"
+    },
+    "buffer_log": {
+      "path": "build/firefight-zoom-followup-20261113-buffers.log",
+      "bytes": 273,
+      "sha256": "3834ccf4b107ad339c0c1968b57e001e213c9c2959eb81525841abf78676f554"
+    },
+    "pressure_log": {
+      "path": "build/firefight-zoom-followup-20261113-pressure-window-host.log",
+      "bytes": 451,
+      "sha256": "0dd02c42d85a8572b282b7d1e66285a044c5e611b173f42d323e7d63aaba01fb"
+    },
+    "pressure_view_plans": {
+      "two_lod_baseline": 120,
+      "three_lod_expanded": 340
+    },
+    "pressure_checks": "Unchanged normal selection, most detailed requested LOD, hidden/inactive view isolation, previous-reader fence, all-slot retirement, one retry only, exact 8192-byte window, no second retry, idempotent residency cleanup and index-readiness preservation."
+  },
+  "target_validation": {
+    "configurations": 10,
+    "scene_units_compiled": 10,
+    "audit_units_compiled": 2,
+    "configuration_log": {
+      "path": "build/firefight-zoom-followup-20261113-window-targets.log",
+      "bytes": 323,
+      "sha256": "9a7345776fd7f02670574764e0f441a2334b42c2e988c07782613bac72ccd374"
+    },
+    "audit_log": {
+      "path": "build/firefight-zoom-followup-20261113-window-audit.log",
+      "bytes": 106,
+      "sha256": "cc25538973d0f990af6f37c29c8cf4a345e37597a763f1547c79822c54012a63"
+    }
+  },
+  "reproduction_sources": {
+    "build_fixture.py": "4dc955c18c5e7866963869a87230dfadf30a0e42001b28b1c546a65e8a31f828",
+    "capture_combat.py": "85fa8941d5e1b603d3b981ced7c7d5d241ece6a939850830ebc110112346ac10",
+    "combat-gauntlet.c": "1b0d43c47697d669df1445caded2aa347950f825a97ead146016a887306a2d98",
+    "combat-onslaught.c": "0a9d9e4821d6c4901c1d7caafdbf7a89cb1305a8620f703253b4f7e3bdb4a796",
+    "combat.inc": "00fad373a6e7a3d8490a2b0102fbb46d9777cf78837b66038b1892967f834d1e",
+    "crowded.c": "7255990bd68794fff72e739ea9e807386f44ae38af1a0d113ff3cfe9a3204997",
+    "fixture.inc": "fa92afa363d3904d66b59d97fb94566b9756aabf62fe923349ebf50424e143b9",
+    "gauntlet.c": "71b8947e77e7541e5e52e8134030c9d507d19d0a7067b62b9f5444eab9c0868e",
+    "jackals.c": "c8c47a594f95f1448815bae19aa1b780503ce82a7c6846398491cd55b85a8f44",
+    "onslaught.c": "2efa3e5ec86a91fc5b330af4240459bee3ccb2ab514ab6ad7cd05400347ff00a",
+    "pressure-frontend.c": "0efcaa7e278433a77a59e53aa087e7e075bc905f603e59ff41b281873c8e65c9"
+  },
+  "reproduction_builder_check": {
+    "path": "build/firefight-zoom-followup-20261113-pressure-fixture-builder.log",
+    "bytes": 25699,
+    "sha256": "a30ccbccc17871e9e7e91738a8bcd0ea77bc71bb3eae6b7241ee72861f141bdf"
+  },
+  "earlier_command_sharing_candidate": {
+    "runtime_sources": {
+      "pve_draw.inc": "59b311af23187aafd3f2b48311cf194c191c7d10f50284301ea95068775101bf",
+      "pve_model_candidate.inc": "1d9f783b5da82cd284a898adea98b214fc16e529d510ddd6f7c1742727c39eac",
+      "pve_motion_cache.h": "6caeccabb6e5e4126f248b73694cc0803d236cf908cf051bf03bc4fe9bfbf9c2",
+      "scene_visr.inc": "c6669ae823e994334df53c1b679f27a62ac29bff125ac43906bfe8c74ae143c7"
+    },
+    "playable_candidate": {
+      "rom": {
+        "path": "build/firefight-zoom-20261113/playable/halo-64-pve-model-candidate-paced30-rspq32k.z64",
+        "bytes": 72581120,
+        "sha256": "629f0b5e0ec93b49e4e1bcbfda2e62110837a3bd4506d1e460646019402356be"
+      },
+      "manifest": {
+        "path": "build/firefight-zoom-20261113/playable/halo-64-pve-model-candidate-paced30-rspq32k.build.json",
+        "bytes": 569421,
+        "sha256": "e439683fd15f81fabf278b0e410818e4cf0c4a25bea86ceb77b1d8d847eb493f"
+      },
+      "diagnostic_game_source": false,
+      "all_maps_retained": true,
+      "hardware_acceptance": "M64 Insane replay of the reported three-player setup remains pending"
+    },
+    "native_after": {
+      "crowded": {
+        "log": {
+          "path": "build/firefight-zoom-20261113/capture-candidate-crowded/native.log",
+          "bytes": 81830,
+          "sha256": "91bfdb5c4e28452d70a0e0c51df76da1dfcd8f36564d9815c8aa58f3947fad6e"
+        },
+        "last_sample": {
+          "tick": 1800,
+          "elapsed": 60.0,
+          "round_zero_based": 0,
+          "wave_zero_based": 0,
+          "phase": 3,
+          "actors": 12,
+          "sampled_free_bytes": 145296,
+          "zoom": "0,1,0"
+        },
+        "first_victory_sample": null,
+        "lowest_sampled_free_bytes": 17136,
+        "cpu_exceptions": 0,
+        "assertions": 0,
+        "vertex_pressure_attempts": 259,
+        "outcome": "Passed 60 seconds after the baseline failed on its first preparation."
+      },
+      "onslaught": {
+        "log": {
+          "path": "build/firefight-zoom-20261113/run-candidate-onslaught/capture/native.log",
+          "bytes": 632661,
+          "sha256": "c835db15e9727245e18f60124731964bc8d53033908d900e03fdd834bc486b71"
+        },
+        "last_sample": {
+          "tick": 20010,
+          "elapsed": 666.93,
+          "round_zero_based": 2,
+          "wave_zero_based": 4,
+          "phase": 4,
+          "actors": 12,
+          "sampled_free_bytes": 336272,
+          "zoom": "1,0,0"
+        },
+        "first_victory_sample": null,
+        "lowest_sampled_free_bytes": 18416,
+        "cpu_exceptions": 0,
+        "assertions": 0,
+        "vertex_pressure_attempts": 1141,
+        "outcome": "Cleared all 15 normal waves; bonus still underway at the 667-second simulation horizon."
+      },
+      "gauntlet": {
+        "log": {
+          "path": "build/firefight-zoom-20261113/run-candidate-gauntlet/capture/native.log",
+          "bytes": 592169,
+          "sha256": "c1c93456d0f62c390b2c3eb07f156f1ce85c660131d59f78c1e24aa68d5681aa"
+        },
+        "last_sample": {
+          "tick": 20010,
+          "elapsed": 650.0,
+          "round_zero_based": 2,
+          "wave_zero_based": 4,
+          "phase": 5,
+          "actors": 12,
+          "sampled_free_bytes": 395232,
+          "zoom": "1,0,0"
+        },
+        "first_victory_sample": {
+          "tick": 19530,
+          "elapsed": 650.0,
+          "round_zero_based": 2,
+          "wave_zero_based": 4,
+          "phase": 5,
+          "actors": 12,
+          "sampled_free_bytes": 395232,
+          "zoom": "0,1,2"
+        },
+        "lowest_sampled_free_bytes": 18272,
+        "cpu_exceptions": 0,
+        "assertions": 0,
+        "vertex_pressure_attempts": 375,
+        "outcome": "Completed all 15 normal waves and the bonus; victory at the 10:50 director timer."
+      }
+    },
+    "frontend_validation": {
+      "log": {
+        "path": "build/firefight-zoom-20261113/run-frontend-validation/capture/native.log",
+        "bytes": 1301536,
+        "sha256": "725119ece4a010cac3f8b2026ac1ab808341ae70baec6443f4e5acc2eaad4f81"
+      },
+      "steps": 43,
+      "rdp_errors_crashes_warnings": 0,
+      "outcome": "restart, quit, teardown and multiplayer return passed"
+    }
+  },
+  "followup_diagnosis": {
+    "command_sharing_dense_failure": {
+      "log": {
+        "path": "build/firefight-zoom-followup-20261113-jackals-run/capture/native.log",
+        "bytes": 1168,
+        "sha256": "ca01adab101c23c422f3bd2673607bd519278d0a802b803ee685422e0f49be98"
+      },
+      "last_sample": null,
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 785008,
+      "cpu_exceptions": 0,
+      "assertions": 2,
+      "vertex_pressure_attempts": 1,
+      "whole_preparation_retries": 0,
+      "victory_marker": false,
+      "build_stage": "command-sharing only"
+    },
+    "shared_lod_dense_pass": {
+      "log": {
+        "path": "build/firefight-zoom-followup-20261113-jackals-retry-run/capture/native.log",
+        "bytes": 25260,
+        "sha256": "f263ff39535c75ba0787c11df6898f4ad5b5c45a49c4869b258cdfdbcb304bed"
+      },
+      "last_sample": {
+        "tick": 600,
+        "elapsed": 20.0,
+        "round_zero_based": 0,
+        "wave_zero_based": 0,
+        "phase": 3,
+        "actors": 12,
+        "sampled_free_bytes": 154008,
+        "zoom": "0,0,1"
+      },
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 154008,
+      "cpu_exceptions": 0,
+      "assertions": 0,
+      "vertex_pressure_attempts": 88,
+      "whole_preparation_retries": 1,
+      "victory_marker": false,
+      "build_stage": "shared-LOD retry, before transfer-window fallback"
+    },
+    "shared_lod_menu_failure": {
+      "log": {
+        "path": "build/firefight-zoom-followup-20261113-pressure-frontend-normal-run/capture/native.log",
+        "bytes": 1299663,
+        "sha256": "8e9b6ae5e2fac6f32412f07650d13a7839ec0de3995e748a327956660b90e94d"
+      },
+      "last_sample": {
+        "tick": 30,
+        "elapsed": 1.0,
+        "round_zero_based": 0,
+        "wave_zero_based": 0,
+        "phase": 3,
+        "actors": 12,
+        "sampled_free_bytes": 104576,
+        "zoom": "1,0,0"
+      },
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 104576,
+      "cpu_exceptions": 0,
+      "assertions": 2,
+      "vertex_pressure_attempts": 0,
+      "whole_preparation_retries": 1,
+      "victory_marker": false,
+      "build_stage": "shared-LOD retry, no rendering validator"
+    },
+    "validated_shared_lod_menu_failure": {
+      "log": {
+        "path": "build/firefight-zoom-followup-20261113-pressure-frontend-run/capture/native.log",
+        "bytes": 4221606,
+        "sha256": "51cdd6c396ae3a53d817b8580e56f992ddaf2b94d19767a5961184b67b2f1de7"
+      },
+      "last_sample": {
+        "tick": 30,
+        "elapsed": 1.0,
+        "round_zero_based": 0,
+        "wave_zero_based": 0,
+        "phase": 3,
+        "actors": 12,
+        "sampled_free_bytes": 48840,
+        "zoom": "1,0,0"
+      },
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 48840,
+      "cpu_exceptions": 0,
+      "assertions": 2,
+      "vertex_pressure_attempts": 0,
+      "whole_preparation_retries": 1,
+      "victory_marker": false,
+      "build_stage": "shared-LOD retry, rendering validator enabled"
+    }
+  },
+  "native_after": {
+    "onslaught": {
+      "log": {
+        "path": "build/firefight-zoom-followup-20261113-onslaught-final-run/native.log",
+        "bytes": 663279,
+        "sha256": "640fb5e3f8338af17031d8feb8d40dc9c14810f0f14bfa940dc2f1c3741e2ea2"
+      },
+      "last_sample": {
+        "tick": 21030,
+        "elapsed": 699.98,
+        "round_zero_based": 2,
+        "wave_zero_based": 4,
+        "phase": 5,
+        "actors": 12,
+        "sampled_free_bytes": 342480,
+        "zoom": "0,0,1"
+      },
+      "first_victory_sample": {
+        "tick": 21030,
+        "elapsed": 699.98,
+        "round_zero_based": 2,
+        "wave_zero_based": 4,
+        "phase": 5,
+        "actors": 12,
+        "sampled_free_bytes": 342480,
+        "zoom": "0,0,1"
+      },
+      "lowest_sampled_free_bytes": 16480,
+      "cpu_exceptions": 0,
+      "assertions": 0,
+      "vertex_pressure_attempts": 1161,
+      "whole_preparation_retries": 0,
+      "victory_marker": true,
+      "outcome": "All 15 normal waves and the bonus completed with victory.",
+      "manifest": {
+        "path": "build/firefight-zoom-followup-20261113-shared-lod-onslaught/rom/halo-64-pve-model-candidate-profile-paced30-rspq32k.build.json",
+        "bytes": 565394,
+        "sha256": "ea3726f7e38d4d099dc83cc8cd1858a143761760cb26b3253e73f1673a303657"
+      },
+      "runtime_sources": {
+        "pve_draw.inc": "bf0bdd3dc4de6adfff1979da4c4ffce8b8ab77ad196337dd1d9461c70868b6db",
+        "pve_model_candidate.inc": "65f95f19231e182a0adc836bf8499e15a259ea42d3530f31694bb8be8eee9484",
+        "pve_motion_cache.h": "6caeccabb6e5e4126f248b73694cc0803d236cf908cf051bf03bc4fe9bfbf9c2",
+        "pve_jackal_shield.inc": "eece548bae99c29b6009acc8a215a2eeb54116536857a775cb767a312393d197",
+        "scene_visr.inc": "c6669ae823e994334df53c1b679f27a62ac29bff125ac43906bfe8c74ae143c7"
+      },
+      "build_stage": "Shared commands, sized scratch and shared-LOD recovery; before the final pressure transfer-window fallback."
+    },
+    "gauntlet": {
+      "log": {
+        "path": "build/firefight-zoom-followup-20261113-gauntlet-final-run/native.log",
+        "bytes": 581889,
+        "sha256": "8e5c75ea286dd1ce3f9c7f0eda74b1978b9e738039088d8e94f2aa85c6c2fe64"
+      },
+      "last_sample": {
+        "tick": 19500,
+        "elapsed": 649.93,
+        "round_zero_based": 2,
+        "wave_zero_based": 4,
+        "phase": 4,
+        "actors": 12,
+        "sampled_free_bytes": 270248,
+        "zoom": "2,0,1"
+      },
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 24624,
+      "cpu_exceptions": 0,
+      "assertions": 0,
+      "vertex_pressure_attempts": 468,
+      "whole_preparation_retries": 0,
+      "victory_marker": true,
+      "outcome": "All 15 normal waves and the bonus completed with victory.",
+      "manifest": {
+        "path": "build/firefight-zoom-followup-20261113-shared-lod-gauntlet/rom/halo-64-pve-model-candidate-profile-paced30-rspq32k.build.json",
+        "bytes": 565358,
+        "sha256": "71c20eb90fe2b3fb38c679cc6e12ca055b2a52e104c090466438e19c1f3b99b9"
+      },
+      "runtime_sources": {
+        "pve_draw.inc": "bf0bdd3dc4de6adfff1979da4c4ffce8b8ab77ad196337dd1d9461c70868b6db",
+        "pve_model_candidate.inc": "65f95f19231e182a0adc836bf8499e15a259ea42d3530f31694bb8be8eee9484",
+        "pve_motion_cache.h": "6caeccabb6e5e4126f248b73694cc0803d236cf908cf051bf03bc4fe9bfbf9c2",
+        "pve_jackal_shield.inc": "eece548bae99c29b6009acc8a215a2eeb54116536857a775cb767a312393d197",
+        "scene_visr.inc": "c6669ae823e994334df53c1b679f27a62ac29bff125ac43906bfe8c74ae143c7"
+      },
+      "build_stage": "Shared commands, sized scratch and shared-LOD recovery; before the final pressure transfer-window fallback."
+    },
+    "pressure_frontend": {
+      "log": {
+        "path": "build/firefight-zoom-followup-20261113-pressure-fixture-run/native.log",
+        "bytes": 1333298,
+        "sha256": "da10f32f34c9067ee3f88dfbabf9ec959150a8bad47d7153d00d00e68fcd46e8"
+      },
+      "last_sample": {
+        "tick": 1050,
+        "elapsed": 0.0,
+        "round_zero_based": 0,
+        "wave_zero_based": 0,
+        "phase": 0,
+        "actors": 0,
+        "sampled_free_bytes": 871032,
+        "zoom": "2,0,1"
+      },
+      "first_victory_sample": null,
+      "lowest_sampled_free_bytes": 165904,
+      "cpu_exceptions": 0,
+      "assertions": 0,
+      "vertex_pressure_attempts": 78,
+      "whole_preparation_retries": 1,
+      "victory_marker": false,
+      "steps": 43,
+      "renderer_validation_active": false,
+      "dense_first_match_last_sample": {
+        "tick": 360,
+        "elapsed": 12.0,
+        "round_zero_based": 0,
+        "wave_zero_based": 0,
+        "phase": 3,
+        "actors": 12,
+        "sampled_free_bytes": 223136,
+        "zoom": "0,1,2"
+      },
+      "dense_first_match_lowest_sampled_free_bytes": 223136,
+      "outcome": "Forced 12-Jackal pool recovered, mixed pistol/sniper zoom passed, then restart, cancel quit, quit, teardown and normal three-player PvP launch passed.",
+      "runtime_sources": {
+        "pve_draw.inc": "6b04694da6c18a361b222a0a3937d57173373c670a0e4c13f9c924e3fae95a3c",
+        "pve_model_candidate.inc": "65f95f19231e182a0adc836bf8499e15a259ea42d3530f31694bb8be8eee9484",
+        "pve_motion_cache.h": "6caeccabb6e5e4126f248b73694cc0803d236cf908cf051bf03bc4fe9bfbf9c2",
+        "pve_jackal_shield.inc": "eece548bae99c29b6009acc8a215a2eeb54116536857a775cb767a312393d197",
+        "scene_visr.inc": "c6669ae823e994334df53c1b679f27a62ac29bff125ac43906bfe8c74ae143c7"
+      },
+      "manifest": {
+        "path": "build/firefight-zoom-followup-20261113-pressure-fixture-builder/rom/halo-64-pve-model-candidate-frontend-qa3-telemetry-paced30-rspq32k.build.json",
+        "bytes": 570696,
+        "sha256": "2d69e6b5a618ad53f3c300432081f516694279b73b0b7bb6a93d48a2b67c7851"
+      },
+      "build_stage": "Final transfer-window fallback, versioned pressure-frontend fixture."
+    }
+  },
+  "native_coverage_note": "Full director soaks exercised the shared-command renderer without triggering the whole-preparation retry. They predate the final transfer-window fallback. The final source's pressure retry and residency cleanup are exercised by the saved pressure-frontend fixture.",
+  "playable_candidate": {
+    "rom": {
+      "path": "build/firefight-zoom-followup-20261113-pressure-window-playable/halo-64-pve-model-candidate-paced30-rspq32k.z64",
+      "bytes": 72581120,
+      "sha256": "50c12bd75fd9e6e8254ba8d7aa198a7b25e7b864063cb5703f1e1b2724e5debb"
+    },
+    "manifest": {
+      "path": "build/firefight-zoom-followup-20261113-pressure-window-playable/halo-64-pve-model-candidate-paced30-rspq32k.build.json",
+      "bytes": 570043,
+      "sha256": "c7cf1a1806cf83a832b7b1990bee82dd5f06a42977f740732e153feda2482d11"
+    },
+    "diagnostic_game_source": false,
+    "all_maps_retained": true,
+    "hardware_acceptance": "M64 Insane replay of the reported three-player setup remains pending"
+  },
+  "combat_stress_acceptance": "Passed both 600-second native combat captures and coverage revision 2; M64 Insane hardware acceptance pending.",
+  "native_combat": {
+    "onslaught": {
+      "status": "pass",
+      "coverage_revision": 2,
+      "simulated_seconds": 600,
+      "ticks": 18000,
+      "last_sample": {
+        "tick": 18000,
+        "seconds": 600.0,
+        "fight": 0,
+        "live": 10,
+        "projectiles": 48,
+        "grenades": 4,
+        "events": 21,
+        "human_fire": 9054,
+        "enemy_fire": 3388,
+        "frags": 89,
+        "plasma": 66,
+        "enemy_grenades": 0,
+        "explosions": 475,
+        "kills": 46,
+        "hurt": 1640,
+        "enemy_deaths": 133,
+        "enemy_hurt": 0,
+        "human_deaths": 46,
+        "wrecks": 5,
+        "aboard": 7769,
+        "moving_aboard": 6995,
+        "travel": 1335.43,
+        "zoom_edges": 535,
+        "boarding": 52,
+        "free": 401664,
+        "moving_aboard_projectiles": 48,
+        "busy_aboard": 2892,
+        "busy_scoped": 578,
+        "explosion_zoom_edges": 38
+      },
+      "log": {
+        "path": "build/firefight-combat-20261113-onslaught-final-run/native.log",
+        "bytes": 641218,
+        "sha256": "907239a4a458457360d8ed09322c57236b679c1f3d757f8289d4a1405697aa3b"
+      },
+      "manifest": {
+        "path": "build/firefight-combat-20261113-onslaught-final/rom/halo-64-pve-model-candidate-profile-paced30-rspq32k.build.json",
+        "bytes": 565121,
+        "sha256": "2a230faadc7d63ada48563795441271157e065ee33dc54da4a79facfc83d1226"
+      },
+      "original_capture": {
+        "path": "build/firefight-combat-20261113-onslaught-final-run/combat-results.json",
+        "bytes": 43482,
+        "sha256": "ff927f3c4697088208bd8fae1c5f865e26d647ccff6dbb198c513609564060f2"
+      },
+      "original_activity_failures": [],
+      "recheck": {
+        "path": "build/firefight-combat-20261113-onslaught-final-run/combat-coverage-recheck.json",
+        "bytes": 1596,
+        "sha256": "d917e40b6ba1d9908a4e1742739a529f1497980a723a94c8b3c0711f67e27f87"
+      },
+      "assertions": 0,
+      "cpu_exceptions": 0,
+      "whole_preparation_retries": 0,
+      "lowest_sampled_free_bytes": 25792,
+      "wall_seconds": 817.42,
+      "runtime_renderer_matches_playable": true
+    },
+    "gauntlet": {
+      "status": "pass",
+      "coverage_revision": 2,
+      "simulated_seconds": 600,
+      "ticks": 18000,
+      "last_sample": {
+        "tick": 18000,
+        "seconds": 600.0,
+        "fight": 1,
+        "live": 8,
+        "projectiles": 48,
+        "grenades": 4,
+        "events": 22,
+        "human_fire": 7966,
+        "enemy_fire": 2796,
+        "frags": 92,
+        "plasma": 81,
+        "enemy_grenades": 0,
+        "explosions": 429,
+        "kills": 44,
+        "hurt": 1406,
+        "enemy_deaths": 144,
+        "enemy_hurt": 0,
+        "human_deaths": 44,
+        "wrecks": 8,
+        "aboard": 7147,
+        "moving_aboard": 6594,
+        "travel": 1266.38,
+        "zoom_edges": 674,
+        "boarding": 44,
+        "free": 300320,
+        "moving_aboard_projectiles": 48,
+        "busy_aboard": 2360,
+        "busy_scoped": 154,
+        "explosion_zoom_edges": 67
+      },
+      "log": {
+        "path": "build/firefight-combat-20261113-gauntlet-final-run/native.log",
+        "bytes": 584620,
+        "sha256": "87370e28d4951233b2add8e6f9d0b585d6f79fc06a3212a503b8487dae0c059e"
+      },
+      "manifest": {
+        "path": "build/firefight-combat-20261113-gauntlet-final/rom/halo-64-pve-model-candidate-profile-paced30-rspq32k.build.json",
+        "bytes": 565085,
+        "sha256": "2229192211141f2b1e272ba4e7ebfcd6f3804e54145536d3f7ef03132345a4de"
+      },
+      "original_capture": {
+        "path": "build/firefight-combat-20261113-gauntlet-final-run/combat-results.json",
+        "bytes": 43450,
+        "sha256": "b43922bf6e3fb6ce95b743d0c74e353513726f12f8bd305c856fcf8fd40df3f3"
+      },
+      "original_activity_failures": [
+        "ticks 5400-7200: moving_aboard 0 < 30",
+        "ticks 10800-12600: moving_aboard 19 < 30"
+      ],
+      "recheck": {
+        "path": "build/firefight-combat-20261113-gauntlet-final-run/combat-coverage-recheck.json",
+        "bytes": 1593,
+        "sha256": "1b19233938acc3b582a3814e7d536e0fa5cf7223da20e0a599b91e1e475c14b4"
+      },
+      "assertions": 0,
+      "cpu_exceptions": 0,
+      "whole_preparation_retries": 0,
+      "lowest_sampled_free_bytes": 27248,
+      "wall_seconds": 738.39,
+      "runtime_renderer_matches_playable": true
+    }
+  },
+  "combat_protocol": {
+    "emulator": "Ares v148, NTSC, 8 MiB; ISViewer cartridges retain the same executable and Blood Gulch resources, omitting other map filesystem payloads.",
+    "scenario": "Three standard Spartans: driver, turret, passenger; 40-second sustained-drive interval, 20-second unassisted-damage interval, live AI and weapon/vehicle physics. Production-cap renewable encounters with Ghost/Wraith pilots, Hunters, Jackals and roster variants.",
+    "support": "Ammunition, approach placement for boarding, renewable enemy slots after three seconds, normal flip interaction; living humans and the player Warthog restored during driving intervals. Ordinary deaths/destruction remain enabled outside those intervals. No direct enemy kills or fabricated explosion events.",
+    "event_counters": "Only newly queued production events counted; lower bounds if the presentation queue saturates.",
+    "coverage_revision": 2,
+    "transport_gate_adjustment": "Gauntlet had a one-minute recovery interval with 549 human shots, 199 enemy shots and 42 explosions. Revision 2 keeps combat checks per minute, checks recovered driving in two-minute windows, doubles aggregate aboard/moving minima and raises joint aboard/ordnance/grenade minimum from 3 to 15 seconds. Original failed revision-1 driving checks remain in the capture JSON.",
+    "host_sanitizer_logs": [
+      {
+        "path": "build/firefight-combat-20261113-host-final/fight-0.log",
+        "bytes": 33254,
+        "sha256": "6bed30831c05778cab2d7c1af4fdf24c27b98fa14e97356cd7c01167e66d0845"
+      },
+      {
+        "path": "build/firefight-combat-20261113-host-final/fight-1.log",
+        "bytes": 33211,
+        "sha256": "49a57fa33401b4e450596a658d264c8cef3d0d503edf1a03b7603217821e85f1"
+      }
+    ],
+    "host_compiler": {
+      "path": "build/firefight-combat-20261113-host-final/compiler.json",
+      "bytes": 2645,
+      "sha256": "0390f6785baab483207114dfa775672a45801acfd4b05b6194fe1d86666f1d06"
+    },
+    "visual_inspection": "Observed all three viewports during active Warthog combat: driver view with Warthog body, turret view, passenger weapon/reload and enemy ordnance rendered. Earlier inspection verified 2x and 10x scopes. Final playable ROM boots its normal main menu."
+  },
+  "combat_host_sources": {
+    "port/n64/test_firefight_combat_soak.c": "b47e3d915dd98e56d46a0813c053e8e23b73122acadfba56a0ca79c5acb69b2a",
+    "port/n64/test_firefight_combat_soak.py": "cfe56db2e4d8069dc9257baa75b0f15f06ffe8f79df2f5f2f9c4add5a7713b1d"
+  }
+}

@@ -181,6 +181,12 @@ def main():
                     script,
                     lambda script=script: command([sys.executable, ROOT / "port/n64" / script]),
                 )
+    if "contracts" in groups:
+        for name in ("pve_buffers", "pve_commands", "pve_pressure"):
+            check(name, lambda name=name: command([
+                sys.executable, ROOT / "port/n64" / ("test_" + name + ".py"),
+                "--output", out / "contracts" / name,
+            ]))
     if "equivalence" in groups:
         check(
             "checkpoint per-tick equivalence",

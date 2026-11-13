@@ -1,7 +1,8 @@
 /* Matched native zoom route: ordinary production cameras and HUDs. */
-#define BG_SCOPE_QA_PAGES 10
+#define BG_SCOPE_QA_PAGES 15
 static void scope_qa_stage(unsigned *count,unsigned page) {
     *count=page==4||page==5||page==8?4:page==6?2:page==7?3:1;
+    if(page==13||page==14)*count=3;
     bg_set_players(*count);memcpy(bg_players,polish_players,sizeof(polish_players));
     bg_vehicle_count=bg_pickup_count=0;
     for(unsigned p=0;p<*count;p++) {
@@ -36,6 +37,18 @@ static void scope_qa_stage(unsigned *count,unsigned page) {
             q->yaw=-atan2f(target[2]-q->pos[2],target[0]-q->pos[0])+(page==5?.002f:0);
             q->pitch=atan2f(target[1]-q->pos[1]-.62f,hypotf(52,65));q->invisibility=1;
             q->weapon=p<2?BG_W_PISTOL:BG_W_SNIPER;q->zoom=p==0?0:p==3?2:1;
+        }
+    }
+    if(page>=10){
+        float pos[3]={5,bg_floor(5,4,100)+.02f,4};
+        int vi=bg_add_vehicle(BG_V_WARTHOG,pos,0);assertf(vi>=0,"Passenger scope vehicle");
+        bg_vehicle_physics_prepare();
+        for(unsigned p=0;p<*count;p++){
+            bg_player*q=&bg_players[p];unsigned seat=*count==1?2:page==14?(p==1?2:p==2?1:0):p;
+            q->vehicle=vi;q->seat=seat;q->seat_state=BG_SEAT_STABLE;
+            bg_vehicles[vi].occupants[seat]=p;bg_vehicle_seat_position(&bg_vehicles[vi],seat,false,q->pos);
+            q->yaw=0;q->pitch=-.3f;q->weapon=page==10?BG_W_PISTOL:BG_W_SNIPER;
+            q->zoom=seat==2?(page==10||page==11?1:2):0;
         }
     }
     bg_scene_update(0,0);

@@ -15,8 +15,8 @@ static rspq_block_t *pve_record_surface(unsigned kind,unsigned lod,T3DVertPacked
     t3d_state_set_drawflags(T3D_FLAG_SHADED|T3D_FLAG_DEPTH|T3D_FLAG_CULL_BACK);
     return rspq_block_end();
 }
-static void pve_prepare_ship_candidate(void){
-    if(!bg_ff_dropship.phase)return;
+static bool pve_prepare_ship_candidate(void){
+    if(!bg_ff_dropship.phase)return true;
     unsigned i=BG_PVE_MAX,wanted=0;bg_cull_bounds bounds;prepare_effect_bounds(&bounds,bg_ff_dropship.pos,9);
     for(unsigned v=0;v<views;v++){
         pve_ship_visible[v]=visible_bounds(&viewports[slot][v],&bounds,cull_selected[v]);
@@ -28,18 +28,21 @@ static void pve_prepare_ship_candidate(void){
 #endif
         pve_ship_lod[v]=lod;wanted|=1u<<lod;
     }
+    if(pve_shared_lod&&wanted){
+        unsigned lod=pve_detail_lod(wanted);wanted=1u<<lod;
+        for(unsigned v=0;v<views;v++)if(pve_ship_visible[v])pve_ship_lod[v]=lod;
+    }
     #ifdef BG_ENEMY_VEHICLES
     pve_trim_actor(i,wanted);
 #endif
-    if(!wanted)return;
+    if(!wanted)return true;
     matrix(&pve_matrices[slot][i],BG_SCALE/BG_PVE_SCALE,bg_ff_dropship.yaw,0,bg_ff_dropship.pos);
     for(unsigned lod=0;lod<2;lod++)if(wanted&(1u<<lod)){
         const bg_model_asset*m=&bg_pve_models[BG_PVE_SPIRIT][lod];
         if(!pve_vertices[slot][i][lod]){
-            pve_vertices[slot][i][lod]=pve_allocate(i,m->vertex_count*16);assertf(pve_vertices[slot][i][lod],"Spirit vertices");
+            pve_vertices[slot][i][lod]=pve_allocate(i,m->vertex_count*16);
+            if(!pve_vertices[slot][i][lod])return false;
             memcpy(pve_vertices[slot][i][lod],m->vertices,m->vertex_count*16);
-            pve_blocks[slot][i][lod]=pve_record_surface(BG_PVE_SPIRIT,lod,pve_vertices[slot][i][lod],false);
-            pve_alpha_blocks[slot][i][lod]=pve_record_surface(BG_PVE_SPIRIT,lod,pve_vertices[slot][i][lod],true);
         }
         const bg_pve_animation*c=&bg_pve_animations[BG_PVE_SPIRIT][lod][PVE_EXIT];
         float frame=bg_ff_dropship.door*(c->frames-1);unsigned f0=frame,f1=f0+1<c->frames?f0+1:f0;int mix=(frame-f0)*256;
@@ -55,6 +58,7 @@ static void pve_prepare_ship_candidate(void){
 #endif
         data_cache_hit_writeback(out,m->vertex_count*16);
     }
+    return true;
 }
 static void pve_draw_alpha(unsigned view){
     /* Energy/detail surfaces test world depth without hiding later geometry.
@@ -62,20 +66,20 @@ static void pve_draw_alpha(unsigned view){
      * shaders; the RDP's additive blend can overflow instead of saturating. */
     rdpq_mode_zbuf(true,false);rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
     if(pve_ship_visible[view]){
-        rspq_block_t*block=pve_alpha_blocks[slot][BG_PVE_MAX][pve_ship_lod[view]];
-        if(block){t3d_matrix_set(&pve_matrices[slot][BG_PVE_MAX],true);rspq_block_run(block);}
+        unsigned lod=pve_ship_lod[view];rspq_block_t*block=pve_alpha_blocks[BG_PVE_SPIRIT][lod];
+        if(block){t3d_matrix_set(&pve_matrices[slot][BG_PVE_MAX],true);t3d_segment_set(T3D_SEGMENT_2,pve_vertices[slot][BG_PVE_MAX][lod]);rspq_block_run(block);}
     }
     for(unsigned i=0;i<bg_pve_count;i++)if(pve_lods[view][i]){
         unsigned lod=pve_lods[view][i]-1,owner=i;
 #ifndef BG_PVE_PREP_BASELINE
         owner=pve_pose_owner[i][lod];
 #endif
-        rspq_block_t*block=pve_alpha_blocks[slot][owner][lod];
+        rspq_block_t*block=pve_alpha_blocks[bg_pve_actors[i].kind][lod];
         if(block){
 #ifdef BG_PVE_ROSTER
             float opacity=pve_opacity(i);if(opacity<1)pve_camo_mode(opacity);
 #endif
-            t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(block);
+            t3d_matrix_set(&pve_matrices[slot][i],true);t3d_segment_set(T3D_SEGMENT_2,pve_vertices[slot][owner][lod]);rspq_block_run(block);
 #ifdef BG_PVE_ROSTER
             if(opacity<1)pve_camo_mode(1);
 #endif

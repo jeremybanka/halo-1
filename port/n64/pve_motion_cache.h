@@ -8,7 +8,9 @@
 /* CPU-only immutable ROM spans. A returned pointer is consumed before the next
  * reserve; it is never handed to the RSP. FIFO allocation invalidates every
  * overlapping span before reuse, including wraparound and large requests. */
-#define BG_PVE_MOTION_CACHE_BYTES (192u*1024u)
+/* Leave room for mixed scoped/unscoped enemy meshes. This still holds the
+ * largest supported two-frame DMA span (8192 tracks plus alignment). */
+#define BG_PVE_MOTION_CACHE_BYTES (128u*1024u)
 #define BG_PVE_MOTION_CACHE_ENTRIES 32
 typedef struct {uint32_t source,offset,size;} bg_pve_motion_entry;
 typedef struct {

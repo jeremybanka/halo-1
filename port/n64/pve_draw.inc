@@ -12,10 +12,12 @@ bg_pve_prepare_profile_data bg_pve_prepare_profile;
 extern unsigned bg_pve_model_qa_lod;
 #endif
 static T3DVertPacked *pve_vertices[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
-static rspq_block_t *pve_blocks[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
+/* Immutable commands use segment 2; only vertices belong to a fenced actor
+ * slot. Zoom must never allocate another copy of these SDK command blocks. */
+static rspq_block_t *pve_blocks[BG_PVE_MODELS][BG_PVE_LODS];
 static T3DMat4FP pve_matrices[BG_FRAME_SLOTS][BG_PVE_MAX+1],pve_guns[BG_FRAME_SLOTS][BG_PVE_MAX+1];
 static uint8_t pve_lods[4][BG_PVE_MAX+1];
-static bool pve_initialized;
+static bool pve_initialized,pve_commands_ready,pve_shared_lod;
 #ifdef BG_PVE_JACKAL_SHIELDS
 static void jackal_shield_reset(void);
 #endif
@@ -44,16 +46,24 @@ static uint32_t pve_pose_keys[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
 static int16_t pve_decoded[8192][3];
 #else
 #include "pve_prepare_math.h"
-#ifdef BG_ENEMY_VEHICLES
 static bg_motion_track *pve_decoded;
-#else
-static bg_motion_track pve_decoded[8192];
+static unsigned pve_decoded_capacity;
+static unsigned pve_decode_capacity(void){
+    unsigned capacity=0;
+    for(unsigned k=0;k<BG_PVE_MODELS;k++)for(unsigned l=0;l<BG_PVE_LODS;l++)for(unsigned c=0;c<PVE_CLIPS;c++)
+        if(bg_pve_animations[k][l][c].tracks>capacity)capacity=bg_pve_animations[k][l][c].tracks;
+#ifdef BG_ENEMY_VEHICLES
+    for(unsigned k=0;k<BG_VEHICLE_COUNT;k++)for(unsigned l=0;l<BG_PVE_LODS;l++)for(unsigned c=0;c<3;c++)
+        if(bg_enemy_pilot_animations[k][l][c].tracks>capacity)capacity=bg_enemy_pilot_animations[k][l][c].tracks;
 #endif
+    assertf(capacity&&capacity<=8192,"PvE decode capacity");return capacity;
+}
 #endif
 #ifndef BG_PVE_PREP_BASELINE
 #include "pve_motion_cache.h"
 #ifdef BG_ENEMY_VEHICLES
 static bg_pve_motion_cache *pve_motion_cache;
+static uint8_t *pve_motion_fallback;
 #else
 static bg_pve_motion_cache pve_motion_storage;
 static bg_pve_motion_cache *pve_motion_cache=&pve_motion_storage;
@@ -70,7 +80,7 @@ static unsigned pve_shared_pose(unsigned i,unsigned lod,uint32_t key){
 #endif
 unsigned bg_pve_animation_us;
 #ifdef BG_PVE_MODEL_CANDIDATE
-static rspq_block_t *pve_alpha_blocks[BG_FRAME_SLOTS][BG_PVE_MAX+1][BG_PVE_LODS];
+static rspq_block_t *pve_alpha_blocks[BG_PVE_MODELS][BG_PVE_LODS];
 #endif
 #if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
 #include "pve_crunch_lod.h"
@@ -79,13 +89,8 @@ static bg_pve_crunch_state pve_crunch_states[4][BG_PVE_MAX];
 /* The current geometry slot is fenced by main.c before preparation. Discard
  * representations no camera needs; a cache is never a lifetime allocation. */
 static void pve_drop_buffer(unsigned frame,unsigned actor,unsigned lod){
-    if(pve_blocks[frame][actor][lod])rspq_block_free(pve_blocks[frame][actor][lod]);
-#ifdef BG_PVE_MODEL_CANDIDATE
-    if(pve_alpha_blocks[frame][actor][lod])rspq_block_free(pve_alpha_blocks[frame][actor][lod]);
-    pve_alpha_blocks[frame][actor][lod]=NULL;
-#endif
     if(pve_vertices[frame][actor][lod])free_uncached(pve_vertices[frame][actor][lod]);
-    pve_vertices[frame][actor][lod]=NULL;pve_blocks[frame][actor][lod]=NULL;pve_pose_keys[frame][actor][lod]=0;
+    pve_vertices[frame][actor][lod]=NULL;pve_pose_keys[frame][actor][lod]=0;
 }
 static void pve_trim_actor(unsigned actor,unsigned wanted){
     for(unsigned l=0;l<BG_PVE_LODS;l++)if(!(wanted&(1u<<l)))pve_drop_buffer(slot,actor,l);
@@ -98,7 +103,7 @@ static T3DVertPacked*pve_allocate(unsigned actor,unsigned bytes){
     for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned i=0;i<=BG_PVE_MAX;i++)
         if(s!=slot||i>actor)for(unsigned l=0;l<BG_PVE_LODS;l++)pve_drop_buffer(s,i,l);
     result=malloc_uncached(bytes);
-#ifdef BG_PROFILE
+#if defined(BG_PROFILE) || defined(BG_TELEMETRY)
     debugf("PVE_CACHE_PRESSURE actor=%u bytes=%u recovered=%u\n",actor,bytes,result!=NULL);
 #endif
     return result;
@@ -110,28 +115,66 @@ static void pve_release(void){
     jackal_shield_reset();
 #endif
     for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned i=0;i<=BG_PVE_MAX;i++)for(unsigned l=0;l<BG_PVE_LODS;l++){
-        if(pve_blocks[s][i][l])rspq_block_free(pve_blocks[s][i][l]);
-#ifdef BG_PVE_MODEL_CANDIDATE
-        if(pve_alpha_blocks[s][i][l])rspq_block_free(pve_alpha_blocks[s][i][l]);
-#endif
         if(pve_vertices[s][i][l])free_uncached(pve_vertices[s][i][l]);
     }
+    for(unsigned k=0;k<BG_PVE_MODELS;k++)for(unsigned l=0;l<BG_PVE_LODS;l++){
+        if(pve_blocks[k][l])rspq_block_free(pve_blocks[k][l]);
+#ifdef BG_PVE_MODEL_CANDIDATE
+        if(pve_alpha_blocks[k][l])rspq_block_free(pve_alpha_blocks[k][l]);
+#endif
+    }
+    memset(pve_blocks,0,sizeof(pve_blocks));pve_commands_ready=false;pve_shared_lod=false;
+#ifdef BG_PVE_MODEL_CANDIDATE
+    memset(pve_alpha_blocks,0,sizeof(pve_alpha_blocks));
+#endif
 #if defined(BG_PVE_CRUNCH) && !defined(BG_PVE_CRUNCH_BASELINE)
     memset(pve_crunch_states,0,sizeof(pve_crunch_states));
 #endif
-    memset(pve_blocks,0,sizeof(pve_blocks));memset(pve_vertices,0,sizeof(pve_vertices));
+    memset(pve_vertices,0,sizeof(pve_vertices));
     memset(pve_pose_keys,0,sizeof(pve_pose_keys));memset(pve_lods,0,sizeof(pve_lods));
 #ifndef BG_PVE_PREP_BASELINE
     if(pve_motion_cache)bg_pve_motion_cache_reset(pve_motion_cache);
 #ifdef BG_ENEMY_VEHICLES
     free(pve_motion_cache);pve_motion_cache=NULL;
-    free(pve_decoded);pve_decoded=NULL;
+    free(pve_motion_fallback);pve_motion_fallback=NULL;
 #endif
+    free(pve_decoded);pve_decoded=NULL;pve_decoded_capacity=0;
     memset(pve_frame_keys,0,sizeof(pve_frame_keys));
 #endif
-#ifdef BG_PVE_MODEL_CANDIDATE
-    memset(pve_alpha_blocks,0,sizeof(pve_alpha_blocks));
+}
+/* Preparation precedes every view's draw. If the complete mixed-LOD working
+ * set cannot fit, drain previous readers and restart preparation once, using
+ * each actor's most detailed requested mesh in all views. This preserves zoom
+ * detail and visibility; distant views may submit more triangles under pressure.
+ * Latch until residency teardown rather than oscillating allocations each frame. */
+static bool pve_retry_shared_lod(void){
+    if(pve_shared_lod)return false;
+    rspq_wait();
+    for(unsigned s=0;s<BG_FRAME_SLOTS;s++)for(unsigned i=0;i<=BG_PVE_MAX;i++)
+        for(unsigned l=0;l<BG_PVE_LODS;l++)pve_drop_buffer(s,i,l);
+#if defined(BG_ENEMY_VEHICLES) && !defined(BG_PVE_PREP_BASELINE)
+    /* The CPU has consumed every cached ROM span before this retry. Release
+     * the large cache allocation and retain one exact-sized transfer window.
+     * Menu-loaded resources and heap fragmentation need this headroom too. */
+    free(pve_motion_cache);pve_motion_cache=NULL;
+    pve_motion_fallback=memalign(16,pve_decoded_capacity*12+32);
+    assertf(pve_motion_fallback,"PvE pressure motion window");
 #endif
+    pve_shared_lod=true;
+#if defined(BG_PROFILE) || defined(BG_TELEMETRY)
+    debugf("PVE_SHARED_LOD_PRESSURE enabled=1\n");
+#endif
+    return true;
+}
+static unsigned pve_detail_lod(unsigned wanted){
+    assertf(wanted&&!(wanted>>BG_PVE_LODS),"PvE requested LOD");
+    unsigned lod=0;while(!(wanted&(1u<<lod)))lod++;return lod;
+}
+static unsigned pve_actor_lods(unsigned actor,unsigned wanted){
+    if(!pve_shared_lod||!wanted)return wanted;
+    unsigned lod=pve_detail_lod(wanted);
+    for(unsigned v=0;v<views;v++)if(pve_lods[v][actor])pve_lods[v][actor]=lod+1;
+    return 1u<<lod;
 }
 /* Samples live on the cartridge; one bounded transfer window is reused after
  * CPU interpolation. No DMA destination is shared with pending RSP work. */
@@ -147,7 +190,14 @@ static const uint16_t*pve_motion_pair(const bg_pve_animation*c,unsigned f0,unsig
 #ifdef BG_PVE_PREP_BASELINE
     uint8_t*window=pve_motion_window;bool hit=false;
 #else
-    bool hit;uint8_t*window=bg_pve_motion_reserve(pve_motion_cache,start,end-start,&hit);
+    bool hit=false;uint8_t*window;
+#ifdef BG_ENEMY_VEHICLES
+    if(pve_motion_fallback){
+        assertf(end-start<=pve_decoded_capacity*12+32,"PvE pressure motion bounds");
+        window=pve_motion_fallback;
+    }else
+#endif
+    window=bg_pve_motion_reserve(pve_motion_cache,start,end-start,&hit);
 #endif
     if(hit)PVE_PREP_COUNT(pair_hits,1);
     else{data_cache_hit_invalidate(window,end-start);dma_read(window,rom+start,end-start);PVE_PREP_COUNT(dma_bytes,end-start);}
@@ -177,13 +227,19 @@ static void pve_prepare(void){
 #endif
     if(!bg_pve_is_active())return;
 #if defined(BG_ENEMY_VEHICLES) && !defined(BG_PVE_PREP_BASELINE)
-    /* CPU scratch has no cross-frame RSP references. Keep its unchanged 192 KiB
-     * ROM cache and decode workspace only while PvE is active; PvP maps need RAM. */
-    if(!pve_motion_cache){
+    /* CPU scratch has no cross-frame RSP references. Keep it only while PvE is
+     * active; PvP maps need RAM. */
+    if(!pve_motion_cache&&!pve_motion_fallback){
         pve_motion_cache=memalign(16,sizeof(*pve_motion_cache));
-        pve_decoded=malloc(8192*sizeof(*pve_decoded));
-        assertf(pve_motion_cache&&pve_decoded,"PvE animation scratch");
+        assertf(pve_motion_cache,"PvE motion cache");
         bg_pve_motion_cache_reset(pve_motion_cache);
+    }
+#endif
+#ifndef BG_PVE_PREP_BASELINE
+    if(!pve_decoded){
+        pve_decoded_capacity=pve_decode_capacity();
+        pve_decoded=malloc(pve_decoded_capacity*sizeof(*pve_decoded));
+        assertf(pve_decoded,"PvE animation scratch");
     }
 #endif
     uint32_t begin=get_ticks_us();
@@ -193,6 +249,21 @@ static void pve_prepare(void){
         for(unsigned w=0;w<2;w++){prepare_model(&bg_pve_roster_weapons[w]);pve_roster_weapon_blocks[w]=record_model(&bg_pve_roster_weapons[w],bg_pve_roster_weapons[w].vertices);}
 #endif
         pve_initialized=true;
+    }
+    if(!pve_commands_ready){
+        for(unsigned kind=0;kind<BG_PVE_MODELS;kind++)for(unsigned lod=0;lod<BG_PVE_LODS;lod++){
+            T3DVertPacked*vertices=t3d_segment_placeholder(T3D_SEGMENT_2);
+#ifdef BG_PVE_MODEL_CANDIDATE
+            pve_blocks[kind][lod]=pve_record_surface(kind,lod,vertices,false);
+            pve_alpha_blocks[kind][lod]=pve_record_surface(kind,lod,vertices,true);
+#else
+            pve_blocks[kind][lod]=record_model(&bg_pve_models[kind][lod],vertices);
+#endif
+        }
+#ifdef BG_PVE_JACKAL_SHIELDS
+        jackal_shield_init();
+#endif
+        pve_commands_ready=true;
     }
     memset(pve_lods,0,sizeof(pve_lods));memset(pve_ship_visible,0,sizeof(pve_ship_visible));
     for(unsigned i=0;i<bg_pve_count;i++){
@@ -241,6 +312,7 @@ static void pve_prepare(void){
             pve_lods[v][i]=lod+1;wanted|=1u<<lod;
         }
         PVE_PREP_COUNT(visibility_us,PVE_PREP_NOW()-section);section=PVE_PREP_NOW();
+        wanted=pve_actor_lods(i,wanted);
         pve_trim_actor(i,wanted);
         if(!wanted)continue;
         matrix(&pve_matrices[slot][i],BG_SCALE/BG_PVE_SCALE,p->yaw,0,p->pos);
@@ -266,14 +338,13 @@ static void pve_prepare(void){
                 PVE_PREP_COUNT(shared_poses,1);PVE_PREP_COUNT(buffers_us,PVE_PREP_NOW()-section);continue;}
 #endif
             if(pve_vertices[slot][i][lod]&&pve_buffer_kind[slot][i][lod]!=pve_appearance(a)){
-#ifdef BG_PVE_MODEL_CANDIDATE
-                if(pve_alpha_blocks[slot][i][lod]){rspq_wait();rspq_block_free(pve_alpha_blocks[slot][i][lod]);pve_alpha_blocks[slot][i][lod]=NULL;}
-#endif
-                rspq_wait();rspq_block_free(pve_blocks[slot][i][lod]);free_uncached(pve_vertices[slot][i][lod]);pve_vertices[slot][i][lod]=NULL;pve_pose_keys[slot][i][lod]=0;
+                pve_drop_buffer(slot,i,lod);
             }
             if(!pve_vertices[slot][i][lod]){
                 pve_buffer_kind[slot][i][lod]=pve_appearance(a);
-                pve_vertices[slot][i][lod]=pve_allocate(i,m->vertex_count*16);assertf(pve_vertices[slot][i][lod],"PvE vertex buffers");
+                pve_vertices[slot][i][lod]=pve_allocate(i,m->vertex_count*16);
+                if(!pve_vertices[slot][i][lod]&&pve_retry_shared_lod()){pve_prepare();return;}
+                assertf(pve_vertices[slot][i][lod],"PvE vertex buffers");
                 memcpy(pve_vertices[slot][i][lod],m->vertices,m->vertex_count*16);
 #ifdef BG_PVE_ROSTER
                 if(a->variant){
@@ -281,18 +352,15 @@ static void pve_prepare(void){
                     for(unsigned v=0;v<m->vertex_count;v++)if(v&1)colored[v/2].rgbaB=colors[v];else colored[v/2].rgbaA=colors[v];
                 }
 #endif
-#ifdef BG_PVE_MODEL_CANDIDATE
-                pve_blocks[slot][i][lod]=pve_record_surface(a->kind,lod,pve_vertices[slot][i][lod],false);
-                pve_alpha_blocks[slot][i][lod]=pve_record_surface(a->kind,lod,pve_vertices[slot][i][lod],true);
-#else
-                pve_blocks[slot][i][lod]=record_model(m,pve_vertices[slot][i][lod]);
-#endif
             }
             PVE_PREP_COUNT(buffers_us,PVE_PREP_NOW()-section);
             if(pve_pose_keys[slot][i][lod]==key){PVE_PREP_COUNT(pose_hits,1);continue;}
             pve_pose_keys[slot][i][lod]=key;
             T3DVertPacked*out=CachedAddr(pve_vertices[slot][i][lod]);
             assertf(clip->tracks<=8192,"PvE track capacity");
+#ifndef BG_PVE_PREP_BASELINE
+            assertf(clip->tracks<=pve_decoded_capacity,"PvE decode workspace");
+#endif
             const uint16_t*samples=pve_motion_pair(clip,f0,f1);
             section=PVE_PREP_NOW();
 #ifdef BG_PVE_PREP_BASELINE
@@ -345,7 +413,10 @@ static void pve_prepare(void){
     }
     uint32_t ship_begin=PVE_PREP_NOW();
 #ifdef BG_PVE_MODEL_CANDIDATE
-    pve_prepare_ship_candidate();
+    if(!pve_prepare_ship_candidate()){
+        if(pve_retry_shared_lod()){pve_prepare();return;}
+        assertf(false,"Spirit vertices");
+    }
 #else
     if(bg_ff_dropship.phase){
         unsigned i=BG_PVE_MAX;const bg_model_asset*m=&bg_pve_models[BG_PVE_SPIRIT][0];
@@ -353,7 +424,12 @@ static void pve_prepare(void){
         bool visible=false;for(unsigned v=0;v<views;v++){pve_ship_visible[v]=visible_bounds(&viewports[slot][v],&bounds,cull_selected[v]);visible|=pve_ship_visible[v];}
         if(visible){
             matrix(&pve_matrices[slot][i],BG_SCALE/BG_PVE_SCALE,bg_ff_dropship.yaw,0,bg_ff_dropship.pos);
-            if(!pve_vertices[slot][i][0]){pve_vertices[slot][i][0]=pve_allocate(i,m->vertex_count*16);assertf(pve_vertices[slot][i][0],"Spirit vertices");memcpy(pve_vertices[slot][i][0],m->vertices,m->vertex_count*16);pve_blocks[slot][i][0]=record_model(m,pve_vertices[slot][i][0]);}
+            if(!pve_vertices[slot][i][0]){
+                pve_vertices[slot][i][0]=pve_allocate(i,m->vertex_count*16);
+                if(!pve_vertices[slot][i][0]&&pve_retry_shared_lod()){pve_prepare();return;}
+                assertf(pve_vertices[slot][i][0],"Spirit vertices");
+                memcpy(pve_vertices[slot][i][0],m->vertices,m->vertex_count*16);
+            }
             const bg_pve_animation*c=&bg_pve_animations[BG_PVE_SPIRIT][0][PVE_EXIT];
             float frame=bg_ff_dropship.door*(c->frames-1);unsigned f0=frame,f1=f0+1<c->frames?f0+1:f0;int mix=(frame-f0)*256;
             const uint16_t*samples=pve_motion_pair(c,f0,f1);
@@ -382,7 +458,8 @@ static void pve_draw_ship(unsigned view){
 #ifdef BG_PVE_MODEL_CANDIDATE
         lod=pve_ship_lod[view];
 #endif
-        const bg_model_asset*m=&bg_pve_models[BG_PVE_SPIRIT][lod];t3d_matrix_set(&pve_matrices[slot][BG_PVE_MAX],true);rspq_block_run(pve_blocks[slot][BG_PVE_MAX][lod]);triangles+=m->triangle_count;
+        const bg_model_asset*m=&bg_pve_models[BG_PVE_SPIRIT][lod];t3d_matrix_set(&pve_matrices[slot][BG_PVE_MAX],true);
+        t3d_segment_set(T3D_SEGMENT_2,pve_vertices[slot][BG_PVE_MAX][lod]);rspq_block_run(pve_blocks[BG_PVE_SPIRIT][lod]);triangles+=m->triangle_count;
 #ifdef BG_PROFILE
         submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);
 #endif
@@ -400,7 +477,8 @@ static void pve_draw(unsigned view){
 #ifdef BG_PVE_ROSTER
         float opacity=pve_opacity(i);if(opacity<1)pve_camo_mode(opacity);
 #endif
-        t3d_matrix_set(&pve_matrices[slot][i],true);rspq_block_run(pve_blocks[slot][owner][lod]);triangles+=m->triangle_count;
+        t3d_matrix_set(&pve_matrices[slot][i],true);t3d_segment_set(T3D_SEGMENT_2,pve_vertices[slot][owner][lod]);
+        rspq_block_run(pve_blocks[bg_pve_actors[i].kind][lod]);triangles+=m->triangle_count;
 #ifdef BG_PROFILE
         submitted_vertices+=model_load_count(m,m->vertex_count,0,m->batch_count);
 #endif

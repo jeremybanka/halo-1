@@ -69,9 +69,10 @@ static void draw_visr_units(unsigned viewer,T3DViewport *vp){
         owner=pve_pose_owner[i][lod];
 #endif
         visr_color(bg_visr_enemy(viewer,BG_PLAYERS+i));t3d_matrix_set(&pve_matrices[slot][i],true);
-        rspq_block_run(pve_blocks[slot][owner][lod]);
+        t3d_segment_set(T3D_SEGMENT_2,pve_vertices[slot][owner][lod]);
+        rspq_block_run(pve_blocks[bg_pve_actors[i].kind][lod]);
 #ifdef BG_PVE_MODEL_CANDIDATE
-        if(pve_alpha_blocks[slot][owner][lod])rspq_block_run(pve_alpha_blocks[slot][owner][lod]);
+        if(pve_alpha_blocks[bg_pve_actors[i].kind][lod])rspq_block_run(pve_alpha_blocks[bg_pve_actors[i].kind][lod]);
 #endif
         const bg_model_asset*m=&bg_pve_models[bg_pve_actors[i].kind][lod];triangles+=m->triangle_count;
 #ifdef BG_PROFILE

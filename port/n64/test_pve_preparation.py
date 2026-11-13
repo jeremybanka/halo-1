@@ -18,6 +18,8 @@ def main():
     for i,bank in enumerate(banks):
         binary=out/f'test-{i}'
         command=['clang','-std=c17','-O2','-Wall','-Wextra','-Werror','-Wno-unused-variable','-fsanitize=address,undefined','-I'+str(out),'-I'+str(ROOT/'port/n64'),str(ROOT/'port/n64/test_pve_preparation.c'),str(bank/'pve_data.c'),'-o',str(binary)]
-        if json.loads((bank/'pve-report.json').read_text()).get('lod_count',2)==3:command.insert(1,'-DBG_PVE_CRUNCH')
+        report=json.loads((bank/'pve-report.json').read_text())
+        if report.get('lod_count',2)==3:command.insert(1,'-DBG_PVE_CRUNCH')
+        if report.get('roster'):command.insert(1,'-DBG_PVE_ROSTER')
         subprocess.run(command,check=True);print('BANK',bank,flush=True);subprocess.run([str(binary),str(bank/'pve-motion.bin')],check=True)
 if __name__=='__main__':main()

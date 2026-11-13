@@ -6,7 +6,17 @@ static T3DMat4FP jackal_shield_matrices[BG_FRAME_SLOTS][BG_PVE_MAX];
 static bool jackal_shield_ready[BG_PVE_MAX];
 static bg_jackal_flash jackal_shield_flashes[BG_PVE_MAX];
 static float jackal_shield_flash_values[BG_PVE_MAX];
-static void jackal_shield_reset(void){memset(jackal_shield_flashes,0,sizeof(jackal_shield_flashes));memset(jackal_shield_flash_values,0,sizeof(jackal_shield_flash_values));}
+static void jackal_shield_reset(void){
+    memset(jackal_shield_flashes,0,sizeof(jackal_shield_flashes));memset(jackal_shield_flash_values,0,sizeof(jackal_shield_flash_values));
+    if(jackal_shield_block)rspq_block_free(jackal_shield_block);
+    jackal_shield_block=NULL;
+}
+static void jackal_shield_init(void){
+    if(jackal_shield_block)return;
+    prepare_model(&bg_jackal_shield_model);
+    jackal_shield_block=record_model(&bg_jackal_shield_model,bg_jackal_shield_model.vertices);
+    data_cache_hit_writeback((void*)bg_jackal_shield_texture,sizeof(bg_jackal_shield_texture));
+}
 static void jackal_shield_track(unsigned i){
     const bg_pve_actor*a=&bg_pve_actors[i];const bg_player*p=&bg_players[BG_PLAYERS+i];
     if(!a->occupied||a->kind!=BG_PVE_JACKAL||p->health<=0){memset(&jackal_shield_flashes[i],0,sizeof(jackal_shield_flashes[i]));jackal_shield_flash_values[i]=0;return;}
@@ -15,11 +25,7 @@ static void jackal_shield_track(unsigned i){
 static void jackal_shield_prepare(unsigned i,unsigned render_clip){
     bg_pve_actor*a=&bg_pve_actors[i];bg_player*p=&bg_players[BG_PLAYERS+i];
     if(a->kind!=BG_PVE_JACKAL||p->health<=0||p->shield<=0)return;
-    if(!jackal_shield_block){
-        prepare_model(&bg_jackal_shield_model);
-        jackal_shield_block=record_model(&bg_jackal_shield_model,bg_jackal_shield_model.vertices);
-        data_cache_hit_writeback((void*)bg_jackal_shield_texture,sizeof(bg_jackal_shield_texture));
-    }
+    assertf(jackal_shield_block,"Jackal shield commands ready");
     const bg_attachment_clip*c=&bg_jackal_shield_grips[render_clip];
     float phase=a->time/c->duration;
     if(a->clip==PVE_DEATH||a->clip==PVE_MELEE||a->clip==PVE_THROW||a->clip==PVE_EXIT||a->clip==PVE_EVADE_LEFT||a->clip==PVE_EVADE_RIGHT)phase=fminf(phase,.99999f);else phase-=floorf(phase);

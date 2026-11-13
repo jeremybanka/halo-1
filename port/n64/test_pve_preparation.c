@@ -10,7 +10,7 @@ static uint8_t pve_pose_owner[BG_PVE_MAX+1][BG_PVE_LODS];
 static uint32_t pve_frame_keys[BG_PVE_MAX][BG_PVE_LODS];
 #include "pve_preparation_share.inc"
 static bg_pve_motion_cache cache;
-static bg_motion_track decoded[8192];
+static bg_motion_track *decoded;
 static uint32_t random_state=0xce6401;
 static unsigned random_u(void){random_state=random_state*1664525u+1013904223u;return random_state;}
 static uint8_t pattern(unsigned at){return (at^(at>>8)^(at>>16))&255;}
@@ -69,6 +69,10 @@ int main(int argc,char**argv){
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     for(size_t i=0;i<size;i+=2){uint8_t v=rom[i];rom[i]=rom[i+1];rom[i+1]=v;}
 #endif
+    unsigned capacity=0;
+    for(unsigned k=0;k<BG_PVE_MODELS;k++)for(unsigned l=0;l<BG_PVE_LODS;l++)for(unsigned c=0;c<PVE_CLIPS;c++)
+        if(bg_pve_animations[k][l][c].tracks>capacity)capacity=bg_pve_animations[k][l][c].tracks;
+    decoded=malloc(capacity*sizeof(*decoded));assert(decoded);
     cache_churn();aliases();unsigned poses=0,hits=0;uint64_t vertices=0;
     for(unsigned kind=0;kind<BG_PVE_MODELS;kind++)for(unsigned lod=0;lod<BG_PVE_LODS;lod++){
         const bg_model_asset*m=&bg_pve_models[kind][lod];size_t bytes=m->vertex_count*16;
@@ -95,5 +99,5 @@ int main(int argc,char**argv){
         }
         free(before);free(after);
     }
-    free(rom);printf("PASS %u exact packed poses / %llu vertices against independent pre-change loops; all species, LODs, clips, frame pairs and all 256 interpolation bins; normals/color/UV retained; %u motion hits\n",poses,(unsigned long long)vertices,hits);
+    free(decoded);free(rom);printf("PASS %u exact packed poses / %llu vertices against independent pre-change loops; all species, LODs, clips, frame pairs and all 256 interpolation bins; normals/color/UV retained; %u motion hits; exact %u-track scratch\n",poses,(unsigned long long)vertices,hits,capacity);
 }

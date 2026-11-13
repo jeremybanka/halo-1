@@ -8,7 +8,7 @@ asset bytes retain the original exact-hash gate.
 import hashlib
 from pathlib import Path
 
-SHARED_RUNTIME={'port/n64/build.py','port/n64/map.c','port/n64/hud.c','port/n64/frontend_draw.c'}
+SHARED_RUNTIME={'port/n64/build.py','port/n64/map.c','port/n64/game.c','port/n64/hud.c','port/n64/frontend_draw.c'}
 
 
 def verify_gungnir(root,certificate):

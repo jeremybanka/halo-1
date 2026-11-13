@@ -2060,7 +2060,7 @@ static void melee_impact(unsigned index) {
     aim(p, dir, origin);
     float right[3] = {sinf(p->yaw), 0, cosf(p->yaw)};
     float up[3] = {-sinf(p->pitch) * cosf(p->yaw), cosf(p->pitch), sinf(p->pitch) * sinf(p->yaw)};
-    int victim = -1, vehicle = -1;
+    int victim = -1, vehicle = -1, hit_region = 0;
     float best = 2;
     /* Source 5x5 rays, 0.8 forward and 0.1 lateral spacing. Select one
      * collision, preferring bipeds, instead of applying 25 damage events. */
@@ -2087,6 +2087,7 @@ static void melee_impact(unsigned index) {
                 if (hit >= 0 && (victim < 0 || nearest / length < best)) {
                     victim = hit;
                     vehicle = -1;
+                    hit_region = region;
                     best = nearest / length;
                 } else if (vhit >= 0 && victim < 0 && vehicle < 0)
                     vehicle = vhit;
@@ -2103,8 +2104,8 @@ static void melee_impact(unsigned index) {
         float cp = cosf(v->pitch),
               facing[3] = {cosf(v->yaw) * cp, sinf(v->pitch), -sinf(v->yaw) * cp}, offset[3];
         sub(offset, v->pos, p->pos);
-        damage_player_profile(victim, index, amount, false, false, BG_D_MELEE, false,
-                              dot(offset, facing) > 0, scale);
+        damage_player_region(victim, index, amount, false, false, BG_D_MELEE, false,
+                             dot(offset, facing) > 0, scale, hit_region);
     } else if (vehicle >= 0)
         damage_vehicle_profile(vehicle, index, amount, BG_D_MELEE, 0, false);
 }

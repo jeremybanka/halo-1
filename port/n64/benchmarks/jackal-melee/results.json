@@ -1,0 +1,91 @@
+{
+  "base": "34a9f41a025df283b06c55bf16bd5bbef6b50c42",
+  "asset_revision": "931236c3b4398c58dd1cd0fd79ab4c3117ec5eec",
+  "game_sha256": "45add29c7e4486b10e33d20b7673f94db032bd37cfdda389472434742a5366a4",
+  "diagnosis": "Melee discarded the material region selected by its 25-ray collision query and damaged the Jackal through the indirect body material.",
+  "before_host_observation": {
+    "health_before": 100,
+    "health_after": 60,
+    "shield_before": 100,
+    "shield_after": 100,
+    "probe_log": {
+      "path": "build/jackal-collision-20261113-before-attacks/test_jackal_shield_collision-base.log",
+      "bytes": 1117,
+      "sha256": "a712f449afbb01526f7e2cdf1839b9f06054eee6f32be2611087cd397e4e90be"
+    },
+    "note": "Diagnostic fixture sets health/shield to 100. Ordinary frontal gunfire blocked at its tested shield-face ray."
+  },
+  "host": {
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "base_cases": 32,
+    "expanded_cases": 64,
+    "base_log": {
+      "path": "build/jackal-melee-20261113-after-host-v4/test_jackal_melee-base.log",
+      "bytes": 1096,
+      "sha256": "47a74e64d7cfdbd3af6466fb74e9bb3af9e876e483e472d43f7b197de16e3154"
+    },
+    "expanded_log": {
+      "path": "build/jackal-melee-20261113-after-host-v4/test_jackal_melee-roster.log",
+      "bytes": 2522,
+      "sha256": "e97253b033bb21b7ea9a8b899952cbfe1078d796d08e89b169ec5abb9d00d0e5"
+    },
+    "additional_checks": [
+      "Minor/Major shield/body rays and damage flash",
+      "EMP depletion, 15-second recharge, no corpse recharge"
+    ],
+    "gungnir_log": {
+      "path": "build/jackal-melee-20261113-gungnir-host/test_gungnir.log",
+      "bytes": 4710,
+      "sha256": "ed7b545beb2b081c66441ef0662e90892038a6c42a8f9f74ce67e22b58dac21e"
+    },
+    "gungnir_maps": 13,
+    "character_gate_test": "python3 port/n64/test_character_validation.py: passed shared HUD/game changes, character renderer/payload edits and missing-input cases"
+  },
+  "native": {
+    "system": "Ares v148, NTSC, 8 MiB, no overclock",
+    "before": {
+      "status": "expected_regression_failure",
+      "rom_sha256": "298a6ebf53a984bd95cb6901a67aaea86e35b42841735878e87296f9267e5616",
+      "stripped_sha256": "d4972f3710e5b14356bbf2db26fd4558ff0c9a7fe09b672446b24c0180173d4b",
+      "native_log_sha256": "3828962fa6785a4044d0f18749ae216aa941dd13a2dd5bd36df244f786f57dfe",
+      "logging_caveat": "Identical executable and Blood Gulch inputs; other map payloads omitted only for Ares ISViewer."
+    },
+    "after": {
+      "status": "pass",
+      "rom_sha256": "2adc90943f4acd0d91921fbdcf8078eb1cf8816c231e29ca515dc2b59cd26a39",
+      "stripped_sha256": "98fb38c72450b721c311402089bd25c063fc2129c142c98046e20cfbc6353ae8",
+      "native_log_sha256": "4dc5490f66502bdbd18cde335c5d83cd416cecc071cbf2736021723335f5dced",
+      "logging_caveat": "Identical executable and Blood Gulch inputs; other map payloads omitted only for Ares ISViewer."
+    },
+    "cases": 64,
+    "before_failure": "Deliberate shield-health regression assertion fails on case zero; not a CPU crash.",
+    "before_log": {
+      "path": "build/jackal-melee-20261113-before-capture/native.log",
+      "bytes": 996,
+      "sha256": "3828962fa6785a4044d0f18749ae216aa941dd13a2dd5bd36df244f786f57dfe"
+    },
+    "after_log": {
+      "path": "build/jackal-melee-20261113-after-capture/native.log",
+      "bytes": 92703,
+      "sha256": "4dc5490f66502bdbd18cde335c5d83cd416cecc071cbf2736021723335f5dced"
+    }
+  },
+  "map_revalidation": {
+    "old_game_sha256": "008f452a87ec9f9e8dea2e57629cddf82e686292d782582d49ef0476a6e09a16",
+    "new_game_sha256": "45add29c7e4486b10e33d20b7673f94db032bd37cfdda389472434742a5366a4",
+    "bloodgulch_sha256": "bccea69da8fe65ccf863360ae5c4fcb4f0e50fce58f2d635f3eb381fa9d1cb2c",
+    "bloodgulch_reproduced_byte_identically": true,
+    "all_existing_map_payloads_verified": 27,
+    "scope": "blood() is the only map packer that reads game.c; it reads the teleporter initializer. arena() does not read game.c.",
+    "proposed_maps_report_sha256": "da7e1718ed43049b84f0bd0de981faeaea38328c4248845d8ccf77a9d8ed8daa"
+  },
+  "playable": {
+    "path": "/Users/jem/dojo/halo-1/build/firefight-fixes-20261113-playable/halo-64-pve-model-candidate-paced30-rspq32k.z64",
+    "bytes": 72581120,
+    "sha256": "c0a4564b4e1deb1ac9ae25c3fefc35d72dfd5f622179f7ea7f3aca6398321152"
+  },
+  "hardware_acceptance": "Physical M64 at Insane remains pending."
+}
